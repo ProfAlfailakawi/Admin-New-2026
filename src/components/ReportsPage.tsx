@@ -25,7 +25,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
   );
 };
 
-import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange } from '../lib/utils';
+import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange, formatDeliveryDateDisplay, formatDeliveryTimeDisplay } from '../lib/utils';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import React, { useState, useEffect, useMemo } from "react";
@@ -1343,16 +1343,37 @@ Alturath.kw`;
                                   </div>
                                 </td>
                                 <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
-                                  <div className="flex flex-col gap-1 items-start">
-                                    <span>
-                                      {formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv))}
-                                    </span>
-                                    <span
-                                      dir="ltr"
-                                      className="text-[10px] font-medium text-slate-500 m-0 p-0 leading-none inline-block text-left"
-                                    >
-                                      {formatKuwaitiTimeOnly(resolveInvoiceDisplayDate(inv))}
-                                    </span>
+                                  <div className="flex flex-col gap-1.5 items-start">
+                                    {(() => {
+                                      const delDateRaw = (inv as any).deliveryDate || (inv as any).invoiceDateKey;
+                                      const delTimeRaw = (inv as any).deliveryTime;
+                                      const delDateFormatted = formatDeliveryDateDisplay(delDateRaw) || formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv));
+                                      const delTimeFormatted = formatDeliveryTimeDisplay(delTimeRaw);
+
+                                      return (
+                                        <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/40 text-amber-950 px-2.5 py-1.5 rounded-xl flex flex-col gap-0.5 shadow-sm w-full max-w-[190px]">
+                                          <div className="flex items-center gap-1 text-[10px] font-black text-amber-800">
+                                            <Clock size={11} className="text-amber-600 shrink-0" />
+                                            <span>وقت التوصيل المطلوب:</span>
+                                          </div>
+                                          <div className="text-xs font-black text-slate-900 flex items-center justify-between gap-1 mt-0.5">
+                                            <span dir="ltr">{delDateFormatted}</span>
+                                            {delTimeFormatted && (
+                                              <span className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold dir-ltr shrink-0">
+                                                {delTimeFormatted}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+
+                                    <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1">
+                                      <span>إنشاء:</span>
+                                      <span dir="ltr">
+                                        {formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv))} - {formatKuwaitiTimeOnly(resolveInvoiceDisplayDate(inv))}
+                                      </span>
+                                    </div>
                                     {(() => {
                                       const meta = getDeliveryTypeMeta((inv as any).deliveryType || "company");
                                       const entityName = getInvoiceDeliveryEntityName(inv);

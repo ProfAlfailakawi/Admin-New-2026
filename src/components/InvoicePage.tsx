@@ -29,6 +29,7 @@ import {
   Percent,
   MessageSquare,
   MapPin,
+  Clock,
   Check,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -218,6 +219,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
       >
     >({});
     const [invoiceDate, setInvoiceDate] = useState(() => getKuwaitDateInputValue());
+    const [deliveryTime, setDeliveryTime] = useState("");
     const [openCheaperHintId, setOpenCheaperHintId] = useState<string | null>(null);
     const getBestPriceInfo = (product: Product) => {
       const others = (data?.products || []).filter(
@@ -524,7 +526,8 @@ Alturath.kw`;
             };
           });
           setCart(newCart);
-          setInvoiceDate((inv as any).invoiceDateKey || getKuwaitDateInputValue(resolveInvoiceDisplayDate(inv)));
+          setInvoiceDate((inv as any).deliveryDate || (inv as any).invoiceDateKey || getKuwaitDateInputValue(resolveInvoiceDisplayDate(inv)));
+          setDeliveryTime((inv as any).deliveryTime || "");
           setDiscountValue(inv.discount || 0);
           setPaymentMethod(inv.paymentMethod || "KNet");
           
@@ -1080,6 +1083,8 @@ Alturath.kw`;
         createdAt: (existingInvoice as any)?.createdAt || finalInvoiceDate,
         issuedAt: (existingInvoice as any)?.issuedAt || new Date().toISOString(),
         invoiceDateKey: invoiceDate,
+        deliveryDate: invoiceDate,
+        deliveryTime: deliveryTime,
         updatedAt: new Date().toISOString(),
         ledgerVisible: true,
         customerId: targetId,
@@ -1458,14 +1463,33 @@ Alturath.kw`;
             </h2>
 
             <div className="space-y-4 mb-6">
-              <div className="w-full max-w-full overflow-visible block box-border">
-                <input
-                  type="date"
-                  lang="en-GB" dir="ltr"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="invoice-date-input w-full max-w-full min-w-0 bg-slate-50/80 border border-slate-200/80 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:p-4 text-center font-black text-xs sm:text-base outline-none transition-all focus:ring-2 focus:ring-amber-500/25 focus:border-amber-500 [color-scheme:light] box-border block"
-                />
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-amber-900 font-black text-xs">
+                  <Clock size={15} className="text-amber-600" />
+                  <span>موعد التوصيل المطلوب للعميل</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">تاريخ التوصيل</label>
+                    <input
+                      type="date"
+                      lang="en-GB" dir="ltr"
+                      value={invoiceDate}
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                      className="invoice-date-input w-full bg-white border border-amber-200/90 rounded-xl px-2 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30 [color-scheme:light]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-1">وقت التوصيل</label>
+                    <input
+                      type="time"
+                      lang="en-GB" dir="ltr"
+                      value={deliveryTime}
+                      onChange={(e) => setDeliveryTime(e.target.value)}
+                      className="w-full bg-white border border-amber-200/90 rounded-xl px-2 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30 [color-scheme:light]"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div ref={customerPickerRef} className="relative">

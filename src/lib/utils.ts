@@ -159,6 +159,39 @@ export const formatKuwaitiDate = (dateVal: any): { date: string; time: string; f
 export const formatKuwaitiDateOnly = (dateVal: any): string => formatKuwaitiDate(dateVal).date;
 export const formatKuwaitiTimeOnly = (dateVal: any): string => formatKuwaitiDate(dateVal).time;
 
+export function formatDeliveryTimeDisplay(timeStr?: string): string {
+  if (!timeStr) return '';
+  const trimmed = String(timeStr).trim();
+  if (!trimmed) return '';
+  if (trimmed.includes('م') || trimmed.includes('ص') || trimmed.toLowerCase().includes('pm') || trimmed.toLowerCase().includes('am')) {
+    return trimmed;
+  }
+  const parts = trimmed.split(':');
+  if (parts.length >= 2) {
+    let hours = parseInt(parts[0], 10);
+    const minutes = parts[1].slice(0, 2);
+    if (!isNaN(hours)) {
+      const period = hours >= 12 ? 'مساءً' : 'صباحاً';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
+      return `${formattedHours}:${minutes} ${period}`;
+    }
+  }
+  return trimmed;
+}
+
+export function formatDeliveryDateDisplay(dateStr?: string): string {
+  if (!dateStr) return '';
+  const trimmed = String(dateStr).trim();
+  if (!trimmed) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('T')[0].split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return trimmed;
+}
+
 /**
  * Format a string or DetailedAddress object into a single human-readable full address string.
  */

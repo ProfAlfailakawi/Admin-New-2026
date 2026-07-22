@@ -1197,121 +1197,137 @@ export function calculateCustomerSentiment(customer: Customer, invoices: Invoice
   color: string;
   reason: string;
 } {
-  try { recordAITrainingSignal('customer', customer?.name || customer?.phone || 'customer-sentiment', 'computed', { intent: 'customer' }); } catch {}
-  const custInvoices = (invoices || []).filter(inv => inv.customerId === customer.id && !inv.isDeleted);
-  const paidInvoices = custInvoices.filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined);
-  
-  let score = 50; // Base score (Neutral)
-  let reason = 'نشاط اعتيادي';
-
-  // 1. Value Component (Total Spent)
-  const totalSpent = customer.totalSpent || 0;
-  if (totalSpent > 500) score += 20;
-  else if (totalSpent > 100) score += 10;
-  else if (totalSpent < 10 && paidInvoices.length > 0) score -= 5;
-
-  // 2. Frequency Component
-  const orderCount = paidInvoices.length;
-  if (orderCount > 10) {
-    score += 15;
-    reason = 'عميل مخلص جداً وعالي التفاعل';
-  } else if (orderCount > 3) {
-    score += 5;
-    reason = 'عميل متفاعل بشكل متكرر';
-  }
-
-  // 3. Recency Component (Churn Risk)
-  if (customer.lastActive) {
-    const diff = Date.now() - new Date(customer.lastActive).getTime();
-    const days = diff / (1000 * 3600 * 24);
-    
-    if (days < 7) {
-        score += 10;
-        if (orderCount > 1) reason = 'عميل نشط جداً وراضي';
-    } else if (days > 45) {
-        score -= 20;
-        reason = 'عميل في مرحلة الانقطاع (مخاطرة فقدان)';
-    } else if (days > 20) {
-        score -= 5;
-        reason = 'بدأ يقل تفاعله تدريجياً';
+  try {
+    if (!customer) {
+      return { score: 50, label: 'محايد', color: 'text-slate-500 bg-slate-50', reason: 'نشاط اعتيادي' };
     }
-  } else if (orderCount === 0) {
-    score = 40;
-    reason = 'عميل جديد لم يكمل أول طلب بعد';
+    try { recordAITrainingSignal('customer', customer?.name || customer?.phone || 'customer-sentiment', 'computed', { intent: 'customer' }); } catch {}
+    const custInvoices = (invoices || []).filter(inv => inv && inv.customerId === customer.id && !inv.isDeleted);
+    const paidInvoices = custInvoices.filter(inv => isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined);
+    
+    let score = 50; // Base score (Neutral)
+    let reason = 'نشاط اعتيادي';
+
+    // 1. Value Component (Total Spent)
+    const totalSpent = Number(customer.totalSpent) || 0;
+    if (totalSpent > 500) score += 20;
+    else if (totalSpent > 100) score += 10;
+    else if (totalSpent < 10 && paidInvoices.length > 0) score -= 5;
+
+    // 2. Frequency Component
+    const orderCount = paidInvoices.length;
+    if (orderCount > 10) {
+      score += 15;
+      reason = 'عميل مخلص جداً وعالي التفاعل';
+    } else if (orderCount > 3) {
+      score += 5;
+      reason = 'عميل متفاعل بشكل متكرر';
+    }
+
+    // 3. Recency Component (Churn Risk)
+    if (customer.lastActive) {
+      const diff = Date.now() - new Date(customer.lastActive).getTime();
+      const days = diff / (1000 * 3600 * 24);
+      
+      if (days < 7) {
+          score += 10;
+          if (orderCount > 1) reason = 'عميل نشط جداً وراضي';
+      } else if (days > 45) {
+          score -= 20;
+          reason = 'عميل في مرحلة الانقطاع (مخاطرة فقدان)';
+      } else if (days > 20) {
+          score -= 5;
+          reason = 'بدأ يقل تفاعله تدريجياً';
+      }
+    } else if (orderCount === 0) {
+      score = 40;
+      reason = 'عميل جديد لم يكمل أول طلب بعد';
+    }
+
+    // 4. Cancelled/Failed Ratio
+    const cancelledCount = custInvoices.filter(inv => inv && (inv.paymentStatus === 'ملغي' || inv.paymentStatus === 'failed')).length;
+    if (orderCount > 0 && custInvoices.length > 0 && (cancelledCount / custInvoices.length) > 0.4) {
+      score -= 15;
+      reason = 'عميل لديه نسبة إلغاء طلبات عالية (متردد)';
+    }
+
+    // Final Clamping
+    score = Math.min(100, Math.max(0, score));
+
+    let label = 'محايد';
+    let color = 'text-slate-500 bg-slate-50';
+
+    if (score >= 85) {
+      label = 'سعيد جداً (VIP)';
+      color = 'text-emerald-700 bg-emerald-50 border-emerald-100';
+    } else if (score >= 70) {
+      label = 'راضي ومستقر';
+      color = 'text-blue-700 bg-blue-50 border-blue-100';
+    } else if (score >= 45) {
+      label = 'محايد';
+      color = 'text-slate-600 bg-slate-50 border-slate-200';
+    } else if (score >= 30) {
+      label = 'متردد / غير نشط';
+      color = 'text-amber-700 bg-amber-50 border-amber-100';
+    } else {
+      label = 'مفقود / مستاء';
+      color = 'text-rose-700 bg-rose-50 border-rose-100';
+    }
+
+    return { score, label, color, reason };
+  } catch (err) {
+    console.error("calculateCustomerSentiment error:", err);
+    return { score: 50, label: 'محايد', color: 'text-slate-500 bg-slate-50', reason: 'نشاط اعتيادي' };
   }
-
-  // 4. Cancelled/Failed Ratio
-  const cancelledCount = custInvoices.filter(inv => inv.paymentStatus === 'ملغي' || inv.paymentStatus === 'failed').length;
-  if (orderCount > 0 && (cancelledCount / custInvoices.length) > 0.4) {
-    score -= 15;
-    reason = 'عميل لديه نسبة إلغاء طلبات عالية (متردد)';
-  }
-
-  // Final Clamping
-  score = Math.min(100, Math.max(0, score));
-
-  let label = 'محايد';
-  let color = 'text-slate-500 bg-slate-50';
-
-  if (score >= 85) {
-    label = 'سعيد جداً (VIP)';
-    color = 'text-emerald-700 bg-emerald-50 border-emerald-100';
-  } else if (score >= 70) {
-    label = 'راضي ومستقر';
-    color = 'text-blue-700 bg-blue-50 border-blue-100';
-  } else if (score >= 45) {
-    label = 'محايد';
-    color = 'text-slate-600 bg-slate-50 border-slate-200';
-  } else if (score >= 30) {
-    label = 'متردد / غير نشط';
-    color = 'text-amber-700 bg-amber-50 border-amber-100';
-  } else {
-    label = 'مفقود / مستاء';
-    color = 'text-rose-700 bg-rose-50 border-rose-100';
-  }
-
-  return { score, label, color, reason };
 }
 
 /**
  * Generate a smart, personalized WhatsApp message for a customer based on their sentiment and activity.
  */
 export function generateCustomerSmartMessage(customer: Customer, invoices: Invoice[], products: any[] = []): string {
-  try { recordAITrainingSignal('customer', customer?.name || customer?.phone || 'customer-message', 'generated', { intent: 'customer' }); } catch {}
-  const sentiment = calculateCustomerSentiment(customer, invoices);
-  const firstName = customer.name.split(' ')[0];
-  
-  // Find favorite product if any
-  const custInvoices = (invoices || []).filter(inv => inv.customerId === customer.id && !inv.isDeleted);
-  const productCounts: Record<string, number> = {};
-  
-  custInvoices.forEach(inv => {
-    inv.items.forEach(item => {
-      productCounts[item.productId] = (productCounts[item.productId] || 0) + item.quantity;
+  try {
+    if (!customer) return 'هلا والله.. حيّاك الله في مطبخ التراث الكويتي 🏠';
+    try { recordAITrainingSignal('customer', customer?.name || customer?.phone || 'customer-message', 'generated', { intent: 'customer' }); } catch {}
+    const sentiment = calculateCustomerSentiment(customer, invoices);
+    const firstName = String(customer.name || 'العميل').split(' ')[0] || 'الغالي';
+    
+    // Find favorite product if any
+    const custInvoices = (invoices || []).filter(inv => inv && inv.customerId === customer.id && !inv.isDeleted);
+    const productCounts: Record<string, number> = {};
+    
+    custInvoices.forEach(inv => {
+      (inv.items || []).forEach(item => {
+        if (item && item.productId) {
+          productCounts[item.productId] = (productCounts[item.productId] || 0) + (item.quantity || 1);
+        }
+      });
     });
-  });
 
-  const favProductId = Object.entries(productCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
-  const favProduct = products.find(p => p.id === favProductId);
-  const favProductName = favProduct ? favProduct.name : "أطباقنا اليديدة";
+    const favProductId = Object.entries(productCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const favProduct = (products || []).find(p => p && p.id === favProductId);
+    const favProductName = favProduct ? favProduct.name : "أطباقنا اليديدة";
 
-  // Scenarios
-  if (sentiment.score >= 85) {
-    // VIP
-    const variants = [
-      `يا هلا بـ ${firstName} الغالي.. ✨\n\nأنت من أعمدة "مطبخ التراث الكويتي" ونقدر جداً ثقتك. حبينا نهديك (توصيل مجاني لطلبك الياي) تقديراً لمكانتك عندنا. لا تنسى تطلب ${favProductName} تره ناطرك!\n\nكود الخصم: VIP_DELIVERY 🏠`,
-      `أحلى مسا على ${firstName}.. 😊\n\nبما إنك من الـ VIP، جهزنا لك مفاجأة خاصة المرة الجاية. اطلب طبقك المفضل ${favProductName} وخلي التوصيل علينا كإهداء بسيط.\n\nمطبخ التراث الكويتي - طعم الكويت الأصيل 🏠`
-    ];
-    return variants[Math.floor(Math.random() * variants.length)];
-  } else if (sentiment.score < 30) {
-    // Churn Risk
-    return `هلا والله ${firstName}.. مكانك مبين وولهنا عليك! 💔\n\nعشان نرد الحبايب، سوينا لك عرض خاص: اطلب ${favProductName} أو أي طبق ثاني واليوم (التوصيل مجاني) بالكامل.\n\nاستخدم كود: WE_MISS_YOU\nمطبخ التراث الكويتي 🏠`;
-  } else if (sentiment.score >= 30 && sentiment.score < 50) {
-    // Inactive / Neutral
-    return `غالينا ${firstName}.. عساك بخير؟ 😊\n\nحبينا نذكرك بنطاعة ${favProductName} اللي تحبها. شرايك تجدد الذكريات اليوم؟ التوصيل علينا تقديراً لك.\n\nمطبخ التراث الكويتي - طعم يجمعنا 🏠`;
-  } else {
-    // Active / Regular
-    return `يا هلا بـ ${firstName}.. عساك مستانس مع الربع؟ 🔥\n\nمشكور على طلباتك المتكررة. حبينا نهديك اليوم تجربة لطبق يديد مع طلبك لـ ${favProductName}، والتوصيل اليوم مجاني عشانك.\n\nمطبخ التراث الكويتي - دائماً بخدمتك 🏠`;
+    // Scenarios
+    if (sentiment.score >= 85) {
+      // VIP
+      const variants = [
+        `يا هلا بـ ${firstName} الغالي.. ✨\n\nأنت من أعمدة "مطبخ التراث الكويتي" ونقدر جداً ثقتك. حبينا نهديك (توصيل مجاني لطلبك الياي) تقديراً لمكانتك عندنا. لا تنسى تطلب ${favProductName} تره ناطرك!\n\nكود الخصم: VIP_DELIVERY 🏠`,
+        `أحلى مسا على ${firstName}.. 😊\n\nبما إنك من الـ VIP، جهزنا لك مفاجأة خاصة المرة الجاية. اطلب طبقك المفضل ${favProductName} وخلي التوصيل علينا كإهداء بسيط.\n\nمطبخ التراث الكويتي - طعم الكويت الأصيل 🏠`
+      ];
+      return variants[Math.floor(Math.random() * variants.length)];
+    } else if (sentiment.score < 30) {
+      // Churn Risk
+      return `هلا والله ${firstName}.. مكانك مبين وولهنا عليك! 💔\n\nعشان نرد الحبايب، سوينا لك عرض خاص: اطلب ${favProductName} أو أي طبق ثاني واليوم (التوصيل مجاني) بالكامل.\n\nاستخدم كود: WE_MISS_YOU\nمطبخ التراث الكويتي 🏠`;
+    } else if (sentiment.score >= 30 && sentiment.score < 50) {
+      // Inactive / Neutral
+      return `غالينا ${firstName}.. عساك بخير؟ 😊\n\nحبينا نذكرك بنطاعة ${favProductName} اللي تحبها. شرايك تجدد الذكريات اليوم؟ التوصيل علينا تقديراً لك.\n\nمطبخ التراث الكويتي - طعم يجمعنا 🏠`;
+    } else {
+      // Active / Regular
+      return `يا هلا بـ ${firstName}.. عساك مستانس مع الربع؟ 🔥\n\nمشكور على طلباتك المتكررة. حبينا نهديك اليوم تجربة لطبق يديد مع طلبك لـ ${favProductName}، والتوصيل اليوم مجاني عشانك.\n\nمطبخ التراث الكويتي - دائماً بخدمتك 🏠`;
+    }
+  } catch (err) {
+    console.error("generateCustomerSmartMessage error:", err);
+    return 'هلا والله.. حيّاك الله في مطبخ التراث الكويتي 🏠';
   }
 }
 

@@ -163,7 +163,8 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       <div class="card">
         <h2><span class="icon">☰</span> تفاصيل الفاتورة</h2>
         <div class="row"><span class="label">رقم الفاتورة</span><span class="value">${toEnglishDigits((invoice as any).id || '-')}</span></div>
-        <div class="row"><span class="label">التاريخ والوقت</span><span class="value">${toEnglishDigits(formatKuwaitiDate(invoiceDate).full)}</span></div>
+        <div class="row"><span class="label">تاريخ الإنشاء</span><span class="value">${toEnglishDigits(formatKuwaitiDate(invoiceDate).full)}</span></div>
+        ${((invoice as any).deliveryDate || (invoice as any).deliveryTime) ? `<div class="row" style="background:#fff7ed;padding:6px 10px;border-radius:8px;"><span class="label" style="color:#b45309;font-weight:900;">🚚 موعد التوصيل</span><span class="value" style="color:#b45309;font-weight:900;">${toEnglishDigits((invoice as any).deliveryDate || '')} ${toEnglishDigits((invoice as any).deliveryTime || '')}</span></div>` : ''}
         <div class="row"><span class="label">الحالة</span><span class="value status ${statusClass}">${toEnglishDigits(status)}</span></div>
       </div>
       <div class="card">

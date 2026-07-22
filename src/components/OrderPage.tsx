@@ -252,6 +252,8 @@ const OrderPage: React.FC<OrderPageProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderDeliveryDate, setOrderDeliveryDate] = useState<string>("");
+  const [orderDeliveryTime, setOrderDeliveryTime] = useState<string>("");
   const [orderDeliveryType, setOrderDeliveryType] =
     useState<DeliveryType>("company");
   const [orderZoneId, setOrderZoneId] = useState<string>("");
@@ -272,6 +274,8 @@ const OrderPage: React.FC<OrderPageProps> = ({
     if (selectedOrder) {
       setIsMarkedAsPaid(isPaidStatus(selectedOrder.status));
       setIsConfirmingCancel(false);
+      setOrderDeliveryDate((selectedOrder as any)?.deliveryDate || (selectedOrder as any)?.deliveryDateKey || "");
+      setOrderDeliveryTime((selectedOrder as any)?.deliveryTime || "");
       setOrderDeliveryType(
         selectedOrder.isConvertedToInvoice
           ? selectedOrder.deliveryType || "company"
@@ -1241,6 +1245,8 @@ const OrderPage: React.FC<OrderPageProps> = ({
         discount: discountVal,
         paymentMethod: isActuallyPaid || isZeroPaid ? "KNet" : "Link",
         deliveryType: orderDeliveryType,
+        deliveryDate: orderDeliveryDate || (order as any).deliveryDate || (order as any).deliveryDateKey || "",
+        deliveryTime: orderDeliveryTime || (order as any).deliveryTime || "",
         manuallyModifiedDeliveryType: true,
         deliveryFee: invoiceDeliveryFee,
         deliveryInfo: zone
@@ -2981,6 +2987,47 @@ Alturath.kw`;
                                     {type.label}
                                   </button>
                                 ))}
+                              </div>
+
+                              <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                                <label className="text-amber-300 font-bold text-[10px] md:text-[11px] flex items-center gap-1">
+                                  <Clock size={13} className="text-amber-400" />
+                                  <span>موعد التوصيل المطلوب (اختياري للإدارة)</span>
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <span className="block text-[9px] text-white/50 mb-1">تاريخ التوصيل</span>
+                                    <input
+                                      type="date"
+                                      lang="en-GB" dir="ltr"
+                                      value={orderDeliveryDate}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setOrderDeliveryDate(val);
+                                        if (selectedOrder) {
+                                          updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryDate: val });
+                                        }
+                                      }}
+                                      className="w-full bg-white/10 border border-white/15 text-white rounded-lg px-2 py-1.5 text-center font-bold text-xs outline-none focus:border-amber-400 [color-scheme:dark]"
+                                    />
+                                  </div>
+                                  <div>
+                                    <span className="block text-[9px] text-white/50 mb-1">وقت التوصيل</span>
+                                    <input
+                                      type="time"
+                                      lang="en-GB" dir="ltr"
+                                      value={orderDeliveryTime}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setOrderDeliveryTime(val);
+                                        if (selectedOrder) {
+                                          updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
+                                        }
+                                      }}
+                                      className="w-full bg-white/10 border border-white/15 text-white rounded-lg px-2 py-1.5 text-center font-bold text-xs outline-none focus:border-amber-400 [color-scheme:dark]"
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           )}
