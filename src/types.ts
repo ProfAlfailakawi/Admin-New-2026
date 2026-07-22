@@ -118,6 +118,8 @@ export interface Order {
   totalAmount: number;
   status: string;
   date: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
   notes?: string;
   deliveryType?: DeliveryType;
   address?: any;
@@ -208,6 +210,8 @@ export interface Invoice {
   gatewayFee: number; // The 200 fils fee
   paymentMethod: PaymentMethod;
   date: string;
+  deliveryDate?: string;
+  deliveryTime?: string;
   totalAmount: number;
   totalCost: number;
   profit: number;
