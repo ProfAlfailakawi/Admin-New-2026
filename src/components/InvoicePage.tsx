@@ -1483,16 +1483,53 @@ Alturath.kw`;
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">وقت التوصيل</label>
-                    <input
-                      type="time"
-                      lang="en-GB" dir="ltr"
-                      value={parseTimeTo24h(deliveryTime)}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setDeliveryTime(val ? formatDeliveryTimeDisplay(val) : "");
-                      }}
-                      className="w-full bg-white border border-amber-200/90 rounded-xl px-2 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30 [color-scheme:light]"
-                    />
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        placeholder="12:30 م"
+                        value={deliveryTime}
+                        onChange={(e) => setDeliveryTime(e.target.value)}
+                        className="w-full bg-white border border-amber-200/90 rounded-xl pl-16 pr-3 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30"
+                      />
+                      <div className="absolute left-1.5 flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            let current = deliveryTime || "";
+                            current = current.replace(/\s*[صم]\s*/g, "").trim();
+                            if (!current) current = "12:00";
+                            setDeliveryTime(`${current} ص`);
+                          }}
+                          className={cn(
+                            "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            deliveryTime.includes("ص")
+                              ? "bg-amber-500 text-white font-black"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          )}
+                          title="صباحاً"
+                        >
+                          ص
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            let current = deliveryTime || "";
+                            current = current.replace(/\s*[صم]\s*/g, "").trim();
+                            if (!current) current = "12:00";
+                            setDeliveryTime(`${current} م`);
+                          }}
+                          className={cn(
+                            "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            deliveryTime.includes("م")
+                              ? "bg-amber-500 text-white font-black"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          )}
+                          title="مساءً"
+                        >
+                          م
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

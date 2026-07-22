@@ -3011,20 +3011,67 @@ Alturath.kw`;
                               </div>
                               <div>
                                 <span className="block text-[10px] text-white/70 font-bold mb-1">وقت التوصيل</span>
-                                <input
-                                  type="time"
-                                  lang="en-GB" dir="ltr"
-                                  value={parseTimeTo24h(orderDeliveryTime)}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    const formattedVal = val ? formatDeliveryTimeDisplay(val) : "";
-                                    setOrderDeliveryTime(formattedVal);
-                                    if (selectedOrder) {
-                                      updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: formattedVal });
-                                    }
-                                  }}
-                                  className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-2.5 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50 [color-scheme:dark]"
-                                />
+                                <div className="relative flex items-center">
+                                  <input
+                                    type="text"
+                                    placeholder="12:30 م"
+                                    value={orderDeliveryTime}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setOrderDeliveryTime(val);
+                                      if (selectedOrder) {
+                                        updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
+                                      }
+                                    }}
+                                    className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg pl-16 pr-3 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50"
+                                  />
+                                  <div className="absolute left-1.5 flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        let current = orderDeliveryTime || "";
+                                        current = current.replace(/\s*[صم]\s*/g, "").trim();
+                                        if (!current) current = "12:00";
+                                        const newVal = `${current} ص`;
+                                        setOrderDeliveryTime(newVal);
+                                        if (selectedOrder) {
+                                          updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
+                                        }
+                                      }}
+                                      className={cn(
+                                        "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        orderDeliveryTime.includes("ص")
+                                          ? "bg-amber-500 text-slate-950 font-black"
+                                          : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                      )}
+                                      title="صباحاً"
+                                    >
+                                      ص
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        let current = orderDeliveryTime || "";
+                                        current = current.replace(/\s*[صم]\s*/g, "").trim();
+                                        if (!current) current = "12:00";
+                                        const newVal = `${current} م`;
+                                        setOrderDeliveryTime(newVal);
+                                        if (selectedOrder) {
+                                          updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
+                                        }
+                                      }}
+                                      className={cn(
+                                        "px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        orderDeliveryTime.includes("م")
+                                          ? "bg-amber-500 text-slate-950 font-black"
+                                          : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                                      )}
+                                      title="مساءً"
+                                    >
+                                      م
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
