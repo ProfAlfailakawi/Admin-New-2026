@@ -1505,14 +1505,13 @@ Alturath.kw`;
                           type="button"
                           onClick={() => {
                             let current = deliveryTime || "";
-                            current = current.replace(/\s*[صم]\s*/g, "").trim();
-                            const cleaned = validateAndCleanTime(current);
-                            const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
-                            setDeliveryTime(`${baseTime} ص`);
+                            current = current.replace(/\s*(ص|م|am|pm|a|p)\s*/gi, "").trim();
+                            const newVal = validateAndCleanTime(`${current} AM`);
+                            setDeliveryTime(newVal);
                           }}
                           className={cn(
                             "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
-                            deliveryTime.includes("ص")
+                            (deliveryTime.toLowerCase().includes("am") || deliveryTime.includes("ص"))
                               ? "bg-amber-500 text-white font-black"
                               : "text-slate-500 hover:bg-slate-200"
                           )}
@@ -1524,14 +1523,13 @@ Alturath.kw`;
                           type="button"
                           onClick={() => {
                             let current = deliveryTime || "";
-                            current = current.replace(/\s*[صم]\s*/g, "").trim();
-                            const cleaned = validateAndCleanTime(current);
-                            const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
-                            setDeliveryTime(`${baseTime} م`);
+                            current = current.replace(/\s*(ص|م|am|pm|a|p)\s*/gi, "").trim();
+                            const newVal = validateAndCleanTime(`${current} PM`);
+                            setDeliveryTime(newVal);
                           }}
                           className={cn(
                             "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
-                            deliveryTime.includes("م")
+                            (deliveryTime.toLowerCase().includes("pm") || deliveryTime.includes("م"))
                               ? "bg-amber-500 text-white font-black"
                               : "text-slate-500 hover:bg-slate-200"
                           )}

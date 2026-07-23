@@ -195,6 +195,8 @@ export function formatDeliveryTimeDisplay(timeStr?: string): string {
   if (isNaN(hh)) hh = 12;
   if (isNaN(mm)) mm = 0;
 
+  const originalHh = hh;
+
   if (hh > 12) {
     if (hh >= 24) {
       hh = hh % 12;
@@ -208,11 +210,19 @@ export function formatDeliveryTimeDisplay(timeStr?: string): string {
   if (mm < 0) mm = 0;
 
   const formattedMm = String(mm).padStart(2, '0');
-  
-  if (period) {
-    return `${hh}:${formattedMm} ${period}`;
+
+  // If period was not explicitly detected, determine it from originalHh or default to PM
+  if (!period) {
+    if (originalHh >= 12 && originalHh < 24) {
+      period = 'PM';
+    } else if (originalHh === 0 || originalHh === 24) {
+      period = 'AM';
+    } else {
+      period = 'PM'; // Default to PM for typical delivery times
+    }
   }
-  return `${hh}:${formattedMm}`;
+  
+  return `${hh}:${formattedMm} ${period}`;
 }
 
 export function formatTimeInput(value: string): string {
@@ -238,7 +248,7 @@ export function validateAndCleanTime(value: string): string {
   // Extract AM/PM or ص/م
   const isPm = normalized.includes('م') || normalized.toLowerCase().includes('pm') || normalized.toLowerCase().includes('p');
   const isAm = normalized.includes('ص') || normalized.toLowerCase().includes('am') || normalized.toLowerCase().includes('a');
-  const period = isPm ? 'PM' : (isAm ? 'AM' : '');
+  let period = isPm ? 'PM' : (isAm ? 'AM' : '');
   
   // Strip all non-digits to get the numbers
   const digits = normalized.replace(/\D/g, '');
@@ -261,6 +271,8 @@ export function validateAndCleanTime(value: string): string {
   // Normalize hours & minutes
   if (isNaN(hh)) hh = 12;
   if (isNaN(mm)) mm = 0;
+
+  const originalHh = hh;
   
   if (hh > 12) {
     if (hh >= 24) {
@@ -276,8 +288,19 @@ export function validateAndCleanTime(value: string): string {
   
   const formattedHh = String(hh);
   const formattedMm = String(mm).padStart(2, '0');
+
+  // If period was not explicitly found in string, determine it from originalHh or default to PM
+  if (!period) {
+    if (originalHh >= 12 && originalHh < 24) {
+      period = 'PM';
+    } else if (originalHh === 0 || originalHh === 24) {
+      period = 'AM';
+    } else {
+      period = 'PM'; // Default to PM for typical delivery times
+    }
+  }
   
-  return period ? `${formattedHh}:${formattedMm} ${period}` : `${formattedHh}:${formattedMm}`;
+  return `${formattedHh}:${formattedMm} ${period}`;
 }
 
 export function parseTimeTo24h(timeStr?: string): string {
