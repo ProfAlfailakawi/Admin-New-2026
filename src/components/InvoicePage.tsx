@@ -1472,7 +1472,7 @@ Alturath.kw`;
                   <Clock size={15} className="text-amber-600" />
                   <span>موعد التوصيل المطلوب للعميل</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1">تاريخ التوصيل</label>
                     <input
@@ -1488,16 +1488,11 @@ Alturath.kw`;
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        placeholder="12:30 م"
+                        placeholder="مثال: 05:30 م"
                         value={deliveryTime}
                         onChange={(e) => {
                           const val = e.target.value;
-                          const hasAm = val.includes('ص');
-                          const hasPm = val.includes('م');
-                          const period = hasPm ? ' م' : (hasAm ? ' ص' : '');
-                          const cleanDigits = val.replace(/\s*[صم]\s*/g, "");
-                          const formattedDigits = formatTimeInput(cleanDigits);
-                          setDeliveryTime(`${formattedDigits}${period}`);
+                          setDeliveryTime(val);
                         }}
                         onBlur={(e) => {
                           const cleaned = validateAndCleanTime(e.target.value);
