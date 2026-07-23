@@ -161,34 +161,58 @@ export const formatKuwaitiTimeOnly = (dateVal: any): string => formatKuwaitiDate
 
 export function formatDeliveryTimeDisplay(timeStr?: string): string {
   if (!timeStr) return '';
-  const trimmed = String(timeStr).trim();
+  let trimmed = String(timeStr).trim();
   if (!trimmed) return '';
 
-  // If already contains Arabic morning/evening indicator
-  if (trimmed.includes('م') || trimmed.includes('ص')) {
-    return trimmed;
+  trimmed = normalizeArabicNumerals(trimmed);
+
+  // Detect period
+  let period = '';
+  if (trimmed.toLowerCase().includes('pm') || trimmed.includes('م') || trimmed.toLowerCase().includes('p')) {
+    period = 'PM';
+  } else if (trimmed.toLowerCase().includes('am') || trimmed.includes('ص') || trimmed.toLowerCase().includes('a')) {
+    period = 'AM';
   }
 
-  // Handle AM/PM
-  if (trimmed.toLowerCase().includes('pm') || trimmed.toLowerCase().includes('am')) {
-    const isPm = trimmed.toLowerCase().includes('pm');
-    const cleanTime = trimmed.replace(/pm|am/gi, '').trim();
-    return `${cleanTime} ${isPm ? 'م' : 'ص'}`;
+  // Extract numbers
+  const digits = trimmed.replace(/\D/g, '');
+  if (!digits) return trimmed;
+
+  let hh = 12;
+  let mm = 0;
+
+  if (digits.length >= 4) {
+    hh = parseInt(digits.slice(0, 2), 10);
+    mm = parseInt(digits.slice(2, 4), 10);
+  } else if (digits.length === 3) {
+    hh = parseInt(digits.slice(0, 1), 10);
+    mm = parseInt(digits.slice(1, 3), 10);
+  } else {
+    hh = parseInt(digits, 10);
+    mm = 0;
   }
 
-  const parts = trimmed.split(':');
-  if (parts.length >= 2) {
-    let hours = parseInt(parts[0], 10);
-    const minutes = parts[1].slice(0, 2);
-    if (!isNaN(hours)) {
-      const period = hours >= 12 ? 'م' : 'ص';
-      hours = hours % 12;
-      if (hours === 0) hours = 12;
-      const formattedHours = hours < 10 ? `0${hours}` : `${hours}`;
-      return `${formattedHours}:${minutes} ${period}`;
+  if (isNaN(hh)) hh = 12;
+  if (isNaN(mm)) mm = 0;
+
+  if (hh > 12) {
+    if (hh >= 24) {
+      hh = hh % 12;
+      if (hh === 0) hh = 12;
+    } else {
+      hh = hh - 12;
     }
   }
-  return trimmed;
+  if (hh < 1) hh = 12;
+  if (mm > 59) mm = 59;
+  if (mm < 0) mm = 0;
+
+  const formattedMm = String(mm).padStart(2, '0');
+  
+  if (period) {
+    return `${hh}:${formattedMm} ${period}`;
+  }
+  return `${hh}:${formattedMm}`;
 }
 
 export function formatTimeInput(value: string): string {
@@ -214,7 +238,7 @@ export function validateAndCleanTime(value: string): string {
   // Extract AM/PM or ص/م
   const isPm = normalized.includes('م') || normalized.toLowerCase().includes('pm') || normalized.toLowerCase().includes('p');
   const isAm = normalized.includes('ص') || normalized.toLowerCase().includes('am') || normalized.toLowerCase().includes('a');
-  const period = isPm ? 'م' : (isAm ? 'ص' : '');
+  const period = isPm ? 'PM' : (isAm ? 'AM' : '');
   
   // Strip all non-digits to get the numbers
   const digits = normalized.replace(/\D/g, '');
@@ -250,7 +274,7 @@ export function validateAndCleanTime(value: string): string {
   if (mm > 59) mm = 59;
   if (mm < 0) mm = 0;
   
-  const formattedHh = String(hh).padStart(2, '0');
+  const formattedHh = String(hh);
   const formattedMm = String(mm).padStart(2, '0');
   
   return period ? `${formattedHh}:${formattedMm} ${period}` : `${formattedHh}:${formattedMm}`;
@@ -644,3 +668,43 @@ export const formatCustomerAddress = (address: any): string => {
   const nested = Object.values(candidate).find((v:any) => v && typeof v === 'object');
   return nested ? formatCustomerAddress(nested) : '';
 };
+
+export function getArabicWeekdayAndDate(dateStr?: string): { weekday: string; date: string } {
+  if (!dateStr) return { weekday: '', date: '' };
+  let trimmed = String(dateStr).trim();
+  if (!trimmed) return { weekday: '', date: '' };
+
+  let dateObj: Date | null = null;
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('T')[0].split('-');
+    dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  } else if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(trimmed)) {
+    const parts = trimmed.split('/');
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const y = parseInt(parts[2], 10);
+    dateObj = new Date(y, m - 1, d);
+  } else {
+    // try standard parser
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) {
+      dateObj = new Date(parsed);
+    }
+  }
+
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return { weekday: '', date: trimmed };
+  }
+
+  // Format date as d/m/yyyy (or standard localized without padding, e.g. 24/7/2026)
+  const day = String(dateObj.getDate());
+  const month = String(dateObj.getMonth() + 1);
+  const year = dateObj.getFullYear();
+  const formattedDate = `${day}/${month}/${year}`;
+
+  const daysArabic = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+  const weekday = daysArabic[dateObj.getDay()];
+
+  return { weekday, date: formattedDate };
+}

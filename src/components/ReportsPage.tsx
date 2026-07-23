@@ -25,7 +25,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
   );
 };
 
-import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange, formatDeliveryDateDisplay, formatDeliveryTimeDisplay } from '../lib/utils';
+import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, getArabicWeekdayAndDate } from '../lib/utils';
 import { db } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import React, { useState, useEffect, useMemo } from "react";
@@ -1347,22 +1347,29 @@ Alturath.kw`;
                                     {(() => {
                                       const delDateRaw = (inv as any).deliveryDate || (inv as any).invoiceDateKey;
                                       const delTimeRaw = (inv as any).deliveryTime;
-                                      const delDateFormatted = formatDeliveryDateDisplay(delDateRaw) || formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv));
+                                      const { weekday, date: delDateFormatted } = getArabicWeekdayAndDate(delDateRaw) || { weekday: '', date: formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv)) };
                                       const delTimeFormatted = formatDeliveryTimeDisplay(delTimeRaw);
 
                                       return (
-                                        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-950 p-2 rounded-xl flex flex-col gap-1 w-full max-w-[200px]">
-                                          <div className="flex items-center gap-1 text-[10px] font-black text-amber-800">
+                                        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-950 p-2.5 rounded-xl flex flex-col gap-1 w-full max-w-[200px]">
+                                          <div className="flex items-center gap-1.5 text-[10px] font-black text-amber-800">
                                             <Clock size={11} className="text-amber-600 shrink-0" />
-                                            <span>وقت التوصيل المطلوب:</span>
+                                            <span>التوصيل:</span>
                                           </div>
-                                          <div className="flex flex-wrap items-center justify-between gap-1 mt-0.5 text-xs font-black text-slate-900">
-                                            <span dir="ltr" className="text-slate-900 font-black">{delDateFormatted}</span>
-                                            {delTimeFormatted && (
-                                              <span dir="ltr" className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 whitespace-nowrap">
-                                                {delTimeFormatted}
+                                          <div className="flex flex-col gap-0.5 mt-0.5 text-slate-900">
+                                            {weekday && (
+                                              <span className="text-slate-700 font-light text-[10px]">
+                                                {weekday}
                                               </span>
                                             )}
+                                            <div className="flex items-center justify-between gap-1">
+                                              <span dir="ltr" className="text-slate-900 font-black text-xs">{delDateFormatted}</span>
+                                              {delTimeFormatted && (
+                                                <span dir="ltr" className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 whitespace-nowrap">
+                                                  {delTimeFormatted}
+                                                </span>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
                                       );

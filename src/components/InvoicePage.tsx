@@ -1470,7 +1470,7 @@ Alturath.kw`;
               <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 space-y-2">
                 <div className="flex items-center gap-1.5 text-amber-900 font-black text-xs">
                   <Clock size={15} className="text-amber-600" />
-                  <span>موعد التوصيل المطلوب للعميل</span>
+                  <span>موعد التوصيل للعميل</span>
                 </div>
                 <div className="space-y-3">
                   <div>
