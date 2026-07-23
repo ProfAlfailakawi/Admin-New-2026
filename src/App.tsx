@@ -4051,8 +4051,19 @@ const MainApp: React.FC = () => {
   const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
   const floatingToolRole = userRole;
   
-  // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on the partner dashboard.
-  const showInstagramFloatingTool = showExecutiveFloatingTools || (floatingToolRole === 'partner' && currentPage === 'dashboard');
+  // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on
+  // the partner dashboard.
+  //
+  // The partner never has currentPage === 'dashboard' the way the admin does: their home
+  // surface is PartnerDashboard, which renders for the default page AND 'diwaniya'. The
+  // old check only matched the literal 'dashboard', so the wand appeared right after
+  // login but vanished the moment the partner moved within their own dashboard — the
+  // exact "not at full capacity" the owner reported. It now shows across the whole
+  // partner dashboard surface, hidden only on the full-screen tool pages where a
+  // floating button would overlap, so the partner gets the same tool the admin does.
+  const partnerToolPages = ['orders', 'invoices-list', 'new-invoice', 'ai', 'smart-studio'];
+  const partnerOnDashboard = floatingToolRole === 'partner' && !partnerToolPages.includes(currentPage);
+  const showInstagramFloatingTool = showExecutiveFloatingTools || partnerOnDashboard;
 
   // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
   const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
