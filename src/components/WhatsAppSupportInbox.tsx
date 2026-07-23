@@ -1565,15 +1565,8 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             >
               {dataCheck.loading ? <Loader2 size={14} className="animate-spin" /> : '🔍'} فحص البيانات
             </button>
-            <button
-              type="button"
-              onClick={restartBridge}
-              disabled={restartingBridge}
-              title="لو البوت واقف أو ما يرد: يعيد تشغيل جهاز الواتساب خلال دقيقة"
-              className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-black text-rose-700 hover:bg-rose-100 disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔄'} إعادة تشغيل الواتساب
-            </button>
+            {/* The restart button lived here and in the جهاز الواتساب tab — one place is
+                enough, and that tab is where device controls belong. Removed the copy. */}
             <button type="button" onClick={startNewAutoReply} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black text-white hover:bg-slate-800 flex items-center justify-center gap-2">
               <Plus size={14} /> إضافة قاعدة
             </button>
