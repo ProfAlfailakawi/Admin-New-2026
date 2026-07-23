@@ -178,10 +178,14 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
   };
 
   const copyText = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
-    toast.success('تم نسخ النص — جاهز للصق في إنستغرام ✨');
-    setTimeout(() => setCopiedKey(null), 2000);
+    // لا نعلن النجاح إلا بعد نجاح النسخ فعلياً
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      toast.success('تم نسخ النص — جاهز للصق في إنستغرام ✨');
+      setTimeout(() => setCopiedKey(null), 2000);
+    }).catch(() => {
+      toast.error('ما قدرنا ننسخ تلقائياً — ظللوا النص وانسخوه يدوياً');
+    });
   };
 
   /** محاكاة الجمهور — عبر الخادم الذكي فقط. إذا تعذر: نقول الصدق، ما نعرض أرقام مزيفة */
