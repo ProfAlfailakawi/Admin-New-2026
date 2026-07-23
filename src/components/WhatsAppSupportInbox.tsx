@@ -129,12 +129,23 @@ const getCustomerTemperature = (c?: Conversation | null): CustomerTemperature =>
   return { label: 'بارد', className: 'bg-slate-100 text-slate-500 border border-slate-100', hint: 'محادثة هادئة ولا تحتاج تصعيد الآن.' };
 };
 
+// المحادثة اللي ردّ عليها صاحب المطعم بنفسه خلال آخر ٣٠ دقيقة (من الجوال أو من هنا)
+// «تحت معالجته» — فكل مؤشرات الاستعجال تسكت عنها، وترجع تنبّه إذا سكت عنها بعد النافذة.
+const OWNER_ACTIVE_WINDOW_MS = 30 * 60 * 1000;
+const isOwnerActivelyHandling = (c?: Conversation | null) => {
+  const raw = (c as any)?.humanLastReplyAt;
+  if (!raw) return false;
+  const t = new Date(raw).getTime();
+  return Number.isFinite(t) && Date.now() - t < OWNER_ACTIVE_WINDOW_MS;
+};
+
 const getConversationActionState = (c?: Conversation | null): ConversationActionState => {
   if (!c) return { label: '', tone: 'muted', hint: '' };
   const unread = Number(c.unreadCount || 0);
   const inboundLast = c.lastMessageDirection === 'inbound';
   const needsHuman = c.status === 'needs_support' || c.mode === 'human';
   if (c.status === 'closed') return { label: 'مغلقة', tone: 'muted', hint: 'تم إغلاق المحادثة.' };
+  if (isOwnerActivelyHandling(c)) return { label: 'أنت تتولاها', tone: 'success', hint: 'رديت على العميل بنفسك قبل قليل — التنبيهات هادئة مؤقتاً وترجع تلقائياً إذا سكتّ عنها.' };
   if (needsHuman && (unread > 0 || inboundLast)) return { label: 'تحتاج رد', tone: 'danger', hint: 'آخر رسالة من العميل وتحتاج متابعة بشرية.' };
   if (needsHuman) return { label: 'قيد المتابعة', tone: 'warning', hint: 'المحادثة في الوضع اليدوي وتحت متابعة الموظف.' };
   if (c.lastMessageDirection === 'outbound') return { label: 'تم الرد تلقائيًا', tone: 'success', hint: 'آخر رد خرج من النظام/البوت ولا تحتاج تدخلًا الآن.' };
@@ -215,6 +226,8 @@ const urgentReplyInfo: Record<UrgentReplyKind, { label: string; className: strin
 };
 
 const classifyUrgentReply = (c: Conversation, nowMs: number) => {
+  // محادثة صاحبها قاعد يرد عليها بنفسه ما تدخل قوائم «العاجل» إطلاقاً.
+  if (isOwnerActivelyHandling(c)) return null;
   const text = normalizeArabicSearch([c.lastMessageText, c.lastInboundText, c.priority, ...(Array.isArray(c.tags) ? c.tags : [])].filter(Boolean).join(' '));
   const hasAny = (words: string[]) => words.some((word) => text.includes(normalizeArabicSearch(word)));
   const sla = getConversationSlaInfo(c, nowMs);
