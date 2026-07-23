@@ -4122,9 +4122,18 @@ async function waProcessInboundMessage({
     waMessageId: messageId,
     raw,
   });
-  await waIncrementUnread(cleanFrom);
 
   let conversation = await waGetConversation(cleanFrom);
+
+  // While the owner is answering this chat himself (manual reply inside the human
+  // window) the unread badge stays quiet too — he is reading it on the phone, and a
+  // climbing red counter in the console for a chat he is inside is pure noise. Once
+  // he goes silent past the window, unread counts pile up again exactly as before.
+  const ownerLastReplyMs = waDateMs(conversation?.humanLastReplyAt);
+  const ownerActivelyHandling = conversation?.mode === "human"
+    && ownerLastReplyMs > 0
+    && Date.now() - ownerLastReplyMs < WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
+  if (!ownerActivelyHandling) await waIncrementUnread(cleanFrom);
   if (waHumanModeExpired(conversation)) {
     await waUpsertConversation(cleanFrom, {
       mode: "bot",
@@ -4181,23 +4190,21 @@ async function waProcessInboundMessage({
   // "منيو": the owner's wife answered a customer, he typed منيو, and the bot barged
   // in. When a person is talking, the bot's only job is to notify, never to speak.
   if (conversation?.mode === "human") {
-    await waUpsertConversation(cleanFrom, {
-      status: "needs_support",
-      priority: conversation?.priority || "high",
-      supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
-    });
     // While the owner is answering this chat himself (his manual reply — phone or
-    // console — is inside the human window), every customer message used to ping him
-    // too: pure noise when he is already inside the conversation. Stay quiet for the
-    // window; each reply he sends refreshes it, and once he goes silent past it a
-    // waiting customer alerts him again exactly as before.
-    const lastHumanReplyMs = waDateMs(conversation?.humanLastReplyAt);
-    const ownerActivelyReplying = lastHumanReplyMs > 0
-      && Date.now() - lastHumanReplyMs < WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
-    if (ownerActivelyReplying) {
+    // console — is inside the human window), the whole system stays quiet about it:
+    // no push, no "needs_support" escalation lighting up every corner of the console.
+    // Each reply he sends refreshes the window; once he goes silent past it, a waiting
+    // customer escalates and alerts exactly as before.
+    if (ownerActivelyHandling) {
+      await waUpsertConversation(cleanFrom, { status: "open" });
       sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", skipped: true, mutedBy: "owner_active_reply" });
-      console.log(`[WHATSAPP] Push muted for ${waMaskPhone(cleanFrom)} — owner replied ${Math.round((Date.now() - lastHumanReplyMs) / 60000)}m ago and is handling this chat himself.`);
+      console.log(`[WHATSAPP] Quiet mode for ${waMaskPhone(cleanFrom)} — owner replied ${Math.round((Date.now() - ownerLastReplyMs) / 60000)}m ago and is handling this chat himself.`);
     } else {
+      await waUpsertConversation(cleanFrom, {
+        status: "needs_support",
+        priority: conversation?.priority || "high",
+        supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
+      });
       const pushResult = await waSendHumanSupportPush({
         phone: cleanFrom,
         text: cleanText || `[${cleanType}]`,
@@ -5119,6 +5126,9 @@ app.post("/api/whatsapp/bridge/inbound", async (req, res) => {
       await waUpsertConversation(from, {
         mode: "human",
         status: "open",
+        // He answered from the phone, so he has obviously read the chat — clear the
+        // console's unread badge exactly as a console reply does.
+        unreadCount: 0,
         lastMessageText: text || `[${type}]`,
         lastMessageDirection: "outbound",
         lastOutboundText: text,
