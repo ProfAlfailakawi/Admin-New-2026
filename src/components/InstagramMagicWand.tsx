@@ -146,6 +146,38 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
  const [isSimulating, setIsSimulating] = useState(false);
  const [simulationResult, setSimulationResult] = useState<any>(null);
 
+ // "ملهم" — partner-only inspiration, built from real products, not the AI generator.
+ // Every idea uses only what the product record actually states (name, price, category,
+ // prep note); nothing is invented, matching the same grounding the WhatsApp bot follows.
+ const [showInspire, setShowInspire] = useState(false);
+ const inspireIdeas = React.useMemo(() => {
+   const money = (v: any) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? String(Number(n.toFixed(3))) : ''; };
+   const sellable = ((data as any)?.products || []).filter((p: any) =>
+     p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true &&
+     String(p?.name || '').trim());
+
+   const featured = sellable.filter((p: any) => p?.isMenuFeatured === true);
+   const pool = (featured.length ? featured : sellable).slice(0, 6);
+
+   return pool.map((p: any) => {
+     const name = String(p.name).trim();
+     const price = money(p.price ?? p.salePrice ?? p.amount);
+     const prep = String(p.preparationInstructions || '').trim();
+     const timing = /قبل|يوم|ساعة|مسبق|حجز|تجهيز/.test(prep) ? prep : '';
+     const cat = String(p.category || p.productCategory || '').trim();
+     // A ready caption grounded only in real fields.
+     const caption = [
+       `${name} 🤍`,
+       price ? `السعر: ${price} د.ك` : '',
+       timing ? `⏳ ${timing}` : '',
+       'اطلبه الحين من موقعنا 👇',
+       'alturathkw.shop',
+       `#التراث #مطبخ_كويتي${cat ? ` #${cat.replace(/\s+/g, '_')}` : ''}`,
+     ].filter(Boolean).join('\n');
+     return { name, caption };
+   });
+ }, [data]);
+
  const fetchMessages = async (cat: Category = activeCategory, forceRefresh = false) => {
  setIsGenerating(true);
  setSimulationResult(null);
@@ -408,6 +440,50 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data, cu
 ))}
  </div>
  </div>
+
+ {/* ملهم — partner-only. Ready post ideas straight from the real menu, so the
+     partner always has grounded content to publish even without the AI generator. */}
+ {userRole === 'partner' && inspireIdeas.length > 0 && (
+ <div className="px-3 pb-3 bg-slate-50 border-b border-black/5">
+ <button
+ type="button"
+ onClick={() => setShowInspire((v) => !v)}
+ className="w-full flex items-center justify-between gap-2 py-3 px-4 rounded-2xl bg-gradient-to-br from-fuchsia-600 to-pink-600 text-white text-xs font-black shadow-lg shadow-pink-500/20 active:scale-95 transition"
+ >
+ <span className="flex items-center gap-2"><Sparkles size={15} /> ملهم — أفكار جاهزة من منيوكم</span>
+ <span className="text-[10px] opacity-80">{showInspire ? 'إخفاء' : `${inspireIdeas.length} فكرة`}</span>
+ </button>
+ <AnimatePresence>
+ {showInspire && (
+ <motion.div
+ initial={{ height: 0, opacity: 0 }}
+ animate={{ height: 'auto', opacity: 1 }}
+ exit={{ height: 0, opacity: 0 }}
+ className="overflow-hidden"
+ >
+ <div className="mt-3 space-y-2">
+ {inspireIdeas.map((idea, i) => (
+ <div key={idea.name + i} className="rounded-2xl bg-white border border-pink-100 p-3 shadow-sm">
+ <div className="flex items-center justify-between gap-2 mb-2">
+ <span className="text-[12px] font-black text-slate-800 truncate">{idea.name}</span>
+ <button
+ type="button"
+ onClick={() => copyToClipboard(idea.caption, 10000 + i)}
+ className="shrink-0 rounded-xl bg-pink-50 border border-pink-200 px-2.5 py-1 text-[10px] font-black text-pink-700 hover:bg-pink-100 flex items-center gap-1"
+ >
+ {copiedIndex === 10000 + i ? <Check size={12} /> : <Copy size={12} />} نسخ
+ </button>
+ </div>
+ <pre dir="rtl" className="whitespace-pre-wrap text-[11px] font-bold text-slate-600 leading-6 font-sans">{idea.caption}</pre>
+ </div>
+ ))}
+ <div className="text-[10px] font-bold text-slate-400 text-center pt-1">كل فكرة من منتجاتكم الحقيقية — انسخها وانشرها</div>
+ </div>
+ </motion.div>
+ )}
+ </AnimatePresence>
+ </div>
+ )}
 
  {/* Content Area */}
  <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-6 custom-scrollbar bg-slate-50">
