@@ -3170,21 +3170,66 @@ function waStripArabicArticle(value: string) {
 }
 
 function waFindZoneByText(zones: any[], text: string) {
-  const clean = waNormalizeArabic(text);
+  // "سلام عليكم" is a greeting, not منطقة السلام: a customer opening with السلام عليكم
+  // used to get quoted the السلام zone price while his real area was ignored. The
+  // greeting pair is dropped before any zone name is looked for.
+  const clean = waNormalizeArabic(text)
+    .replace(/(?:ال)?سلامو?\s+عليكم/g, " ")
+    .replace(/عليكم\s+(?:ال)?سلام/g, " ")
+    .replace(/(?:ال)?سلام\s+عليج/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!clean) return null;
   // Compare word by word so "فنطاس" inside a sentence still matches.
   const words = clean.split(/[\s،,.؟?!]+/).map(waStripArabicArticle).filter((w) => w.length >= 3);
   if (!words.length) return null;
+
+  // "الاندلي" is الأندلس with one slipped letter. A shared prefix covering all but the
+  // last letter of the zone name (and at least 4 letters) accepts that slip without
+  // letting "السالم" claim السالمية: there the prefix falls a letter short.
+  const sharedPrefixLen = (a: string, b: string) => {
+    let i = 0;
+    while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+    return i;
+  };
 
   const hit = zones
     .filter((z) => {
       const bare = waStripArabicArticle(z.name);
       if (bare.length < 3) return false;
       // Multi-word zone names ("أبو حليفة") are matched against the whole sentence.
-      return bare.includes(" ") ? clean.includes(bare) : words.some((w) => w === bare || w.includes(bare));
+      if (bare.includes(" ")) return clean.includes(bare);
+      return words.some((w) =>
+        w === bare
+        || w.includes(bare)
+        || (w.length >= 4 && bare.length >= 4 && sharedPrefixLen(w, bare) >= Math.max(4, bare.length - 1))
+      );
     })
     .sort((a, b) => b.name.length - a.name.length)[0];
   return hit || null;
+}
+
+// One voice for a priced zone wherever it is answered from.
+function waZonePriceText(zone: any) {
+  return [
+    "حياك الله 🤍",
+    `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
+    "",
+    "🛒 للطلب:",
+    waNewOrderUrl(),
+  ].join("\n");
+}
+
+// The bot asks "اكتب اسم منطقتك" — and the customer answers with just the area name,
+// no delivery word around it ("الأندلس"). A short message naming a priced zone IS the
+// delivery question; anything longer keeps its normal routing.
+async function waZoneOnlyDeliveryReply(messageText: string) {
+  const wordCount = waNormalizeArabic(messageText).split(/\s+/).filter(Boolean).length;
+  if (!wordCount || wordCount > 3) return "";
+  const zones = await waDeliveryZones();
+  if (!zones.length) return "";
+  const zone = waFindZoneByText(zones, messageText);
+  return zone ? waZonePriceText(zone) : "";
 }
 
 async function waDeliveryReply(messageText: string) {
@@ -3193,13 +3238,7 @@ async function waDeliveryReply(messageText: string) {
 
   const zone = waFindZoneByText(zones, messageText);
   if (zone) {
-    return [
-      "حياك الله 🤍",
-      `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
-      "",
-      "🛒 للطلب:",
-      waNewOrderUrl(),
-    ].join("\n");
+    return waZonePriceText(zone);
   }
 
   const prices = [...new Set(zones.map((z: any) => z.price))].sort((a: number, b: number) => a - b);
@@ -3507,10 +3546,13 @@ function waLooksLikeServesIntent(text: string) {
 }
 
 async function waProductReply(messageText: string) {
-  const shared = await waLoadSharedData(["products"]);
+  // The owner's standing rule, stated more than once: a menu or price question gets
+  // the agreed welcome message with the site link — never a typed-out product list.
+  // The bot used to quote items, prices, add-ons and piece counts line by line
+  // ("هذا أقرب صنف حسب سؤالك"), drifting from the site the order is actually placed
+  // on. Matching still runs so unrelated messages keep their normal routing; the
+  // moment the question is about a product, the answer is the one agreed message.
   const asksAvailability = waLooksLikeAvailabilityIntent(messageText);
-  const asksPieces = waLooksLikePiecesIntent(messageText);
-  const asksServes = waLooksLikeServesIntent(messageText);
   const terms = waIntentTokens(messageText)
     .filter((word) => word.length >= 3 && ![
       "عندكم", "ابي", "ابغي", "ابغى", "ابا", "اريد", "نبي", "ودي", "ودنا", "اطلب", "طلب", "منتج",
@@ -3523,86 +3565,23 @@ async function waProductReply(messageText: string) {
   const uniqueTerms = waUnique(terms);
 
   if (!uniqueTerms.length) {
-    if (asksAvailability) {
-      return [
-        // Answering "yes, available today" is a promise the data cannot back: many
-        // dishes carry "الطلب قبلها بيوم" in their own record.
-        "حياك الله 🤍",
-        "الأصناف وأسعارها والتوفر تلقاها هني:",
-        waNewOrderUrl(),
-        "",
-        "وإذا تقصد صنف معيّن اكتب اسمه وأعطيك تفاصيله.",
-      ].join("\n");
-    }
-    return "";
+    return asksAvailability ? await waMenuReply() : "";
   }
-  // Sellable only: a hidden or out-of-stock item quoted here reads as a promise the
-  // kitchen can't keep.
+
+  const shared = await waLoadSharedData(["products"]);
+  // Sellable only: a hidden or out-of-stock item counted here would route a dead
+  // product's question to the menu message, which is still the right place for it.
   const products = waSellableProducts(shared.products)
     .map((p: any) => ({
-      raw: p,
       name: waProductName(p),
       haystack: waNormalizeArabic(waProductSearchText(p)),
     }))
     .filter((p: any) => p.name);
 
-  const matches = products
-    .map((p: any) => ({ ...p, score: uniqueTerms.reduce((acc, term) => acc + (p.haystack.includes(term) ? 1 : 0), 0) }))
-    .filter((p: any) => p.score > 0)
-    .sort((a: any, b: any) => b.score - a.score)
-    .slice(0, 5);
+  const matched = products.some((p: any) => uniqueTerms.some((term) => p.haystack.includes(term)));
+  if (!matched) return "";
 
-  if (!matches.length) return "";
-
-  const oneDetailed = matches.length === 1 || asksAvailability || asksPieces || asksServes;
-  const lines = oneDetailed ? ["هذا أقرب صنف حسب سؤالك:"] : ["هذه أقرب المنتجات الموجودة عندنا حالياً:"];
-  matches.forEach((p: any, index: number) => {
-    const price = waProductPriceText(p.raw);
-    const availability = waProductAvailabilityText(p.raw);
-    const pieces = waProductPiecesText(p.raw);
-    const serves = waProductServesText(p.raw);
-    const prefix = oneDetailed ? `• ${p.name}` : `${index + 1}. ${p.name}`;
-    const details = [price, availability].filter(Boolean).join(" — ");
-    lines.push(`${prefix}${details ? ` — ${details}` : ""}`);
-    if (oneDetailed) {
-      if (asksPieces) lines.push(pieces ? `عدد الحبات/القطع: ${pieces}` : "عدد الحبات غير محفوظ لهذا الصنف حالياً، يقدر الموظف يؤكده لك قبل الطلب.");
-      if (asksServes) lines.push(serves ? `يكفي تقريباً: ${serves}` : "عدد الأشخاص غير محفوظ لهذا الصنف حالياً، اكتب: موظف، ونؤكده لك قبل الطلب.");
-      if (!asksPieces && !asksServes && pieces) lines.push(`عدد الحبات/القطع: ${pieces}`);
-      if (!asksPieces && !asksServes && serves) lines.push(`يكفي تقريباً: ${serves}`);
-
-      // Minimum order quantity. Nine items require 100 units and the bot never said so,
-      // so a customer could ask for one box and only find out at checkout.
-      const minQty = Number(p.raw?.minOrderQty);
-      if (Number.isFinite(minQty) && minQty > 1) lines.push(`⚠️ أقل كمية للطلب: ${Math.round(minQty)}`);
-
-      // Real add-ons live in `addons`; the `addOns`/`extras` fields hold broken "["
-      // strings on 60 records and are deliberately ignored.
-      const addons = waAsArray(p.raw?.addons)
-        .filter((a: any) => a?.isActive !== false && waString(a?.name).trim())
-        .map((a: any) => {
-          const name = waString(a.name).trim();
-          const value = Number(a?.price);
-          // isHiddenPrice means the site does not show the price; repeating it here
-          // would contradict the page the order is placed on.
-          const showPrice = a?.isHiddenPrice !== true && Number.isFinite(value) && value > 0;
-          return `${name}${showPrice ? ` +${waMoneyText(value)}` : ""}`;
-        });
-      if (addons.length) lines.push(`➕ الإضافات: ${addons.slice(0, 6).join(" · ")}`);
-
-      // The site's warmth, carried into the chat. Only on the detailed single-item
-      // answer — repeating it under every row of a five-item list would be noise.
-      const tone = waProductToneLine(p.raw);
-      if (tone) lines.push(tone);
-    }
-  });
-  lines.push("");
-  lines.push("للطلب والدفع الآمن من الموقع:");
-  lines.push(waNewOrderUrl());
-  if (asksPieces || asksServes) {
-    lines.push("");
-    lines.push("إذا تبي تأكيد نهائي قبل الطلب اكتب: موظف.");
-  }
-  return lines.join("\n");
+  return waMenuReply();
 }
 
 function waLooksLikeNewOrderIntent(text: string) {
@@ -3755,6 +3734,11 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
     const delivery = await waDeliveryReply(messageText);
     if (delivery) return delivery;
   }
+  {
+    // A bare area name ("الأندلس") is the customer answering the delivery question.
+    const zoneOnly = await waZoneOnlyDeliveryReply(messageText);
+    if (zoneOnly) return zoneOnly;
+  }
   if (waLooksLikeHoursIntent(messageText)) {
     const hours = await waHoursReply();
     if (hours) return hours;
@@ -3777,9 +3761,11 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   }
   if (clean === "3") return waMenuReply();
   if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
+  // Menu wording first: "بجم المجبوس" is a menu/price question and gets the agreed
+  // message directly, without loading the product table at all.
+  if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
   const earlyProductReply = await waProductReply(messageText);
   if (earlyProductReply) return earlyProductReply;
-  if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
 
   const businessId = waExtractBusinessId(messageText);
   if (businessId) {
@@ -4272,6 +4258,8 @@ async function waProcessInboundMessage({
     // missing, and the rules take over exactly as before.
     let groundedReply = "";
     if (cleanText && waLooksLikeDeliveryIntent(cleanText)) groundedReply = await waDeliveryReply(cleanText);
+    // A bare area name ("الأندلس") answers the bot's own "اكتب اسم منطقتك".
+    if (!groundedReply && cleanText) groundedReply = await waZoneOnlyDeliveryReply(cleanText);
     if (!groundedReply && cleanText && waLooksLikeHoursIntent(cleanText)) groundedReply = await waHoursReply();
 
     const customRule = groundedReply ? null : (cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null);
