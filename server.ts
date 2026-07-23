@@ -4200,14 +4200,27 @@ async function waProcessInboundMessage({
       priority: conversation?.priority || "high",
       supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
     });
-    const pushResult = await waSendHumanSupportPush({
-      phone: cleanFrom,
-      text: cleanText || `[${cleanType}]`,
-      contactName,
-      messageId,
-      reason: "already_human",
-    });
-    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
+    // While the owner is answering this chat himself (his manual reply — phone or
+    // console — is inside the human window), every customer message used to ping him
+    // too: pure noise when he is already inside the conversation. Stay quiet for the
+    // window; each reply he sends refreshes it, and once he goes silent past it a
+    // waiting customer alerts him again exactly as before.
+    const lastHumanReplyMs = waDateMs(conversation?.humanLastReplyAt);
+    const ownerActivelyReplying = lastHumanReplyMs > 0
+      && Date.now() - lastHumanReplyMs < WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
+    if (ownerActivelyReplying) {
+      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", skipped: true, mutedBy: "owner_active_reply" });
+      console.log(`[WHATSAPP] Push muted for ${waMaskPhone(cleanFrom)} — owner replied ${Math.round((Date.now() - lastHumanReplyMs) / 60000)}m ago and is handling this chat himself.`);
+    } else {
+      const pushResult = await waSendHumanSupportPush({
+        phone: cleanFrom,
+        text: cleanText || `[${cleanType}]`,
+        contactName,
+        messageId,
+        reason: "already_human",
+      });
+      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
+    }
     console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} is in human support mode. Auto-reply skipped.`);
   } else if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
