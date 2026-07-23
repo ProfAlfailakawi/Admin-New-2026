@@ -23,7 +23,7 @@ import {
   Dices,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h, formatTimeInput, validateAndCleanTime } from '../lib/utils';
+import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h, formatTimeInput, validateAndCleanTime, getArabicWeekdayAndDate } from '../lib/utils';
 import {
   recalculateStateBalances,
   generateNextInvoiceId,
@@ -1793,7 +1793,7 @@ Alturath.kw`;
                       {(() => {
                         const delDateRaw = (order as any).deliveryDate || (order as any).deliveryDateKey;
                         const delTimeRaw = (order as any).deliveryTime;
-                        const delDateFormatted = formatDeliveryDateDisplay(delDateRaw);
+                        const { weekday, date: delDateFormatted } = getArabicWeekdayAndDate(delDateRaw);
                         const delTimeFormatted = formatDeliveryTimeDisplay(delTimeRaw);
 
                         if (!delDateFormatted && !delTimeFormatted) return null;
@@ -1801,8 +1801,13 @@ Alturath.kw`;
                         return (
                           <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-amber-900 bg-amber-500/15 border border-amber-400/40 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
                             <Clock size={12} className="text-amber-600 shrink-0" />
-                            <span className="font-bold">التوصيل المطلوب:</span>
-                            {delDateFormatted && <span dir="ltr" className="text-slate-900 font-black bg-white/60 px-1 py-0.5 rounded">{delDateFormatted}</span>}
+                            <span className="font-bold">التوصيل:</span>
+                            {delDateFormatted && (
+                              <div className="flex items-center gap-1">
+                                {weekday && <span className="text-slate-700 font-light text-[10px]">{weekday}</span>}
+                                <span dir="ltr" className="text-slate-900 font-black bg-white/60 px-1 py-0.5 rounded text-[10px]">{delDateFormatted}</span>
+                              </div>
+                            )}
                             {delTimeFormatted && (
                               <span dir="ltr" className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded font-black shrink-0 whitespace-nowrap">
                                 {delTimeFormatted}
@@ -3004,7 +3009,7 @@ Alturath.kw`;
                             <div className="flex items-center justify-between text-amber-300 font-bold text-xs">
                               <span className="flex items-center gap-1.5">
                                 <Clock size={14} className="text-amber-400" />
-                                <span>موعد التوصيل المطلوب للعميل</span>
+                                <span>موعد التوصيل للعميل</span>
                               </span>
                               {(orderDeliveryDate || orderDeliveryTime) && (
                                 <span className="bg-amber-400/20 text-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold">
