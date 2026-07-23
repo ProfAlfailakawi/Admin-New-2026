@@ -3062,10 +3062,8 @@ Alturath.kw`;
                                       type="button"
                                       onClick={() => {
                                         let current = orderDeliveryTime || "";
-                                        current = current.replace(/\s*[صم]\s*/g, "").trim();
-                                        const cleaned = validateAndCleanTime(current);
-                                        const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
-                                        const newVal = `${baseTime} ص`;
+                                        current = current.replace(/\s*(ص|م|am|pm|a|p)\s*/gi, "").trim();
+                                        const newVal = validateAndCleanTime(`${current} AM`);
                                         setOrderDeliveryTime(newVal);
                                         if (selectedOrder) {
                                           updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
@@ -3073,7 +3071,7 @@ Alturath.kw`;
                                       }}
                                       className={cn(
                                         "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
-                                        orderDeliveryTime.includes("ص")
+                                        (orderDeliveryTime.toLowerCase().includes("am") || orderDeliveryTime.includes("ص"))
                                           ? "bg-amber-500 text-slate-950 font-black"
                                           : "text-slate-400 hover:bg-slate-800"
                                       )}
@@ -3085,10 +3083,8 @@ Alturath.kw`;
                                       type="button"
                                       onClick={() => {
                                         let current = orderDeliveryTime || "";
-                                        current = current.replace(/\s*[صم]\s*/g, "").trim();
-                                        const cleaned = validateAndCleanTime(current);
-                                        const baseTime = cleaned ? cleaned.replace(/\s*[صم]\s*/g, "").trim() : "12:00";
-                                        const newVal = `${baseTime} م`;
+                                        current = current.replace(/\s*(ص|م|am|pm|a|p)\s*/gi, "").trim();
+                                        const newVal = validateAndCleanTime(`${current} PM`);
                                         setOrderDeliveryTime(newVal);
                                         if (selectedOrder) {
                                           updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
@@ -3096,7 +3092,7 @@ Alturath.kw`;
                                       }}
                                       className={cn(
                                         "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
-                                        orderDeliveryTime.includes("م")
+                                        (orderDeliveryTime.toLowerCase().includes("pm") || orderDeliveryTime.includes("م"))
                                           ? "bg-amber-500 text-slate-950 font-black"
                                           : "text-slate-400 hover:bg-slate-800"
                                       )}
