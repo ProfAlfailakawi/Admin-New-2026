@@ -196,6 +196,10 @@ export function formatTimeInput(value: string): string {
   const digits = normalized.replace(/\D/g, '').slice(0, 4);
   if (digits.length <= 2) {
     return digits;
+  } else if (digits.length === 3) {
+    const hh = digits.slice(0, 1);
+    const mm = digits.slice(1);
+    return `${hh}:${mm}`;
   } else {
     const hh = digits.slice(0, 2);
     const mm = digits.slice(2);
@@ -205,28 +209,46 @@ export function formatTimeInput(value: string): string {
 
 export function validateAndCleanTime(value: string): string {
   if (!value) return '';
-  const normalized = normalizeArabicNumerals(value);
+  const normalized = normalizeArabicNumerals(value).trim();
   
-  const isPm = value.includes('م');
-  const isAm = value.includes('ص');
+  // Extract AM/PM or ص/م
+  const isPm = normalized.includes('م') || normalized.toLowerCase().includes('pm') || normalized.toLowerCase().includes('p');
+  const isAm = normalized.includes('ص') || normalized.toLowerCase().includes('am') || normalized.toLowerCase().includes('a');
   const period = isPm ? 'م' : (isAm ? 'ص' : '');
   
-  const digits = normalized.replace(/\D/g, '').slice(0, 4);
+  // Strip all non-digits to get the numbers
+  const digits = normalized.replace(/\D/g, '');
   if (!digits) return '';
   
   let hh = 12;
   let mm = 0;
   
-  if (digits.length <= 2) {
-    hh = parseInt(digits, 10) || 12;
+  if (digits.length >= 4) {
+    hh = parseInt(digits.slice(0, 2), 10);
+    mm = parseInt(digits.slice(2, 4), 10);
+  } else if (digits.length === 3) {
+    hh = parseInt(digits.slice(0, 1), 10);
+    mm = parseInt(digits.slice(1, 3), 10);
   } else {
-    hh = parseInt(digits.slice(0, 2), 10) || 12;
-    mm = parseInt(digits.slice(2), 10) || 0;
+    hh = parseInt(digits, 10);
+    mm = 0;
   }
   
-  if (hh > 12) hh = 12;
-  if (hh < 1) hh = 1;
+  // Normalize hours & minutes
+  if (isNaN(hh)) hh = 12;
+  if (isNaN(mm)) mm = 0;
+  
+  if (hh > 12) {
+    if (hh >= 24) {
+      hh = hh % 12;
+      if (hh === 0) hh = 12;
+    } else {
+      hh = hh - 12;
+    }
+  }
+  if (hh < 1) hh = 12;
   if (mm > 59) mm = 59;
+  if (mm < 0) mm = 0;
   
   const formattedHh = String(hh).padStart(2, '0');
   const formattedMm = String(mm).padStart(2, '0');

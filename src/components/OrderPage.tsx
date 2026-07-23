@@ -3012,7 +3012,7 @@ Alturath.kw`;
                                 </span>
                               )}
                             </div>
-                            <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div className="space-y-3 pt-1">
                               <div>
                                 <span className="block text-[10px] text-white/70 font-bold mb-1">تاريخ التوصيل</span>
                                 <input
@@ -3034,19 +3034,13 @@ Alturath.kw`;
                                 <div className="flex items-center gap-2">
                                   <input
                                     type="text"
-                                    placeholder="12:30 م"
+                                    placeholder="مثال: 05:30 م"
                                     value={orderDeliveryTime}
                                     onChange={(e) => {
                                       const val = e.target.value;
-                                      const hasAm = val.includes('ص');
-                                      const hasPm = val.includes('م');
-                                      const period = hasPm ? ' م' : (hasAm ? ' ص' : '');
-                                      const cleanDigits = val.replace(/\s*[صم]\s*/g, "");
-                                      const formattedDigits = formatTimeInput(cleanDigits);
-                                      const newVal = `${formattedDigits}${period}`;
-                                      setOrderDeliveryTime(newVal);
+                                      setOrderDeliveryTime(val);
                                       if (selectedOrder) {
-                                        updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: newVal });
+                                        updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: val });
                                       }
                                     }}
                                     onBlur={(e) => {
