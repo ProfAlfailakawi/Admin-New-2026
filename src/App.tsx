@@ -2452,8 +2452,10 @@ const MainApp: React.FC = () => {
       
       const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+      await preserveProtectedRootKeys(sanitizedRoot, rootDataRef);
       const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
       
+      await seedShardBaselineBeforeBlank(user.uid, user.email, shardedPayloads);
       for (const key of SHARDED_KEYS) {
 	         if (shardedPayloads[key]) {
             if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
@@ -2684,6 +2686,58 @@ const MainApp: React.FC = () => {
     }
   };
 
+  // ===== DATA GUARD: root-cause fix for silent collection wipes on import/sync =====
+  // Business-critical collections that live directly in the root document (NOT sharded)
+  // had zero empty-overwrite protection. Losing any to an empty array is data loss, so
+  // they are never silently blanked.
+  const BLANK_PROTECTED_ROOT_KEYS = ['suppliers', 'zones', 'diwaniyaTiers', 'squadTiers', 'productCategories'];
+
+  // Refuse to overwrite a populated root collection with an empty array. Reads the
+  // authoritative cloud root once (only when something is about to be blanked) and
+  // carries the existing value forward. Fix for suppliers vanishing on import.
+  const preserveProtectedRootKeys = async (candidateRoot: any, rootRef: any) => {
+    try {
+      const atRisk = BLANK_PROTECTED_ROOT_KEYS.filter(
+        (k) => Array.isArray(candidateRoot?.[k]) && candidateRoot[k].length === 0
+      );
+      if (atRisk.length === 0) return candidateRoot;
+      const snap = await getDoc(rootRef);
+      const remote: any = snap.exists() ? (snap.data() || {}) : {};
+      atRisk.forEach((key) => {
+        const rem = remote[key];
+        if (Array.isArray(rem) && rem.length > 0) {
+          candidateRoot[key] = rem;
+          console.warn(`[DATA_GUARD] Refused to blank root '${key}' — kept ${rem.length} cloud rows.`);
+        }
+      });
+    } catch (guardErr) {
+      console.warn('[DATA_GUARD] root blank-protection skipped:', guardErr);
+    }
+    return candidateRoot;
+  };
+
+  // The sharded empty-overwrite guard is bypassed whenever a shard's in-memory baseline
+  // was never loaded (fresh session / an import that ran before the shard loaded) — it
+  // then lets an empty payload wipe the shard. Seed the baseline from the authoritative
+  // cloud shard for any key about to be written empty. Fix for squads vanishing on import.
+  const seedShardBaselineBeforeBlank = async (uid: string, email: any, payloadMap: Record<string, any>) => {
+    for (const key of SHARDED_KEYS) {
+      const val = payloadMap ? payloadMap[key] : undefined;
+      if (Array.isArray(val) && val.length === 0 && !lastRemoteKeysRef.current[key]) {
+        try {
+          const remoteShard: any = await readLogicalAppDataShard(uid, email, key, true);
+          if (remoteShard?.exists && Array.isArray(remoteShard.value) && remoteShard.value.length > 0) {
+            lastRemoteKeysRef.current[key] = stableStringify(remoteShard.value);
+            console.warn(`[DATA_GUARD] Seeded baseline for shard '${key}' (${remoteShard.value.length}) to block empty overwrite.`);
+          }
+        } catch (seedErr) {
+          console.warn(`[DATA_GUARD] Could not seed baseline for shard '${key}':`, seedErr);
+        }
+      }
+    }
+  };
+
+
   const onCloudImport = async (importedState: AppState): Promise<boolean> => {
     if (!user) return false;
     isCloudSyncApplyingRef.current = true;
@@ -2712,9 +2766,11 @@ const MainApp: React.FC = () => {
 	        };
 	        const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
 	        const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+	        await preserveProtectedRootKeys(sanitizedRoot, rootDataRef);
 	        const serializedRootCurrent = stableStringify(sanitizedRoot);
         const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
 
+	        await seedShardBaselineBeforeBlank(user.uid, user.email, shardedPayloads);
 	        for (const key of SHARDED_KEYS) {
 	           if (shardedPayloads[key] !== undefined) {
               if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
@@ -3546,6 +3602,7 @@ const MainApp: React.FC = () => {
             splitData
           );
           const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
+          await preserveProtectedRootKeys(sanitizedRootPreview, rootDataRef);
           const serializedRootCurrent = stableStringify(sanitizedRootPreview);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
