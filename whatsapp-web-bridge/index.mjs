@@ -476,6 +476,10 @@ async function deliverOutbound(item) {
       const sent = await client.sendMessage(chatId, body, { linkPreview: true });
       const waMessageId = sent?.id?._serialized || sent?.id?.id || '';
       rememberSentOutbox(item.id, waMessageId);
+      // Also mark our own sent id as seen, so its fromMe echo is not mistaken for a
+      // manual reply that pauses the bot. The text-match backstop on the server races
+      // when customers send fast; deduping by message id is reliable.
+      if (waMessageId) rememberInbound(waMessageId);
       await ackOutbound(item.id, {
         ok: true,
         waMessageId,

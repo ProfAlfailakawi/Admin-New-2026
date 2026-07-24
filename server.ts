@@ -3276,6 +3276,10 @@ function waZonePriceText(zone: any) {
 // no delivery word around it ("الأندلس"). A short message naming a priced zone IS the
 // delivery question; anything longer keeps its normal routing.
 async function waZoneOnlyDeliveryReply(messageText: string) {
+  // A bare greeting that happens to share a name with a delivery zone ("السلام",
+  // "سلام") is a greeting — never quote it a zone price. Only "توصيل السلام" and the
+  // like (which carry a delivery word) reach waDeliveryReply and match the zone there.
+  if (waIsPureGreeting(messageText)) return "";
   const wordCount = waNormalizeArabic(messageText).split(/\s+/).filter(Boolean).length;
   if (!wordCount || wordCount > 3) return "";
   const zones = await waDeliveryZones();
@@ -4449,7 +4453,12 @@ async function waProcessInboundMessage({
       // Conversations from before this field existed: keep the old behaviour rather
       // than risk double-sending a long welcome.
       : true;
-  if (reply && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
+  // The anti-repeat nudge exists only to avoid sending the long WELCOME twice in a row.
+  // It must never swallow an informational answer: a customer asking about one product
+  // after another ("بجم ورق العنب" ثم "ورق العنب") should get the menu link every time,
+  // not a generic "شنو تحتاج؟". So the menu reply is exempt from the repeat check.
+  const replyIsMenu = waString(reply).trim() === waString(waBotText("menu")).trim();
+  if (reply && !replyIsMenu && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
     reply = waRepeatNudgeReply();
   }
 

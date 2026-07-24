@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -85,6 +85,20 @@ async function waitForInternet() {
   }
 }
 
+// A bridge crash can orphan its Chrome child; the leftover process (or its stale
+// Singleton* files) then deadlocks every future boot with "The browser is already
+// running". Sweep both before each start - anything holding the profile at this
+// point is stale by definition, because the previous bridge has already exited.
+function cleanStaleChromeLocks() {
+  const profileDir = path.join(bridgeDir, '.session', 'session-alturath-mac-main');
+  try {
+    spawnSync('pkill', ['-9', '-f', profileDir], { stdio: 'ignore' });
+  } catch {}
+  for (const name of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+    try { fs.rmSync(path.join(profileDir, name), { force: true }); } catch {}
+  }
+}
+
 async function runBridgeForever() {
   fs.mkdirSync(logsDir, { recursive: true });
   rotateLog(stdoutLog);
@@ -96,6 +110,7 @@ async function runBridgeForever() {
     if (stopping) break;
 
     serviceMessage('starting bridge process');
+    cleanStaleChromeLocks();
     child = spawn(process.execPath, ['index.mjs'], {
       cwd: bridgeDir,
       env: process.env,
