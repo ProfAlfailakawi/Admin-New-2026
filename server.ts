@@ -2308,12 +2308,6 @@ function waHumanAutoResumeAt() {
 
 function waHumanModeExpired(conversation: any) {
   if (!conversation || conversation?.mode !== "human") return false;
-  // Once the owner has answered this chat himself, it stays his until he hands it back to
-  // the bot manually (console "return to bot", or the customer typing القائمة/بوت). No timed
-  // auto-resume — so his notifications never restart behind his back while he owns the chat.
-  // A chat that reached "human" only via a system escalation (no owner reply yet) still
-  // auto-resumes below, so an un-answered customer is never stranded.
-  if (waDateMs(conversation?.humanLastReplyAt) > 0) return false;
   const resumeAt = waDateMs(conversation?.autoResumeAt);
   if (resumeAt > 0) return resumeAt <= Date.now();
   const pausedAt = waDateMs(conversation?.humanLastReplyAt || conversation?.botPausedAt || conversation?.supportRequestedAt);
@@ -4306,14 +4300,14 @@ async function waProcessInboundMessage({
 
   let conversation = await waGetConversation(cleanFrom);
 
-  // The moment the owner answers a chat himself it becomes his — and stays his until he
-  // hands it back to the bot manually. No time limit: every alert AND the unread badge
-  // stay silent the whole time he owns it, no matter how long the customer takes to reply.
-  // (A chat that reached "human" only via a system escalation — no owner reply yet — is
-  // NOT owner-handled, so it keeps alerting and a new customer is never missed.)
+  // While the owner is answering this chat himself (manual reply inside the human
+  // window) the unread badge stays quiet too — he is reading it on the phone, and a
+  // climbing red counter in the console for a chat he is inside is pure noise. Once
+  // he goes silent past the window, unread counts pile up again exactly as before.
   const ownerLastReplyMs = waDateMs(conversation?.humanLastReplyAt);
   const ownerActivelyHandling = conversation?.mode === "human"
-    && ownerLastReplyMs > 0;
+    && ownerLastReplyMs > 0
+    && Date.now() - ownerLastReplyMs < WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
   if (!ownerActivelyHandling) await waIncrementUnread(cleanFrom);
   if (waHumanModeExpired(conversation)) {
     await waUpsertConversation(cleanFrom, {
@@ -4366,15 +4360,16 @@ async function waProcessInboundMessage({
     conversation = { ...(conversation || {}), ratingPendingAt: "" };
   }
 
-  // A human is handling this conversation (auto-expiry is handled above). While it lasts
-  // the bot says NOTHING — not even for "منيو": the owner's wife answered a customer, he
-  // typed منيو, and the bot barged in. When a person is talking, the bot's only job is to
-  // notify, never to speak.
+  // A human is actively handling this conversation (the 30-minute window is checked
+  // and auto-expired above). While it lasts, the bot says NOTHING — not even for
+  // "منيو": the owner's wife answered a customer, he typed منيو, and the bot barged
+  // in. When a person is talking, the bot's only job is to notify, never to speak.
   if (conversation?.mode === "human") {
-    // The owner has taken this chat over himself (he replied to it — phone or console),
-    // so it is his until he hands it back to the bot manually. The whole system stays
-    // quiet about it for as long as he owns it: no push, no "needs_support" escalation,
-    // no unread badge — however long the customer takes between messages.
+    // While the owner is answering this chat himself (his manual reply — phone or
+    // console — is inside the human window), the whole system stays quiet about it:
+    // no push, no "needs_support" escalation lighting up every corner of the console.
+    // Each reply he sends refreshes the window; once he goes silent past it, a waiting
+    // customer escalates and alerts exactly as before.
     if (ownerActivelyHandling) {
       await waUpsertConversation(cleanFrom, { status: "open" });
       sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", skipped: true, mutedBy: "owner_active_reply" });
