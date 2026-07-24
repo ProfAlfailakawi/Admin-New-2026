@@ -35,6 +35,24 @@ const getSupplierPriceIndicator = (s: any, context?: { productCount?: number; in
  return { val: '0.0%', type: 'stable' };
 };
 
+// Excel/JSON backups store paymentMethods as a JSON string ("[\"KNet\",\"Link\"]") instead
+// of a native array. Coerce it back so the UI never calls .map()/.filter()/.includes() on a
+// string — that throws and blanks the whole Suppliers page behind the error boundary.
+const toPaymentMethodsArray = (value: any): PaymentMethod[] => {
+  if (Array.isArray(value)) return value as PaymentMethod[];
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? (parsed as PaymentMethod[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
 const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, setCurrentPage, setDeepLinkData, deepLinkData, onClearDeepLink }) => {
  const [search, setSearch] = useState('');
  
@@ -299,7 +317,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  setSupplierForm({ 
  name: supplier.name, 
  phone: supplier.phone, 
- paymentMethods: supplier.paymentMethods,
+ paymentMethods: toPaymentMethodsArray(supplier.paymentMethods),
  balance: Number((supplier.balance || 0).toFixed(3)),
  status: supplier.status,
  supplierType: (supplier as any).supplierType || 'food',
@@ -584,7 +602,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="flex flex-wrap gap-2 justify-end">
- {(supplier.paymentMethods || []).map(method => (
+ {toPaymentMethodsArray(supplier.paymentMethods).map(method => (
  <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
  <CreditCard size={12} />
  {method === 'BankTransfer' ? 'حوالة' : method === 'KNet' ? 'KNET' : 'رابط'}

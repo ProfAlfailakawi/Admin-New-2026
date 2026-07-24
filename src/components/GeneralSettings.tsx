@@ -3392,7 +3392,12 @@ const GeneralSettings: React.FC<Props> = ({
               : baseState.expenses || [],
             suppliers: workbook.SheetNames.includes("Suppliers")
               ? (stripUndefined(
-                  safeSheetToObj("Suppliers"),
+                  (safeSheetToObj("Suppliers") as any[]).map((row: any) => ({
+                    ...row,
+                    // paymentMethods is exported as a JSON string in Excel; parse it back to a
+                    // native array so the Suppliers page never calls .map() on a string.
+                    paymentMethods: parseSafeJson(row.paymentMethods, true),
+                  })),
                 ) as any as Supplier[])
               : baseState.suppliers || [],
             testimonials: workbook.SheetNames.includes("Testimonials")
