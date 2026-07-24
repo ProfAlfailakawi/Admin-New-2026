@@ -3839,10 +3839,21 @@ function waLooksLikeThanksIntent(text: string) {
 // normal message after a delivered order is never swallowed as a score.
 function waParseRatingReply(text: string): 0 | 1 | 2 | 3 {
   const t = waNormalizeArabic(text).trim();
-  if (/^3\b|ممتاز|رائع|حلو|زين|روعه|روعة|excellent|great|good\b/.test(t)) return 3;
-  if (/^2\b|جيد|كويس|مقبول|عادي|ماشي|ok|okay/.test(t)) return 2;
-  if (/^1\b|سيء|سيئ|يحتاج تحسين|مو حلو|مو زين|ما عجب|زفت|bad|poor/.test(t)) return 1;
+  // The rating message numbers the options 1️⃣ ممتازة (best) → 3️⃣ تحتاج تحسين (worst), but the
+  // internal score is 3 = best … 1 = worst. So the DIGIT the customer sends is inverted here
+  // (1→3, 3→1) to match what he was shown; word answers already map to the right score.
+  if (/^1\b/.test(t) || /ممتاز|رائع|حلو|زين|روعه|روعة|excellent|great|good\b/.test(t)) return 3;
+  if (/^2\b/.test(t) || /جيد|كويس|مقبول|عادي|ماشي|ok|okay/.test(t)) return 2;
+  if (/^3\b/.test(t) || /سيء|سيئ|يحتاج تحسين|مو حلو|مو زين|ما عجب|زفت|bad|poor/.test(t)) return 1;
   return 0;
+}
+
+// The rating request lists 1️⃣ ممتازة … 3️⃣ تحتاج تحسين; those two options together are unique to
+// it. Recognising it lets us arm rating detection even when the owner sends the request by hand
+// (from his phone) instead of the console button, so the customer's next 1/2/3 is read correctly.
+function waLooksLikeRatingRequest(text: string): boolean {
+  const t = waString(text);
+  return /ممتاز/.test(t) && /تحتاج تحسين/.test(t);
 }
 
 // Appends to a simple ratings ledger the console reads. Best-effort: a write failure
@@ -5325,6 +5336,9 @@ app.post("/api/whatsapp/bridge/inbound", async (req, res) => {
         humanLastReplyAt: waNowIso(),
         botPausedAt: waNowIso(),
         autoResumeAt: waHumanAutoResumeAt(),
+        // Owner sent the rating request by hand → arm rating detection so the customer's
+        // next 1/2/3 is read as a rating (undefined leaves any existing value untouched).
+        ratingPendingAt: waLooksLikeRatingRequest(text) ? waNowIso() : undefined,
       });
       console.log(`[WHATSAPP] Phone reply recorded for ${waMaskPhone(from)}; bot paused for the human window.`);
       return res.status(200).json({ success: true, humanEcho: true });
@@ -5586,7 +5600,10 @@ app.post("/api/whatsapp/conversations/:phone/request-rating", async (req, res) =
 
     let name = "";
     try { name = waString((await waCustomerByPhone(phone))?.name).trim(); } catch { /* name is optional */ }
-    const text = waBotText("rating_request", { name: name || "" }).replace(/\s{2,}/g, " ").replace(" ❤️", " ❤️");
+    // Send the rating text exactly as authored — it intentionally puts each option on its own
+    // line (1️⃣ / 2️⃣ / 3️⃣). A previous \s{2,}→" " cleanup collapsed those newlines and glued
+    // 1️⃣ onto the previous line, so it is gone.
+    const text = waBotText("rating_request", { name: name || "" });
 
     const result = await waSendText(phone, text, {
       idempotencyKey: `rating-req:${phone}:${Math.floor(Date.now() / 3600000)}`,
