@@ -33,8 +33,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
   // كل شي يُحسب محلياً من بيانات المطعم الحقيقية — بدون أي محتوى مؤلف
   const insights = useMemo(() => computeStudioInsights(data), [data]);
   const weekPlan = useMemo(() => buildWeekPlan(data, rotation), [data, rotation]);
-  const kits = useMemo(() => buildContestKits(data), [data]);
-  const engagementIdeas = useMemo(() => buildEngagementIdeas(data), [data]);
+  const kits = useMemo(() => buildContestKits(data, rotation), [data, rotation]);
+  const engagementIdeas = useMemo(() => buildEngagementIdeas(data, rotation), [data, rotation]);
 
   const openPanel = () => {
     setIsOpen(true);
@@ -246,9 +246,17 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                 {/* ═══════════ المسابقات ═══════════ */}
                 {tab === 'contest' && (
                   <>
-                    <p className="text-[10px] font-black text-slate-500 px-1">
-                      مسابقات كاملة الأركان: جائزة حقيقية، شروط واضحة، تواريخ فعلية
-                    </p>
+                    <div className="flex justify-between items-center px-1">
+                      <p className="text-[10px] font-black text-slate-500">
+                        مسابقات كاملة الأركان: جائزة حقيقية، شروط واضحة، تواريخ فعلية
+                      </p>
+                      <button
+                        onClick={() => { setRotation(r => r + 1); playSwoosh(); }}
+                        className="shrink-0 text-slate-500 hover:text-slate-800 flex items-center gap-1 text-[10px] font-bold active:scale-95"
+                      >
+                        <RefreshCw size={11} /> جوائز أخرى
+                      </button>
+                    </div>
 
                     {kits.map((kit, idx) => {
                       const section: KitSection = kitSection[kit.id] || 'post';
@@ -337,9 +345,17 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                 {/* ═══════════ التفاعل ═══════════ */}
                 {tab === 'engage' && (
                   <>
-                    <p className="text-[10px] font-black text-slate-500 px-1">
-                      أساليب تفاعل مجرّبة — كل وحدة معها نسخة بوست ونسخة ستوري
-                    </p>
+                    <div className="flex justify-between items-center px-1">
+                      <p className="text-[10px] font-black text-slate-500">
+                        أساليب تفاعل مجرّبة — كل وحدة معها نسخة بوست ونسخة ستوري
+                      </p>
+                      <button
+                        onClick={() => { setRotation(r => r + 1); playSwoosh(); }}
+                        className="shrink-0 text-slate-500 hover:text-slate-800 flex items-center gap-1 text-[10px] font-bold active:scale-95"
+                      >
+                        <RefreshCw size={11} /> بدّل الأفكار
+                      </button>
+                    </div>
 
                     {engagementIdeas.map((idea, idx) => {
                       const view = engageView[idea.id] || 'caption';

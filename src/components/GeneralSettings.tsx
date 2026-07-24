@@ -3238,20 +3238,17 @@ const GeneralSettings: React.FC<Props> = ({
                   .replace(/""/g, '"');
                 result = JSON.parse(deCsv);
               } catch (e2) {
-                try {
-                  result = new Function("return" + cleanStr)();
-                } catch (e3) {
-                  return isArray ? [] : null;
-                }
+                // Never eval untrusted cell content. Backups are exported as valid JSON,
+                // so this path only hits malformed/foreign cells — give up safely instead
+                // of executing them as code.
+                return isArray ? [] : null;
               }
             }
             if (typeof result === "string") {
               try {
                 result = JSON.parse(result);
               } catch (e4) {
-                try {
-                  result = new Function("return" + result)();
-                } catch (e5) {}
+                // Not valid JSON, and we never eval — keep it as the plain string.
               }
             }
             if (isArray && !Array.isArray(result)) return [];
