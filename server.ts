@@ -5374,11 +5374,18 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
       void (async () => {
         try {
           const ref = db!.collection("whatsappSettings").doc("bridgeAuthAlert");
-          const snap = await ref.get();
-          const lastAt = waDateMs(snap.data()?.notifiedAt);
-          // One alert per hour: enough to be heard, not enough to become noise.
-          if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return;
-          await ref.set({ notifiedAt: waNowIso() });
+          // Atomic throttle: claim the hour window in a transaction so two heartbeats
+          // (or two Cloud Run instances) can't both pass the "one per hour" check and
+          // each send the re-auth alert.
+          const claimed = await db!.runTransaction(async (tx: any) => {
+            const snap = await tx.get(ref);
+            const lastAt = waDateMs(snap.data()?.notifiedAt);
+            // One alert per hour: enough to be heard, not enough to become noise.
+            if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return false;
+            tx.set(ref, { notifiedAt: waNowIso() }, { merge: true });
+            return true;
+          });
+          if (!claimed) return;
           await sendSmartAlertPushNotification({
             title: "🔑 واتساب يحتاج إعادة ربط",
             body: "البوت متوقف عن الرد. افتح مركز الواتساب وامسح رمز QR.",
@@ -7147,12 +7154,30 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       async function alreadySent(eventId: string) {
         if (__alertsPushEventsCache.knownIds.has(eventId)) return true;
-        const snap = await db!.collection("pushEvents").doc(eventId).get();
-        if (snap.exists) {
+        // Atomic claim — same proven pattern as alertsClaim. create() fails if the doc
+        // already exists, so exactly one caller wins. The old plain read let two runner
+        // passes / two Cloud Run instances both see "not sent" and each fire the same
+        // business alert (order-created, sales milestone, daily summary...) → duplicates.
+        try {
+          await db!.collection("pushEvents").doc(eventId).create({
+            eventId,
+            status: "claimed",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          __alertsPushEventsCache.knownIds.add(eventId);
+          return false; // we won the claim → not sent yet, caller proceeds to send
+        } catch (e: any) {
+          const code = String(e?.code || e?.message || "");
+          if (code.includes("ALREADY_EXISTS") || code.includes("already exists") || code.includes("6")) {
             __alertsPushEventsCache.knownIds.add(eventId);
-            return true;
+            return true; // another caller already claimed it → treat as already sent
+          }
+          // Unknown error: fall back to a read so a single bad claim can't crash the run.
+          const snap = await db!.collection("pushEvents").doc(eventId).get();
+          if (snap.exists) { __alertsPushEventsCache.knownIds.add(eventId); return true; }
+          throw e;
         }
-        return false;
       }
 
       async function markSent(eventId: string, payload: any, result: any) {
