@@ -295,7 +295,10 @@ const browserAlreadyGranted =
       return;
     }
 
-    const result = await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default' });
+    // Tag the token as a partner so role-targeted alerts (daily summary, milestones)
+    // reach it correctly. Before this, partners registered without a role and were
+    // filtered out of ["admin","partner"] notifications.
+    const result = await registerPushNotifications({ userId: data.settings?.companyName || 'partner', restaurantId: 'default', userRole: 'partner' });
      if (!result?.success) {
        throw new Error(result?.error || 'ما قدرنا نفعّل الإشعارات');
      }
