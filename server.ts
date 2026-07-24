@@ -7666,6 +7666,14 @@ function pushRecordMatchesTargetRoles(record: PushTokenRecordForArchive, targetR
   if (!roles.length) return true;
   const recordRole = String(record.userRole || "").trim().toLowerCase();
   if (roles.includes(recordRole)) return true;
+  // This app registers push tokens only for staff (admin/partner) — there is no public
+  // customer push here. Partners registered from the Partner Dashboard without a role,
+  // so their tokens are untagged and were wrongly dropped from ["admin","partner"]
+  // summaries (while still getting the unfiltered payment alerts). An untagged token is
+  // a staff member, so it should receive any partner-targeted alert. Scoped to
+  // "partner" on purpose: admin-only alerts (e.g. WhatsApp support) still won't leak to
+  // untagged tokens, since those fall through to the owner-identity check below.
+  if (!recordRole && roles.includes("partner")) return true;
   if (roles.includes("admin")) {
     const identity = [record.userId, record.userName, record.userEmail, record.tokenDocId].filter(Boolean).join(" ").toLowerCase();
     return recordRole.includes("admin") || /\badmin\b/.test(identity) || identity.includes("ahmad") || identity.includes("alfailakawi");
