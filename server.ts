@@ -4337,7 +4337,11 @@ async function waProcessInboundMessage({
   // any other branch, so "1" is a star and not the "new order" menu option. Only active
   // within 24h of the request, and only when a rating is actually pending.
   const ratingPendingMs = waDateMs(conversation?.ratingPendingAt);
-  if (cleanText && ratingPendingMs > 0 && Date.now() - ratingPendingMs < 24 * 60 * 60 * 1000) {
+  // Also treat the reply as a rating when the LAST message we sent this chat was the rating
+  // request itself — so the customer's "1/2/3" always gets a reply, however the request went
+  // out (console button, or the rating text typed/sent by hand). No prior "arming" needed.
+  const lastWasRatingRequest = waLooksLikeRatingRequest(conversation?.lastOutboundText || "");
+  if (cleanText && (lastWasRatingRequest || (ratingPendingMs > 0 && Date.now() - ratingPendingMs < 24 * 60 * 60 * 1000))) {
     const score = waParseRatingReply(cleanText);
     if (score) {
       await waUpsertConversation(cleanFrom, {
