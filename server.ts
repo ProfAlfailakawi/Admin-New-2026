@@ -3602,13 +3602,14 @@ function waLooksLikeServesIntent(text: string) {
 }
 
 async function waProductReply(messageText: string) {
-  // The owner's standing rule, stated more than once: a menu or price question gets
-  // the agreed welcome message with the site link — never a typed-out product list.
-  // The bot used to quote items, prices, add-ons and piece counts line by line
-  // ("هذا أقرب صنف حسب سؤالك"), drifting from the site the order is actually placed
-  // on. Matching still runs so unrelated messages keep their normal routing; the
-  // moment the question is about a product, the answer is the one agreed message.
+  // Typing a product name ("مجبوس دجاج", "ورق العنب") answers with that item's real
+  // details — price, availability, pieces, serves, minimum order, and add-ons — read
+  // straight from the owner's own product records. A bare "منيو"/"الأسعار" (no product
+  // named) still gets the site link, because it never reaches a product match here.
+  const shared = await waLoadSharedData(["products"]);
   const asksAvailability = waLooksLikeAvailabilityIntent(messageText);
+  const asksPieces = waLooksLikePiecesIntent(messageText);
+  const asksServes = waLooksLikeServesIntent(messageText);
   const terms = waIntentTokens(messageText)
     .filter((word) => word.length >= 3 && ![
       "عندكم", "ابي", "ابغي", "ابغى", "ابا", "اريد", "نبي", "ودي", "ودنا", "اطلب", "طلب", "منتج",
@@ -3621,23 +3622,86 @@ async function waProductReply(messageText: string) {
   const uniqueTerms = waUnique(terms);
 
   if (!uniqueTerms.length) {
-    return asksAvailability ? await waMenuReply() : "";
+    if (asksAvailability) {
+      return [
+        // Answering "yes, available today" is a promise the data cannot back: many
+        // dishes carry "الطلب قبلها بيوم" in their own record.
+        "حياك الله 🤍",
+        "الأصناف وأسعارها والتوفر تلقاها هني:",
+        waNewOrderUrl(),
+        "",
+        "وإذا تقصد صنف معيّن اكتب اسمه وأعطيك تفاصيله.",
+      ].join("\n");
+    }
+    return "";
   }
-
-  const shared = await waLoadSharedData(["products"]);
-  // Sellable only: a hidden or out-of-stock item counted here would route a dead
-  // product's question to the menu message, which is still the right place for it.
+  // Sellable only: a hidden or out-of-stock item quoted here reads as a promise the
+  // kitchen can't keep.
   const products = waSellableProducts(shared.products)
     .map((p: any) => ({
+      raw: p,
       name: waProductName(p),
       haystack: waNormalizeArabic(waProductSearchText(p)),
     }))
     .filter((p: any) => p.name);
 
-  const matched = products.some((p: any) => uniqueTerms.some((term) => p.haystack.includes(term)));
-  if (!matched) return "";
+  const matches = products
+    .map((p: any) => ({ ...p, score: uniqueTerms.reduce((acc, term) => acc + (p.haystack.includes(term) ? 1 : 0), 0) }))
+    .filter((p: any) => p.score > 0)
+    .sort((a: any, b: any) => b.score - a.score)
+    .slice(0, 5);
 
-  return waMenuReply();
+  if (!matches.length) return "";
+
+  const oneDetailed = matches.length === 1 || asksAvailability || asksPieces || asksServes;
+  const lines = oneDetailed ? ["هذا أقرب صنف حسب سؤالك:"] : ["هذه أقرب المنتجات الموجودة عندنا حالياً:"];
+  matches.forEach((p: any, index: number) => {
+    const price = waProductPriceText(p.raw);
+    const availability = waProductAvailabilityText(p.raw);
+    const pieces = waProductPiecesText(p.raw);
+    const serves = waProductServesText(p.raw);
+    const prefix = oneDetailed ? `• ${p.name}` : `${index + 1}. ${p.name}`;
+    const details = [price, availability].filter(Boolean).join(" — ");
+    lines.push(`${prefix}${details ? ` — ${details}` : ""}`);
+    if (oneDetailed) {
+      if (asksPieces) lines.push(pieces ? `عدد الحبات/القطع: ${pieces}` : "عدد الحبات غير محفوظ لهذا الصنف حالياً، يقدر الموظف يؤكده لك قبل الطلب.");
+      if (asksServes) lines.push(serves ? `يكفي تقريباً: ${serves}` : "عدد الأشخاص غير محفوظ لهذا الصنف حالياً، اكتب: موظف، ونؤكده لك قبل الطلب.");
+      if (!asksPieces && !asksServes && pieces) lines.push(`عدد الحبات/القطع: ${pieces}`);
+      if (!asksPieces && !asksServes && serves) lines.push(`يكفي تقريباً: ${serves}`);
+
+      // Minimum order quantity. Nine items require 100 units and the bot never said so,
+      // so a customer could ask for one box and only find out at checkout.
+      const minQty = Number(p.raw?.minOrderQty);
+      if (Number.isFinite(minQty) && minQty > 1) lines.push(`⚠️ أقل كمية للطلب: ${Math.round(minQty)}`);
+
+      // Real add-ons live in `addons`; the `addOns`/`extras` fields hold broken "["
+      // strings on 60 records and are deliberately ignored.
+      const addons = waAsArray(p.raw?.addons)
+        .filter((a: any) => a?.isActive !== false && waString(a?.name).trim())
+        .map((a: any) => {
+          const name = waString(a.name).trim();
+          const value = Number(a?.price);
+          // isHiddenPrice means the site does not show the price; repeating it here
+          // would contradict the page the order is placed on.
+          const showPrice = a?.isHiddenPrice !== true && Number.isFinite(value) && value > 0;
+          return `${name}${showPrice ? ` +${waMoneyText(value)}` : ""}`;
+        });
+      if (addons.length) lines.push(`➕ الإضافات: ${addons.slice(0, 6).join(" · ")}`);
+
+      // The site's warmth, carried into the chat. Only on the detailed single-item
+      // answer — repeating it under every row of a five-item list would be noise.
+      const tone = waProductToneLine(p.raw);
+      if (tone) lines.push(tone);
+    }
+  });
+  lines.push("");
+  lines.push("للطلب والدفع الآمن من الموقع:");
+  lines.push(waNewOrderUrl());
+  if (asksPieces || asksServes) {
+    lines.push("");
+    lines.push("إذا تبي تأكيد نهائي قبل الطلب اكتب: موظف.");
+  }
+  return lines.join("\n");
 }
 
 function waLooksLikeNewOrderIntent(text: string) {
@@ -3872,11 +3936,11 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   }
   if (clean === "3") return waMenuReply();
   if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
-  // Menu wording first: "بجم المجبوس" is a menu/price question and gets the agreed
-  // message directly, without loading the product table at all.
-  if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
+  // A named product gets its own details first (price, add-ons, availability...). Only
+  // a bare "منيو"/"الأسعار" with no product in it falls through to the site link below.
   const earlyProductReply = await waProductReply(messageText);
   if (earlyProductReply) return earlyProductReply;
+  if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
 
   const businessId = waExtractBusinessId(messageText);
   if (businessId) {
