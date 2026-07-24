@@ -3151,6 +3151,15 @@ function waThanksReply() {
 // Greets a known customer by the name already on their record. Falls back to the
 // plain greeting for anyone we do not have, so a stranger is never told we looked.
 // The name is warmth, not data disclosure: balances and addresses still require asking.
+// A living, time-aware Kuwaiti salutation. Kuwait is UTC+3 year-round (no DST), so the
+// local hour is a plain offset from the server's UTC clock — no timezone library needed.
+function waKuwaitTimeSalutation(): string {
+  const kuwaitHour = (new Date().getUTCHours() + 3) % 24;
+  if (kuwaitHour >= 4 && kuwaitHour < 11) return "صباح الخير 🌅";
+  if (kuwaitHour >= 11 && kuwaitHour < 17) return "نهارك سعيد ☀️";
+  return "مساء الخير 🌙";
+}
+
 async function waGreetingReply(fromPhone = "") {
   let name = "";
   try {
@@ -3160,7 +3169,12 @@ async function waGreetingReply(fromPhone = "") {
     // A lookup problem must never cost the customer their greeting.
     console.warn("[WHATSAPP] Greeting name lookup failed; using the default:", error?.message || error);
   }
-  return name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
+  // Lead with the time-of-day salutation so the bot feels attentive and alive, then the
+  // owner's editable welcome. If the owner has customized the welcome to already open
+  // with a salutation, we don't double it.
+  const body = name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
+  const alreadyGreets = /^(صباح|مساء|نهارك|تصبح|مسا|صبح)/.test(body.trim());
+  return alreadyGreets ? body : `${waKuwaitTimeSalutation()}\n${body}`;
 }
 
 
@@ -6255,10 +6269,10 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
 
   // API TEST ROUTES (PROMINENTLY PLACED AFTER LOGGING)
   app.get("/api/debug/push-secret", (req, res) => {
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    // Report only whether the secret is configured — never its length, which would
+    // narrow a brute-force search for a would-be attacker.
     res.json({
       adminTestSecretExists: Boolean(process.env.ADMIN_TEST_SECRET),
-      expectedLength: expectedSecret.length,
       serverVersion: "push-debug-2026-05-08-v1"
     });
   });
@@ -6367,8 +6381,11 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
   
 app.post("/api/push/clear-tokens", async (req, res) => {
   try {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+    // Fail closed: no weak "123456" default. If ADMIN_TEST_SECRET is unset, this
+    // destructive endpoint (wipes all push tokens) is unreachable rather than open.
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    const secret = String(req.headers["x-admin-secret"] || req.query.secret || "").trim();
+    if (!expectedSecret || secret !== expectedSecret) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -6399,8 +6416,10 @@ app.post("/api/push/clear-tokens", async (req, res) => {
 
 app.get("/api/push/debug-tokens", async (req, res) => {
   try {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+    // Fail closed: no weak "123456" default. Unset secret → endpoint unreachable.
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    const secret = String(req.headers["x-admin-secret"] || req.query.secret || "").trim();
+    if (!expectedSecret || secret !== expectedSecret) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
