@@ -4991,11 +4991,21 @@ async function waMaybeSendDailySummary() {
   const todayKey = new Date(now2KuwaitDateOnly()).toISOString().slice(0, 10);
   const stateRef = db.collection("whatsappSettings").doc("dailySummaryState");
   try {
-    const state = await stateRef.get();
-    if (waString(state.data()?.lastSentDay) === todayKey) return; // already sent today
+    // Claim today ATOMICALLY before building/sending. The old code did a plain read
+    // ("already sent today?") and only wrote the flag AFTER the slow build+send. Two
+    // runner passes — or two Cloud Run instances — both passed that read during the gap
+    // and each fired the broadcast, so everyone received the summary twice. A Firestore
+    // transaction lets exactly one caller win the claim; every other caller aborts here.
+    const claimed = await db.runTransaction(async (tx: any) => {
+      const snap = await tx.get(stateRef);
+      if (waString(snap.data()?.lastSentDay) === todayKey) return false; // already claimed today
+      tx.set(stateRef, { lastSentDay: todayKey, claimedAt: waNowIso() }, { merge: true });
+      return true;
+    });
+    if (!claimed) return; // another pass/instance already owns today's summary
 
     const summary = await waBuildDailySummary();
-    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }); return; }
+    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }, { merge: true }); return; }
 
     await sendSmartAlertPushNotification({
       title: "☀️ ملخص التراث اليومي",
@@ -5007,7 +5017,7 @@ async function waMaybeSendDailySummary() {
       notificationTag: "daily-summary",
       targetRoles: ["admin", "partner"],
     });
-    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) });
+    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) }, { merge: true });
     console.log(`[SUMMARY] Daily summary sent for ${todayKey}.`);
   } catch (error: any) {
     console.warn("[SUMMARY] Daily summary failed:", error?.message || error);
