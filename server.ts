@@ -7293,6 +7293,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }
 
       function isPendingPayment(order: any) {
+        // A deleted order is never "pending payment" — the owner removed it, so it must
+        // not fire order-created / payment-pending reminders.
+        if (order?.isDeleted === true) return false;
         const paymentStatus = String(order.paymentStatus || "").toLowerCase();
         const status = String(order.status || "").toLowerCase();
 
@@ -9376,6 +9379,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const orders = Array.isArray(shared.orders) ? shared.orders : [];
 
     for (const inv of invoices) {
+      // A deleted invoice must never fire "not paid yet" reminders — the owner already
+      // removed it. Deletion is soft (isDeleted: true), so the row stays in the array
+      // and would otherwise keep triggering the 10-min / 30-min pending alerts.
+      if (inv?.isDeleted === true) continue;
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
       const st = alertsStatusFor(inv);
@@ -9399,6 +9406,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
 
     for (const order of orders) {
+      if (order?.isDeleted === true) continue; // deleted orders never fire reminders
       const orderId = alertsBusinessIdFor(order, "ORD-");
       if (!orderId || !alertsInWindow(order, now)) continue;
       const st = alertsStatusFor(order);
