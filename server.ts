@@ -1999,6 +1999,41 @@ async function waRequireConsoleAuth(req: any, res: any, next: any) {
     return res.status(401).json({ success: false, error: "Unauthorized: invalid or expired session" });
   }
 }
+
+// Non-blocking variant: reports whether the request carries a valid, allow-listed admin
+// token — WITHOUT rejecting the request. Used to decide if PII (phone numbers) may be
+// included in an otherwise-public response, so no caller is ever broken by a 401.
+async function waIsConsoleAuthed(req: any): Promise<boolean> {
+  try {
+    const header = String(req?.headers?.authorization || "");
+    const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+    if (!token) return false;
+    const decoded: any = await admin.auth().verifyIdToken(token);
+    return waConsoleIdentityAllowed(String(decoded?.uid || ""), String(decoded?.email || ""));
+  } catch {
+    return false;
+  }
+}
+
+// Blanks every phone-like field in place, in a per-request object only. Diwaniya
+// leaderboard data is read by more than the admin console, so customer phone numbers
+// must reach an authenticated admin only — never an anonymous caller. Names and points
+// stay intact (a leaderboard needs them); only phones are cleared.
+function waRedactPhonesDeep(value: any, depth = 0): void {
+  if (!value || typeof value !== "object" || depth > 6) return;
+  if (Array.isArray(value)) {
+    for (const item of value) waRedactPhonesDeep(item, depth + 1);
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    const lower = key.toLowerCase();
+    if ((lower === "mobile" || lower.includes("phone")) && typeof value[key] === "string") {
+      value[key] = "";
+    } else {
+      waRedactPhonesDeep(value[key], depth + 1);
+    }
+  }
+}
 const WHATSAPP_TRANSPORT = () => {
   const value = String(process.env.WHATSAPP_TRANSPORT || "cloud").trim().toLowerCase();
   return value === "web_bridge" ? "web_bridge" : "cloud";
@@ -5785,7 +5820,7 @@ app.get("/api/appdata/full", async (_req, res) => {
   }
 });
 
-app.get("/api/admin-dashboard-data", async (_req, res) => {
+app.get("/api/admin-dashboard-data", async (req, res) => {
   try {
     if (!db || !firebaseInitialized) {
       console.warn("[admin-dashboard-data] Firebase Admin not ready.");
@@ -5917,6 +5952,14 @@ app.get("/api/admin-dashboard-data", async (_req, res) => {
     const squads = mergeSquads(mergeSquads(rootSquads, sharedSquads), inferredSquads);
 
     console.log(`[admin-dashboard-data] Found ${squads.length} diwaniyas. root=${rootSquads.length}, shared=${sharedSquads.length}, fromOrders=${inferredSquads.length}, orders=${sharedOrders.length}`);
+
+    // Customer phone numbers travel only to a signed-in, allow-listed admin. Any other
+    // caller (the customer site, or someone who just knows the URL) gets the same
+    // leaderboard with phones blanked — so nothing breaks, and no PII leaks.
+    if (!(await waIsConsoleAuthed(req))) {
+      waRedactPhonesDeep(squads);
+      waRedactPhonesDeep(sharedOrders);
+    }
 
     return res.json({ success: true, squads, orders: sharedOrders });
   } catch (err: any) {

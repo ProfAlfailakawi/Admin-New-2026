@@ -3284,7 +3284,16 @@ const MainApp: React.FC = () => {
         // Load diwaniyas from the shared Firebase `squads` collection through the admin dashboard API.
         // This keeps إدارة الدواوين separate from customers and prevents accidental customer-to-diwaniya mixing.
         try {
-          const dashboardRes = await fetch('/api/admin-dashboard-data');
+          // Send the admin's Firebase token so the server returns customer phone
+          // numbers (needed by إدارة الدواوين). Without a token the call still works —
+          // it just comes back with phones blanked, and the fallback below covers the
+          // rest — so a missing token can never break loading.
+          const dashHeaders: Record<string, string> = {};
+          try {
+            const idToken = await auth.currentUser?.getIdToken();
+            if (idToken) dashHeaders['Authorization'] = `Bearer ${idToken}`;
+          } catch { /* no token → server returns phone-less data, feature still loads */ }
+          const dashboardRes = await fetch('/api/admin-dashboard-data', { headers: dashHeaders });
           let apiSuccess = false;
           if (dashboardRes.ok) {
             const dashboardData = await dashboardRes.json();
