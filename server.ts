@@ -60,8 +60,12 @@ try {
     const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
     console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
-    // Start warm-up / active real-time caching of the full appdata database
-    initBootCache().catch(console.error);
+    // Start warm-up / active real-time caching of the full appdata database. Deferred to a
+    // macrotask so it runs AFTER this module finishes evaluating: the connectivity check above
+    // uses top-level await, so this line used to run before `const appDataCache` (declared far
+    // below) was initialized — throwing "Cannot access 'appDataCache' before initialization" on
+    // every boot and leaving the live cache and its real-time Firestore listeners permanently off.
+    setTimeout(() => { initBootCache().catch(console.error); }, 0);
   } catch (err: any) {
     console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
