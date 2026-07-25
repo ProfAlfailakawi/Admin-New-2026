@@ -2823,6 +2823,12 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
     def: "نشكر لك صراحتك، ونعتذر إن قصّرنا في أي جانب 🤍\nرأيك يهمّنا ويطوّر خدمتنا، وسيتواصل معك أحد موظفينا لتدارك الأمر.",
   },
   {
+    key: "after_hours",
+    label: "رسالة خارج أوقات العمل",
+    hint: "يُضاف تحتها تلقائياً: يوم اليوم وأوقاته + رابط الطلب",
+    def: "حياك الله 🤍\nنعتذر، مطبخ التراث مغلق حالياً 🌙 (خارج أوقات العمل).\nيسعدنا نخدمك في وقت الدوام 🇰🇼",
+  },
+  {
     key: "menu",
     label: "رد «منيو» — رسالة لطيفة + الرابط",
     hint: "{menu_link} = رابط المنيو التلقائي",
@@ -3352,6 +3358,46 @@ async function waHoursReply() {
   const closedNow = store?.manualClose === true || store?.isOpen === false;
   return ["حياك الله 🤍", "أوقات العمل:", body, closedNow ? "\nحالياً الاستقبال مقفل مؤقتاً." : "", "", "🛒 للطلب:", waNewOrderUrl()]
     .filter(Boolean).join("\n");
+}
+
+// Kuwait-local (UTC+3, no DST) working-hours check driven by the same storeStatus.openingHours the
+// console configures. Returns whether the shop is open RIGHT NOW by the clock, plus today's label
+// and hours — so the bot can greet an after-hours customer instead of taking an order at 3am.
+async function waWorkingHoursStatus(): Promise<{ configured: boolean; isOpen: boolean; dayLabel: string; todayText: string }> {
+  const shared = await waLoadSharedData(["settings"]);
+  const store: any = (shared as any).settings?.storeStatus;
+  const hours: any = store?.openingHours;
+  const kuwait = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const dayDef = WA_WEEK_DAYS.find((d) => d.keys.includes(dayNames[kuwait.getUTCDay()]));
+  const dayLabel = dayDef?.label || "";
+  if (!hours || typeof hours !== "object" || !dayDef) {
+    return { configured: false, isOpen: true, dayLabel, todayText: "" };
+  }
+  const manualClosed = store?.manualClose === true;
+  const entryKey = dayDef.keys.find((k) => hours[k] !== undefined);
+  const entry: any = entryKey ? hours[entryKey] : null;
+  if (!entry || entry.enabled === false) {
+    return { configured: true, isOpen: false, dayLabel, todayText: "مغلق" };
+  }
+  const toMin = (s: any) => { const m = /^(\d{1,2}):(\d{2})/.exec(waString(s)); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+  const open = toMin(entry.open), close = toMin(entry.close);
+  const todayText = (waString(entry.open) && waString(entry.close)) ? `${waString(entry.open)} - ${waString(entry.close)}` : "";
+  if (open === null || close === null) {
+    return { configured: true, isOpen: !manualClosed, dayLabel, todayText };
+  }
+  const nowMin = kuwait.getUTCHours() * 60 + kuwait.getUTCMinutes();
+  // Same-day hours, or an overnight window that wraps past midnight (close <= open).
+  const withinTime = close > open ? (nowMin >= open && nowMin < close) : (nowMin >= open || nowMin < close);
+  return { configured: true, isOpen: withinTime && !manualClosed, dayLabel, todayText };
+}
+
+// After-hours courtesy reply: the editable intro (bot text "after_hours") + today's day and hours +
+// the order link, so the customer knows we're closed, when we open, and can still order for later.
+function waAfterHoursReply(status: { dayLabel: string; todayText: string }): string {
+  const intro = waBotText("after_hours");
+  const dayLine = status.dayLabel ? `📅 ${status.dayLabel}: ${status.todayText || "مغلق"}` : "";
+  return [intro, "", dayLine, "", "🛒 تقدر تتصفّح وتطلب من موقعنا ويوصلك بأول دوام:", waNewOrderUrl()].filter(Boolean).join("\n");
 }
 
 async function waCustomerByPhone(phone: string) {
@@ -4332,6 +4378,8 @@ async function waProcessInboundMessage({
     console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} auto-resumed after human idle window.`);
   }
   let reply = "";
+  // Computed once: is the shop open right now (Kuwait clock vs the configured schedule)?
+  const hoursStatus = await waWorkingHoursStatus();
 
   // If we just asked this person to rate, read their next reply as the rating — before
   // any other branch, so "1" is a star and not the "new order" menu option. Only active
@@ -4409,6 +4457,11 @@ async function waProcessInboundMessage({
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
     // Food words get the food menu; "القائمة" and the rest get the options list.
     reply = waIntentMatches(cleanText, ["منيو", "المنيو", "menu"]) ? await waMenuReply() : waHelpReply();
+  } else if (hoursStatus.configured && !hoursStatus.isOpen) {
+    // Outside working hours (Kuwait clock): greet with the closed notice + today's hours instead of
+    // taking an order or waking the owner with an escalation. Rating/human handoff handled above;
+    // "back to bot"/menu handled just before, so the customer can still navigate.
+    reply = waAfterHoursReply(hoursStatus);
   } else if (cleanText && waLooksLikeSupportIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, {
       mode: "human",
