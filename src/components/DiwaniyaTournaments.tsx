@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { DEFAULT_SQUADS } from '../data';
 import { normalizeArabicNumerals } from '../lib/utils';
-import { auth, db } from '../firebase';
+import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import LeafletKuwaitMap from './LeafletKuwaitMap';
+import { adminApiFetch } from '../lib/adminApi';
 
 export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate?: (page: string) => void }> = ({ data, setData, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
@@ -144,15 +145,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
     (async () => {
       try {
-        // Admin token → server returns real phone numbers for إدارة الدواوين. Missing
-        // token still returns the leaderboard (phones blanked), and the direct-Firestore
-        // fallback below covers any failure — so this can never break the screen.
-        const authHeaders: Record<string, string> = {};
-        try {
-          const idToken = await auth.currentUser?.getIdToken();
-          if (idToken) authHeaders['Authorization'] = `Bearer ${idToken}`;
-        } catch { /* no token → phone-less data, screen still loads */ }
-        const response = await fetch('/api/admin-dashboard-data', { cache: 'no-store', headers: authHeaders });
+        const response = await adminApiFetch('/api/admin-dashboard-data', { cache: 'no-store' });
         if (response.ok) {
           const apiData = await response.json();
           if (apiData?.success && applyLoadedDiwaniyas(apiData)) return;
