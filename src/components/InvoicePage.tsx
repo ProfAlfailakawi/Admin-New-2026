@@ -79,6 +79,10 @@ import { NumericInput } from "./ui/NumericInput";
 import { MagneticButton } from "./ui/MagneticButton";
 import { getPublicUrl, getWebhookUrl } from "../lib/urlUtils";
 import {
+  buildSecureTrackingUrl,
+  issueTrackingAccess,
+} from "../lib/trackingAccess";
+import {
   recalculateStateBalances,
   generateNextInvoiceId,
 } from "../lib/business-logic";
@@ -323,7 +327,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [isZenMode, setIsZenMode] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("KNet");
 
-    const getWhatsAppLink = (invoice: Invoice) => {
+    const getWhatsAppLink = (
+      invoice: Invoice,
+      trackingAccessToken?: string,
+    ) => {
       const customer = (data?.customers || []).find(
         (c) => c.id === invoice.customerId,
       );
@@ -445,7 +452,10 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
 
       const invoiceEmoji = "\u2728";
       const linkEmoji = "\u2705";
-      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(String(invoice.id))}`;
+      const trackingUrl = buildSecureTrackingUrl(
+        invoice.id,
+        trackingAccessToken,
+      );
       const customerName = customer?.name || "عميلنا العزيز";
       const paymentSection = paymentLinkLine
         ? `
@@ -960,12 +970,19 @@ Alturath.kw`;
       let createdPaymentId = existingInvoice?.paymentId || "";
       let createdTrackId = (existingInvoice as any)?.paymentTrackId || (existingInvoice as any)?.trackId || (existingInvoice as any)?.track_id || "";
       let createdGatewayOrderId = (existingInvoice as any)?.gatewayOrderId || (existingInvoice as any)?.gateway_order_id || "";
+      let createdTrackingAccessToken = "";
+      let createdTrackingAccessTokenHash =
+        (existingInvoice as any)?.trackingAccessTokenHash || "";
 
       const priceChanged = existingInvoice ? Math.abs(existingInvoice.totalAmount - totalValue) > 0.005 : true;
       const needsNewPayment = !createdLink || priceChanged;
 
       if (needsNewPayment) {
         try {
+          const trackingAccess = await issueTrackingAccess();
+          createdTrackingAccessToken = trackingAccess.token;
+          createdTrackingAccessTokenHash = trackingAccess.tokenHash;
+
           const response = await fetch("/api/create-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -980,6 +997,7 @@ Alturath.kw`;
               returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
               cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
               notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
+              trackingAccessToken: createdTrackingAccessToken,
             }),
           });
           const paymentData = await response.json();
@@ -1142,6 +1160,7 @@ Alturath.kw`;
         track_id: createdTrackId || createdPaymentId,
         gatewayOrderId: createdGatewayOrderId,
         gateway_order_id: createdGatewayOrderId,
+        trackingAccessTokenHash: createdTrackingAccessTokenHash,
         gatewayFee: data.settings.gatewayFeeAmount || 0,
         notes: notesText || "---",
       } as any;
@@ -1216,7 +1235,10 @@ Alturath.kw`;
 
       toast.success("تم الحفظ وإرسال الفاتورة");
 
-      const waLink = getWhatsAppLink(newInvoice);
+      const waLink = getWhatsAppLink(
+        newInvoice,
+        createdTrackingAccessToken,
+      );
       if (waLink && waLink !== "#") {
         // Point the tab we already claimed during the click; fall back to a fresh
         // open if the browser never gave us one.
