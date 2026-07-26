@@ -8494,7 +8494,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       cancelUrl,
       notificationUrl,
       sourceOrderId,
-      linkedOrderId
+      linkedOrderId,
+      trackingAccessToken,
     } = req.body;
     
     // Clean and robust API Key retrieval
@@ -8530,9 +8531,50 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       });
     }
 
+    const cleanTrackingAccessToken = String(
+      trackingAccessToken || "",
+    ).trim();
+    if (
+      cleanTrackingAccessToken &&
+      !/^[A-Za-z0-9_-]{43,128}$/.test(cleanTrackingAccessToken)
+    ) {
+      return res.status(400).json({
+        error: "Invalid tracking access token",
+        message: "تعذر إنشاء رابط التتبع الآمن",
+      });
+    }
+
     try {
       const baseUrl = UPAYMENTS_API_BASE_URL; // Forced Live Mode as requested
       const orderIdForGateway = `${orderId}_${Date.now()}`;
+      let gatewayReturnUrl = String(returnUrl);
+      let gatewayCancelUrl = String(cancelUrl);
+
+      if (cleanTrackingAccessToken) {
+        const addTrackingAccess = (rawUrl: string) => {
+          const parsed = new URL(rawUrl);
+          const isAlturathHost =
+            parsed.hostname === "alturathkw.shop" ||
+            parsed.hostname.endsWith(".alturathkw.shop");
+          const isPaymentReturnPath =
+            parsed.pathname === "/api/payment-return" ||
+            parsed.pathname.startsWith("/api/payment-return/");
+          if (
+            parsed.protocol !== "https:" ||
+            !isAlturathHost ||
+            !isPaymentReturnPath
+          ) {
+            throw new Error("Tracking callback must use an Alturath HTTPS URL");
+          }
+          parsed.searchParams.set(
+            "track_access",
+            cleanTrackingAccessToken,
+          );
+          return parsed.toString();
+        };
+        gatewayReturnUrl = addTrackingAccess(gatewayReturnUrl);
+        gatewayCancelUrl = addTrackingAccess(gatewayCancelUrl);
+      }
       
       // Clean and format phone number (ensure 965 prefix for Kuwait)
       let cleanMobile = customerMobile ? customerMobile.toString().replace(/[^0-9]/g, '') : '';
@@ -8567,8 +8609,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           email: safeEmail,
           mobile: cleanMobile
         },
-        returnUrl: returnUrl,
-        cancelUrl: cancelUrl,
+        returnUrl: gatewayReturnUrl,
+        cancelUrl: gatewayCancelUrl,
         notificationUrl: validNotificationUrl
       };
 
