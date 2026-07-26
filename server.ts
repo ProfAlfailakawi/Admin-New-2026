@@ -60,12 +60,8 @@ try {
     const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
     console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
-    // Start warm-up / active real-time caching of the full appdata database. Deferred to a
-    // macrotask so it runs AFTER this module finishes evaluating: the connectivity check above
-    // uses top-level await, so this line used to run before `const appDataCache` (declared far
-    // below) was initialized — throwing "Cannot access 'appDataCache' before initialization" on
-    // every boot and leaving the live cache and its real-time Firestore listeners permanently off.
-    setTimeout(() => { initBootCache().catch(console.error); }, 0);
+    // Defer cache warm-up until module initialization has created appDataCache.
+    setTimeout(() => initBootCache().catch(console.error), 0);
   } catch (err: any) {
     console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
@@ -2003,41 +1999,6 @@ async function waRequireConsoleAuth(req: any, res: any, next: any) {
     return res.status(401).json({ success: false, error: "Unauthorized: invalid or expired session" });
   }
 }
-
-// Non-blocking variant: reports whether the request carries a valid, allow-listed admin
-// token — WITHOUT rejecting the request. Used to decide if PII (phone numbers) may be
-// included in an otherwise-public response, so no caller is ever broken by a 401.
-async function waIsConsoleAuthed(req: any): Promise<boolean> {
-  try {
-    const header = String(req?.headers?.authorization || "");
-    const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
-    if (!token) return false;
-    const decoded: any = await admin.auth().verifyIdToken(token);
-    return waConsoleIdentityAllowed(String(decoded?.uid || ""), String(decoded?.email || ""));
-  } catch {
-    return false;
-  }
-}
-
-// Blanks every phone-like field in place, in a per-request object only. Diwaniya
-// leaderboard data is read by more than the admin console, so customer phone numbers
-// must reach an authenticated admin only — never an anonymous caller. Names and points
-// stay intact (a leaderboard needs them); only phones are cleared.
-function waRedactPhonesDeep(value: any, depth = 0): void {
-  if (!value || typeof value !== "object" || depth > 6) return;
-  if (Array.isArray(value)) {
-    for (const item of value) waRedactPhonesDeep(item, depth + 1);
-    return;
-  }
-  for (const key of Object.keys(value)) {
-    const lower = key.toLowerCase();
-    if ((lower === "mobile" || lower.includes("phone")) && typeof value[key] === "string") {
-      value[key] = "";
-    } else {
-      waRedactPhonesDeep(value[key], depth + 1);
-    }
-  }
-}
 const WHATSAPP_TRANSPORT = () => {
   const value = String(process.env.WHATSAPP_TRANSPORT || "cloud").trim().toLowerCase();
   return value === "web_bridge" ? "web_bridge" : "cloud";
@@ -2417,17 +2378,14 @@ async function waAppendConversationMessage(phone: string, message: any) {
 
 function waLooksLikeSupportIntent(text: string) {
   return waIntentMatches(text, [
-    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "الموظف", "موظفه", "اكلم موظف", "ابي اكلم", "ابي اكلم احد", "ابي احد", "ابي انسان", "ابي بشر",
-    "ابي اكلم واحد", "ودي اكلم موظف", "كلموني", "اتصلوا", "اتصلوا فيني", "اتصال", "دقولي", "خدمه العملاء", "خدمة العملاء",
-    "مسؤول", "المسؤول", "اداره", "الاداره", "الادارة", "صاحب المحل", "المدير", "ابي المدير", "ابي مسؤول",
-    "مشكله", "مشكلة", "عندي مشكله", "عندي مشكلة", "في مشكله", "شكوى", "اشتكي", "اقدم شكوى", "زعلان", "معصب", "متضايق", "مو راضي", "مب راضي", "سيء", "سيئه", "غلط", "ناقص",
-    "طلب ناقص", "الطلب ناقص", "نقص", "وصل غلط", "وصلني غلط", "غلط بالطلب", "الاكل بارد", "الاكل خربان", "خربان", "مب حلو", "مو حلو",
-    "تأخير", "تاخير", "تاخر", "تأخر", "متأخر", "وينكم", "وين الطلب", "ما وصل", "ماوصل", "ما وصلني", "ماجاني", "ما جاني", "ما استلمت",
-    "ابي اعدل", "تعديل الطلب", "اعدل طلبي", "غير الطلب", "اغير الطلب", "ابدل", "ابي ابدل", "الغاء", "الغي", "إلغاء", "ابي الغي", "كنسل", "cancel",
-    "استرجاع", "استرداد", "ابي فلوسي", "رد الفلوس", "ابي استرجع", "شالحل", "وش الحل", "وش السواه", "شنسوي", "ابي حل", "حل المشكله",
-    "تكفون", "تكفين", "افزعوا", "افزعولي", "فزعتكم", "لحقوا", "لحقوني", "مابي الطلب", "ما ابي الطلب", "ابي اكلم الاداره",
-    "ردوا علي", "ماحد رد", "ما احد رد", "محد رد", "منو المسؤول", "ابي المسؤول", "ترى الطلب غلط", "عندي استفسار خاص", "ابي اسال",
-    "support", "agent", "human", "representative", "help desk", "customer service", "complaint", "problem", "issue", "wrong order", "late", "refund", "cancel",
+    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "الموظف", "اكلم موظف", "ابي اكلم", "ابي احد", "ابي انسان",
+    "كلموني", "اتصلوا", "اتصال", "خدمه العملاء", "خدمة العملاء", "مسؤول", "المسؤول", "اداره", "الاداره",
+    "مشكله", "مشكلة", "عندي مشكله", "شكوى", "اشتكي", "زعلان", "معصب", "مو راضي", "سيء", "غلط", "ناقص",
+    "طلب ناقص", "وصل غلط", "الاكل بارد", "تأخير", "تاخير", "تاخر", "تأخر", "وينكم", "ما وصل", "ماوصل",
+    "ابي اعدل", "تعديل الطلب", "غير الطلب", "اغير الطلب", "الغاء", "الغي", "إلغاء", "كنسل", "cancel",
+    "شالحل", "وش الحل", "وش السواه", "شنسوي", "ابي حل", "تكفون", "افزعوا", "فزعتكم", "لحقوا", "مابي الطلب",
+    "ردوا علي", "ماحد رد", "ما احد رد", "منو المسؤول", "ابي المسؤول", "ابي اكلم الاداره", "ترى الطلب غلط",
+    "support", "agent", "human", "help desk", "customer service", "complaint", "problem", "wrong", "late", "cancel",
   ]);
 }
 
@@ -2770,73 +2728,67 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
     key: "greeting_known",
     label: "الترحيب — عميل معروف (يظهر اسمه)",
     hint: "{name} = اسم العميل من بياناتك",
-    def: "أهلاً وسهلاً {name} 🤍\nحيّاك الله في مطبخ التراث الكويتي، نوّرتنا.\n\nتقدر تتصفّح المنيو وتطلب مباشرة من موقعنا:\n{menu_link}\n\nوأنا بخدمتك — إذا حبيت متابعة طلب سابق أو مساعدة من أحد موظفينا، اكتب لي وأنا حاضر.",
+    def: "ياهلا {name} 💚 نورت التراث 🇰🇼\nاطلب مباشرة من هني:\n{menu_link}\n\nوإذا تحتاج شي اكتب: منيو · وين طلبي · موظف",
   },
   {
     key: "greeting_new",
     label: "الترحيب — عميل جديد",
     hint: "",
-    def: "أهلاً وسهلاً بك في مطبخ التراث الكويتي 🤍\nيسعدنا تواصلك معنا.\n\nتقدر تتصفّح المنيو الكامل بالصور والأسعار وتطلب مباشرة من موقعنا:\n{menu_link}\n\nوأنا بخدمتك لأي استفسار — للتحدث مع أحد موظفينا اكتب: موظف.",
+    def: "ياهلا ومرحبا في التراث 🇰🇼\nاطلب مباشرة من هني:\n{menu_link}\n\nوإذا تحتاج شي اكتب: منيو · وين طلبي · موظف",
   },
   {
     key: "help",
     label: "القائمة الرئيسية",
     hint: "",
-    def: "حيّاك الله 🤍 كيف أقدر أساعدك؟\n\n• للاطّلاع على الأصناف والأسعار — اكتب: منيو\n• لمتابعة طلبك — اكتب: وين طلبي\n• للتحدث مع أحد موظفينا — اكتب: موظف\n\nوأنا جاهز لخدمتك بأي وقت.",
+    def: "حياك الله 🤍 اكتب:\n• منيو — الأصناف والأسعار\n• وين طلبي — تتبع طلبك\n• موظف — نكلمك بنفسنا",
   },
   {
     key: "nudge",
     label: "رد عدم التكرار (بدل إعادة نفس الرسالة)",
     hint: "",
-    def: "أنا بخدمتك 🤍\nوضّح لي طلبك أكثر وأخدمك فوراً:\n\n• منيو — الأصناف والأسعار\n• وين طلبي — متابعة طلبك\n• موظف — للتحدث مع فريقنا",
+    def: "إحنا معك 🤍\nقل لي وش تحتاج بالضبط وأخدمك على طول:\n• منيو\n• تتبع طلبي\n• موظف",
   },
   {
     key: "support",
     label: "التحويل لموظف",
     hint: "",
-    def: "يسعدنا خدمتك 🤍\nتفضّل بكتابة استفسارك الآن، وسيتواصل معك أحد موظفينا شخصياً خلال لحظات.",
+    def: "يسعدنا نخدمك 🤍\nاكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.",
   },
   {
     key: "thanks",
     label: "رد الشكر",
     hint: "{order_link} و {track_link} روابط تلقائية",
-    def: "العفو، هذا واجبنا وحيّاك الله في أي وقت 🤍\n\n• لطلب جديد: {order_link}\n• لمتابعة طلب سابق: {track_link}\n\nنسعد بخدمتك دائماً.",
+    def: "العفو، حياك الله بأي وقت 🤍\nلطلب جديد:\n{order_link}\n\nولتتبع طلب سابق: {track_link}",
   },
   {
     key: "media_received",
     label: "استلام صورة / صوت / موقع",
     hint: "{what} = صورتك / رسالتك الصوتية / موقعك",
-    def: "وصلتنا {what}، شكراً لك 🤍\nأحد موظفينا بيطّلع عليها ويرد عليك شخصياً خلال لحظات.",
+    def: "💚 وصلت {what} ❤️\n\nموظفنا بيشوفها ويرد عليك بنفسه بعد قليل 👌",
   },
   {
     key: "rating_request",
     label: "طلب التقييم (يُرسل يدويًا بعد التوصيل)",
     hint: "{name} = اسم العميل إن وجد",
-    def: "أهلاً {name} 🤍\nنتمنّى وصلك طلبك من مطبخ التراث على أكمل وجه. يهمّنا رأيك — قيّم تجربتك برد واحد:\n\n1️⃣ ممتازة\n2️⃣ جيدة\n3️⃣ تحتاج تحسين",
+    def: "💚 هلا {name} ❤️\nوصلك طلبك من التراث؟ قيّم تجربتك برد واحد:\n\n1️⃣ ممتاز\n2️⃣ جيد\n3️⃣ يحتاج تحسين",
   },
   {
     key: "rating_thanks_good",
     label: "رد التقييم — ممتاز/جيد",
     hint: "",
-    def: "سعدنا بهذا التقييم وأسعدنا رضاك 🤍\nشكراً لثقتك بمطبخ التراث، ونتشرّف بخدمتك دائماً.",
+    def: "يسعدنا هالكلام 🤍 نورتنا، ونشوفك على خير قريب 🇰🇼",
   },
   {
     key: "rating_thanks_bad",
     label: "رد التقييم — يحتاج تحسين",
     hint: "",
-    def: "نشكر لك صراحتك، ونعتذر إن قصّرنا في أي جانب 🤍\nرأيك يهمّنا ويطوّر خدمتنا، وسيتواصل معك أحد موظفينا لتدارك الأمر.",
-  },
-  {
-    key: "after_hours",
-    label: "رسالة خارج أوقات العمل",
-    hint: "يُضاف تحتها تلقائياً: يوم اليوم وأوقاته + رابط الطلب",
-    def: "حياك الله 🤍\nنعتذر، مطبخ التراث مغلق حالياً 🌙 (خارج أوقات العمل).\nيسعدنا نخدمك في وقت الدوام 🇰🇼",
+    def: "شكرًا لصراحتك 🤍 رأيك يهمنا، وبيتواصل معك أحد موظفينا يعوّضك.",
   },
   {
     key: "menu",
     label: "رد «منيو» — رسالة لطيفة + الرابط",
     hint: "{menu_link} = رابط المنيو التلقائي",
-    def: "حيّاك الله في مطبخ التراث الكويتي 🤍\n\nتفضّل منيونا الكامل بالصور والأسعار والتفاصيل، والطلب مباشر وآمن من موقعنا:\n{menu_link}\n\nوإذا حبيت نساعدك في اختيارك أو في كمية تكفي عدد معيّن، اكتب: موظف — ويسعدنا خدمتك.",
+    def: "💚 هلا والله ❤️\nمنيونا كامل بالصور والأسعار هني:\n{menu_link}\n\nواكتب اسم أي صنف وأعطيك سعره 👌",
   },
 ];
 
@@ -3161,15 +3113,6 @@ function waThanksReply() {
 // Greets a known customer by the name already on their record. Falls back to the
 // plain greeting for anyone we do not have, so a stranger is never told we looked.
 // The name is warmth, not data disclosure: balances and addresses still require asking.
-// A living, time-aware Kuwaiti salutation. Kuwait is UTC+3 year-round (no DST), so the
-// local hour is a plain offset from the server's UTC clock — no timezone library needed.
-function waKuwaitTimeSalutation(): string {
-  const kuwaitHour = (new Date().getUTCHours() + 3) % 24;
-  if (kuwaitHour >= 4 && kuwaitHour < 11) return "صباح الخير 🌅";
-  if (kuwaitHour >= 11 && kuwaitHour < 17) return "نهارك سعيد ☀️";
-  return "مساء الخير 🌙";
-}
-
 async function waGreetingReply(fromPhone = "") {
   let name = "";
   try {
@@ -3179,12 +3122,7 @@ async function waGreetingReply(fromPhone = "") {
     // A lookup problem must never cost the customer their greeting.
     console.warn("[WHATSAPP] Greeting name lookup failed; using the default:", error?.message || error);
   }
-  // Lead with the time-of-day salutation so the bot feels attentive and alive, then the
-  // owner's editable welcome. If the owner has customized the welcome to already open
-  // with a salutation, we don't double it.
-  const body = name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
-  const alreadyGreets = /^(صباح|مساء|نهارك|تصبح|مسا|صبح)/.test(body.trim());
-  return alreadyGreets ? body : `${waKuwaitTimeSalutation()}\n${body}`;
+  return name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
 }
 
 
@@ -3232,70 +3170,21 @@ function waStripArabicArticle(value: string) {
 }
 
 function waFindZoneByText(zones: any[], text: string) {
-  // "سلام عليكم" is a greeting, not منطقة السلام: a customer opening with السلام عليكم
-  // used to get quoted the السلام zone price while his real area was ignored. The
-  // greeting pair is dropped before any zone name is looked for.
-  const clean = waNormalizeArabic(text)
-    .replace(/(?:ال)?سلامو?\s+عليكم/g, " ")
-    .replace(/عليكم\s+(?:ال)?سلام/g, " ")
-    .replace(/(?:ال)?سلام\s+عليج/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const clean = waNormalizeArabic(text);
   if (!clean) return null;
   // Compare word by word so "فنطاس" inside a sentence still matches.
   const words = clean.split(/[\s،,.؟?!]+/).map(waStripArabicArticle).filter((w) => w.length >= 3);
   if (!words.length) return null;
-
-  // "الاندلي" is الأندلس with one slipped letter. A shared prefix covering all but the
-  // last letter of the zone name (and at least 4 letters) accepts that slip without
-  // letting "السالم" claim السالمية: there the prefix falls a letter short.
-  const sharedPrefixLen = (a: string, b: string) => {
-    let i = 0;
-    while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
-    return i;
-  };
 
   const hit = zones
     .filter((z) => {
       const bare = waStripArabicArticle(z.name);
       if (bare.length < 3) return false;
       // Multi-word zone names ("أبو حليفة") are matched against the whole sentence.
-      if (bare.includes(" ")) return clean.includes(bare);
-      return words.some((w) =>
-        w === bare
-        || w.includes(bare)
-        || (w.length >= 4 && bare.length >= 4 && sharedPrefixLen(w, bare) >= Math.max(4, bare.length - 1))
-      );
+      return bare.includes(" ") ? clean.includes(bare) : words.some((w) => w === bare || w.includes(bare));
     })
     .sort((a, b) => b.name.length - a.name.length)[0];
   return hit || null;
-}
-
-// One voice for a priced zone wherever it is answered from.
-function waZonePriceText(zone: any) {
-  return [
-    "حياك الله 🤍",
-    `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
-    "",
-    "🛒 للطلب:",
-    waNewOrderUrl(),
-  ].join("\n");
-}
-
-// The bot asks "اكتب اسم منطقتك" — and the customer answers with just the area name,
-// no delivery word around it ("الأندلس"). A short message naming a priced zone IS the
-// delivery question; anything longer keeps its normal routing.
-async function waZoneOnlyDeliveryReply(messageText: string) {
-  // A bare greeting that happens to share a name with a delivery zone ("السلام",
-  // "سلام") is a greeting — never quote it a zone price. Only "توصيل السلام" and the
-  // like (which carry a delivery word) reach waDeliveryReply and match the zone there.
-  if (waIsPureGreeting(messageText)) return "";
-  const wordCount = waNormalizeArabic(messageText).split(/\s+/).filter(Boolean).length;
-  if (!wordCount || wordCount > 3) return "";
-  const zones = await waDeliveryZones();
-  if (!zones.length) return "";
-  const zone = waFindZoneByText(zones, messageText);
-  return zone ? waZonePriceText(zone) : "";
 }
 
 async function waDeliveryReply(messageText: string) {
@@ -3304,7 +3193,13 @@ async function waDeliveryReply(messageText: string) {
 
   const zone = waFindZoneByText(zones, messageText);
   if (zone) {
-    return waZonePriceText(zone);
+    return [
+      "حياك الله 🤍",
+      `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
+      "",
+      "🛒 للطلب:",
+      waNewOrderUrl(),
+    ].join("\n");
   }
 
   const prices = [...new Set(zones.map((z: any) => z.price))].sort((a: number, b: number) => a - b);
@@ -3362,46 +3257,6 @@ async function waHoursReply() {
   const closedNow = store?.manualClose === true || store?.isOpen === false;
   return ["حياك الله 🤍", "أوقات العمل:", body, closedNow ? "\nحالياً الاستقبال مقفل مؤقتاً." : "", "", "🛒 للطلب:", waNewOrderUrl()]
     .filter(Boolean).join("\n");
-}
-
-// Kuwait-local (UTC+3, no DST) working-hours check driven by the same storeStatus.openingHours the
-// console configures. Returns whether the shop is open RIGHT NOW by the clock, plus today's label
-// and hours — so the bot can greet an after-hours customer instead of taking an order at 3am.
-async function waWorkingHoursStatus(): Promise<{ configured: boolean; isOpen: boolean; dayLabel: string; todayText: string }> {
-  const shared = await waLoadSharedData(["settings"]);
-  const store: any = (shared as any).settings?.storeStatus;
-  const hours: any = store?.openingHours;
-  const kuwait = new Date(Date.now() + 3 * 60 * 60 * 1000);
-  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const dayDef = WA_WEEK_DAYS.find((d) => d.keys.includes(dayNames[kuwait.getUTCDay()]));
-  const dayLabel = dayDef?.label || "";
-  if (!hours || typeof hours !== "object" || !dayDef) {
-    return { configured: false, isOpen: true, dayLabel, todayText: "" };
-  }
-  const manualClosed = store?.manualClose === true;
-  const entryKey = dayDef.keys.find((k) => hours[k] !== undefined);
-  const entry: any = entryKey ? hours[entryKey] : null;
-  if (!entry || entry.enabled === false) {
-    return { configured: true, isOpen: false, dayLabel, todayText: "مغلق" };
-  }
-  const toMin = (s: any) => { const m = /^(\d{1,2}):(\d{2})/.exec(waString(s)); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
-  const open = toMin(entry.open), close = toMin(entry.close);
-  const todayText = (waString(entry.open) && waString(entry.close)) ? `${waString(entry.open)} - ${waString(entry.close)}` : "";
-  if (open === null || close === null) {
-    return { configured: true, isOpen: !manualClosed, dayLabel, todayText };
-  }
-  const nowMin = kuwait.getUTCHours() * 60 + kuwait.getUTCMinutes();
-  // Same-day hours, or an overnight window that wraps past midnight (close <= open).
-  const withinTime = close > open ? (nowMin >= open && nowMin < close) : (nowMin >= open || nowMin < close);
-  return { configured: true, isOpen: withinTime && !manualClosed, dayLabel, todayText };
-}
-
-// After-hours courtesy reply: the editable intro (bot text "after_hours") + today's day and hours +
-// the order link, so the customer knows we're closed, when we open, and can still order for later.
-function waAfterHoursReply(status: { dayLabel: string; todayText: string }): string {
-  const intro = waBotText("after_hours");
-  const dayLine = status.dayLabel ? `📅 ${status.dayLabel}: ${status.todayText || "مغلق"}` : "";
-  return [intro, "", dayLine, "", "🛒 تقدر تتصفّح وتطلب من موقعنا ويوصلك بأول دوام:", waNewOrderUrl()].filter(Boolean).join("\n");
 }
 
 async function waCustomerByPhone(phone: string) {
@@ -3652,10 +3507,6 @@ function waLooksLikeServesIntent(text: string) {
 }
 
 async function waProductReply(messageText: string) {
-  // Typing a product name ("مجبوس دجاج", "ورق العنب") answers with that item's real
-  // details — price, availability, pieces, serves, minimum order, and add-ons — read
-  // straight from the owner's own product records. A bare "منيو"/"الأسعار" (no product
-  // named) still gets the site link, because it never reaches a product match here.
   const shared = await waLoadSharedData(["products"]);
   const asksAvailability = waLooksLikeAvailabilityIntent(messageText);
   const asksPieces = waLooksLikePiecesIntent(messageText);
@@ -3756,45 +3607,33 @@ async function waProductReply(messageText: string) {
 
 function waLooksLikeNewOrderIntent(text: string) {
   return waIntentMatches(text, [
-    "طلب جديد", "ابي اطلب", "أبي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "نبي نطلب", "نبغى نطلب", "نبغي نطلب",
-    "اطلب", "اطلب منكم", "اطلب الحين", "اطلب اونلاين", "ابي اوردر", "اوردر", "طلب", "اشتري", "شراء", "ابي اشتري", "بشتري",
-    "ودنا نطلب", "ودّي اطلب", "ودي اطلب", "بغيت اطلب", "بغيت", "ابغى", "ابغي", "اباه", "ابيه", "نبيه", "نباه", "ياخي ابي",
-    "نبي غدا", "نبي عشا", "ابي غدا", "ابي عشا", "ابي فطور", "نبي فطور", "ابي غداء", "ابي عشاء", "نبي وليمه", "ابي وليمه",
-    "جهزوا لنا", "جهزولي", "عطنا طلب", "عطني طلب", "خل نسوي طلب", "بسوي طلب", "اسوي طلب", "نسوي اوردر", "احجز", "ابي احجز",
-    "عطني رابط الطلب", "طرش رابط الطلب", "دز رابط الطلب", "دزلي رابط الطلب", "ورني رابط الطلب", "رابط الطلب",
-    "سلة", "السله", "السلة", "كارت", "cart", "new order", "order now", "order", "make order", "place order", "buy", "shop", "i want to order",
+    "طلب جديد", "ابي اطلب", "أبي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "نبي نطلب",
+    "اطلب", "اطلب منكم", "اطلب الحين", "اطلب اونلاين", "ابي اوردر", "اوردر", "طلب", "اشتري", "شراء",
+    "ودنا نطلب", "ودّي اطلب", "ودي اطلب", "بغيت اطلب", "نبي غدا", "نبي عشا", "ابي غدا", "ابي عشا",
+    "جهزوا لنا", "عطنا طلب", "خل نسوي طلب", "بسوي طلب", "عطني رابط الطلب", "طرش رابط الطلب", "دز رابط الطلب",
+    "سلة", "السله", "السلة", "new order", "order now", "order", "make order", "place order", "buy", "shop",
   ]);
 }
 
 function waLooksLikeMenuIntent(text: string) {
   return waIntentMatches(text, [
-    // القائمة والأصناف
-    "منيو", "المنيو", "منو", "المنو", "قائمه", "قائمة", "القائمة", "لستة", "اللستة", "المنيوهات", "المنتجات", "منتجات",
-    "اصناف", "الأصناف", "الاصناف", "صنف", "الصنف", "الاكلات", "اكلات", "الاكل", "اكلكم", "طبخاتكم", "الطبخات",
-    // شنو عندكم (حضري + بدوي)
-    "شنو عندكم", "اش عندكم", "وش عندكم", "ايش عندكم", "شعندكم", "وشعندكم", "عندكم شنو", "عندكم شي", "عندكم ايش",
-    "شنو تبيعون", "وش تبيعون", "شتبيعون", "شنو موجود", "شنو الموجود", "وش الموجود", "شنو متوفر", "وش متوفر", "شفيه عندكم",
-    // الأسعار (حضري + بدوي: بجم/بكم/جم/كم/قداش)
-    "الاسعار", "الأسعار", "اسعاركم", "اسعار", "السعر", "سعر", "كم السعر", "جم السعر", "بجم", "بكم", "جم", "بقداش", "قداش", "كم يكلف", "كم يجي",
-    "وش الاسعار", "شنو الاسعار", "شكو اسعار", "سعرها كم", "كم سعرها", "كم سعره", "بجم الصحن", "بجم الطبق", "كم الصحن",
-    // اطلب لي / أرسل المنيو
-    "ابي اشوف", "بشوف", "ورني", "ورونا", "وريني", "ابي المنيو", "ارسل المنيو", "ارسلي المنيو", "دز المنيو", "دزلي المنيو",
-    "لينك المنيو", "رابط المنيو", "طرش المنيو", "طرشلي المنيو", "عطني المنيو", "عطنا المنيو", "ابغى المنيو", "ودي اشوف المنيو",
-    // ذكر أصناف شائعة (يوجّه للمنيو)
-    "عندكم عيش", "عندكم سمج", "عندكم سمك", "عندكم ورق عنب", "عندكم محاشي", "عندكم مجبوس", "عندكم مربيان", "عندكم ربيان", "عندكم مطبق",
-    "menu", "catalog", "products", "items", "prices", "price list", "how much", "what do you have", "food list",
+    "منيو", "المنيو", "قائمه", "قائمة", "القائمة", "المنيوهات", "المنتجات", "منتجات", "اصناف", "الأصناف", "الاصناف",
+    "شنو عندكم", "اش عندكم", "وش عندكم", "عندكم شنو", "عندكم شي", "الاسعار", "الأسعار", "اسعاركم", "سعر", "كم السعر", "جم السعر",
+    "ابي اشوف", "بشوف", "ابي المنيو", "ارسل المنيو", "دز المنيو", "دزلي المنيو", "لينك المنيو", "رابط المنيو",
+    "طرش المنيو", "طرشلي المنيو", "عطني المنيو", "عطنا المنيو", "بجم", "بكم", "جم", "كم", "وش الاسعار", "شنهي الاصناف",
+    "شنو الموجود", "وش الموجود", "شنو متوفر", "وش متوفر", "عندكم عيش", "عندكم سمج", "عندكم ورق عنب", "عندكم محاشي",
+    "menu", "catalog", "products", "items", "prices", "price list",
   ]);
 }
 
 function waLooksLikeTrackIntent(text: string) {
   return waIntentMatches(text, [
-    "تتبع", "تتبع الطلب", "تتبع طلبي", "اتتبع", "طلبي", "طلبى", "طلبيه", "وين طلبي", "وين الطلب", "حاله", "حالة", "حالة الطلب", "حالت الطلب",
-    "وين وصل", "وصل طلبي", "متى يوصل", "متى الوصول", "متى التوصيل", "التتبع", "رابط التتبع", "وين صار طلبي", "صار وين طلبي",
-    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "وصلني", "وصل", "طلبي متأخر", "ليش تأخر", "ليش متأخر طلبي",
-    "وينه", "وينه طلبي", "وينها", "وينه الطلب", "متى ياصل", "متى يوصلني", "متى يجي", "متى تجون", "متى بيجي", "ياصلنا متى", "ابي اعرف طلبي",
-    "شيك على طلبي", "شيكلي على طلبي", "طمني على الطلب", "طمنوني", "دور طلبي", "دورولي طلبي", "شوف طلبي", "شوفولي طلبي", "طلبي وين", "الحاله",
-    "المندوب وين", "وين المندوب", "وين الدليفري", "الدليفري وين", "قرب المندوب", "متى يجيني المندوب",
-    "invoice", "track", "tracking", "status", "my order", "where is my order", "where is my order now", "order status",
+    "تتبع", "تتبع الطلب", "تتبع طلبي", "طلبي", "طلبى", "وين طلبي", "وين الطلب", "حاله", "حالة", "حالة الطلب",
+    "وين وصل", "وصل طلبي", "متى يوصل", "متى الوصول", "متى التوصيل", "التتبع", "رابط التتبع",
+    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "دفعت", "تم الدفع", "خلصت دفع", "وصلني", "وصل",
+    "وينه", "وينه طلبي", "وينها", "متى ياصل", "متى يوصلني", "متى يجي", "متى تجون", "ياصلنا متى", "ابي اعرف طلبي",
+    "شيك على طلبي", "شيكلي على طلبي", "طمني على الطلب", "دور طلبي", "شوف طلبي", "طلبي وين", "الحاله",
+    "invoice", "track", "tracking", "status", "my order", "where is my order", "paid", "payment done",
   ]);
 }
 
@@ -3815,47 +3654,13 @@ function waLooksLikePaymentDoneIntent(text: string) {
   ]);
 }
 
-// Kuwaiti/Gulf/MSA greetings — bedouin ("يا هلا والله"، "حياك"), urban/hadhari
-// ("هلا والله"، "أهلين")، and formal ("السلام عليكم ورحمة الله"). Kept wide on purpose:
-// a greeting we miss falls through to a wrong branch, which is exactly the السلام bug.
-const WA_GREETING_WORDS = [
-  "هلا", "هلاو", "هلابك", "هلين", "ياهلا", "يا هلا", "هلا والله", "هلا وغلا", "هلا بيك", "هلا فيك", "هلا فيكم", "هلا بالربع",
-  "مرحبا", "مراحب", "مرحبتين", "يا مرحبا", "اهلا", "اهلين", "اهلا وسهلا", "اهلا فيك",
-  "السلام", "السلام عليكم", "سلام", "سلامو عليكم", "سلام عليكم", "عليكم السلام", "سلامات",
-  "صباح الخير", "صباح النور", "صباح الفل", "صباح الورد", "مساء الخير", "مساء النور", "مساء الفل",
-  "صبحكم الله بالخير", "مساكم الله بالخير", "صبحك الله بالخير", "مساك الله بالخير",
-  "حي الله", "حيالله", "حياك", "حياكم", "حياك الله", "حياكم الله", "الله يحييك", "يا حي الله", "يا هلا وياك",
-  "شخبارك", "شخبارج", "شخباركم", "شلونك", "شلونج", "شلونكم", "اشلونك", "چيفك", "كيفك", "كيف الحال", "عساك طيب", "عساكم طيبين",
-  "هاي", "هالو", "الو", "يوهو", "هلوو",
-  "hi", "hii", "hello", "helo", "hey", "heyy", "salam", "salamu", "asalam", "assalam", "good morning", "good evening", "good afternoon",
-];
-
 function waLooksLikeGreeting(text: string) {
-  return waIntentMatches(text, WA_GREETING_WORDS);
-}
-
-// A message that is ONLY a greeting (nothing actionable left after the greeting words
-// are removed) must be greeted — not routed to delivery, menu, or a zone name. This is
-// the root of the "السلام" bug: bare "السلام" matched the السلام delivery zone and got
-// quoted a price. Anything with real content ("السلام عليكم بجم المجبوس") keeps its
-// normal routing because leftover words remain after stripping the greeting.
-function waIsPureGreeting(text: string) {
-  let s = waNormalizeArabic(text);
-  if (!s) return false;
-  // Remove common companions of a greeting so they don't count as "content".
-  const fillers = [
-    "ورحمه الله", "وبركاته", "وبركا ته", "ورحمة", "وبركاته", "يا", "الله", "و", "عليكم", "عليك",
-    "اخوي", "اختي", "اخي", "استاذ", "حبيبي", "عزيزي", "الغالي", "الغاليه", "بعد", "لو سمحت", "لوسمحت", "ممكن", "من فضلك",
-  ];
-  // Longest first, so "حياكم" is removed whole before "حياك" can leave a stray "م".
-  const strip = [...WA_GREETING_WORDS, ...fillers]
-    .map(waNormalizeArabic)
-    .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
-  for (const word of strip) s = s.split(word).join(" ");
-  s = s.replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
-  // Nothing meaningful left → it was purely a greeting.
-  return s.length === 0 && waLooksLikeGreeting(text);
+  const s = waNormalizeArabic(text);
+  return waIntentMatches(s, [
+    "هلا", "ياهلا", "مرحبا", "السلام", "السلام عليكم", "صباح الخير", "مساء الخير", "هاي", "الو", "اهلا", "اهلين",
+    "حياكم", "حياك", "حي الله", "حيالله", "مساكم الله بالخير", "صبحكم الله بالخير", "هلا والله", "يا مرحبا",
+    "hi", "hello", "hey", "salam", "good morning", "good evening",
+  ]);
 }
 
 function waLooksLikeHelpIntent(text: string) {
@@ -3874,12 +3679,10 @@ function waLooksLikeDeliveryInfoIntent(text: string) {
 function waLooksLikeThanksIntent(text: string) {
   const s = waNormalizeArabic(text);
   return waIntentMatches(s, [
-    "شكرا", "شكراً", "مشكور", "مشكورين", "مشكوره", "يعطيك العافيه", "يعطيكم العافيه", "الله يعطيك العافيه", "تمام", "تمام التمام",
-    "اوكي", "اوك", "زين", "زينه", "بيض الله وجهك", "بيض الله وجيهكم", "بيّض الله وجهك", "الله يبيض وجهك",
-    "تسلم", "تسلمون", "تسلم ايدك", "ما قصرت", "ماقصرت", "ما قصرتو", "ماقصرتو", "كفو", "كفوو", "جزاك الله خير", "جزاكم الله خير",
-    "عساكم عالقوه", "عساكم عالقوة", "عسل", "يا بعدي", "الله يوفقكم", "ربي يحفظكم", "الله يسعدكم", "فديتكم", "ما شاء الله عليكم",
-    "ok", "okay", "thanks", "thank you", "thx", "appreciate it",
-  ]) && s.length <= 60;
+    "شكرا", "مشكور", "يعطيك العافيه", "يعطيكم العافيه", "تمام", "اوكي", "بيض الله وجهك", "بيض الله وجيهكم",
+    "تسلم", "تسلمون", "ما قصرت", "ماقصرت", "كفو", "جزاك الله خير", "عساكم عالقوه", "عساكم عالقوة",
+    "ok", "thanks", "thank you",
+  ]) && s.length <= 50;
 }
 
 // Account details are never volunteered. They are sent only when the customer asks
@@ -3889,21 +3692,10 @@ function waLooksLikeThanksIntent(text: string) {
 // normal message after a delivered order is never swallowed as a score.
 function waParseRatingReply(text: string): 0 | 1 | 2 | 3 {
   const t = waNormalizeArabic(text).trim();
-  // The rating message numbers the options 1️⃣ ممتازة (best) → 3️⃣ تحتاج تحسين (worst), but the
-  // internal score is 3 = best … 1 = worst. So the DIGIT the customer sends is inverted here
-  // (1→3, 3→1) to match what he was shown; word answers already map to the right score.
-  if (/^1\b/.test(t) || /ممتاز|رائع|حلو|زين|روعه|روعة|excellent|great|good\b/.test(t)) return 3;
-  if (/^2\b/.test(t) || /جيد|كويس|مقبول|عادي|ماشي|ok|okay/.test(t)) return 2;
-  if (/^3\b/.test(t) || /سيء|سيئ|يحتاج تحسين|مو حلو|مو زين|ما عجب|زفت|bad|poor/.test(t)) return 1;
+  if (/^3\b|ممتاز|رائع|حلو|زين|روعه|روعة|excellent|great|good\b/.test(t)) return 3;
+  if (/^2\b|جيد|كويس|مقبول|عادي|ماشي|ok|okay/.test(t)) return 2;
+  if (/^1\b|سيء|سيئ|يحتاج تحسين|مو حلو|مو زين|ما عجب|زفت|bad|poor/.test(t)) return 1;
   return 0;
-}
-
-// The rating request lists 1️⃣ ممتازة … 3️⃣ تحتاج تحسين; those two options together are unique to
-// it. Recognising it lets us arm rating detection even when the owner sends the request by hand
-// (from his phone) instead of the console button, so the customer's next 1/2/3 is read correctly.
-function waLooksLikeRatingRequest(text: string): boolean {
-  const t = waString(text);
-  return /ممتاز/.test(t) && /تحتاج تحسين/.test(t);
 }
 
 // Appends to a simple ratings ledger the console reads. Best-effort: a write failure
@@ -3938,20 +3730,17 @@ const WA_HANDOFF_MARKER = "__WA_HANDOFF__";
 
 function waLooksLikeDeliveryIntent(text: string) {
   return waIntentMatches(text, [
-    "توصيل", "التوصيل", "رسوم التوصيل", "سعر التوصيل", "كم التوصيل", "جم التوصيل", "بجم التوصيل", "قداش التوصيل",
-    "الدليفري", "دليفري", "توصلون", "توصلولي", "توصلون لي", "يوصل عندي", "يوصلني", "توصلون عندنا", "توصلون البيت", "توصلون للبيت",
-    "منطقتي", "المنطقه", "المنطقة", "مناطق", "المناطق", "تغطون", "تغطي", "تغطون منطقتي", "توصلون منطقتي",
-    "كم رسوم", "كم اجور التوصيل", "اجور التوصيل", "قيمة التوصيل", "التوصيل بكم", "التوصيل جم", "توصلون الديره", "توصلون بره",
-    "delivery", "delivery fee", "do you deliver", "shipping",
+    "توصيل", "التوصيل", "رسوم التوصيل", "سعر التوصيل", "كم التوصيل", "جم التوصيل",
+    "الدليفري", "دليفري", "توصلون", "توصلولي", "يوصل عندي", "منطقتي", "المنطقه", "المنطقة",
+    "مناطق", "المناطق", "تغطون", "تغطي", "delivery",
   ]);
 }
 
 function waLooksLikeHoursIntent(text: string) {
   return waIntentMatches(text, [
-    "دوام", "الدوام", "دوامكم", "متى تفتحون", "متى تسكرون", "متى تبنون", "وقت الدوام", "اوقات العمل", "أوقات العمل", "اوقاتكم", "وقتكم",
-    "ساعات العمل", "متى تفتح", "متى تسكر", "متى تبطلون", "متى تقفلون", "مفتوح", "مفتوحين", "شغالين", "تشتغلون", "دايمين", "مسكرين", "مقفلين",
-    "الى متى", "إلى متى", "من متى", "متى تشتغلون", "متى تستقبلون طلبات", "لين متى", "لين كم", "الحين مفتوحين", "تستقبلون طلبات",
-    "opening", "opening hours", "hours", "open", "are you open", "closing time", "working hours",
+    "دوام", "الدوام", "متى تفتحون", "متى تسكرون", "وقت الدوام", "اوقات العمل", "أوقات العمل",
+    "ساعات العمل", "متى تفتح", "متى تسكر", "مفتوح", "مفتوحين", "شغالين", "تشتغلون",
+    "الى متى", "إلى متى", "من متى", "opening", "hours", "open",
   ]);
 }
 
@@ -3959,21 +3748,12 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   const clean = waNormalizeArabic(messageText);
   if (waLooksLikeSupportIntent(messageText)) return waSupportReply();
 
-  // A bare greeting is greeted first — before delivery/zone matching — so "السلام"
-  // (hello) is never mistaken for the السلام delivery zone.
-  if (waIsPureGreeting(messageText)) return waGreetingReply(fromPhone);
-
   // Answered from the owner's own zone table and opening-hours schedule. Each helper
   // returns "" when its data is missing, so we simply fall through to the existing
   // rules rather than invent an answer.
   if (waLooksLikeDeliveryIntent(messageText)) {
     const delivery = await waDeliveryReply(messageText);
     if (delivery) return delivery;
-  }
-  {
-    // A bare area name ("الأندلس") is the customer answering the delivery question.
-    const zoneOnly = await waZoneOnlyDeliveryReply(messageText);
-    if (zoneOnly) return zoneOnly;
   }
   if (waLooksLikeHoursIntent(messageText)) {
     const hours = await waHoursReply();
@@ -3997,8 +3777,6 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   }
   if (clean === "3") return waMenuReply();
   if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
-  // A named product gets its own details first (price, add-ons, availability...). Only
-  // a bare "منيو"/"الأسعار" with no product in it falls through to the site link below.
   const earlyProductReply = await waProductReply(messageText);
   if (earlyProductReply) return earlyProductReply;
   if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
@@ -4304,7 +4082,7 @@ async function waSendText(to: string, body: string, options: any = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    console.warn("[WHATSAPP] Send failed:", response.status, JSON.stringify(payload).slice(0, 1000));
+    console.warn("[WHATSAPP] Send failed with status:", response.status);
   }
   return { ok: response.ok, status: response.status, payload };
 }
@@ -4358,18 +4136,9 @@ async function waProcessInboundMessage({
     waMessageId: messageId,
     raw,
   });
+  await waIncrementUnread(cleanFrom);
 
   let conversation = await waGetConversation(cleanFrom);
-
-  // While the owner is answering this chat himself (manual reply inside the human
-  // window) the unread badge stays quiet too — he is reading it on the phone, and a
-  // climbing red counter in the console for a chat he is inside is pure noise. Once
-  // he goes silent past the window, unread counts pile up again exactly as before.
-  const ownerLastReplyMs = waDateMs(conversation?.humanLastReplyAt);
-  const ownerActivelyHandling = conversation?.mode === "human"
-    && ownerLastReplyMs > 0
-    && Date.now() - ownerLastReplyMs < WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
-  if (!ownerActivelyHandling) await waIncrementUnread(cleanFrom);
   if (waHumanModeExpired(conversation)) {
     await waUpsertConversation(cleanFrom, {
       mode: "bot",
@@ -4382,18 +4151,12 @@ async function waProcessInboundMessage({
     console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} auto-resumed after human idle window.`);
   }
   let reply = "";
-  // Computed once: is the shop open right now (Kuwait clock vs the configured schedule)?
-  const hoursStatus = await waWorkingHoursStatus();
 
   // If we just asked this person to rate, read their next reply as the rating — before
   // any other branch, so "1" is a star and not the "new order" menu option. Only active
   // within 24h of the request, and only when a rating is actually pending.
   const ratingPendingMs = waDateMs(conversation?.ratingPendingAt);
-  // Also treat the reply as a rating when the LAST message we sent this chat was the rating
-  // request itself — so the customer's "1/2/3" always gets a reply, however the request went
-  // out (console button, or the rating text typed/sent by hand). No prior "arming" needed.
-  const lastWasRatingRequest = waLooksLikeRatingRequest(conversation?.lastOutboundText || "");
-  if (cleanText && (lastWasRatingRequest || (ratingPendingMs > 0 && Date.now() - ratingPendingMs < 24 * 60 * 60 * 1000))) {
+  if (cleanText && ratingPendingMs > 0 && Date.now() - ratingPendingMs < 24 * 60 * 60 * 1000) {
     const score = waParseRatingReply(cleanText);
     if (score) {
       await waUpsertConversation(cleanFrom, {
@@ -4432,40 +4195,24 @@ async function waProcessInboundMessage({
   // "منيو": the owner's wife answered a customer, he typed منيو, and the bot barged
   // in. When a person is talking, the bot's only job is to notify, never to speak.
   if (conversation?.mode === "human") {
-    // While the owner is answering this chat himself (his manual reply — phone or
-    // console — is inside the human window), the whole system stays quiet about it:
-    // no push, no "needs_support" escalation lighting up every corner of the console.
-    // Each reply he sends refreshes the window; once he goes silent past it, a waiting
-    // customer escalates and alerts exactly as before.
-    if (ownerActivelyHandling) {
-      await waUpsertConversation(cleanFrom, { status: "open" });
-      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", skipped: true, mutedBy: "owner_active_reply" });
-      console.log(`[WHATSAPP] Quiet mode for ${waMaskPhone(cleanFrom)} — owner replied ${Math.round((Date.now() - ownerLastReplyMs) / 60000)}m ago and is handling this chat himself.`);
-    } else {
-      await waUpsertConversation(cleanFrom, {
-        status: "needs_support",
-        priority: conversation?.priority || "high",
-        supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
-      });
-      const pushResult = await waSendHumanSupportPush({
-        phone: cleanFrom,
-        text: cleanText || `[${cleanType}]`,
-        contactName,
-        messageId,
-        reason: "already_human",
-      });
-      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
-    }
+    await waUpsertConversation(cleanFrom, {
+      status: "needs_support",
+      priority: conversation?.priority || "high",
+      supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
+    });
+    const pushResult = await waSendHumanSupportPush({
+      phone: cleanFrom,
+      text: cleanText || `[${cleanType}]`,
+      contactName,
+      messageId,
+      reason: "already_human",
+    });
+    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
     console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} is in human support mode. Auto-reply skipped.`);
   } else if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
     // Food words get the food menu; "القائمة" and the rest get the options list.
     reply = waIntentMatches(cleanText, ["منيو", "المنيو", "menu"]) ? await waMenuReply() : waHelpReply();
-  } else if (hoursStatus.configured && !hoursStatus.isOpen) {
-    // Outside working hours (Kuwait clock): greet with the closed notice + today's hours instead of
-    // taking an order or waking the owner with an escalation. Rating/human handoff handled above;
-    // "back to bot"/menu handled just before, so the customer can still navigate.
-    reply = waAfterHoursReply(hoursStatus);
   } else if (cleanText && waLooksLikeSupportIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, {
       mode: "human",
@@ -4512,8 +4259,6 @@ async function waProcessInboundMessage({
     // missing, and the rules take over exactly as before.
     let groundedReply = "";
     if (cleanText && waLooksLikeDeliveryIntent(cleanText)) groundedReply = await waDeliveryReply(cleanText);
-    // A bare area name ("الأندلس") answers the bot's own "اكتب اسم منطقتك".
-    if (!groundedReply && cleanText) groundedReply = await waZoneOnlyDeliveryReply(cleanText);
     if (!groundedReply && cleanText && waLooksLikeHoursIntent(cleanText)) groundedReply = await waHoursReply();
 
     const customRule = groundedReply ? null : (cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null);
@@ -4589,12 +4334,7 @@ async function waProcessInboundMessage({
       // Conversations from before this field existed: keep the old behaviour rather
       // than risk double-sending a long welcome.
       : true;
-  // The anti-repeat nudge exists only to avoid sending the long WELCOME twice in a row.
-  // It must never swallow an informational answer: a customer asking about one product
-  // after another ("بجم ورق العنب" ثم "ورق العنب") should get the menu link every time,
-  // not a generic "شنو تحتاج؟". So the menu reply is exempt from the repeat check.
-  const replyIsMenu = waString(reply).trim() === waString(waBotText("menu")).trim();
-  if (reply && !replyIsMenu && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
+  if (reply && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
     reply = waRepeatNudgeReply();
   }
 
@@ -5136,21 +4876,11 @@ async function waMaybeSendDailySummary() {
   const todayKey = new Date(now2KuwaitDateOnly()).toISOString().slice(0, 10);
   const stateRef = db.collection("whatsappSettings").doc("dailySummaryState");
   try {
-    // Claim today ATOMICALLY before building/sending. The old code did a plain read
-    // ("already sent today?") and only wrote the flag AFTER the slow build+send. Two
-    // runner passes — or two Cloud Run instances — both passed that read during the gap
-    // and each fired the broadcast, so everyone received the summary twice. A Firestore
-    // transaction lets exactly one caller win the claim; every other caller aborts here.
-    const claimed = await db.runTransaction(async (tx: any) => {
-      const snap = await tx.get(stateRef);
-      if (waString(snap.data()?.lastSentDay) === todayKey) return false; // already claimed today
-      tx.set(stateRef, { lastSentDay: todayKey, claimedAt: waNowIso() }, { merge: true });
-      return true;
-    });
-    if (!claimed) return; // another pass/instance already owns today's summary
+    const state = await stateRef.get();
+    if (waString(state.data()?.lastSentDay) === todayKey) return; // already sent today
 
     const summary = await waBuildDailySummary();
-    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }, { merge: true }); return; }
+    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }); return; }
 
     await sendSmartAlertPushNotification({
       title: "☀️ ملخص التراث اليومي",
@@ -5162,7 +4892,7 @@ async function waMaybeSendDailySummary() {
       notificationTag: "daily-summary",
       targetRoles: ["admin", "partner"],
     });
-    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) }, { merge: true });
+    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) });
     console.log(`[SUMMARY] Daily summary sent for ${todayKey}.`);
   } catch (error: any) {
     console.warn("[SUMMARY] Daily summary failed:", error?.message || error);
@@ -5388,18 +5118,12 @@ app.post("/api/whatsapp/bridge/inbound", async (req, res) => {
       await waUpsertConversation(from, {
         mode: "human",
         status: "open",
-        // He answered from the phone, so he has obviously read the chat — clear the
-        // console's unread badge exactly as a console reply does.
-        unreadCount: 0,
         lastMessageText: text || `[${type}]`,
         lastMessageDirection: "outbound",
         lastOutboundText: text,
         humanLastReplyAt: waNowIso(),
         botPausedAt: waNowIso(),
         autoResumeAt: waHumanAutoResumeAt(),
-        // Owner sent the rating request by hand → arm rating detection so the customer's
-        // next 1/2/3 is read as a rating (undefined leaves any existing value untouched).
-        ratingPendingAt: waLooksLikeRatingRequest(text) ? waNowIso() : undefined,
       });
       console.log(`[WHATSAPP] Phone reply recorded for ${waMaskPhone(from)}; bot paused for the human window.`);
       return res.status(200).json({ success: true, humanEcho: true });
@@ -5522,18 +5246,11 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
       void (async () => {
         try {
           const ref = db!.collection("whatsappSettings").doc("bridgeAuthAlert");
-          // Atomic throttle: claim the hour window in a transaction so two heartbeats
-          // (or two Cloud Run instances) can't both pass the "one per hour" check and
-          // each send the re-auth alert.
-          const claimed = await db!.runTransaction(async (tx: any) => {
-            const snap = await tx.get(ref);
-            const lastAt = waDateMs(snap.data()?.notifiedAt);
-            // One alert per hour: enough to be heard, not enough to become noise.
-            if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return false;
-            tx.set(ref, { notifiedAt: waNowIso() }, { merge: true });
-            return true;
-          });
-          if (!claimed) return;
+          const snap = await ref.get();
+          const lastAt = waDateMs(snap.data()?.notifiedAt);
+          // One alert per hour: enough to be heard, not enough to become noise.
+          if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return;
+          await ref.set({ notifiedAt: waNowIso() });
           await sendSmartAlertPushNotification({
             title: "🔑 واتساب يحتاج إعادة ربط",
             body: "البوت متوقف عن الرد. افتح مركز الواتساب وامسح رمز QR.",
@@ -5661,10 +5378,7 @@ app.post("/api/whatsapp/conversations/:phone/request-rating", async (req, res) =
 
     let name = "";
     try { name = waString((await waCustomerByPhone(phone))?.name).trim(); } catch { /* name is optional */ }
-    // Send the rating text exactly as authored — it intentionally puts each option on its own
-    // line (1️⃣ / 2️⃣ / 3️⃣). A previous \s{2,}→" " cleanup collapsed those newlines and glued
-    // 1️⃣ onto the previous line, so it is gone.
-    const text = waBotText("rating_request", { name: name || "" });
+    const text = waBotText("rating_request", { name: name || "" }).replace(/\s{2,}/g, " ").replace(" ❤️", " ❤️");
 
     const result = await waSendText(phone, text, {
       idempotencyKey: `rating-req:${phone}:${Math.floor(Date.now() / 3600000)}`,
@@ -5944,7 +5658,7 @@ app.get("/api/warmup", (_req, res) => {
   });
 });
 
-app.get("/api/appdata/full", async (_req, res) => {
+app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
   const startedAt = Date.now();
   try {
     if (!db || !firebaseInitialized) {
@@ -6002,7 +5716,7 @@ app.get("/api/appdata/full", async (_req, res) => {
   }
 });
 
-app.get("/api/admin-dashboard-data", async (req, res) => {
+app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => {
   try {
     if (!db || !firebaseInitialized) {
       console.warn("[admin-dashboard-data] Firebase Admin not ready.");
@@ -6134,14 +5848,6 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
     const squads = mergeSquads(mergeSquads(rootSquads, sharedSquads), inferredSquads);
 
     console.log(`[admin-dashboard-data] Found ${squads.length} diwaniyas. root=${rootSquads.length}, shared=${sharedSquads.length}, fromOrders=${inferredSquads.length}, orders=${sharedOrders.length}`);
-
-    // Customer phone numbers travel only to a signed-in, allow-listed admin. Any other
-    // caller (the customer site, or someone who just knows the URL) gets the same
-    // leaderboard with phones blanked — so nothing breaks, and no PII leaks.
-    if (!(await waIsConsoleAuthed(req))) {
-      waRedactPhonesDeep(squads);
-      waRedactPhonesDeep(sharedOrders);
-    }
 
     return res.json({ success: true, squads, orders: sharedOrders });
   } catch (err: any) {
@@ -6400,26 +6106,26 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
   };
 
   app.post("/api/webhook/upayments", async (req, res) => {
-    console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
+    console.log("UPayments webhook received (POST)");
     const mergedParams = { ...req.body, ...req.params, ...req.query };
     await handlePaymentUpdate(mergedParams);
     res.status(200).send('OK');
   });
   app.post("/api/payment-webhook/:orderId", async (req, res) => {
-    console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
+    console.log("UPayments payment webhook received (POST)");
     const mergedParams = { ...req.body, ...req.params, ...req.query };
     await handlePaymentUpdate(mergedParams);
     res.status(200).send('OK');
   });
 
   app.get("/api/webhook/upayments", async (req, res) => {
-     console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
+     console.log("UPayments webhook received (GET)");
      const mergedParams = { ...req.query, ...req.params, ...req.body };
      await handlePaymentUpdate(mergedParams);
      res.status(200).send('OK');
   });
   app.get("/api/payment-webhook/:orderId", async (req, res) => {
-     console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
+     console.log("UPayments payment webhook received (GET)");
      const mergedParams = { ...req.query, ...req.params, ...req.body };
      await handlePaymentUpdate(mergedParams);
      res.status(200).send('OK');
@@ -6431,21 +6137,21 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     res.setHeader("Surrogate-Control", "no-store");
-    console.log(`API REQUEST: ${req.method} ${req.originalUrl}`);
+    console.log(`API REQUEST: ${req.method} ${req.path}`);
     next();
   });
 
   // API TEST ROUTES (PROMINENTLY PLACED AFTER LOGGING)
-  app.get("/api/debug/push-secret", (req, res) => {
-    // Report only whether the secret is configured — never its length, which would
-    // narrow a brute-force search for a would-be attacker.
+  app.get("/api/debug/push-secret", waRequireConsoleAuth, (_req, res) => {
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
     res.json({
       adminTestSecretExists: Boolean(process.env.ADMIN_TEST_SECRET),
+      expectedLength: expectedSecret.length,
       serverVersion: "push-debug-2026-05-08-v1"
     });
   });
 
-  app.get("/api/debug/push-tokens", async (req, res) => {
+  app.get("/api/debug/push-tokens", waRequireConsoleAuth, async (req, res) => {
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
     const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
     if (!expectedSecret || receivedSecret !== expectedSecret) {
@@ -6478,7 +6184,7 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
     }
   });
 
-  app.post("/api/debug/delete-push-tokens", async (req, res) => {
+  app.post("/api/debug/delete-push-tokens", waRequireConsoleAuth, async (req, res) => {
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
     const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
     if (!expectedSecret || receivedSecret !== expectedSecret) {
@@ -6549,11 +6255,8 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
   
 app.post("/api/push/clear-tokens", async (req, res) => {
   try {
-    // Fail closed: no weak "123456" default. If ADMIN_TEST_SECRET is unset, this
-    // destructive endpoint (wipes all push tokens) is unreachable rather than open.
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    const secret = String(req.headers["x-admin-secret"] || req.query.secret || "").trim();
-    if (!expectedSecret || secret !== expectedSecret) {
+    const secret = req.headers["x-admin-secret"] || req.query.secret;
+    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -6584,10 +6287,8 @@ app.post("/api/push/clear-tokens", async (req, res) => {
 
 app.get("/api/push/debug-tokens", async (req, res) => {
   try {
-    // Fail closed: no weak "123456" default. Unset secret → endpoint unreachable.
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
-    const secret = String(req.headers["x-admin-secret"] || req.query.secret || "").trim();
-    if (!expectedSecret || secret !== expectedSecret) {
+    const secret = req.headers["x-admin-secret"] || req.query.secret;
+    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -7130,7 +6831,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
 
 
-  app.get("/api/debug/recent-orders", async (req, res) => {
+  app.get("/api/debug/recent-orders", waRequireConsoleAuth, async (req, res) => {
     try {
       const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
 
@@ -7305,30 +7006,12 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       async function alreadySent(eventId: string) {
         if (__alertsPushEventsCache.knownIds.has(eventId)) return true;
-        // Atomic claim — same proven pattern as alertsClaim. create() fails if the doc
-        // already exists, so exactly one caller wins. The old plain read let two runner
-        // passes / two Cloud Run instances both see "not sent" and each fire the same
-        // business alert (order-created, sales milestone, daily summary...) → duplicates.
-        try {
-          await db!.collection("pushEvents").doc(eventId).create({
-            eventId,
-            status: "claimed",
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            claimedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-          __alertsPushEventsCache.knownIds.add(eventId);
-          return false; // we won the claim → not sent yet, caller proceeds to send
-        } catch (e: any) {
-          const code = String(e?.code || e?.message || "");
-          if (code.includes("ALREADY_EXISTS") || code.includes("already exists") || code.includes("6")) {
+        const snap = await db!.collection("pushEvents").doc(eventId).get();
+        if (snap.exists) {
             __alertsPushEventsCache.knownIds.add(eventId);
-            return true; // another caller already claimed it → treat as already sent
-          }
-          // Unknown error: fall back to a read so a single bad claim can't crash the run.
-          const snap = await db!.collection("pushEvents").doc(eventId).get();
-          if (snap.exists) { __alertsPushEventsCache.knownIds.add(eventId); return true; }
-          throw e;
+            return true;
         }
+        return false;
       }
 
       async function markSent(eventId: string, payload: any, result: any) {
@@ -7371,9 +7054,6 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }
 
       function isPendingPayment(order: any) {
-        // A deleted order is never "pending payment" — the owner removed it, so it must
-        // not fire order-created / payment-pending reminders.
-        if (order?.isDeleted === true) return false;
         const paymentStatus = String(order.paymentStatus || "").toLowerCase();
         const status = String(order.status || "").toLowerCase();
 
@@ -7820,14 +7500,6 @@ function pushRecordMatchesTargetRoles(record: PushTokenRecordForArchive, targetR
   if (!roles.length) return true;
   const recordRole = String(record.userRole || "").trim().toLowerCase();
   if (roles.includes(recordRole)) return true;
-  // This app registers push tokens only for staff (admin/partner) — there is no public
-  // customer push here. Partners registered from the Partner Dashboard without a role,
-  // so their tokens are untagged and were wrongly dropped from ["admin","partner"]
-  // summaries (while still getting the unfiltered payment alerts). An untagged token is
-  // a staff member, so it should receive any partner-targeted alert. Scoped to
-  // "partner" on purpose: admin-only alerts (e.g. WhatsApp support) still won't leak to
-  // untagged tokens, since those fall through to the owner-identity check below.
-  if (!recordRole && roles.includes("partner")) return true;
   if (roles.includes("admin")) {
     const identity = [record.userId, record.userName, record.userEmail, record.tokenDocId].filter(Boolean).join(" ").toLowerCase();
     return recordRole.includes("admin") || /\badmin\b/.test(identity) || identity.includes("ahmad") || identity.includes("alfailakawi");
@@ -8826,9 +8498,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     } = req.body;
     
     // Clean and robust API Key retrieval
-    const envKeys = Object.keys(process.env).filter(k => k.includes('UPAYMENT'));
-    console.log("Available Upayments related env keys:", envKeys);
-    
     const apiKey = getUPaymentsApiKey();
 
     if (!apiKey) {
@@ -8838,8 +8507,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         message: "UPAYMENTS_API_KEY is not defined or empty on the server environment. Please define UPAYMENTS_API_KEY in the environment."
       });
     }
-    
-    console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
     
     const protocol = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('host');
@@ -8905,7 +8572,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         notificationUrl: validNotificationUrl
       };
 
-      console.log("UPayments Request Payload:", JSON.stringify(payload));
+      console.log("UPayments request prepared");
 
       const response = await fetch(`${baseUrl}/charge`, {
         method: "POST",
@@ -8923,11 +8590,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         data = await response.json();
       } else {
         const text = await response.text();
-        console.error("Non-JSON UPayments API error:", text);
+        console.error("UPayments returned a non-JSON error response");
         return res.status(response.status).json({ 
           error: "Payment gateway request failed", 
-          message: `استجابة غير صالحة من بوابة الدفع (ليست بتنسيق JSON). النص المستلم: ${text.substring(0, 150)}`,
-          details: text 
+          message: "استجابة غير صالحة من بوابة الدفع"
         });
       }
       
@@ -9457,10 +9123,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const orders = Array.isArray(shared.orders) ? shared.orders : [];
 
     for (const inv of invoices) {
-      // A deleted invoice must never fire "not paid yet" reminders — the owner already
-      // removed it. Deletion is soft (isDeleted: true), so the row stays in the array
-      // and would otherwise keep triggering the 10-min / 30-min pending alerts.
-      if (inv?.isDeleted === true) continue;
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
       const st = alertsStatusFor(inv);
@@ -9484,7 +9146,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
 
     for (const order of orders) {
-      if (order?.isDeleted === true) continue; // deleted orders never fire reminders
       const orderId = alertsBusinessIdFor(order, "ORD-");
       if (!orderId || !alertsInWindow(order, now)) continue;
       const st = alertsStatusFor(order);
