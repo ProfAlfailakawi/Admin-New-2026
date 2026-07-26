@@ -112,6 +112,15 @@ interface OrderPageProps {
   isPartner?: boolean;
 }
 
+const getOrderDisplayReference = (order: Partial<Order> | null | undefined) => {
+  const rawId = String(order?.id || "").trim();
+  if (!rawId) return "—";
+
+  return rawId.toUpperCase().startsWith("ORD")
+    ? `ORD-${rawId.slice(-4).toUpperCase()}`
+    : rawId;
+};
+
 const InsightCard = ({
   label,
   value,
@@ -1698,8 +1707,11 @@ Alturath.kw`;
                   <div className="flex-grow">
                     <div className="flex justify-between items-start mb-3">
                       <div className="space-y-0.5">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
-                          #{order.id.slice(-6)}
+                        <span
+                          dir="ltr"
+                          className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md"
+                        >
+                          #{getOrderDisplayReference(order)}
                         </span>
                         <h3 className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors line-clamp-1">
                           {getOrderCustomerName(order)}
@@ -1969,7 +1981,8 @@ Alturath.kw`;
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0 sticky top-0 z-20">
                 <div>
                   <h2 className="text-base md:text-lg font-black text-slate-900">
-                    تفاصيل الطلب #{selectedOrder.id.slice(-6)}
+                    تفاصيل الطلب{" "}
+                    <bdi dir="ltr">#{getOrderDisplayReference(selectedOrder)}</bdi>
                   </h2>
                 </div>
                 <button
