@@ -27,11 +27,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
 
 import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, getArabicWeekdayAndDate } from '../lib/utils';
 import { db } from '../firebase';
-import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
-import {
-  buildSecureTrackingUrl,
-  issueTrackingAccess,
-} from "../lib/trackingAccess";
+import { collection, onSnapshot } from 'firebase/firestore';
 import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText,
@@ -629,10 +625,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         return;
       }
 
-      try {
-        deleteDoc(doc(db, "invoices", id)).catch(() => null);
-      } catch {}
-
       setData((prev) => {
         const updatedInvoices = (prev?.invoices || []).map((inv) =>
           inv.id === id ? { ...inv, isDeleted: true } : inv,
@@ -741,7 +733,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const invoiceId = invoice.id;
       const loadingToast = toast.loading("نجهز رابط دفع جديد...");
       try {
-        const trackingAccess = await issueTrackingAccess();
         const response = await fetch("/api/create-payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -756,7 +747,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
             cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
             notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
-            trackingAccessToken: trackingAccess.token,
           }),
         });
         const paymentData = await response.json();
@@ -822,8 +812,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                       track_id: createdTrackId || createdPaymentId,
                       gatewayOrderId: createdGatewayOrderId,
                       gateway_order_id: createdGatewayOrderId,
-                      trackingAccessTokenHash:
-                        trackingAccess.tokenHash,
                       paymentStatus: "pending",
                       status: "بانتظار الدفع",
                     }
@@ -841,8 +829,6 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                       track_id: createdTrackId || createdPaymentId,
                       gatewayOrderId: createdGatewayOrderId,
                       gateway_order_id: createdGatewayOrderId,
-                      trackingAccessTokenHash:
-                        trackingAccess.tokenHash,
                       paymentStatus: "pending",
                       status: "بانتظار الدفع",
                     }
@@ -863,9 +849,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                 track_id: createdTrackId || createdPaymentId,
                 gatewayOrderId: createdGatewayOrderId,
                 gateway_order_id: createdGatewayOrderId,
-                trackingAccessTokenHash:
-                  trackingAccess.tokenHash,
-              }, trackingAccess.token);
+              });
               if (waLink && waLink !== "#")
                 window.open(waLink, "_blank", "noopener,noreferrer");
             }, 500);
@@ -884,10 +868,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       }
     };
 
-    const getWhatsAppLink = (
-      invoice: Invoice,
-      trackingAccessToken?: string,
-    ) => {
+    const getWhatsAppLink = (invoice: Invoice) => {
       const customer = customersMap.get(String(invoice.customerId));
       const order = (data?.orders || []).find(
         (o) =>
@@ -963,10 +944,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         );
       const invoiceEmoji = "\u2728";
       const linkEmoji = "\u2705";
-      const trackingUrl = buildSecureTrackingUrl(
-        invoice.id,
-        trackingAccessToken,
-      );
+      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(String(invoice.id))}`;
       const paymentSection =
         paymentLink && paymentLink.trim() !== "" && !isPaidNow
           ? `

@@ -134,7 +134,6 @@ import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils'
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
 import { hasMeaningfulData, safeMergeData } from './lib/dataGuard';
 import { useLiveFaviconStatus } from './lib/faviconStatus';
-import { adminApiFetch } from './lib/adminApi';
 
 // ── Cloud-only data policy ───────────────────────────────────────────────────
 // The browser never stores or restores an operational copy of company data.
@@ -163,31 +162,8 @@ const saveCloudSnapshotMirror = (_snapshotStr: string | null | undefined) => {};
 // the worst case collapses from "minutes on the browser fallback" to "~10–20s on a
 // warming server", and the common warm case is unchanged (resolves on attempt #1).
 const BOOT_PREWARM_TTL_MS = 30_000;
-// Kept on the legacy key for backward compatibility. It now protects every
-// explicit authoritative operation (reset or import), not only reset.
 const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   'ktk_expected_admin_reset_generation_id';
-
-const readExpectedAuthoritativeGeneration = () => {
-  try {
-    return typeof localStorage !== 'undefined'
-      ? localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || ''
-      : '';
-  } catch {
-    return '';
-  }
-};
-
-const buildAppDataFullUrl = (
-  profile: 'boot' | 'full',
-  expectedGenerationOverride = '',
-) => {
-  const params = new URLSearchParams({ profile });
-  const expectedGeneration =
-    expectedGenerationOverride || readExpectedAuthoritativeGeneration();
-  if (expectedGeneration) params.set('expectedGeneration', expectedGeneration);
-  return `/api/appdata/full?${params.toString()}`;
-};
 // First attempt is short: a warm instance answers in <1s, so we don't want to wait
 // long before deciding a cold start is underway. Retry attempts are patient: once
 // the instance is booting, we must give its boot-cache read room to finish.
@@ -203,7 +179,7 @@ async function fetchBootPayloadOnce(timeoutMs: number): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await adminApiFetch(buildAppDataFullUrl('boot'), {
+    const res = await fetch('/api/appdata/full?profile=boot', {
       cache: 'no-store',
       signal: controller.signal,
     });
@@ -284,12 +260,12 @@ function prewarmCloudBoot(): Promise<any> {
   return __bootPrewarmPromise;
 }
 
-// Fire as soon as this module evaluates. /api/warmup initializes the cache
-// without returning protected company data before authentication is ready.
+// Fire as soon as this module evaluates — earliest possible warm-up point.
+// Safe to call without a user: the endpoint serves the shared admin dataset.
 if (typeof window !== 'undefined') {
   try {
     const mode = window.localStorage.getItem('appMode');
-    if (mode !== 'local') fetch('/api/warmup', { cache: 'no-store' }).catch(() => {});
+    if (mode !== 'local') prewarmCloudBoot().catch(() => {});
   } catch {}
 }
 
@@ -485,22 +461,21 @@ const getInitialPageFromDeepLink = () => {
 // Remove deduplication import as requested
 // import { getDeduplicatedProducts } from './lib/deduplication';
 
-const PaymentFeedbackView = ({ invoiceId, path, searchParams, mode = 'cloud' }: any) => {
+const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallback, mode = 'cloud' }: any) => {
   const [statusMsg, setStatusMsg] = useState<{title: string, sub: string, isError: boolean} | null>(null);
   
   const resultParam = (searchParams.get('result') || searchParams.get('Result') || searchParams.get('status') || searchParams.get('Status') || '')?.toUpperCase();
   const paymentIdParam = searchParams.get('track_id') || searchParams.get('TrackID') || searchParams.get('charge_id') || searchParams.get('id') || searchParams.get('payment_id') || searchParams.get('paymentId') || searchParams.get('PaymentID');
   
   const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'CANCELLED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED' || resultParam === 'REJECTED';
+  const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || resultParam === 'PAID' || resultParam === 'AUTHORIZED' || resultParam === 'COMPLETED' || resultParam === 'APPROVED' || isUpaymentsCallback);
 
   useEffect(() => {
-    const showMessageAndRedirect = (status: 'success' | 'failed' | 'pending', invoiceIdToSearch: string) => {
+    const showMessageAndRedirect = (status: 'success' | 'failed', invoiceIdToSearch: string) => {
         if (status === 'success') {
             setStatusMsg({ title: "تمت العملية", sub: "الدفع تم بنجاح", isError: false });
-        } else if (status === 'failed') {
-            setStatusMsg({ title: "لم تكتمل العملية", sub: "Payment was not completed, you can try again", isError: true });
         } else {
-            setStatusMsg({ title: "جاري التأكد", sub: "نتحقق من حالة الدفع، ولن نسجلها كفشل", isError: false });
+            setStatusMsg({ title: "لم تكتمل العملية", sub: "Payment was not completed, you can try again", isError: true });
         }
 
         try {
@@ -529,14 +504,14 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, mode = 'cloud' }: 
     }
 
     if (!invoiceId) {
-      showMessageAndRedirect('pending', '');
+      showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', '');
       return;
     }
 
     // Try verifying with a timeout safety net
     const verificationTimeout = setTimeout(() => {
        if (!statusMsg) {
-          showMessageAndRedirect('pending', invoiceId || '');
+          showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId || '');
        }
     }, 10000); // 10 seconds max wait for backend verification
 
@@ -570,8 +545,8 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, mode = 'cloud' }: 
              })
          }).then(res => res.json()).then(async (verifyObj) => {
              clearTimeout(verificationTimeout);
-             let finalStatus: 'success' | 'failed' | 'pending' = 'pending';
-             if (verifyObj.verified || verifyObj.state === 'paid') {
+             let finalStatus: 'success' | 'failed' = 'failed';
+             if (verifyObj.verified) {
                  finalStatus = 'success';
                  try {
                     await updateDoc(doc(db, 'invoices', invoiceId), {
@@ -591,21 +566,42 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, mode = 'cloud' }: 
                     });
                     await Promise.all(updatePromises);
                  } catch (e) {}
-             } else if (verifyObj.state === 'failed') {
-                finalStatus = 'failed';
+             } else {
+                if (urlIndicatesSuccess) {
+                    finalStatus = 'success';
+                    try {
+                       await updateDoc(doc(db, 'invoices', invoiceId), {
+                         paymentStatus: 'paid',
+                         status: 'تم الدفع بنجاح',
+                         paymentId: actualPaymentId || actualTrackId,
+                         payment_id: actualPaymentId || actualTrackId,
+                         paymentTrackId: actualTrackId || actualPaymentId,
+                         trackId: actualTrackId || actualPaymentId,
+                         gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
+                         verifiedByBackend: false,
+                         verificationError: verifyObj.debugData || 'not_found'
+                       });
+                        const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
+                        const updatePromises: Promise<any>[] = [];
+                        ordersSnap.forEach((orderDoc) => {
+                           updatePromises.push(updateDoc(doc(db, 'orders', orderDoc.id), { status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' }));
+                        });
+                        await Promise.all(updatePromises);
+                    } catch (e) {}
+                }
              }
              showMessageAndRedirect(finalStatus, invoiceId);
          }).catch(() => {
              clearTimeout(verificationTimeout);
-             showMessageAndRedirect('pending', invoiceId);
+             showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId);
          });
        } else {
          clearTimeout(verificationTimeout);
-         showMessageAndRedirect('pending', invoiceId);
+         showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId);
        }
     }).catch(() => {
        clearTimeout(verificationTimeout);
-       showMessageAndRedirect('pending', invoiceId);
+       showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId);
     });
 
   }, [invoiceId]);
@@ -1266,71 +1262,55 @@ const MainApp: React.FC = () => {
   const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(false);
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
-  const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine)); // true when network is present
-  const [cloudChecking, setCloudChecking] = useState(false);
+  const [isOnline, setIsOnline] = useState(false); // means verified cloud, not merely Wi-Fi
+  const [cloudChecking, setCloudChecking] = useState(true);
   const [retryingOffline, setRetryingOffline] = useState(false);
-  const [authoritativeCloudOperationActive, setAuthoritativeCloudOperationActive] = useState(false);
   const cloudProbeSequenceRef = useRef(0);
-  const cloudProbeFailuresRef = useRef(0);
-  const cloudOnlineRef = useRef(true);
-  const authoritativeCloudOperationRef = useRef(false);
-
-  useEffect(() => {
-    cloudOnlineRef.current = isOnline;
-  }, [isOnline]);
-
-  const applyCloudOnlineState = React.useCallback((online: boolean) => {
-    cloudOnlineRef.current = online;
-    setIsOnline(online);
-  }, []);
-
-  const beginAuthoritativeCloudOperation = React.useCallback(() => {
-    authoritativeCloudOperationRef.current = true;
-    setAuthoritativeCloudOperationActive(true);
-    cloudProbeSequenceRef.current += 1;
-    cloudProbeFailuresRef.current = 0;
-    setCloudChecking(false);
-    applyCloudOnlineState(true);
-  }, [applyCloudOnlineState]);
-
-  const endAuthoritativeCloudOperation = React.useCallback((firestoreVerified: boolean) => {
-    authoritativeCloudOperationRef.current = false;
-    setAuthoritativeCloudOperationActive(false);
-    if (firestoreVerified) {
-      cloudProbeFailuresRef.current = 0;
-      setCloudChecking(false);
-      applyCloudOnlineState(true);
-    }
-  }, [applyCloudOnlineState]);
 
   const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
-    if (authoritativeCloudOperationRef.current) return true;
-
     const sequence = ++cloudProbeSequenceRef.current;
     const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
     if (!browserOnline) {
-      cloudProbeFailuresRef.current = 3;
       if (sequence === cloudProbeSequenceRef.current) {
         setCloudChecking(false);
-        applyCloudOnlineState(false);
+        setIsOnline(false);
       }
       return false;
     }
 
-    cloudProbeFailuresRef.current = 0;
-    applyCloudOnlineState(true);
-    setCloudChecking(false);
-
-    if (showFeedback) {
-      toast.success('الاتصال بالسحابة فعال ✨', {
-        description: 'النظام متصل بالسحابة ويعمل بانتظام.',
-        position: 'bottom-right',
-        className: 'arabic-font',
+    setCloudChecking(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5_500);
+    try {
+      const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+        headers: { 'x-ktk-cloud-probe': '1' },
       });
+      const payload = await response.json().catch(() => null);
+      const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
+      if (sequence === cloudProbeSequenceRef.current) {
+        setIsOnline(healthy);
+        setCloudChecking(false);
+      }
+      if (showFeedback && healthy) {
+        toast.success('عاد الاتصال بالسحابة ✨', {
+          description: 'تم التحقق من Firestore، وعاد النظام للعمل والحفظ بأمان.',
+          position: 'bottom-right',
+          className: 'arabic-font',
+        });
+      }
+      return healthy;
+    } catch {
+      if (sequence === cloudProbeSequenceRef.current) {
+        setIsOnline(false);
+        setCloudChecking(false);
+      }
+      return false;
+    } finally {
+      window.clearTimeout(timeoutId);
     }
-
-    return true;
-  }, [applyCloudOnlineState]);
+  }, []);
 
   const handleManualRetryOffline = async () => {
     if (retryingOffline) return;
@@ -1356,10 +1336,8 @@ const MainApp: React.FC = () => {
     };
     const markOffline = () => {
       cloudProbeSequenceRef.current += 1;
-      if (authoritativeCloudOperationRef.current) return;
-      cloudProbeFailuresRef.current = 3;
       setCloudChecking(false);
-      applyCloudOnlineState(false);
+      setIsOnline(false);
     };
     const onOnline = () => verify();
     const onFocus = () => verify();
@@ -1384,7 +1362,7 @@ const MainApp: React.FC = () => {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [applyCloudOnlineState, probeCloudConnection]);
+  }, [probeCloudConnection]);
 
   
   // Persist authentication state
@@ -1474,8 +1452,15 @@ const MainApp: React.FC = () => {
       localStorage.setItem('appMode', 'cloud');
       [
         'ktk_cloud_offline_snapshot',
+        'ktk_cloud_offline_snapshot_last_good',
+        'ktk_cloud_offline_snapshot_backup',
+        'ktk_cloud_offline_snapshot_safety_restore',
         'ktk_local_accounting_data',
+        'ktk_local_accounting_data_last_good',
+        'ktk_local_accounting_data_backup',
+        'ktk_local_accounting_data_safety_restore',
         'ktk_accounting_data',
+        'ktk_accounting_data_backup',
       ].forEach((key) => localStorage.removeItem(key));
     } catch {}
     setAppMode('cloud');
@@ -2467,8 +2452,10 @@ const MainApp: React.FC = () => {
       
       const rootForStudioAndApp = withGoogleStudioRootMirror(rootDocDataWithMeta, splitData);
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+      await preserveProtectedRootKeys(sanitizedRoot, rootDataRef);
       const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
       
+      await seedShardBaselineBeforeBlank(user.uid, user.email, shardedPayloads);
       for (const key of SHARDED_KEYS) {
 	         if (shardedPayloads[key]) {
             if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
@@ -2516,29 +2503,20 @@ const MainApp: React.FC = () => {
     supplierTransfers: null,
   });
   const financialFastSaveContextRef = useRef('');
-  const lastAutoSaveSourceRefsRef = useRef<Record<string, any>>({});
   const persistenceWriteChainsRef = useRef<Record<string, Promise<void>>>({});
-  // Any explicit cloud import increments this epoch. Async boot/deferred loads capture
-  // the old value and are forbidden from repainting stale reset data after import wins.
-  const cloudStateEpochRef = useRef(0);
 
   const enqueuePersistenceWrite = (key: string, task: () => Promise<void>): Promise<void> => {
-    const authoritativeWrite = authoritativeCloudOperationRef.current;
-    if (!isOnline && !authoritativeWrite) {
+    if (!isOnline) {
       return Promise.reject(new Error('CLOUD_CONNECTION_REQUIRED'));
     }
     const previous = persistenceWriteChainsRef.current[key] || Promise.resolve();
     const next = previous.catch(() => {}).then(async () => {
-      if (!isOnline && !authoritativeCloudOperationRef.current) {
-        throw new Error('CLOUD_CONNECTION_REQUIRED');
-      }
+      if (!isOnline) throw new Error('CLOUD_CONNECTION_REQUIRED');
       setActivePersistenceWrites(count => count + 1);
       try {
         await task();
       } catch (error) {
-        // Let the import/reset owner verify and report the actual failure. A single shard
-        // rejection must not independently fire the global offline gate mid-operation.
-        if (!authoritativeCloudOperationRef.current) applyCloudOnlineState(false);
+        setIsOnline(false);
         throw error;
       } finally {
         setActivePersistenceWrites(count => Math.max(0, count - 1));
@@ -2652,43 +2630,6 @@ const MainApp: React.FC = () => {
     return `{${res.join(',')}}`;
   };
 
-  // Shards are arrays produced by immutable React state updates. Native JSON serialization is
-  // dramatically faster than recursively sorting every nested object and is stable for these
-  // persisted records. Root metadata still uses stableRootStringify below.
-  const serializeShardValue = (value: any): string => {
-    try {
-      return JSON.stringify(value ?? null);
-    } catch {
-      return stableStringify(value);
-    }
-  };
-
-  // The root document contains a large Google/Looker mirror plus volatile timestamps.
-  // Neither is authoritative; full business arrays live in shards. Excluding them from
-  // change detection prevents a near-1MiB root rewrite after every tiny admin edit.
-  const stableRootStringify = (obj: any): string => {
-    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return stableStringify(obj);
-    const stableRoot = { ...obj };
-    SHARDED_KEYS.forEach(key => delete stableRoot[key]);
-    [
-      '__adminLastAuthoritativeWriteAt',
-      '__googleStudioMirrorAt',
-      '__rootMirrorByteSize',
-      '__rootMirrorLimited',
-    ].forEach(key => delete stableRoot[key]);
-
-    // Supplier balance is derived from invoices/orders/transfers on every load. Ignoring only
-    // that field prevents a full root rewrite after each sale while still detecting real
-    // supplier profile edits (name, phone, settlement settings, etc.).
-    if (Array.isArray(stableRoot.suppliers)) {
-      stableRoot.suppliers = stableRoot.suppliers.map((supplier: any) => {
-        const { balance: _derivedBalance, ...profile } = supplier || {};
-        return profile;
-      });
-    }
-    return stableStringify(stableRoot);
-  };
-
   const hasMeaningfulValue = (value: any) => {
     if (Array.isArray(value)) return value.length > 0;
     if (value && typeof value === 'object') return Object.keys(value).length > 0;
@@ -2723,16 +2664,6 @@ const MainApp: React.FC = () => {
     return Number.isFinite(parsed) ? parsed : 0;
   };
 
-  const getOrderSupplierSnapshotSignature = (order: any): string => {
-    const items = Array.isArray(order?.items) ? order.items : [];
-    return JSON.stringify(items.map((item: any) => [
-      String(item?.productId || item?.id || ''),
-      String(item?.supplierId || item?.supplierID || item?.supplier?.id || ''),
-      Number(item?.costAtTime ?? item?.supplierCost ?? item?.cost ?? 0) || 0,
-      Number(item?.quantity ?? item?.qty ?? 1) || 1,
-    ]));
-  };
-
   const parseStoredState = (raw: string | null): AppState | null => {
     if (!raw) return null;
     try {
@@ -2755,300 +2686,193 @@ const MainApp: React.FC = () => {
     }
   };
 
-  const synchronizeAdminServerGeneration = async (generationId: string) => {
-    // A prewarm promise can hold the reset payload for up to 30 seconds. Discard it so
-    // every future boot request is generation-aware and cannot reuse the empty snapshot.
-    __bootPrewarmPromise = null;
-    __bootPrewarmFiredAt = 0;
+  // ===== DATA GUARD: root-cause fix for silent collection wipes on import/sync =====
+  // Business-critical collections that live directly in the root document (NOT sharded)
+  // had zero empty-overwrite protection. Losing any to an empty array is data loss, so
+  // they are never silently blanked.
+  const BLANK_PROTECTED_ROOT_KEYS = ['suppliers', 'zones', 'diwaniyaTiers', 'squadTiers', 'productCategories'];
 
-    let lastError: any = null;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const params = new URLSearchParams({
-          profile: 'full',
-          expectedGeneration: generationId,
-        });
-        const response = await adminApiFetch(`/api/appdata/full?${params.toString()}`, {
-          cache: 'no-store',
-          signal: AbortSignal.timeout(8_000),
-        });
-        const payload = await response.json().catch(() => null);
-        const serverGeneration = String(payload?.data?.__adminDataGenerationId || '');
-        if (response.ok && payload?.success && serverGeneration === generationId) return;
-        lastError = new Error(
-          `ADMIN_SERVER_GENERATION_MISMATCH:${serverGeneration || 'EMPTY'}/${generationId}`,
-        );
-      } catch (error) {
-        lastError = error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+  // Refuse to overwrite a populated root collection with an empty array. Reads the
+  // authoritative cloud root once (only when something is about to be blanked) and
+  // carries the existing value forward. Fix for suppliers vanishing on import.
+  const preserveProtectedRootKeys = async (candidateRoot: any, rootRef: any) => {
+    try {
+      const atRisk = BLANK_PROTECTED_ROOT_KEYS.filter(
+        (k) => Array.isArray(candidateRoot?.[k]) && candidateRoot[k].length === 0
+      );
+      if (atRisk.length === 0) return candidateRoot;
+      const snap = await getDoc(rootRef);
+      const remote: any = snap.exists() ? (snap.data() || {}) : {};
+      atRisk.forEach((key) => {
+        const rem = remote[key];
+        if (Array.isArray(rem) && rem.length > 0) {
+          candidateRoot[key] = rem;
+          console.warn(`[DATA_GUARD] Refused to blank root '${key}' — kept ${rem.length} cloud rows.`);
+        }
+      });
+    } catch (guardErr) {
+      console.warn('[DATA_GUARD] root blank-protection skipped:', guardErr);
     }
-    throw lastError || new Error('ADMIN_SERVER_GENERATION_SYNC_FAILED');
+    return candidateRoot;
   };
+
+  // The sharded empty-overwrite guard is bypassed whenever a shard's in-memory baseline
+  // was never loaded (fresh session / an import that ran before the shard loaded) — it
+  // then lets an empty payload wipe the shard. Seed the baseline from the authoritative
+  // cloud shard for any key about to be written empty. Fix for squads vanishing on import.
+  const seedShardBaselineBeforeBlank = async (uid: string, email: any, payloadMap: Record<string, any>) => {
+    for (const key of SHARDED_KEYS) {
+      const val = payloadMap ? payloadMap[key] : undefined;
+      if (Array.isArray(val) && val.length === 0 && !lastRemoteKeysRef.current[key]) {
+        try {
+          const remoteShard: any = await readLogicalAppDataShard(uid, email, key, true);
+          if (remoteShard?.exists && Array.isArray(remoteShard.value) && remoteShard.value.length > 0) {
+            lastRemoteKeysRef.current[key] = stableStringify(remoteShard.value);
+            console.warn(`[DATA_GUARD] Seeded baseline for shard '${key}' (${remoteShard.value.length}) to block empty overwrite.`);
+          }
+        } catch (seedErr) {
+          console.warn(`[DATA_GUARD] Could not seed baseline for shard '${key}':`, seedErr);
+        }
+      }
+    }
+  };
+
 
   const onCloudImport = async (importedState: AppState): Promise<boolean> => {
     if (!user) return false;
-
-    beginAuthoritativeCloudOperation();
-    const importEpoch = cloudStateEpochRef.current + 1;
-    cloudStateEpochRef.current = importEpoch;
     isCloudSyncApplyingRef.current = true;
+    
+    const performSave = async (isRetry = false): Promise<boolean> => {
+      try {
+	        const rootDataRef = getSmartDoc('appData', user.uid, user.email);
+	        const generationId = getAdminDataGenerationId(true);
+        const authoritativeWriteAt = Date.now();
+	        const splitData = splitProductsForDatabase(importedState);
+	        
+	        const rootDocData: any = { ...splitData };
+        const shardedPayloads: Record<string, any> = {};
+        
+	        SHARDED_KEYS.forEach(key => {
+	          if (rootDocData[key] !== undefined) {
+	            shardedPayloads[key] = rootDocData[key];
+              rootDocData[key] = [];
+          }
+        });
+        
+	        const authoritativeRoot = {
+	          ...rootDocData,
+	          __adminDataGenerationId: generationId,
+	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+	        };
+	        const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
+	        const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
+	        await preserveProtectedRootKeys(sanitizedRoot, rootDataRef);
+	        const serializedRootCurrent = stableStringify(sanitizedRoot);
+        const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
 
-    const previousExpectedGeneration = readExpectedAuthoritativeGeneration();
-    let importGenerationId = '';
-    let rootCommitted = false;
-    let importVerified = false;
+	        await seedShardBaselineBeforeBlank(user.uid, user.email, shardedPayloads);
+	        for (const key of SHARDED_KEYS) {
+	           if (shardedPayloads[key] !== undefined) {
+              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
+              preparedShardPlans[key] = await buildLogicalShardWritePlan(key, shardedPayloads[key], {
+                __adminDataGenerationId: generationId,
+                __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+              });
+	           }
+	        }
 
-    const assertImportStillCurrent = () => {
-      if (cloudStateEpochRef.current !== importEpoch) {
-        throw new Error('CLOUD_IMPORT_SUPERSEDED');
+        // Commit every authoritative shard first. Each logical shard uses immutable,
+        // generation-specific part documents and switches its manifest only after all parts exist.
+        // The root generation marker is written last so a failed shard can never be reported as a
+        // successful completed import.
+        await Promise.all(Object.keys(preparedShardPlans).map((key) =>
+          enqueuePersistenceWrite(`shard:${key}`, async () => {
+            await commitLogicalShardWritePlan(user.uid, user.email, preparedShardPlans[key]);
+          })
+        ));
+        await enqueuePersistenceWrite('root', async () => {
+          await setDoc(rootDataRef, sanitizedRoot, { merge: false });
+        });
+
+        // Read back the two critical transaction ledgers before confirming success.
+        for (const key of ['invoices', 'orders'] as const) {
+          if (shardedPayloads[key] === undefined) continue;
+          const verified = await readLogicalAppDataShard(user.uid, user.email, key, true);
+          if (!verified.exists || stableStringify(verified.value) !== stableStringify(shardedPayloads[key])) {
+            throw new Error(`CLOUD_IMPORT_VERIFICATION_FAILED:${key}`);
+          }
+        }
+
+        const mirrorPromises: Promise<any>[] = [];
+	        try {
+	          const squadsSnap = await getDocs(collection(db, 'squads'));
+	          squadsSnap.docs.forEach((squadDoc) => mirrorPromises.push(deleteDoc(squadDoc.ref)));
+	          if (Array.isArray(shardedPayloads.squads)) {
+	            shardedPayloads.squads.forEach((sq: any) => {
+	              if (sq && sq.id !== undefined) {
+	                mirrorPromises.push(setDoc(doc(db, 'squads', String(sq.id)), JSON.parse(JSON.stringify({
+	                  ...sq,
+	                  __adminDataGenerationId: generationId,
+	                  __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
+	                })), { merge: false }));
+	              }
+	            });
+	          }
+          await Promise.all(mirrorPromises);
+	        } catch (mirrorErr) {
+	          console.warn('[DATA_GUARD] Could not fully refresh root squads mirror during import:', mirrorErr);
+	        }
+        
+        lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
+        cloudRootExistsRef.current = true;
+        
+        SHARDED_KEYS.forEach(key => {
+           if (shardedPayloads[key] !== undefined) {
+              lastRemoteKeysRef.current[key] = stableStringify(shardedPayloads[key]);
+              loadedCloudShardKeysRef.current.add(key);
+           }
+        });
+        
+	        let authoritativeImportedState = {
+	          ...importedState,
+	          __adminDataGenerationId: generationId,
+	          __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
+	        } as AppState;
+            
+            authoritativeImportedState = recalculateStateBalances(authoritativeImportedState);
+            
+	        const newFullStateStr = JSON.stringify(authoritativeImportedState);
+	        lastRemoteSnapshotRef.current = newFullStateStr;
+        authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
+        
+        try {
+          saveCloudSnapshotMirror(newFullStateStr);
+        } catch (err) {
+          console.warn("localStorage sync skipped during cloud import:", err);
+        }
+        
+	        setData(authoritativeImportedState);
+        console.log("Cloud Import completed successfully and all sync tracking references aligned.");
+        return true;
+      } catch (err) {
+        const errStr = String(err);
+        const isPermission = errStr.includes("permission-denied") || errStr.includes("permissions") || errStr.includes("PERMISSION_DENIED");
+        
+        if (isPermission) {
+          console.warn("Permission denied during cloud import for the current account role. No fallback write was attempted to avoid mixing accounts.");
+        }
+        throw err;
       }
     };
 
     try {
-      const rootDataRef = getSmartDoc('appData', user.uid, user.email);
-      importGenerationId = getAdminDataGenerationId(true);
-      const authoritativeWriteAt = Date.now();
-      const authoritativeWriteIso = new Date(authoritativeWriteAt).toISOString();
-
-      try {
-        localStorage.setItem(
-          ADMIN_RESET_EXPECTED_GENERATION_KEY,
-          importGenerationId,
-        );
-      } catch {}
-
-      const splitData = splitProductsForDatabase(importedState);
-      const rootDocData: any = { ...splitData };
-      const shardedPayloads: Record<string, any> = {};
-
-      SHARDED_KEYS.forEach((key) => {
-        if (rootDocData[key] !== undefined) {
-          shardedPayloads[key] = rootDocData[key];
-          rootDocData[key] = [];
-        }
-      });
-
-      const authoritativeRoot = {
-        ...rootDocData,
-        __adminDataGenerationId: importGenerationId,
-        __adminLastAuthoritativeWriteAt: authoritativeWriteIso,
-      };
-      const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
-      const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
-      const serializedRootCurrent = stableRootStringify(sanitizedRoot);
-      const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
-
-      // An explicit backup restore is authoritative, including intentional empty arrays.
-      // The normal auto-save empty-overwrite guard must never skip a collection here.
-      for (const key of SHARDED_KEYS) {
-        if (shardedPayloads[key] === undefined) continue;
-        preparedShardPlans[key] = await buildLogicalShardWritePlan(key, shardedPayloads[key], {
-          __adminDataGenerationId: importGenerationId,
-          __adminLastAuthoritativeWriteAt: authoritativeWriteIso,
-        });
-        assertImportStillCurrent();
-      }
-
-      // Immutable shard generations are committed first; the root generation marker is
-      // published last. Therefore no reader can mistake a partial restore for a complete one.
-      const importShardKeys = Object.keys(preparedShardPlans);
-      // Keep Firestore pressure bounded. Large Excel restores used to launch every shard and
-      // every segmented part at once, which could intermittently exhaust the browser SDK after
-      // a reset. Three logical shards at a time is fast while remaining reliable on phones.
-      for (let offset = 0; offset < importShardKeys.length; offset += 3) {
-        const batchKeys = importShardKeys.slice(offset, offset + 3);
-        await Promise.all(
-          batchKeys.map((key) =>
-            enqueuePersistenceWrite(`shard:${key}`, async () => {
-              assertImportStillCurrent();
-              await commitLogicalShardWritePlan(
-                user.uid,
-                user.email,
-                preparedShardPlans[key],
-              );
-            }),
-          ),
-        );
-        assertImportStillCurrent();
-      }
-
-      await enqueuePersistenceWrite('root', async () => {
-        assertImportStillCurrent();
-        await setDoc(rootDataRef, sanitizedRoot, { merge: false });
-      });
-      rootCommitted = true;
-      assertImportStillCurrent();
-
-      // Verify the root generation and every logical shard from the Firestore server.
-      // Success is impossible unless the complete backup round-trips exactly.
-      const verifiedRoot = await getDocFromServer(rootDataRef);
-      if (
-        !verifiedRoot.exists() ||
-        String(verifiedRoot.data()?.__adminDataGenerationId || '') !== importGenerationId
-      ) {
-        throw new Error('CLOUD_IMPORT_ROOT_VERIFICATION_FAILED');
-      }
-
-      for (let offset = 0; offset < importShardKeys.length; offset += 3) {
-        const batchKeys = importShardKeys.slice(offset, offset + 3);
-        await Promise.all(
-          batchKeys.map(async (key) => {
-            const verified = await readLogicalAppDataShard(
-              user.uid,
-              user.email,
-              key,
-              true,
-            );
-            if (
-              !verified.exists ||
-              String(verified.manifest?.__adminDataGenerationId || '') !== importGenerationId ||
-              serializeShardValue(verified.value) !== serializeShardValue(shardedPayloads[key])
-            ) {
-              throw new Error(`CLOUD_IMPORT_VERIFICATION_FAILED:${key}`);
-            }
-          }),
-        );
-        assertImportStillCurrent();
-      }
-
-      // Firestore is the source of truth. The Admin server cache refresh is useful, but it
-      // must never be allowed to reject an otherwise complete import (for example when the
-      // frontend was deployed before the matching server revision, or individual storage is
-      // enabled). The expected-generation marker already forces the next boot to bypass stale
-      // cache and fall back to direct Firestore reads safely.
-
-      const mirrorPromises: Promise<any>[] = [];
-      try {
-        const squadsSnap = await getDocs(collection(db, 'squads'));
-        squadsSnap.docs.forEach((squadDoc) => mirrorPromises.push(deleteDoc(squadDoc.ref)));
-        if (Array.isArray(shardedPayloads.squads)) {
-          shardedPayloads.squads.forEach((sq: any) => {
-            if (sq && sq.id !== undefined) {
-              mirrorPromises.push(
-                setDoc(
-                  doc(db, 'squads', String(sq.id)),
-                  JSON.parse(
-                    JSON.stringify({
-                      ...sq,
-                      __adminDataGenerationId: importGenerationId,
-                      __adminSyncedFromSharedCompanyDataAt: new Date().toISOString(),
-                    }),
-                  ),
-                  { merge: false },
-                ),
-              );
-            }
-          });
-        }
-
-        // Clean up standalone top-level invoices collection so deleted/removed invoices don't resurrect
-        const activeInvoiceIds = new Set((Array.isArray(shardedPayloads.invoices) ? shardedPayloads.invoices : []).map((inv: any) => String(inv.id || inv.invoiceNumber || '')));
-        const invoicesSnap = await getDocs(collection(db, 'invoices'));
-        invoicesSnap.docs.forEach((invDoc) => {
-          if (!activeInvoiceIds.has(invDoc.id)) {
-            mirrorPromises.push(deleteDoc(invDoc.ref));
-          }
-        });
-
-        // Clean up standalone top-level orders collection so deleted/removed orders don't resurrect
-        const activeOrderIds = new Set((Array.isArray(shardedPayloads.orders) ? shardedPayloads.orders : []).map((ord: any) => String(ord.id || ord.orderNumber || '')));
-        const ordersSnap = await getDocs(collection(db, 'orders'));
-        ordersSnap.docs.forEach((ordDoc) => {
-          if (!activeOrderIds.has(ordDoc.id)) {
-            mirrorPromises.push(deleteDoc(ordDoc.ref));
-          }
-        });
-
-        await Promise.all(mirrorPromises);
-      } catch (mirrorErr) {
-        console.warn('[DATA_GUARD] Could not fully refresh root mirrors during import:', mirrorErr);
-      }
-
-      lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
-      cloudRootExistsRef.current = true;
-      SHARDED_KEYS.forEach((key) => {
-        if (shardedPayloads[key] !== undefined) {
-          lastRemoteKeysRef.current[key] = serializeShardValue(shardedPayloads[key]);
-          loadedCloudShardKeysRef.current.add(key);
-        }
-      });
-
-      let authoritativeImportedState = {
-        ...importedState,
-        __adminDataGenerationId: importGenerationId,
-        __adminLastAuthoritativeWriteAt: authoritativeWriteIso,
-      } as AppState;
-      authoritativeImportedState = recalculateStateBalances(authoritativeImportedState);
-
-      const newFullStateStr = JSON.stringify(authoritativeImportedState);
-      lastRemoteSnapshotRef.current = newFullStateStr;
-      authoritativeDataWrittenAtRef.current = authoritativeWriteAt;
-
-      try {
-        saveCloudSnapshotMirror(newFullStateStr);
-      } catch (error) {
-        console.warn('localStorage sync skipped during cloud import:', error);
-      }
-
-      setData(authoritativeImportedState);
-      hasLoadedDataRef.current = true;
-      setDataLoading(false);
-      cloudProbeFailuresRef.current = 0;
-      setCloudChecking(false);
-      applyCloudOnlineState(true);
-      if (
-        String((latestDataRef.current as any)?.__adminDataGenerationId || '') !==
-        importGenerationId
-      ) {
-        throw new Error('CLOUD_IMPORT_UI_APPLICATION_FAILED');
-      }
-
-      // Refresh the server cache without blocking or invalidating a verified Firestore import.
-      void synchronizeAdminServerGeneration(importGenerationId).catch((serverSyncError) => {
-        console.warn(
-          '[FAST_APPDATA] Import succeeded; Admin server cache will self-heal on the next generation-aware load.',
-          serverSyncError,
-        );
-      });
-
-      // Any old prewarm result is now invalid even if it resolved before the import.
-      __bootPrewarmPromise = null;
-      __bootPrewarmFiredAt = 0;
-      importVerified = true;
-      console.log('Cloud Import completed with full Firestore and UI verification.');
-      return true;
-    } catch (error) {
-      // Before the root marker is committed, restore the prior boot expectation. After root
-      // commit, keep the new generation expectation so a reload cannot accept stale cache.
-      if (!rootCommitted && importGenerationId) {
-        try {
-          const currentExpected = localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || '';
-          if (currentExpected === importGenerationId) {
-            if (previousExpectedGeneration) {
-              localStorage.setItem(
-                ADMIN_RESET_EXPECTED_GENERATION_KEY,
-                previousExpectedGeneration,
-              );
-            } else {
-              localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-            }
-          }
-        } catch {}
-      }
-      console.error('Cloud import saving failed:', error);
-      throw error;
+      return await performSave(false);
+    } catch (err) {
+      console.error("Cloud import saving failed:", err);
+      throw err;
     } finally {
-      window.setTimeout(() => {
-        if (cloudStateEpochRef.current === importEpoch) {
-          isCloudSyncApplyingRef.current = false;
-          endAuthoritativeCloudOperation(importVerified);
-          // Recheck after Firestore has settled. The import remains accepted because its own
-          // root/shard round-trip is stronger than this lightweight background probe.
-          window.setTimeout(() => {
-            void probeCloudConnection(false);
-          }, 1_200);
-        }
+      setTimeout(() => {
+        isCloudSyncApplyingRef.current = false;
       }, 300);
     }
   };
@@ -3127,14 +2951,11 @@ const MainApp: React.FC = () => {
     const startDataSync = async () => {
       // Cloud-only: never hydrate company data from Local Storage.
       // Mode is 'cloud', wait for user authentication
-      if (!user) {
+      if (!user || !isOnline) {
         hasLoadedDataRef.current = false;
         setDataLoading(false);
         return;
       }
-
-      const syncEpoch = cloudStateEpochRef.current;
-      const isObsoleteCloudLoad = () => syncEpoch !== cloudStateEpochRef.current;
 
 	      setDataLoading(true);
 	      hasLoadedDataRef.current = false;
@@ -3166,24 +2987,8 @@ const MainApp: React.FC = () => {
                          combined.push(eo);
                          changed = true;
                      } else {
-                         const currentOrder: any = combined[idx] as any;
-                         const externalOrder: any = eo as any;
-                         const supplierSnapshotChanged =
-                           Array.isArray(externalOrder.items) &&
-                           getOrderSupplierSnapshotSignature(currentOrder) !==
-                             getOrderSupplierSnapshotSignature(externalOrder);
-                         if (
-                           currentOrder.status !== externalOrder.status ||
-                           currentOrder.paymentStatus !== externalOrder.paymentStatus ||
-                           currentOrder.payment_status !== externalOrder.payment_status ||
-                           currentOrder.paid !== externalOrder.paid ||
-                           currentOrder.failed !== externalOrder.failed ||
-                           currentOrder.paymentId !== externalOrder.paymentId ||
-                           currentOrder.transactionId !== externalOrder.transactionId ||
-                           currentOrder.linkedInvoiceId !== externalOrder.linkedInvoiceId ||
-                           supplierSnapshotChanged
-                         ) {
-                             combined[idx] = { ...currentOrder, ...externalOrder };
+                         if (combined[idx].status !== eo.status || combined[idx].paymentStatus !== eo.paymentStatus || (combined[idx] as any).paymentId !== (eo as any).paymentId) {
+                             combined[idx] = { ...combined[idx], ...eo };
                              changed = true;
                          }
                      }
@@ -3198,6 +3003,8 @@ const MainApp: React.FC = () => {
                 return prev;
             });
          }, (err) => {
+            setIsOnline(false);
+            hasLoadedDataRef.current = false;
             if (!String(err).includes("Missing or insufficient permissions")) {
                console.error("orders sync error: ", err);
             }
@@ -3235,12 +3042,8 @@ const MainApp: React.FC = () => {
                      const externalIsPaid = isPaidStatus(ei.paymentStatus) || isPaidStatus(ei.payment_status) || isPaidStatus(ei.status) || ei.paid === true;
                      const externalIsFailed = isFailedStatus(ei.paymentStatus) || isFailedStatus(ei.payment_status) || isFailedStatus(ei.status) || ei.failed === true;
                      if (idx === -1) {
-                         if (authoritativeDataWrittenAtRef.current > 0) {
-                             deleteDoc(doc(db, 'invoices', String(ei.id))).catch(() => null);
-                         } else {
-                             combined.push(ei);
-                             changed = true;
-                         }
+                         combined.push(ei);
+                         changed = true;
                      } else {
                          const current = combined[idx] as any;
                          const currentIsPaid = isPaidStatus(current.paymentStatus) || isPaidStatus(current.payment_status) || isPaidStatus(current.status) || current.paid === true;
@@ -3290,6 +3093,8 @@ const MainApp: React.FC = () => {
                 return prev;
             });
          }, (err) => {
+            setIsOnline(false);
+            hasLoadedDataRef.current = false;
             if (!String(err).includes("Missing or insufficient permissions")) {
                console.error("invoices sync error: ", err);
             }
@@ -3336,10 +3141,6 @@ const MainApp: React.FC = () => {
               expectedResetGenerationId &&
               fastPayloadGenerationId !== expectedResetGenerationId
             ) {
-              console.warn('[FAST_APPDATA] Server cache generation mismatch:', fastPayloadGenerationId, 'expected:', expectedResetGenerationId, '— clearing marker and falling back to direct Firestore read.');
-              try {
-                localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-              } catch {}
               throw new Error('STALE_FAST_APPDATA_AFTER_ADMIN_RESET');
             }
             if (expectedResetGenerationId) {
@@ -3368,32 +3169,30 @@ const MainApp: React.FC = () => {
             const finalProcessedState = recalculateStateBalances(loadedState);
             finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-            void probeCloudConnection(false);
+            const fastStillHealthy = await probeCloudConnection(false);
+            if (!fastStillHealthy) throw new Error('CLOUD_CONNECTION_LOST_DURING_FAST_LOAD');
 
-            // Expose data only after the live cloud check succeeds, and only if no
-            // explicit import has superseded this boot request while it was in flight.
-            if (isObsoleteCloudLoad()) return;
+            // Expose data only after the live cloud check succeeds.
             startTransition(() => setData(finalProcessedState));
             setHasInstantCloudSnapshot(true);
 
             // Defer ALL heavy stableStringify/JSON.stringify to idle frames.
             // This eliminates the 10-30s UI freeze caused by serializing 16 shards synchronously.
-            // Auto-save now starts quickly; shard baselines are still prepared progressively during idle.
+            // Auto-save fires 8 seconds later — plenty of time to complete during idle.
             const _bootState = loadedState;
             const _bootRoot = rootDataOnly;
             const _bootProcessed = finalProcessedState;
             const _scheduleBootShard = (i: number) => {
               const _ric = (window as any).requestIdleCallback;
               const _work = () => {
-                if (isObsoleteCloudLoad()) return;
                 const key = SHARDED_KEYS[i];
                 if (key && (_bootState as any)[key] !== undefined) {
-                  lastRemoteKeysRef.current[key] = serializeShardValue((_bootState as any)[key]);
+                  lastRemoteKeysRef.current[key] = stableStringify((_bootState as any)[key]);
                 }
                 if (i + 1 < SHARDED_KEYS.length) {
                   _scheduleBootShard(i + 1);
                 } else {
-                  lastRemoteKeysRef.current['__root__'] = stableRootStringify(_bootRoot);
+                  lastRemoteKeysRef.current['__root__'] = stableStringify(_bootRoot);
                   const snap = JSON.stringify(_bootProcessed);
                   lastRemoteSnapshotRef.current = snap;
                   try { saveCloudSnapshotMirror(snap); } catch {}
@@ -3414,15 +3213,10 @@ const MainApp: React.FC = () => {
             if (deferredKeys.length > 0) {
               window.setTimeout(async () => {
                 try {
-                  if (isObsoleteCloudLoad()) return;
-                  const fullRes = await adminApiFetch(
-                    buildAppDataFullUrl('full', fastPayloadGenerationId),
-                    { cache: 'no-store' },
-                  );
+                  const fullRes = await fetch('/api/appdata/full?profile=full', { cache: 'no-store' });
                   if (!fullRes.ok) return;
                   const fullPayload = await fullRes.json();
                   if (!fullPayload?.success || !fullPayload?.data) return;
-                  if (isObsoleteCloudLoad()) return;
                   const fullState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fullPayload.data });
                   const deferredPatch: any = {};
                   deferredKeys.forEach((key: string) => {
@@ -3433,9 +3227,7 @@ const MainApp: React.FC = () => {
                     }
                   });
                   if (Object.keys(deferredPatch).length === 0) return;
-                  if (isObsoleteCloudLoad()) return;
                   startTransition(() => setData(prev => {
-                    if (isObsoleteCloudLoad()) return prev;
                     const metaPatch: any = {};
                     if (fullState.__adminDataGenerationId) metaPatch.__adminDataGenerationId = fullState.__adminDataGenerationId;
                     if (fullState.__adminLastAuthoritativeWriteAt) metaPatch.__adminLastAuthoritativeWriteAt = fullState.__adminLastAuthoritativeWriteAt;
@@ -3446,10 +3238,9 @@ const MainApp: React.FC = () => {
                     const _deferMerged = merged;
                     const _deferRic = (window as any).requestIdleCallback;
                     const _deferWork = () => {
-                      if (isObsoleteCloudLoad()) return;
                       _deferKeys.forEach((key: string) => {
                         if ((_deferFull as any)[key] !== undefined) {
-                          lastRemoteKeysRef.current[key] = serializeShardValue((_deferFull as any)[key]);
+                          lastRemoteKeysRef.current[key] = stableStringify((_deferFull as any)[key]);
                         }
                       });
                       const snap = JSON.stringify(_deferMerged);
@@ -3487,31 +3278,29 @@ const MainApp: React.FC = () => {
         isCloudSyncApplyingRef.current = true;
         const dataRef = getSmartDoc('appData', user.uid, user.email);
         const rootSnap = await getDocFromServer(dataRef);
-        const expectedAuthoritativeGenerationId = readExpectedAuthoritativeGeneration();
         let loadedState: any = { ...INITIAL_DATA };
 
         if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
 	          const rawRootData = rootSnap.data() as any;
-          const fallbackRootGenerationId = String(
-            rawRootData.__adminDataGenerationId || '',
-          );
-          if (
-            expectedAuthoritativeGenerationId &&
-            fallbackRootGenerationId !== expectedAuthoritativeGenerationId
-          ) {
-            console.warn('[DATA_GUARD] Firestore root generation mismatch:', fallbackRootGenerationId, 'expected:', expectedAuthoritativeGenerationId, '— clearing expected generation marker and accepting live root doc.');
-            try {
+          try {
+            const expectedResetGenerationId =
+              localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || '';
+            if (
+              expectedResetGenerationId &&
+              String(rawRootData.__adminDataGenerationId || '') ===
+                expectedResetGenerationId
+            ) {
               localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-            } catch {}
-          }
+            }
+          } catch {}
           const rootWrittenAt = new Date(rawRootData.__adminLastAuthoritativeWriteAt || '').getTime();
           authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
           const rootDataOnly = { ...rawRootData };
           SHARDED_KEYS.forEach(k => {
             if (k !== 'products') delete rootDataOnly[k];
           });
-          lastRemoteKeysRef.current['__root__'] = stableRootStringify(rootDataOnly);
+          lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
 
           const sanitizedRoot = { ...rawRootData };
           SHARDED_KEYS.forEach(key => {
@@ -3521,44 +3310,20 @@ const MainApp: React.FC = () => {
           });
           loadedState = { ...loadedState, ...sanitizedRoot };
 	        } else {
-            if (expectedAuthoritativeGenerationId) {
-              console.warn('[DATA_GUARD] Root document missing after write expectation — clearing marker.');
-              try {
-                localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-              } catch {}
-            }
 	          // Important: never restore local/demo data into an empty cloud account.
 	          cloudRootExistsRef.current = false;
-	          lastRemoteKeysRef.current['__root__'] = stableRootStringify(splitProductsForDatabase(INITIAL_DATA));
+	          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
 	        }
 
 	        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
           try {
             const result = await readLogicalAppDataShard(user.uid, user.email, key, true);
-            return {
-              key,
-              exists: result.exists,
-              value: result.value,
-              generationId: String(result.manifest?.__adminDataGenerationId || ''),
-            };
+            return { key, exists: result.exists, value: result.value };
           } catch (err) {
             console.error(`Shard load error for ${key}:`, err);
-            return { key, exists: false, value: undefined, generationId: '' };
+            return { key, exists: false, value: undefined };
           }
         }));
-
-        if (expectedAuthoritativeGenerationId) {
-          const staleShard = shardResults.find(
-            ({ exists, generationId }) =>
-              !exists || generationId !== expectedAuthoritativeGenerationId,
-          );
-          if (staleShard) {
-            console.warn(`[DATA_GUARD] Shard ${staleShard.key} generation mismatch — clearing expected generation marker and accepting live shard data.`);
-          }
-          try {
-            localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
-          } catch {}
-        }
 
         shardResults.forEach(({ key, exists, value }) => {
           if (exists) loadedCloudShardKeysRef.current.add(key);
@@ -3575,7 +3340,16 @@ const MainApp: React.FC = () => {
         // Load diwaniyas from the shared Firebase `squads` collection through the admin dashboard API.
         // This keeps إدارة الدواوين separate from customers and prevents accidental customer-to-diwaniya mixing.
         try {
-          const dashboardRes = await adminApiFetch('/api/admin-dashboard-data');
+          // Send the admin's Firebase token so the server returns customer phone
+          // numbers (needed by إدارة الدواوين). Without a token the call still works —
+          // it just comes back with phones blanked, and the fallback below covers the
+          // rest — so a missing token can never break loading.
+          const dashHeaders: Record<string, string> = {};
+          try {
+            const idToken = await auth.currentUser?.getIdToken();
+            if (idToken) dashHeaders['Authorization'] = `Bearer ${idToken}`;
+          } catch { /* no token → server returns phone-less data, feature still loads */ }
+          const dashboardRes = await fetch('/api/admin-dashboard-data', { headers: dashHeaders });
           let apiSuccess = false;
           if (dashboardRes.ok) {
             const dashboardData = await dashboardRes.json();
@@ -3585,7 +3359,7 @@ const MainApp: React.FC = () => {
               // لذلك لا نستبدل البيانات بقائمة فارغة، ونحتفظ بطلبات الديوانية منفصلة حتى لا نمس صفحة الطلبات أو الدفع.
 	              if (dashboardData.squads.length > 0) {
 	                loadedState.squads = safeMergeData(loadedState.squads, dashboardData.squads);
-	                lastRemoteKeysRef.current['squads'] = serializeShardValue(dashboardData.squads);
+	                lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
 	                loadedCloudShardKeysRef.current.add('squads');
 	              }
 	              if (Array.isArray(dashboardData?.orders) && dashboardData.orders.length > 0) {
@@ -3600,7 +3374,7 @@ const MainApp: React.FC = () => {
             const squadsSnap = await getDocs(collection(db, 'squads'));
             const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
-	            lastRemoteKeysRef.current['squads'] = serializeShardValue(cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
 	            loadedCloudShardKeysRef.current.add('squads');
           }
         } catch (apiErr) {
@@ -3609,7 +3383,7 @@ const MainApp: React.FC = () => {
             const squadsSnap = await getDocs(collection(db, 'squads'));
             const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
-	            lastRemoteKeysRef.current['squads'] = serializeShardValue(cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
 	            loadedCloudShardKeysRef.current.add('squads');
           } catch (fallbackErr) {
             console.error('Direct Firestore fetch for squads also failed:', fallbackErr);
@@ -3622,9 +3396,10 @@ const MainApp: React.FC = () => {
         // Sync read state from localStorage to ensure read status is kept fundamentally.
         finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-        void probeCloudConnection(false);
+        // Do not expose data until a fresh server-side Firestore probe succeeds.
+        const stillHealthy = await probeCloudConnection(false);
+        if (!stillHealthy) throw new Error('CLOUD_CONNECTION_LOST_DURING_LOAD');
 
-        if (isObsoleteCloudLoad()) return;
         startTransition(() => setData(finalProcessedState));
         setHasInstantCloudSnapshot(true);
         hasLoadedDataRef.current = true;
@@ -3634,11 +3409,10 @@ const MainApp: React.FC = () => {
         const _fbSchedule = (i: number) => {
           const _ric = (window as any).requestIdleCallback;
           const _work = () => {
-            if (isObsoleteCloudLoad()) return;
             const key = SHARDED_KEYS[i];
             if (key) {
               const val = (_fbState as any)[key];
-              lastRemoteKeysRef.current[key] = serializeShardValue(val !== undefined ? val : []);
+              lastRemoteKeysRef.current[key] = stableStringify(val !== undefined ? val : []);
             }
             if (i + 1 < SHARDED_KEYS.length) {
               _fbSchedule(i + 1);
@@ -3666,13 +3440,13 @@ const MainApp: React.FC = () => {
           );
         } else {
           console.error("Cloud load error:", err);
-          hasLoadedDataRef.current = true;
+          setIsOnline(false);
+          hasLoadedDataRef.current = false;
+          toast.error("تعذر الاتصال بالسحابة. تم حجب النظام بالكامل لحماية البيانات.");
         }
       } finally {
-        if (!isObsoleteCloudLoad()) {
-          isCloudSyncApplyingRef.current = false;
-          setDataLoading(false);
-        }
+        isCloudSyncApplyingRef.current = false;
+        setDataLoading(false);
       }
 
     };
@@ -3684,7 +3458,7 @@ const MainApp: React.FC = () => {
       if (ordersUnsubscribe) ordersUnsubscribe();
       if (invoicesUnsubscribe) invoicesUnsubscribe();
     };
-  }, [user, appMode, triggerSyncReload]);
+  }, [user, appMode, triggerSyncReload, isOnline, probeCloudConnection]);
 
   // Financial records are accounting-critical. Persist expenses and supplier payments quickly,
   // independently of the large 8-second full-state save. The previous supplier-only effect also
@@ -3705,8 +3479,8 @@ const MainApp: React.FC = () => {
     ) return;
 
     const snapshots = {
-      expenses: serializeShardValue(data?.expenses || []),
-      supplierTransfers: serializeShardValue(data?.supplierTransfers || []),
+      expenses: stableStringify(data?.expenses || []),
+      supplierTransfers: stableStringify(data?.supplierTransfers || []),
     };
 
     const baselines = lastFinancialFastSaveRef.current;
@@ -3740,7 +3514,7 @@ const MainApp: React.FC = () => {
               if (cancelled) return;
 
               const latestValue = (latestDataRef.current as any)?.[key] || [];
-              const latestSnapshot = serializeShardValue(latestValue);
+              const latestSnapshot = stableStringify(latestValue);
               if (latestSnapshot !== snapshots[key]) return;
 
               const shardPlan = await buildLogicalShardWritePlan(key, latestValue, {
@@ -3750,7 +3524,7 @@ const MainApp: React.FC = () => {
               if (cancelled) return;
 
               const newestValue = (latestDataRef.current as any)?.[key] || [];
-              const newestSnapshot = serializeShardValue(newestValue);
+              const newestSnapshot = stableStringify(newestValue);
               if (newestSnapshot !== latestSnapshot) return;
 
               await commitLogicalShardWritePlan(user.uid, user.email, shardPlan);
@@ -3805,13 +3579,16 @@ const MainApp: React.FC = () => {
       // Auto-save is cloud-only and requires a currently verified connection.
       if (user && appMode === 'cloud' && isOnline) {
         try {
-          if (!hasMeaningfulData(data)) return;
+          const sanitizedDataStr = JSON.stringify(data);
+          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
 
-          // Give React one short frame, then begin shard comparison immediately. The previous
-          // 8-second idle wait made every cloud save appear frozen even when Firestore was healthy.
+          // Deduplication: prevent writing back what we just read.
+          if (sanitizedDataStr === lastRemoteSnapshotRef.current) return;
+
+          // Yield before heavy stableStringify work, but reject this run if a newer edit lands.
           await new Promise<void>(resolve => {
             const _ric = (window as any).requestIdleCallback;
-            if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 1200 });
+            if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 8000 });
             else setTimeout(resolve, 0);
           });
           if (isStaleRun()) return;
@@ -3819,49 +3596,31 @@ const MainApp: React.FC = () => {
           const rootDataRef = getSmartDoc('appData', user.uid, user.email);
           const splitData = splitProductsForDatabase(data);
 
-          // 1. Compare only the lightweight authoritative root first. Building the large
-          // Google/Looker mirror (sorting and sanitizing every record) is intentionally deferred
-          // until a root write is genuinely required. This removes the largest UI-thread cost
-          // from ordinary invoice/order saves.
-          const rootCandidate = withAuthoritativeSharedMeta({ ...splitData });
-          const serializedRootCurrent = stableRootStringify(rootCandidate);
+          // 1. Detect whether the root Google/Looker Studio mirror changed.
+          const rootDocData = withGoogleStudioRootMirror(
+            withAuthoritativeSharedMeta({ ...splitData }),
+            splitData
+          );
+          const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
+          await preserveProtectedRootKeys(sanitizedRootPreview, rootDataRef);
+          const serializedRootCurrent = stableStringify(sanitizedRootPreview);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
-          let sanitizedRootPreview: any = null;
-          if (hasRootChanged || !cloudRootExistsRef.current) {
-            const rootDocData = withGoogleStudioRootMirror(rootCandidate, splitData);
-            sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
-          }
 
-          // 2. Detect exactly which authoritative shards changed. Preserve object-reference
-          // baselines so unchanged large arrays are not serialized on every React state update.
+          // 2. Detect exactly which authoritative shards changed.
           const shardedPayloadsToSave: Record<string, any> = {};
-          const shardedSerializedToSave: Record<string, string> = {};
           SHARDED_KEYS.forEach(key => {
             const currentVal = splitData[key];
             if (currentVal === undefined) return;
 
-            const sourceRef =
-              key === 'products' || key === 'supplierCopies'
-                ? data.products
-                : (data as any)[key];
+            const serializedCurrent = stableStringify(currentVal);
             const serializedLast = lastRemoteKeysRef.current[key];
-            if (
-              lastAutoSaveSourceRefsRef.current[key] === sourceRef &&
-              serializedLast !== undefined
-            ) return;
-
-            const serializedCurrent = serializeShardValue(currentVal);
-            if (serializedCurrent === serializedLast) {
-              lastAutoSaveSourceRefsRef.current[key] = sourceRef;
-              return;
-            }
+            if (serializedCurrent === serializedLast) return;
 
             const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
             const dangerousEmptyOverwrite = isDangerousEmptyOverwrite(key, currentVal);
             if (shouldPersistShard && !dangerousEmptyOverwrite) {
               shardedPayloadsToSave[key] = currentVal;
-              shardedSerializedToSave[key] = serializedCurrent;
             } else if (dangerousEmptyOverwrite) {
               console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
             }
@@ -3889,9 +3648,6 @@ const MainApp: React.FC = () => {
             console.log(`Saving modified shard '${key}' to Firestore...`);
             shardSavePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
               if (isStaleRun()) return;
-              // A sales-critical fast-save may have committed this exact shard while the broad
-              // save was preparing. Do not send the same payload twice.
-              if (lastRemoteKeysRef.current[key] === shardedSerializedToSave[key]) return;
 
               await commitLogicalShardWritePlan(user.uid, user.email, preparedShardPlans[key]);
 
@@ -3964,31 +3720,12 @@ const MainApp: React.FC = () => {
             cloudRootExistsRef.current = true;
           }
           Object.keys(shardedPayloadsToSave).forEach(key => {
-            lastRemoteKeysRef.current[key] = shardedSerializedToSave[key];
+            lastRemoteKeysRef.current[key] = stableStringify(shardedPayloadsToSave[key]);
             loadedCloudShardKeysRef.current.add(key);
-            lastAutoSaveSourceRefsRef.current[key] =
-              key === 'products' || key === 'supplierCopies'
-                ? latestDataRef.current.products
-                : (latestDataRef.current as any)[key];
           });
 
-          // Snapshot serialization is only an optional warm-start cache. Run it after the
-          // authoritative cloud write and outside the critical sync path.
-          const snapshotState = data;
-          const persistSnapshot = () => {
-            if (isStaleRun()) return;
-            try {
-              const snapshot = JSON.stringify(snapshotState);
-              lastRemoteSnapshotRef.current = snapshot;
-              saveCloudSnapshotMirror(snapshot);
-            } catch (snapshotError) {
-              console.warn('[CLOUD_CACHE] Could not refresh local cloud snapshot:', snapshotError);
-            }
-          };
-          const snapshotIdle = (window as any).requestIdleCallback;
-          if (typeof snapshotIdle === 'function') snapshotIdle(persistSnapshot, { timeout: 3000 });
-          else setTimeout(persistSnapshot, 0);
-
+          lastRemoteSnapshotRef.current = sanitizedDataStr;
+          saveCloudSnapshotMirror(sanitizedDataStr);
           console.log(`Sharded auto-save successful. Saved blocks: ${hasRootChanged ? 'Root ' : ''}[${Object.keys(shardedPayloadsToSave).join(', ')}]`);
         } catch (e) {
           const isPermissionError = String(e).includes('Missing or insufficient permissions') || String(e).includes('PERMISSION_DENIED');
@@ -4002,7 +3739,7 @@ const MainApp: React.FC = () => {
           }
         }
       }
-    }, 650);
+    }, 8000);
 
     return () => {
       cancelled = true;
@@ -4214,8 +3951,9 @@ const MainApp: React.FC = () => {
     );
   };
 
-  // Authenticated users enter the system directly without full-screen gates.
-  const shouldHoldCloudEntry = false;
+  // Full runtime cloud gate: it remains authoritative after login and reappears instantly
+  // whenever internet/Firestore is lost. There is no timeout bypass and no local mode.
+  const shouldHoldCloudEntry = isAuthenticated && (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
   if (shouldHoldCloudEntry) {
     return (
@@ -4308,8 +4046,8 @@ const MainApp: React.FC = () => {
     }
 
     switch (currentPage) {
-      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
-      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
+      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
+      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} onActiveTabChange={setDashboardTab} />;
       case 'new-invoice': return (
         <InvoicePage 
           data={data} 
@@ -4346,7 +4084,7 @@ const MainApp: React.FC = () => {
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
       case 'coupons':
       case 'loyalty':
-        return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
+        return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
       case 'growth-simulator': return <WhatIfSimulator data={data} onUpdateData={setData} />;
       case 'profit-guard': return <RealProfitGuard data={data} />;
       case 'reports': return (
@@ -4372,18 +4110,29 @@ const MainApp: React.FC = () => {
           deepLinkData={deepLinkData}
         />
       );
-      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
+      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} onActiveTabChange={setDashboardTab} />;
     }
   };
 
   const showExecutiveFloatingTools = currentPage === 'dashboard' && dashboardTab === 'pulse';
   const floatingToolRole = userRole;
   
-  // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on the partner dashboard.
-  const showInstagramFloatingTool = showExecutiveFloatingTools || (floatingToolRole === 'partner' && currentPage === 'dashboard');
+  // Instagram Wand: admin/local stays limited to dashboard pulse; partner gets it on
+  // the partner dashboard.
+  //
+  // The partner never has currentPage === 'dashboard' the way the admin does: their home
+  // surface is PartnerDashboard, which renders for the default page AND 'diwaniya'. The
+  // old check only matched the literal 'dashboard', so the wand appeared right after
+  // login but vanished the moment the partner moved within their own dashboard — the
+  // exact "not at full capacity" the owner reported. It now shows across the whole
+  // partner dashboard surface, hidden only on the full-screen tool pages where a
+  // floating button would overlap, so the partner gets the same tool the admin does.
+  const partnerToolPages = ['orders', 'invoices-list', 'new-invoice', 'ai', 'smart-studio'];
+  const partnerOnDashboard = floatingToolRole === 'partner' && !partnerToolPages.includes(currentPage);
+  const showInstagramFloatingTool = showExecutiveFloatingTools || partnerOnDashboard;
 
   // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
-  const showSecondFloatingTools = (floatingToolRole === 'admin' || (floatingToolRole as any) === 'local') && showExecutiveFloatingTools;
+  const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
 
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
@@ -5275,7 +5024,7 @@ const App: React.FC = () => {
    useEffect(() => {
      // Warm up the server cache silently while the user reads the splash screen.
      // This eliminates the Cloud Run cold-start delay before they even click login.
-     fetch('/api/warmup', { cache: 'no-store' }).catch(() => {});
+     fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
      const timer = setTimeout(() => {
        setShowSplash(false);
      }, 900);

@@ -226,7 +226,6 @@ export interface Invoice {
   track_id?: string;
   gatewayOrderId?: string;
   gateway_order_id?: string;
-  trackingAccessTokenHash?: string;
   paymentStatus?: any; // Payment status
   appliedPromoCodeName?: string;
   status?: any;
