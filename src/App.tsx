@@ -2718,7 +2718,7 @@ const MainApp: React.FC = () => {
 
 	        for (const key of SHARDED_KEYS) {
 	           if (shardedPayloads[key] !== undefined) {
-              if (isDangerousEmptyOverwrite(key, shardedPayloads[key])) continue;
+              // onCloudImport is an explicit user operation so we do NOT block empty overwrites here.
               preparedShardPlans[key] = await buildLogicalShardWritePlan(key, shardedPayloads[key], {
                 __adminDataGenerationId: generationId,
                 __adminLastAuthoritativeWriteAt: new Date(authoritativeWriteAt).toISOString(),
@@ -2797,6 +2797,7 @@ const MainApp: React.FC = () => {
         }
         
 	        setData(authoritativeImportedState);
+        adminApiFetch('/api/appdata/invalidate-cache', { method: 'POST' }).catch(() => {});
         console.log("Cloud Import completed successfully and all sync tracking references aligned.");
         return true;
       } catch (err) {
@@ -4056,7 +4057,7 @@ const MainApp: React.FC = () => {
   const showInstagramFloatingTool = showExecutiveFloatingTools || (floatingToolRole === 'partner' && currentPage === 'dashboard');
 
   // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
-  const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
+  const showSecondFloatingTools = (floatingToolRole === 'admin' || (floatingToolRole as string) === 'local') && showExecutiveFloatingTools;
 
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">

@@ -5716,6 +5716,24 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
   }
 });
 
+app.post("/api/appdata/invalidate-cache", waRequireConsoleAuth, async (_req, res) => {
+  try {
+    console.log("[CACHE] Invalidate cache requested. Resetting memory cache and re-fetching from Firestore...");
+    appDataCache.bootInitialized = false;
+    appDataCache.fullInitialized = false;
+    bootCachePromise = null;
+    deferredCachePromise = null;
+    if (db && firebaseInitialized) {
+      await initBootCache();
+      await initDeferredCache();
+    }
+    return res.json({ success: true, ts: Date.now() });
+  } catch (err: any) {
+    console.error("[api/appdata/invalidate-cache] failed:", err?.message || err);
+    return res.status(500).json({ success: false, error: err?.message || String(err) });
+  }
+});
+
 app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => {
   try {
     if (!db || !firebaseInitialized) {
