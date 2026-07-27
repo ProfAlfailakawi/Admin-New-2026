@@ -3105,6 +3105,23 @@ const GeneralSettings: React.FC<Props> = ({
     );
   };
 
+  const purgeDeletedFromImportState = (state: any) => {
+    if (!state || typeof state !== "object") return state;
+    const isNotDeleted = (item: any) =>
+      item &&
+      item.isDeleted !== true &&
+      item.isDeleted !== "true" &&
+      item.isDeleted !== "TRUE" &&
+      item.status !== "deleted";
+    const keys = ["customers", "invoices", "orders", "products", "suppliers", "expenses", "squads", "testimonials", "campaigns", "promocodes"];
+    keys.forEach((key) => {
+      if (Array.isArray(state[key])) {
+        state[key] = state[key].filter(isNotDeleted);
+      }
+    });
+    return state;
+  };
+
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
     const file = e.target.files?.[0];
@@ -3176,11 +3193,11 @@ const GeneralSettings: React.FC<Props> = ({
               }
             }
 
-            const validatedData: AppState = {
+            const validatedData: AppState = purgeDeletedFromImportState({
               ...INITIAL_DATA,
               ...importedData,
               zones: processedZones,
-            };
+            });
             if (appMode === "cloud" && onCloudImport) {
               addToast(
                 "جاري الرفع سحابياً",
@@ -3832,9 +3849,9 @@ const GeneralSettings: React.FC<Props> = ({
             ) as any as SupplierTransfer[];
           }
 
-          const finalizedState = recalculateStateBalances(
+          const finalizedState = purgeDeletedFromImportState(recalculateStateBalances(
             normalizeBackupSplitFields(newState) as AppState,
-          );
+          ));
           try {
             if (appMode === "cloud" && onCloudImport) {
               addToast(

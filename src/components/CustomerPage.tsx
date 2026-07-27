@@ -37,7 +37,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
  const [selectedCustomerInvoices, setSelectedCustomerInvoices] = useState<{name: string, invoices: any[]} | null>(null);
  const [visibleCount, setVisibleCount] = useState(30);
  const customers = React.useMemo<Customer[]>(
-  () => (Array.isArray(data?.customers) ? data.customers.filter(Boolean) : []),
+  () => (Array.isArray(data?.customers) ? data.customers.filter(c => Boolean(c) && !(c as any).isDeleted && (c as any).isDeleted !== 'true' && (c as any).isDeleted !== 'TRUE' && (c as any).status !== 'deleted') : []),
   [data?.customers],
  );
 
