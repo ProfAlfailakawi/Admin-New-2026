@@ -8,13 +8,19 @@ const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 10
 
 const isSupplierChargeableInvoice = (inv: any): boolean => {
   if (!inv || inv.isDeleted) return false;
-  const values = [inv.paymentStatus, inv.payment_status, inv.payment?.status, inv.status]
+  const paymentValues = [inv.paymentStatus, inv.payment_status, inv.payment?.status]
+    .filter((value: any) => value !== undefined && value !== null && String(value).trim() !== '');
+  const values = [...paymentValues, inv.status]
     .filter((value: any) => value !== undefined && value !== null && String(value).trim() !== '');
   const statusText = values.map((value: any) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
 
-  if (inv.failed === true || values.some((value: any) => isFailedStatus(value))) return false;
+  // A paid gateway field is final even if an older failed label remains in `status`.
+  // Without this precedence, a successful retry disappears from the supplier ledger.
+  if (inv.paid === true || paymentValues.some((value: any) => isPaidStatus(value))) return true;
+  if (inv.failed === true || paymentValues.some((value: any) => isFailedStatus(value))) return false;
   if (values.some((value: any) => isCancelledStatus(value))) return false;
   if (statusText.includes('split pending') || statusText.includes('تجميع القطية')) return false;
+  if (values.some((value: any) => isFailedStatus(value))) return false;
 
   return true;
 };
