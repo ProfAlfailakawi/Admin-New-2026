@@ -1,6 +1,5 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { isCancelledStatus, isFailedStatus, isPaidStatus } from './status-utils';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -564,335 +563,81 @@ export function joinProductsFromDatabase(data: any): any {
   return result;
 }
 
-type UnifiedPaymentState = 'paid' | 'failed' | 'cancelled' | 'split_pending' | 'pending';
-
-const getNormalizedPaymentState = (record: any): UnifiedPaymentState => {
-  if (!record) return 'pending';
-
-  const paymentValues = [
-    record.paymentStatus,
-    record.payment_status,
-    record.payment?.status,
-    record.transactionStatus,
-  ].filter((value) => value !== undefined && value !== null && String(value).trim() !== '');
-  const values = [...paymentValues, record.status]
-    .filter((value) => value !== undefined && value !== null && String(value).trim() !== '');
-  const joined = values.map((value) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
-
-  // A confirmed paid flag or an explicit payment field is authoritative and monotonic.
-  // Legacy records can retain an old Arabic failure label in `status` after a successful
-  // retry; that stale label must never reverse the financial state or hide supplier dues.
-  if (record.paid === true || paymentValues.some((value) => isPaidStatus(value))) return 'paid';
-  if (record.failed === true || paymentValues.some((value) => isFailedStatus(value))) return 'failed';
-  if (values.some((value) => isCancelledStatus(value))) return 'cancelled';
-  if (joined.includes('split pending') || joined.includes('تجميع القطية') || joined.includes('بانتظار اكتمال القطية')) return 'split_pending';
-  if (values.some((value) => isPaidStatus(value))) return 'paid';
-  if (values.some((value) => isFailedStatus(value)) || joined.includes('مرفوض')) return 'failed';
-  return 'pending';
-};
-
-const hasAuthoritativePaymentSignal = (record: any): boolean => {
-  if (!record) return false;
-  if (
-    record.paymentStatus !== undefined ||
-    record.payment_status !== undefined ||
-    record.payment?.status !== undefined ||
-    record.transactionStatus !== undefined ||
-    record.paid !== undefined ||
-    record.failed !== undefined
-  ) return true;
-
-  const status = record.status;
-  return isPaidStatus(status) || isFailedStatus(status) || isCancelledStatus(status) ||
-    String(status || '').toLowerCase().replace(/_/g, ' ').includes('split pending') ||
-    String(status || '').includes('تجميع القطية');
-};
-
-const firstNonBlankValue = (...values: any[]): any => {
-  for (const value of values) {
-    if (value === undefined || value === null) continue;
-    if (typeof value === 'string' && value.trim() === '') continue;
-    return value;
-  }
-  return undefined;
-};
-
-const firstPositiveNumericValue = (...values: any[]): number | undefined => {
-  for (const value of values) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-  }
-  return undefined;
-};
-
-const mergeOrderItemsWithInvoiceItems = (orderItems: any[], invoiceItems: any[]): any[] => {
-  const orderList = Array.isArray(orderItems) ? orderItems : [];
-  const invoiceList = Array.isArray(invoiceItems) ? invoiceItems : [];
-  if (invoiceList.length === 0) return orderList;
-  if (orderList.length === 0) return invoiceList;
-
-  const usedOrderIndexes = new Set<number>();
-  const mergedInvoiceItems = invoiceList.map((invoiceItem: any, index: number) => {
-    const invoiceProductId = String(invoiceItem?.productId || invoiceItem?.id || '');
-    let orderIndex = orderList.findIndex((item: any, itemIndex: number) =>
-      !usedOrderIndexes.has(itemIndex) &&
-      invoiceProductId &&
-      String(item?.productId || item?.id || '') === invoiceProductId
-    );
-    if (orderIndex < 0 && index < orderList.length && !usedOrderIndexes.has(index)) {
-      orderIndex = index;
-    }
-
-    const orderItem = orderIndex >= 0 ? orderList[orderIndex] || {} : {};
-    if (orderIndex >= 0) usedOrderIndexes.add(orderIndex);
-
-    const mergedItem: any = { ...orderItem, ...invoiceItem };
-    const supplierId = firstNonBlankValue(
-      invoiceItem?.supplierId,
-      invoiceItem?.supplierID,
-      invoiceItem?.supplier?.id,
-      orderItem?.supplierId,
-      orderItem?.supplierID,
-      orderItem?.supplier?.id,
-    );
-    if (supplierId !== undefined) mergedItem.supplierId = supplierId;
-
-    const supplierName = firstNonBlankValue(
-      invoiceItem?.supplierName,
-      invoiceItem?.supplier?.name,
-      orderItem?.supplierName,
-      orderItem?.supplier?.name,
-    );
-    if (supplierName !== undefined) mergedItem.supplierName = supplierName;
-
-    const snapshotCost = firstPositiveNumericValue(
-      invoiceItem?.costAtTime,
-      invoiceItem?.supplierCost,
-      invoiceItem?.cost,
-      orderItem?.costAtTime,
-      orderItem?.supplierCost,
-      orderItem?.cost,
-    );
-    if (snapshotCost !== undefined) mergedItem.costAtTime = snapshotCost;
-
-    const productId = firstNonBlankValue(
-      invoiceItem?.productId,
-      invoiceItem?.id,
-      orderItem?.productId,
-      orderItem?.id,
-    );
-    if (productId !== undefined) mergedItem.productId = productId;
-
-    return mergedItem;
-  });
-
-  orderList.forEach((orderItem: any, index: number) => {
-    if (!usedOrderIndexes.has(index)) mergedInvoiceItems.push(orderItem);
-  });
-  return mergedInvoiceItems;
-};
-
-const toUnifiedPaymentTimestamp = (value: any): number => {
-  if (!value) return 0;
-  if (typeof value?.toMillis === 'function') return value.toMillis();
-  if (typeof value?.seconds === 'number') {
-    return value.seconds * 1000 + Number(value.nanoseconds || value._nanoseconds || 0) / 1e6;
-  }
-  if (typeof value?._seconds === 'number') {
-    return value._seconds * 1000 + Number(value._nanoseconds || 0) / 1e6;
-  }
-  const parsed = new Date(value).getTime();
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const getUnifiedPaymentTimestamp = (record: any, state: UnifiedPaymentState): number => {
-  const stateSpecific = state === 'paid'
-    ? [record?.paymentUpdatedAt, record?.paidAt]
-    : (state === 'failed' || state === 'cancelled')
-      ? [record?.paymentUpdatedAt, record?.failedAt, record?.cancelledAt]
-      : [record?.paymentUpdatedAt];
-  const preferred = stateSpecific.map(toUnifiedPaymentTimestamp).filter((value) => value > 0);
-  if (preferred.length > 0) return Math.max(...preferred);
-  return Math.max(
-    0,
-    ...[
-      record?.updatedAtServer,
-      record?.updatedAt,
-      record?.lastUpdated,
-      record?.modifiedAt,
-      record?.createdAt,
-      record?.date,
-    ].map(toUnifiedPaymentTimestamp)
-  );
-};
-
-const isUnifiedFinalPaymentState = (state: UnifiedPaymentState): boolean =>
-  state === 'paid' || state === 'failed' || state === 'cancelled';
-
-const selectAuthoritativePaymentRecord = (order: any, invoiceMirror?: any): any => {
-  if (!invoiceMirror) return order;
-  if (!order) return invoiceMirror;
-
-  const orderState = getNormalizedPaymentState(order);
-  const invoiceState = getNormalizedPaymentState(invoiceMirror);
-  const orderFinal = isUnifiedFinalPaymentState(orderState);
-  const invoiceFinal = isUnifiedFinalPaymentState(invoiceState);
-
-  // Payment success is monotonic across the order/invoice mirrors. A delayed failure
-  // callback from an older attempt can carry a newer timestamp, but it cannot undo a
-  // captured payment or remove the supplier entitlement.
-  if (orderFinal && invoiceFinal && orderState !== invoiceState) {
-    if (invoiceState === 'paid') return invoiceMirror;
-    if (orderState === 'paid') return order;
-  }
-
-  // A stale pending mirror must never hide a confirmed paid/failed state.
-  if (orderFinal !== invoiceFinal) return orderFinal ? order : invoiceMirror;
-
-  const orderTime = getUnifiedPaymentTimestamp(order, orderState);
-  const invoiceTime = getUnifiedPaymentTimestamp(invoiceMirror, invoiceState);
-  if (orderTime !== invoiceTime) return orderTime > invoiceTime ? order : invoiceMirror;
-
-  if (orderFinal && invoiceFinal && orderState !== invoiceState) {
-    if (invoiceState === 'cancelled') return invoiceMirror;
-    if (orderState === 'cancelled') return order;
-  }
-
-  if (hasAuthoritativePaymentSignal(invoiceMirror) && !hasAuthoritativePaymentSignal(order)) {
-    return invoiceMirror;
-  }
-  return order;
-};
-
-const normalizeWebsiteOrderAsInvoice = (order: any, invoiceMirror?: any) => {
-  const merged = invoiceMirror ? { ...order, ...invoiceMirror } : { ...order };
-  const authoritativePaymentRecord = selectAuthoritativePaymentRecord(order, invoiceMirror);
-  const paymentStatus = getNormalizedPaymentState(authoritativePaymentRecord);
-  const items = mergeOrderItemsWithInvoiceItems(order?.items || [], invoiceMirror?.items || []);
-
-  const itemsCost = items.reduce((acc: number, item: any) => {
-    const itemCost = Number(item?.costAtTime ?? item?.cost ?? item?.supplierCost ?? 0) || 0;
-    const qty = Number(item?.quantity ?? item?.qty ?? 1) || 1;
-    return acc + (itemCost * qty);
-  }, 0);
-
-  const amount = Number(
-    merged.totalAmount ??
-    merged.total ??
-    merged.grandTotal ??
-    merged.finalTotal ??
-    0
-  ) || 0;
-
-  let customerName = merged.customerName || merged.customerInfo?.name || merged.customer?.name || '';
-  if (!customerName || customerName === 'بيانات مفقودة') {
-    customerName = order?.customerName || order?.customerInfo?.name || order?.customer?.name || 'عميل عام';
-  }
-  const customerPhone = merged.customerPhone || merged.customerInfo?.phone || merged.customer?.phone || order?.customerPhone || '';
-  const rawDeliveryFee = merged.deliveryInfo?.cost ?? merged.deliveryFee ?? order?.deliveryInfo?.cost ?? order?.deliveryFee ?? 0;
-
-  const authoritativeStatus = authoritativePaymentRecord?.status;
-  const normalizedStatus = authoritativeStatus ?? (
-    paymentStatus === 'paid'
-      ? 'تم الدفع بنجاح'
-      : paymentStatus === 'failed'
-        ? 'فشل في عملية الدفع'
-        : paymentStatus === 'cancelled'
-          ? 'ملغي'
-          : merged.status
-  );
-
-  return {
-    ...merged,
-    items,
-    customerName,
-    customerPhone,
-    status: normalizedStatus,
-    paymentStatus,
-    payment_status: paymentStatus,
-    paid: paymentStatus === 'paid',
-    failed: paymentStatus === 'failed',
-    isORDOrder: true,
-    __supplierLedgerSource: 'paid_order',
-    deliveryType: (merged.deliveryType === 'standard' && String(order?.id || merged.id || '').startsWith('ORD-'))
-      ? 'company'
-      : (merged.deliveryType || order?.deliveryType || 'company'),
-    deliveryFee: Number(rawDeliveryFee) || 0,
-    totalAmount: amount,
-    total: Number(merged.total ?? amount) || amount,
-    totalCost: itemsCost,
-    profit: amount - itemsCost,
-    discount: Number(merged.discount || 0) || 0,
-    gatewayFee: Number(merged.gatewayFee || 0) || 0,
-    paymentMethod: merged.paymentMethod || order?.paymentMethod || 'KNet',
-    date: merged.date || merged.createdAt || order?.date || order?.createdAt || new Date().toISOString(),
-  };
-};
-
-let lastUnifiedInvoicesRef: any = null;
-let lastUnifiedOrdersRef: any = null;
-let lastUnifiedResult: any[] = [];
+const unifiedInvoicesCache = new WeakMap<any, any[]>();
 
 export function getUnifiedInvoices(data: any): any[] {
   if (!data) return [];
-  const invoices = data?.invoices;
-  const orders = data?.orders;
-  if (lastUnifiedInvoicesRef === invoices && lastUnifiedOrdersRef === orders) {
-    return lastUnifiedResult;
+  if (unifiedInvoicesCache.has(data)) {
+    return unifiedInvoicesCache.get(data)!;
   }
 
-  const rawInvoices = Array.isArray(data?.invoices) ? data.invoices : [];
-  const websiteOrders = (Array.isArray(data?.orders) ? data.orders : [])
-    .filter((order: any) => String(order?.id || '').startsWith('ORD-'));
-
-  const orderLookup = new Map<string, any>();
-  websiteOrders.forEach((order: any) => {
-    [order?.id, order?.linkedInvoiceId, order?.invoiceId].forEach((key) => {
-      if (key) orderLookup.set(String(key), order);
-    });
-  });
-
-  const matchedOrderIds = new Set<string>();
-  const normalizedInvoices = rawInvoices.map((invoice: any) => {
-    let normalizedInvoice = invoice;
-    if (
-      invoice?.deliveryType === 'standard' &&
-      (String(invoice?.linkedOrderId || '').startsWith('ORD-') || invoice?.isConvertedFromWebsite) &&
-      !invoice?.manuallyModifiedDeliveryType
-    ) {
-      normalizedInvoice = { ...invoice, deliveryType: 'company' };
+  const invs = Array.isArray(data?.invoices) ? data.invoices.map((i: any) => {
+    // Fix for older invoices that incorrectly got 'standard' default from orders
+    if (i.deliveryType === 'standard' && (i.linkedOrderId?.startsWith('ORD-') || (i as any).isConvertedFromWebsite) && !i.manuallyModifiedDeliveryType) {
+      return { ...i, deliveryType: 'company' };
     }
+    return i;
+  }) : [];
+  const ords = Array.isArray(data?.orders) ? data.orders : [];
 
-    const linkedOrder = orderLookup.get(String(normalizedInvoice?.linkedOrderId || '')) ||
-      orderLookup.get(String(normalizedInvoice?.orderId || '')) ||
-      orderLookup.get(String(normalizedInvoice?.id || ''));
+  const invIds = new Set(invs.map((i: any) => i.id));
+  const mappedOrdOrders = ords
+    .filter((o: any) => o.id?.startsWith('ORD-') && !invIds.has(o.id))
+    .map((o: any) => {
+    let pStatus = o.paymentStatus || 'pending';
+    const sTxt = String(o.status || '').toLowerCase();
+    const pTxt = String(o.paymentStatus || '').toLowerCase();
+    
+    if (sTxt.includes('مدفوع') || sTxt.includes('تم الدفع') || sTxt.includes('جاري التوصيل') || sTxt.includes('paid') || sTxt === 'تم الدفع بنجاح' || pTxt === 'paid') {
+      pStatus = 'paid';
+    } else if (sTxt.includes('ملغي') || sTxt.includes('انتهى وقت') || sTxt.includes('cancel') || pTxt.includes('cancel')) {
+      pStatus = 'cancelled';
+    } else if (sTxt.includes('فشل') || sTxt.includes('fail') || pTxt.includes('fail') || sTxt.includes('مرفوض')) {
+      pStatus = 'failed';
+    }
+    
+    const itemsCost = (o.items || []).reduce((acc: number, item: any) => {
+      const itemCost = item.costAtTime !== undefined ? item.costAtTime : 0;
+      const qty = item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1);
+      return acc + (itemCost * qty);
+    }, 0);
+    const amount = Number(o.totalAmount || 0);
 
-    if (!linkedOrder) return normalizedInvoice;
-    matchedOrderIds.add(String(linkedOrder.id));
-    return normalizeWebsiteOrderAsInvoice(linkedOrder, normalizedInvoice);
+    let finalCustomerName = o.customerName || o.customerInfo?.name || o.customer?.name || '';
+    if (finalCustomerName === 'بيانات مفقودة') finalCustomerName = o.customerInfo?.name || o.customer?.name || 'عميل عام';
+    
+    let finalCustomerPhone = o.customerPhone || o.customerInfo?.phone || o.customer?.phone || '';
+
+    return {
+      ...o,
+      customerName: finalCustomerName,
+      customerPhone: finalCustomerPhone,
+      paymentStatus: pStatus,
+      isORDOrder: true,
+      deliveryType: (o.deliveryType === 'standard' && o.id?.startsWith('ORD-')) ? 'company' : (o.deliveryType || 'company'),
+      deliveryFee: o.deliveryInfo?.cost || typeof o.deliveryFee === 'number' ? o.deliveryFee : 0,
+      totalCost: itemsCost,
+      profit: amount - itemsCost,
+      discount: o.discount || 0,
+      gatewayFee: 0,
+      paymentMethod: o.paymentMethod || 'KNet',
+      date: o.date || o.createdAt || new Date().toISOString()
+    };
   });
 
-  const unmatchedOrders = websiteOrders
-    .filter((order: any) => !matchedOrderIds.has(String(order.id)))
-    .map((order: any) => normalizeWebsiteOrderAsInvoice(order));
-
-  const combined = [...normalizedInvoices, ...unmatchedOrders];
-  const unique: any[] = [];
-  const handled = new Set<string>();
+  const combined = [...invs, ...mappedOrdOrders];
+  const unique = [];
+  const handled = new Set();
   for (const item of combined) {
-    const id = item?.id ? String(item.id) : '';
-    if (!id) {
+    if (item && item.id && !handled.has(item.id)) {
+      handled.add(item.id);
       unique.push(item);
-      continue;
+    } else if (!item || !item.id) {
+      unique.push(item);
     }
-    if (handled.has(id)) continue;
-    handled.add(id);
-    unique.push(item);
   }
-
-  lastUnifiedInvoicesRef = invoices;
-  lastUnifiedOrdersRef = orders;
-  lastUnifiedResult = unique;
+  
+  unifiedInvoicesCache.set(data, unique);
   return unique;
 }
 

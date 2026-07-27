@@ -1,206 +1,17 @@
 import { AppState } from '../types';
-import { isCancelledStatus, isFailedStatus, isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
+import { isPaidStatus } from './status-utils';
+import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
 import { getUnifiedInvoices } from './utils';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
-
-const isSupplierChargeableInvoice = (inv: any): boolean => {
-  if (!inv || inv.isDeleted) return false;
-  const paymentValues = [inv.paymentStatus, inv.payment_status, inv.payment?.status]
-    .filter((value: any) => value !== undefined && value !== null && String(value).trim() !== '');
-  const values = [...paymentValues, inv.status]
-    .filter((value: any) => value !== undefined && value !== null && String(value).trim() !== '');
-  const statusText = values.map((value: any) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
-
-  // A paid gateway field is final even if an older failed label remains in `status`.
-  // Without this precedence, a successful retry disappears from the supplier ledger.
-  if (inv.paid === true || paymentValues.some((value: any) => isPaidStatus(value))) return true;
-  if (inv.failed === true || paymentValues.some((value: any) => isFailedStatus(value))) return false;
-  if (values.some((value: any) => isCancelledStatus(value))) return false;
-  if (statusText.includes('split pending') || statusText.includes('تجميع القطية')) return false;
-  if (values.some((value: any) => isFailedStatus(value))) return false;
-
-  return true;
-};
-
-const firstNonBlankString = (...values: any[]): string => {
-  for (const value of values) {
-    if (value === undefined || value === null) continue;
-    const text = String(value).trim();
-    if (text) return text;
-  }
-  return '';
-};
-
-const firstPositiveNumber = (...values: any[]): number => {
-  for (const value of values) {
-    const parsed = safeParsePrice(value);
-    if (parsed > 0) return parsed;
-  }
-  return 0;
-};
-
-const normalizeSupplierProductName = (value: any): string =>
-  String(value || '')
-    .toLowerCase()
-    .replace(/[إأآا]/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/[ىی]/g, 'ي')
-    .replace(/ؤ/g, 'و')
-    .replace(/ئ/g, 'ي')
-    .replace(/[ًٌٍَُِّْـ]/g, '')
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const getSupplierProductScore = (product: any): number =>
-  (firstNonBlankString(product?.supplierId, product?.supplierID, product?.supplier?.id) ? 100 : 0) +
-  (firstPositiveNumber(product?.cost, product?.supplierCost, product?.purchaseCost) > 0 ? 25 : 0) +
-  (product?.isActive !== false ? 5 : 0) +
-  (product?.isOutOfStock ? 0 : 2);
-
-const mergeSupplierProductRecord = (current: any, incoming: any): any => {
-  if (!current) return incoming;
-  if (!incoming) return current;
-  const preferred = getSupplierProductScore(incoming) >= getSupplierProductScore(current) ? incoming : current;
-  const secondary = preferred === incoming ? current : incoming;
-  const merged: any = { ...secondary, ...preferred };
-  const supplierId = firstNonBlankString(
-    preferred?.supplierId,
-    preferred?.supplierID,
-    preferred?.supplier?.id,
-    secondary?.supplierId,
-    secondary?.supplierID,
-    secondary?.supplier?.id,
-  );
-  if (supplierId) merged.supplierId = supplierId;
-  const cost = firstPositiveNumber(
-    preferred?.cost,
-    preferred?.supplierCost,
-    preferred?.purchaseCost,
-    secondary?.cost,
-    secondary?.supplierCost,
-    secondary?.purchaseCost,
-  );
-  if (cost > 0) merged.cost = cost;
-  return merged;
-};
-
-const buildSupplierProductIndexes = (products: any[] = []) => {
-  const byId = new Map<string, any>();
-  const supplierIdsByName = new Map<string, Set<string>>();
-  const bySupplierAndName = new Map<string, any>();
-
-  (Array.isArray(products) ? products : []).forEach((product: any) => {
-    if (!product) return;
-    const id = firstNonBlankString(product.id, product.productId);
-    if (id) byId.set(id, mergeSupplierProductRecord(byId.get(id), product));
-
-    const nameKey = normalizeSupplierProductName(product.name || product.productName || product.nameAr);
-    const supplierId = firstNonBlankString(product.supplierId, product.supplierID, product.supplier?.id);
-    if (!nameKey || !supplierId) return;
-
-    const supplierIds = supplierIdsByName.get(nameKey) || new Set<string>();
-    supplierIds.add(supplierId);
-    supplierIdsByName.set(nameKey, supplierIds);
-
-    const supplierNameKey = `${supplierId}::${nameKey}`;
-    bySupplierAndName.set(
-      supplierNameKey,
-      mergeSupplierProductRecord(bySupplierAndName.get(supplierNameKey), product),
-    );
-  });
-
-  const uniqueSupplierByName = new Map<string, string>();
-  supplierIdsByName.forEach((supplierIds, nameKey) => {
-    if (supplierIds.size === 1) uniqueSupplierByName.set(nameKey, Array.from(supplierIds)[0]);
-  });
-
-  return { byId, uniqueSupplierByName, bySupplierAndName };
-};
-
-type SupplierProductIndexes = ReturnType<typeof buildSupplierProductIndexes>;
-
-const supplierProductIndexesCache = new WeakMap<any[], SupplierProductIndexes>();
-
-const getSupplierProductIndexes = (products: any[] = []): SupplierProductIndexes => {
-  const safeProducts = Array.isArray(products) ? products : [];
-  const cached = supplierProductIndexesCache.get(safeProducts);
-  if (cached) return cached;
-  const built = buildSupplierProductIndexes(safeProducts);
-  supplierProductIndexesCache.set(safeProducts, built);
-  return built;
-};
-
-const getItemSupplierId = (
-  item: any,
-  productMap: Map<string, any>,
-  uniqueSupplierByName?: Map<string, string>,
-  suppliers: any[] = [],
-): string => {
-  const directSupplierId = firstNonBlankString(
-    item?.supplierId,
-    item?.supplierID,
-    item?.supplier?.id,
-  );
-  if (directSupplierId) return directSupplierId;
-
-  const product = productMap.get(firstNonBlankString(item?.productId, item?.id));
-  const catalogSupplierId = firstNonBlankString(
-    product?.supplierId,
-    product?.supplierID,
-    product?.supplier?.id,
-  );
-  if (catalogSupplierId) return catalogSupplierId;
-
-  const nameKey = normalizeSupplierProductName(
-    item?.name || item?.productName || product?.name || product?.productName,
-  );
-  const matchedByName = nameKey && uniqueSupplierByName ? (uniqueSupplierByName.get(nameKey) || '') : '';
-  if (matchedByName) return matchedByName;
-
-  const foodSuppliers = (suppliers || []).filter((s: any) => s && s.supplierType !== 'delivery');
-  if (foodSuppliers.length === 1) {
-    return String(foodSuppliers[0]?.id || '');
-  }
-  if (Array.isArray(suppliers) && suppliers.length === 1) {
-    return String(suppliers[0]?.id || '');
-  }
-
-  return '';
-};
-
-const getSupplierCatalogProductForItem = (
-  item: any,
-  supplierId: string,
-  productMap: Map<string, any>,
-  bySupplierAndName?: Map<string, any>,
-): any => {
-  const exact = productMap.get(firstNonBlankString(item?.productId, item?.id));
-  const exactSupplierId = firstNonBlankString(
-    exact?.supplierId,
-    exact?.supplierID,
-    exact?.supplier?.id,
-  );
-  if (exact && exactSupplierId === String(supplierId)) return exact;
-
-  const nameKey = normalizeSupplierProductName(
-    item?.name || item?.productName || exact?.name || exact?.productName,
-  );
-  return (nameKey && bySupplierAndName)
-    ? (bySupplierAndName.get(`${String(supplierId)}::${nameKey}`) || exact)
-    : exact;
-};
 
 export const getInvoiceDeliverySettlementForSupplier = (
   inv: any, 
   supId: string, 
   state: AppState,
   productMap?: Map<string, any>,
-  supplierMap?: Map<string, any>,
-  uniqueSupplierByNameMap?: Map<string, string>
+  supplierMap?: Map<string, any>
 ): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
@@ -215,20 +26,9 @@ export const getInvoiceDeliverySettlementForSupplier = (
   const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
 
-  const deliveryProductIndexes =
-    (!productMap || !uniqueSupplierByNameMap)
-      ? getSupplierProductIndexes(state?.products || [])
-      : null;
-  const deliveryProductMap = productMap || deliveryProductIndexes!.byId;
-  const uniqueSupplierByName =
-    uniqueSupplierByNameMap || deliveryProductIndexes!.uniqueSupplierByName;
   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
-    const itemSupplierId = getItemSupplierId(
-      item,
-      deliveryProductMap,
-      uniqueSupplierByName,
-    );
-    return itemSupplierId === String(supId);
+    const product = productMap ? productMap.get(String(item.productId)) : (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
+    return String(product?.supplierId || '') === String(supId);
   });
 
   const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
@@ -250,13 +50,6 @@ export const getInvoiceDeliverySettlementForSupplier = (
   return 0;
 };
 
-let lastLedgerInvoicesRef: any = null;
-let lastLedgerOrdersRef: any = null;
-let lastLedgerProductsRef: any = null;
-let lastLedgerTransfersRef: any = null;
-let lastLedgerSuppliersRef: any = null;
-const globalSupplierLedgerCache = new Map<string, any[]>();
-
 /**
  * Centrally calculates the detailed financial ledger (invoices and payments) for a supplier.
  */
@@ -267,56 +60,26 @@ export function getSupplierLedgerForState(
   supplierMap?: Map<string, any>,
   invoicesBySupplierMap?: Map<string, any[]>,
   supplierProductsMap?: Map<string, Set<string>>,
-  transfersBySupplierMap?: Map<string, any[]>,
-  uniqueSupplierByNameMap?: Map<string, string>,
-  supplierProductByNameMap?: Map<string, any>
+  transfersBySupplierMap?: Map<string, any[]>
 ): any[] {
-  const invoices = state?.invoices;
-  const orders = state?.orders;
-  const products = state?.products;
-  const stateTransfers = state?.supplierTransfers;
-  const suppliers = state?.suppliers;
-
-  const useDefaultLedgerCache =
-    !productMap &&
-    !supplierMap &&
-    !invoicesBySupplierMap &&
-    !supplierProductsMap &&
-    !transfersBySupplierMap &&
-    !uniqueSupplierByNameMap &&
-    !supplierProductByNameMap;
-
-  if (useDefaultLedgerCache) {
-    if (
-      lastLedgerInvoicesRef !== invoices ||
-      lastLedgerOrdersRef !== orders ||
-      lastLedgerProductsRef !== products ||
-      lastLedgerTransfersRef !== stateTransfers ||
-      lastLedgerSuppliersRef !== suppliers
-    ) {
-      lastLedgerInvoicesRef = invoices;
-      lastLedgerOrdersRef = orders;
-      lastLedgerProductsRef = products;
-      lastLedgerTransfersRef = stateTransfers;
-      lastLedgerSuppliersRef = suppliers;
-      globalSupplierLedgerCache.clear();
-    }
-    const cachedLedger = globalSupplierLedgerCache.get(String(supId));
-    if (cachedLedger) return cachedLedger;
-  }
-
   const transactions: any[] = [];
+  
+  const pMap = productMap || new Map((state.products || []).map(p => [String(p.id), p]));
+  const sMap = supplierMap || new Map((state.suppliers || []).map(s => [String(s.id), s]));
 
-  const supplierProductIndexes =
-    (!productMap || !uniqueSupplierByNameMap || !supplierProductByNameMap)
-      ? getSupplierProductIndexes(state.products || [])
-      : null;
-  const pMap: Map<string, any> = productMap || supplierProductIndexes!.byId;
-  const sMap: Map<string, any> = supplierMap || new Map<string, any>((state.suppliers || []).map(s => [String(s.id), s]));
-  const uniqueSupplierByName = uniqueSupplierByNameMap || supplierProductIndexes!.uniqueSupplierByName;
-  const supplierProductByName = supplierProductByNameMap || supplierProductIndexes!.bySupplierAndName;
+  const supplierProductIds = supplierProductsMap
+    ? (supplierProductsMap.get(String(supId)) || new Set<string>())
+    : new Set(
+        (state.products || [])
+          .filter(p => p && p.id && String(p.supplierId) === String(supId))
+          .map(p => String(p.id))
+      );
 
-  const storedInvoices = getUnifiedInvoices(state).filter(isSupplierChargeableInvoice);
+  const storedInvoices = getUnifiedInvoices(state).filter(inv => {
+    if (!inv || inv.isDeleted) return false;
+    if (String(inv.id).startsWith('INV-')) return true;
+    return inv.paymentStatus === 'paid';
+  });
   const invoiceSource = invoicesBySupplierMap
     ? (invoicesBySupplierMap.get(String(supId)) || [])
     : storedInvoices;
@@ -327,23 +90,11 @@ export function getSupplierLedgerForState(
   invoicesSource.forEach(inv => {
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
-      const itemSupplierId = getItemSupplierId(item, pMap, uniqueSupplierByName, state.suppliers);
-      return itemSupplierId === String(supId);
+      const product = pMap.get(String(item.productId));
+      return product && String(product.supplierId) === String(supId) && supplierProductIds.has(String(item.productId));
     }).map(item => {
-      const product = getSupplierCatalogProductForItem(item, String(supId), pMap, supplierProductByName);
-      const cost = firstPositiveNumber(
-        item?.costAtTime,
-        item?.supplierCost,
-        item?.purchaseCost,
-        item?.cost,
-        product?.cost,
-        product?.supplierCost,
-        product?.purchaseCost,
-        item?.priceAtTime,
-        item?.price,
-        product?.price,
-        item?.total ? item.total / Math.max(1, Number(item.quantity || 1)) : 0
-      );
+      const product = pMap.get(String(item.productId));
+      const cost = computeInvoiceItemBaseCost(item, pMap);
       const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
       
@@ -409,14 +160,7 @@ export function getSupplierLedgerForState(
     const supplierCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0));
     const supplierAddonsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.addonsCost || 0), 0));
     const supplierRevenue = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0));
-    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(
-      inv,
-      supId,
-      state,
-      pMap,
-      sMap,
-      uniqueSupplierByName,
-    );
+    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state, pMap, sMap);
     const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
     if (supplierDue > 0) {
@@ -461,15 +205,7 @@ export function getSupplierLedgerForState(
     });
   });
 
-  const sortedTransactions = transactions.sort(
-    (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
-  );
-
-  if (useDefaultLedgerCache) {
-    globalSupplierLedgerCache.set(String(supId), sortedTransactions);
-  }
-
-  return sortedTransactions;
+  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 /**
@@ -482,9 +218,7 @@ export function getSupplierLiveBalanceForState(
   supplierMap?: Map<string, any>,
   invoicesBySupplierMap?: Map<string, any[]>,
   supplierProductsMap?: Map<string, Set<string>>,
-  transfersBySupplierMap?: Map<string, any[]>,
-  uniqueSupplierByNameMap?: Map<string, string>,
-  supplierProductByNameMap?: Map<string, any>
+  transfersBySupplierMap?: Map<string, any[]>
 ): number {
   const ledger = getSupplierLedgerForState(
     supId, 
@@ -493,9 +227,7 @@ export function getSupplierLiveBalanceForState(
     supplierMap, 
     invoicesBySupplierMap, 
     supplierProductsMap, 
-    transfersBySupplierMap,
-    uniqueSupplierByNameMap,
-    supplierProductByNameMap
+    transfersBySupplierMap
   );
   const due = ledger.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const paid = Math.abs(ledger.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amount || 0), 0));
@@ -521,19 +253,24 @@ export function recalculateStateBalances(state: AppState): AppState {
 
   const newState = { ...state };
   
-  const supplierProductIndexes = getSupplierProductIndexes(newState.products || []);
-  const productMap = supplierProductIndexes.byId;
-  const supplierMap = new Map<string, any>((newState.suppliers || []).map(s => [String(s.id), s]));
+  const productMap = new Map((newState.products || []).map(p => [String(p.id), p]));
+  const supplierMap = new Map((newState.suppliers || []).map(s => [String(s.id), s]));
 
   // Build a pre-index of invoices by supplier to avoid O(N * M) loops
   const invoicesBySupplierMap = new Map<string, any[]>();
-  const unifiedInvoices = getUnifiedInvoices(newState).filter(isSupplierChargeableInvoice);
+  const unifiedInvoices = getUnifiedInvoices(newState).filter(inv => {
+    if (!inv || inv.isDeleted) return false;
+    if (String(inv.id).startsWith('INV-')) return true;
+    return inv.paymentStatus === 'paid';
+  });
 
   unifiedInvoices.forEach(inv => {
     const seenSuppliers = new Set<string>();
     (inv.items || []).forEach((item: any) => {
-      const supplierId = getItemSupplierId(item, productMap, supplierProductIndexes.uniqueSupplierByName);
-      if (supplierId) seenSuppliers.add(supplierId);
+      const prod = productMap.get(String(item.productId));
+      if (prod && prod.supplierId) {
+        seenSuppliers.add(String(prod.supplierId));
+      }
     });
     
     // Also check delivery settlement supplier if any
@@ -563,7 +300,7 @@ export function recalculateStateBalances(state: AppState): AppState {
         set = new Set();
         supplierProductsMap.set(sId, set);
       }
-      set.add(String(p.id));
+      set.add(p.id);
     }
   });
 
@@ -591,9 +328,7 @@ export function recalculateStateBalances(state: AppState): AppState {
       supplierMap, 
       invoicesBySupplierMap, 
       supplierProductsMap, 
-      transfersBySupplierMap,
-      supplierProductIndexes.uniqueSupplierByName,
-      supplierProductIndexes.bySupplierAndName
+      transfersBySupplierMap
     )
   }));
 

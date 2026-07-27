@@ -114,68 +114,6 @@ const WHATSAPP_QUICK_REPLIES_SHEET = "WhatsAppQuickReplies";
 const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   "ktk_expected_admin_reset_generation_id";
 
-// Older Excel round-trips could stringify split-payment arrays repeatedly. After a few
-// exports an empty array could become a gigantic escaped string (sometimes even truncated
-// by Excel), making the invoices shard tens of megabytes and causing intermittent imports.
-// These helpers are intentionally limited to the two split-payment collection fields; they
-// never alter invoice payment status, gateway IDs, payment links, totals, or notifications.
-const decodeRepeatedBackupJson = (value: any, maxDepth = 40): any => {
-  let current = value;
-  for (let depth = 0; depth < maxDepth && typeof current === "string"; depth += 1) {
-    let text = current.trim();
-    if (!text) return "";
-
-    // Excel can prefix formula-looking text with an apostrophe. Remove it only when the
-    // remaining value clearly begins as JSON.
-    if (text.startsWith("'") && /^[\[{"]/.test(text.slice(1).trim())) {
-      text = text.slice(1).trim();
-    }
-
-    if (!/^(?:[\[{"]|null$|true$|false$|-?\d)/.test(text)) break;
-    try {
-      const parsed = JSON.parse(text);
-      if (parsed === current) break;
-      current = parsed;
-    } catch {
-      break;
-    }
-  }
-  return current;
-};
-
-const normalizeSplitBackupCollection = (value: any): any[] => {
-  const decoded = decodeRepeatedBackupJson(value);
-  if (Array.isArray(decoded)) return decoded;
-  if (decoded && typeof decoded === "object") return [decoded];
-
-  // splitPayments/splitParticipants are array fields. A non-array string here is either an
-  // old empty value or a truncated repeated-stringification artifact; keeping it would make
-  // every future backup grow exponentially again.
-  return [];
-};
-
-const normalizeBackupSplitFields = (state: any): any => {
-  if (!state || typeof state !== "object" || Array.isArray(state)) return state;
-  const normalizeRecord = (record: any) => {
-    if (!record || typeof record !== "object" || Array.isArray(record)) return record;
-    return {
-      ...record,
-      splitPayments: normalizeSplitBackupCollection(record.splitPayments),
-      splitParticipants: normalizeSplitBackupCollection(record.splitParticipants),
-    };
-  };
-
-  return {
-    ...state,
-    invoices: Array.isArray(state.invoices)
-      ? state.invoices.map(normalizeRecord)
-      : state.invoices,
-    orders: Array.isArray(state.orders)
-      ? state.orders.map(normalizeRecord)
-      : state.orders,
-  };
-};
-
 type PushDeviceSnapshot = {
   id: string;
   label: string;
@@ -639,7 +577,6 @@ const GeneralSettings: React.FC<Props> = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const importInFlightRef = useRef(false);
   const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
   const [checkingPushHealth, setCheckingPushHealth] = useState(false);
   const [pushDevices, setPushDevices] = useState<PushDeviceSnapshot[]>([]);
@@ -2435,7 +2372,7 @@ const GeneralSettings: React.FC<Props> = ({
     }
   };
 
-  const handleRestoreBackup = async () => {
+  const handleRestoreBackup = () => {
     try {
       const backupKey =
         appMode === "local"
@@ -2452,12 +2389,7 @@ const GeneralSettings: React.FC<Props> = ({
 
       if (backupStr) {
         const parsed = JSON.parse(backupStr);
-        if (appMode === "cloud" && onCloudImport) {
-          const saved = await onCloudImport(parsed);
-          if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
-        } else {
-          setData(parsed);
-        }
+        setData(parsed);
         sessionStorage.setItem("hideSampleDataPrompt", "true");
         setShowRestoreConfirm(false);
         addToast(
@@ -2493,7 +2425,7 @@ const GeneralSettings: React.FC<Props> = ({
       console.error("Restore error", e);
       addToast(
         "فشلت الاستعادة",
-        "حدث خطأ غير متوقع أثناء تفكيك أو حفظ بيانات النسخة الاحتياطية.",
+        "حدث خطأ غير متوقع أثناء تفكيك بيانات النسخة الاحتياطية.",
         "warning",
       );
     }
@@ -2607,7 +2539,6 @@ const GeneralSettings: React.FC<Props> = ({
     }];
 
     const wb = XLSX.utils.book_new();
-    const exportState = normalizeBackupSplitFields(data || {}) as AppState;
     const normalizeExcelRows = (rows: any[]) =>
       (Array.isArray(rows) ? rows : []).map((row: any) => {
         const source = row && typeof row === "object" && !Array.isArray(row)
@@ -2699,7 +2630,7 @@ const GeneralSettings: React.FC<Props> = ({
       rawProduct: json(product),
     });
 
-    const invoiceRows = (exportState.invoices || []).map((i: any) => {
+    const invoiceRows = (data?.invoices || []).map((i: any) => {
       const c: any =
         customerById.get(i.customerId) ||
         customerByPhone.get(String(i.customerPhone || "")) ||
@@ -2810,7 +2741,7 @@ const GeneralSettings: React.FC<Props> = ({
       "InvoiceItems",
     );
 
-    const payerRows = (exportState.invoices || []).flatMap((i: any) => {
+    const payerRows = (data?.invoices || []).flatMap((i: any) => {
       const payments = Array.isArray(i.splitPayments) ? i.splitPayments : [];
       const participants = Array.isArray(i.splitParticipants)
         ? i.splitParticipants
@@ -2842,7 +2773,7 @@ const GeneralSettings: React.FC<Props> = ({
       "Payers",
     );
 
-    const orderRows = (exportState.orders || []).map((o: any) => {
+    const orderRows = (data?.orders || []).map((o: any) => {
       const c: any =
         customerById.get(o.customerId) ||
         customerByPhone.get(String(o.customerPhone || "")) ||
@@ -3064,7 +2995,7 @@ const GeneralSettings: React.FC<Props> = ({
       "NameMatchMemory",
     );
 
-    const fullStateJson = JSON.stringify(exportState);
+    const fullStateJson = JSON.stringify(data || {});
     const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ["{}"];
     XLSX.utils.book_append_sheet(
       wb,
@@ -3110,37 +3041,14 @@ const GeneralSettings: React.FC<Props> = ({
     );
   };
 
-  const purgeDeletedFromImportState = (state: any) => {
-    if (!state || typeof state !== "object") return state;
-    const isNotDeleted = (item: any) =>
-      item &&
-      item.isDeleted !== true &&
-      item.isDeleted !== "true" &&
-      item.isDeleted !== "TRUE" &&
-      item.status !== "deleted";
-    const keys = ["customers", "invoices", "orders", "products", "suppliers", "expenses", "squads", "testimonials", "campaigns", "promocodes"];
-    keys.forEach((key) => {
-      if (Array.isArray(state[key])) {
-        state[key] = state[key].filter(isNotDeleted);
-      }
-    });
-    return state;
-  };
-
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
     const file = e.target.files?.[0];
     if (!file) return;
-    if (importInFlightRef.current) {
-      input.value = "";
-      return;
-    }
-    importInFlightRef.current = true;
 
     const reader = new FileReader();
     const isJson = file.name.endsWith(".json");
 
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
         const result = event.target?.result;
         if (!result) throw new Error("File result is empty");
@@ -3198,34 +3106,35 @@ const GeneralSettings: React.FC<Props> = ({
               }
             }
 
-            const validatedData: AppState = purgeDeletedFromImportState({
+            const validatedData: AppState = {
               ...INITIAL_DATA,
               ...importedData,
               zones: processedZones,
-            });
+            };
             if (appMode === "cloud" && onCloudImport) {
               addToast(
                 "جاري الرفع سحابياً",
                 "يتم مزامنة النسخة الاحتياطية سحابياً لتلافي الفقدان...",
                 "info",
               );
-              try {
-                const saved = await onCloudImport(validatedData);
-                if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
-                addToast(
-                  "تمت العملية",
-                  "تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨",
-                  "success",
-                );
-              } catch (err) {
-                console.error("Cloud import failed:", err);
-                addToast(
-                  "فشل الحفظ",
-                  "فشل تخزين النسخة سحابياً: " +
-                    (err instanceof Error ? err.message : String(err)),
-                  "warning",
-                );
-              }
+              onCloudImport(validatedData)
+                .then((saved) => {
+                  if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+                  addToast(
+                    "تمت العملية",
+                    "تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨",
+                    "success",
+                  );
+                })
+                .catch((err) => {
+                  console.error("Cloud import failed:", err);
+                  addToast(
+                    "فشل الحفظ",
+                    "فشل تخزين النسخة سحابياً: " +
+                      (err instanceof Error ? err.message : String(err)),
+                    "warning",
+                  );
+                });
             } else {
               addToast(
                 "السحابة مطلوبة",
@@ -3335,7 +3244,13 @@ const GeneralSettings: React.FC<Props> = ({
                 return isArray ? [] : null;
               }
             }
-            result = decodeRepeatedBackupJson(result);
+            if (typeof result === "string") {
+              try {
+                result = JSON.parse(result);
+              } catch (e4) {
+                // Not valid JSON, and we never eval — keep it as the plain string.
+              }
+            }
             if (isArray && !Array.isArray(result)) return [];
             return result;
           };
@@ -3438,29 +3353,16 @@ const GeneralSettings: React.FC<Props> = ({
           let baseState: any = {};
           if (workbook.SheetNames.includes("FullState")) {
             const fullStateRows = (safeSheetToObj("FullState") || []) as any[];
-            const sortedFullStateRows = (
+            const joinedJson = (
               Array.isArray(fullStateRows) ? fullStateRows : []
             )
-              .filter((row: any) => String(row?.chunk || "").length > 0)
               .sort(
                 (a: any, b: any) => Number(a.part || 0) - Number(b.part || 0),
-              );
-
-            sortedFullStateRows.forEach((row: any, index: number) => {
-              const actualPart = Number(row.part || 0);
-              const expectedPart = index + 1;
-              if (actualPart !== expectedPart) {
-                throw new Error(
-                  `CORRUPT_FULL_STATE_CHUNKS:EXPECTED_${expectedPart}:FOUND_${actualPart || "EMPTY"}`,
-                );
-              }
-            });
-
-            const joinedJson = sortedFullStateRows
+              )
               .map((row: any) => String(row.chunk || ""))
               .join("");
             if (joinedJson.trim()) {
-              baseState = normalizeBackupSplitFields(JSON.parse(joinedJson));
+              baseState = JSON.parse(joinedJson);
             }
           }
 
@@ -3580,55 +3482,6 @@ const GeneralSettings: React.FC<Props> = ({
               INITIAL_DATA.settings,
           };
 
-          const mergeSheetRowsWithFullState = (
-            fullStateRows: any,
-            sheetRows: any[],
-            identityFields: string[],
-          ) => {
-            const baseRows = Array.isArray(fullStateRows) ? fullStateRows : [];
-            if (!baseRows.length) return sheetRows;
-
-            const identityOf = (row: any) => {
-              for (const field of identityFields) {
-                const value = String(row?.[field] ?? "").trim();
-                if (value) return `${field}:${value}`;
-              }
-              return "";
-            };
-
-            const sheetByIdentity = new Map<string, any>();
-            const sheetRowsWithoutIdentity: any[] = [];
-            sheetRows.forEach((row) => {
-              const identity = identityOf(row);
-              if (identity) sheetByIdentity.set(identity, row);
-              else sheetRowsWithoutIdentity.push(row);
-            });
-
-            const consumed = new Set<string>();
-            const mergedRows: any[] = [];
-
-            baseRows.forEach((baseRow: any) => {
-              const identity = identityOf(baseRow);
-              if (identity) {
-                const sheetRow = sheetByIdentity.get(identity);
-                if (sheetRow) {
-                  consumed.add(identity);
-                  mergedRows.push(stripUndefined({ ...baseRow, ...sheetRow }));
-                }
-                // If it has an identity but is NOT in the imported sheet, it was deleted in the sheet.
-                // So we do not include it.
-              } else {
-                mergedRows.push(stripUndefined(baseRow));
-              }
-            });
-
-            sheetByIdentity.forEach((sheetRow, identity) => {
-              if (!consumed.has(identity)) mergedRows.push(stripUndefined(sheetRow));
-            });
-            sheetRowsWithoutIdentity.forEach((row) => mergedRows.push(stripUndefined(row)));
-            return mergedRows;
-          };
-
           const importIntegrity = {
             invoiceRows: 0,
             invoiceItemRows: 0,
@@ -3668,7 +3521,8 @@ const GeneralSettings: React.FC<Props> = ({
                 .push(stripUndefined(restoredItem));
             });
             const rawInvoices = safeSheetToObj("Invoices") as any[];
-            const restoredInvoices = rawInvoices.map((inv, invoiceIndex) => {
+            importIntegrity.invoiceRows = rawInvoices.length;
+            newState.invoices = rawInvoices.map((inv, invoiceIndex) => {
               const rawInvoiceText = String(inv.rawInvoice || "").trim();
               const rawInvoice = parseSafeJson(rawInvoiceText, false);
               if (
@@ -3723,9 +3577,6 @@ const GeneralSettings: React.FC<Props> = ({
                 merged.failed = true;
                 merged.canPay = true;
               }
-
-              merged.splitPayments = normalizeSplitBackupCollection(merged.splitPayments);
-              merged.splitParticipants = normalizeSplitBackupCollection(merged.splitParticipants);
 
               const isDeleted =
                 merged.isDeleted === true ||
@@ -3784,22 +3635,17 @@ const GeneralSettings: React.FC<Props> = ({
                     : undefined,
               });
             });
-            newState.invoices = mergeSheetRowsWithFullState(
-              baseState.invoices,
-              restoredInvoices,
-              ["id", "invoiceNumber"],
-            );
-            importIntegrity.invoiceRows = newState.invoices.length;
-            if (newState.invoices.length < rawInvoices.length) {
+            if (newState.invoices.length !== importIntegrity.invoiceRows) {
               throw new Error(
-                `INVOICE_IMPORT_COUNT_MISMATCH:${newState.invoices.length}/${rawInvoices.length}`,
+                `INVOICE_IMPORT_COUNT_MISMATCH:${newState.invoices.length}/${importIntegrity.invoiceRows}`,
               );
             }
           }
 
           if (workbook.SheetNames.includes("Orders")) {
             const rawOrders = safeSheetToObj("Orders") as any[];
-            const restoredOrders = rawOrders.map((o, orderIndex) => {
+            importIntegrity.orderRows = rawOrders.length;
+            newState.orders = rawOrders.map((o, orderIndex) => {
               const rawOrderText = String(o.rawOrder || "").trim();
               const rawOrder = parseSafeJson(rawOrderText, false);
               if (
@@ -3815,8 +3661,6 @@ const GeneralSettings: React.FC<Props> = ({
                 rawOrder && typeof rawOrder === "object" && !Array.isArray(rawOrder)
                   ? { ...rawOrder, ...explicitOrderColumns }
                   : { ...explicitOrderColumns };
-              merged.splitPayments = normalizeSplitBackupCollection(merged.splitPayments);
-              merged.splitParticipants = normalizeSplitBackupCollection(merged.splitParticipants);
               const parsedItems = parseSafeJson(merged.items, true);
               const parsedAddress =
                 parseSafeJson(merged.address, false) ||
@@ -3840,15 +3684,9 @@ const GeneralSettings: React.FC<Props> = ({
                   typeof parsedAddress === "object" ? parsedAddress : merged.address,
               });
             });
-            newState.orders = mergeSheetRowsWithFullState(
-              baseState.orders,
-              restoredOrders,
-              ["id", "orderNumber"],
-            );
-            importIntegrity.orderRows = newState.orders.length;
-            if (newState.orders.length < rawOrders.length) {
+            if (newState.orders.length !== importIntegrity.orderRows) {
               throw new Error(
-                `ORDER_IMPORT_COUNT_MISMATCH:${newState.orders.length}/${rawOrders.length}`,
+                `ORDER_IMPORT_COUNT_MISMATCH:${newState.orders.length}/${importIntegrity.orderRows}`,
               );
             }
           }
@@ -3863,51 +3701,52 @@ const GeneralSettings: React.FC<Props> = ({
             ) as any as SupplierTransfer[];
           }
 
-          const finalizedState = purgeDeletedFromImportState(recalculateStateBalances(
-            normalizeBackupSplitFields(newState) as AppState,
-          ));
-          try {
-            if (appMode === "cloud" && onCloudImport) {
-              addToast(
-                "جاري الرفع سحابياً",
-                "يتم رفع ومزامنة بيانات Excel سحابياً...",
-                "info",
-              );
-              try {
-                const saved = await onCloudImport(finalizedState);
-                if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+          const finalizedState = recalculateStateBalances(newState);
+          setTimeout(() => {
+            try {
+              if (appMode === "cloud" && onCloudImport) {
                 addToast(
-                  "تمت العملية",
-                  `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
-                  "success",
+                  "جاري الرفع سحابياً",
+                  "يتم رفع ومزامنة بيانات Excel سحابياً...",
+                  "info",
                 );
-              } catch (err) {
-                console.error("Cloud Excel import failed:", err);
+                onCloudImport(finalizedState)
+                  .then((saved) => {
+                    if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+                    addToast(
+                      "تمت العملية",
+                      `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
+                      "success",
+                    );
+                  })
+                  .catch((err) => {
+                    console.error("Cloud Excel import failed:", err);
+                    addToast(
+                      "لم يُعتمد الاستيراد",
+                      "رفضت السحابة الحفظ، لذلك لم يتم تطبيق البيانات داخل النظام ولم تُحفظ نسخة تشغيل محلية. أعد المحاولة بعد عودة الاتصال: " +
+                        (err instanceof Error ? err.message : String(err)),
+                      "warning",
+                    );
+                  });
+              } else {
                 addToast(
-                  "لم يُعتمد الاستيراد",
-                  "رفضت السحابة الحفظ، لذلك لم يتم تطبيق البيانات داخل النظام ولم تُحفظ نسخة تشغيل محلية. أعد المحاولة بعد عودة الاتصال: " +
-                    (err instanceof Error ? err.message : String(err)),
+                  "السحابة مطلوبة",
+                  "لا يمكن استيراد أو تشغيل البيانات دون اتصال سحابي موثّق.",
                   "warning",
                 );
               }
-            } else {
+            } catch (renderError) {
+              console.error(
+                "CRITICAL RENDER ERROR during import:",
+                renderError,
+              );
               addToast(
-                "السحابة مطلوبة",
-                "لا يمكن استيراد أو تشغيل البيانات دون اتصال سحابي موثّق.",
+                "خلل في العرض",
+                "استوردنا البيانات بس التطبيق ما قدر يعرضها.",
                 "warning",
               );
             }
-          } catch (renderError) {
-            console.error(
-              "CRITICAL RENDER ERROR during import:",
-              renderError,
-            );
-            addToast(
-              "خلل في العرض",
-              "استوردنا البيانات بس التطبيق ما قدر يعرضها.",
-              "warning",
-            );
-          }
+          }, 150);
         }
       } catch (error) {
         console.error("Import error:", error);
@@ -3917,20 +3756,7 @@ const GeneralSettings: React.FC<Props> = ({
             (error instanceof Error ? error.message : ""),
           "warning",
         );
-      } finally {
-        importInFlightRef.current = false;
-        input.value = "";
       }
-    };
-
-    reader.onerror = () => {
-      importInFlightRef.current = false;
-      input.value = "";
-      addToast(
-        "خطأ",
-        "تعذر فتح ملف النسخة الاحتياطية من الجهاز.",
-        "warning",
-      );
     };
 
     if (isJson) {
@@ -6095,147 +5921,6 @@ const GeneralSettings: React.FC<Props> = ({
                       </button>
                     </div>
                   )}
-
-                  {/* سلة المحذوفات المسترجعة */}
-                  {(() => {
-                    const deletedInvoices = ((data?.invoices || []) as any[]).filter(inv => inv?.isDeleted === true || inv?.status === 'deleted');
-                    const deletedProducts = ((data?.products || []) as any[]).filter(p => p?.isDeleted === true || p?.status === 'deleted' || p?.isDeleted === 'true');
-                    const deletedCustomers = ((data?.customers || []) as any[]).filter(c => c?.isDeleted === true || c?.status === 'deleted' || c?.isDeleted === 'true');
-                    const hasDeletedItems = deletedInvoices.length > 0 || deletedProducts.length > 0 || deletedCustomers.length > 0;
-
-                    if (!hasDeletedItems) return null;
-
-                    return (
-                      <div className="mt-6 border border-slate-200/60 rounded-3xl p-4 bg-slate-50/50 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xs font-black text-slate-800 flex items-center gap-2">
-                            <Trash2 size={16} className="text-slate-500" />
-                            <span>سلة المحذوفات (استعادة العناصر)</span>
-                          </h3>
-                          <span className="text-[10px] bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
-                            {deletedInvoices.length + deletedProducts.length + deletedCustomers.length} عناصر محذوفة
-                          </span>
-                        </div>
-
-                        <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
-                          {/* Deleted Invoices */}
-                          {deletedInvoices.map((inv) => (
-                            <div key={inv.id} className="bg-white border border-slate-150 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-right">
-                              <div>
-                                <div className="text-xs font-bold text-slate-900 font-sans">فاتورة #{inv.id}</div>
-                                <div className="text-[10px] text-slate-500">مبلغ الفاتورة: {inv.totalAmount || 0} د.ك</div>
-                              </div>
-                              <button
-                                onClick={async () => {
-                                  // Undelete invoice
-                                  setData((prev) => {
-                                    const updated = (prev?.invoices || []).map((i) =>
-                                      i.id === inv.id ? { ...i, isDeleted: false } : i,
-                                    );
-                                    return { ...prev, invoices: updated };
-                                  });
-                                  if (appMode === "cloud" && onCloudImport) {
-                                    try {
-                                      const parsed = { ...data };
-                                      parsed.invoices = (parsed.invoices || []).map((i) =>
-                                        i.id === inv.id ? { ...i, isDeleted: false } : i,
-                                      );
-                                      await onCloudImport(parsed);
-                                      addToast("تمت الاستعادة", "تم استعادة الفاتورة ومزامنتها بنجاح.", "success");
-                                    } catch (err) {
-                                      addToast("خطأ", "فشل الحفظ في السحابة", "warning");
-                                    }
-                                  } else {
-                                    addToast("تمت الاستعادة", "تم استعادة الفاتورة بنجاح.", "success");
-                                  }
-                                }}
-                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-xl transition-all"
-                              >
-                                استعادة
-                              </button>
-                            </div>
-                          ))}
-
-                          {/* Deleted Products */}
-                          {deletedProducts.map((p) => (
-                            <div key={p.id} className="bg-white border border-slate-150 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-right">
-                              <div>
-                                <div className="text-xs font-bold text-slate-900 font-sans">{p.name}</div>
-                                <div className="text-[10px] text-slate-500">كود: {p.id} | سعر: {p.price || 0} د.ك</div>
-                              </div>
-                              <button
-                                onClick={async () => {
-                                  // Undelete product
-                                  setData((prev) => {
-                                    const updated = (prev?.products || []).map((prod) =>
-                                      prod.id === p.id ? { ...prod, isDeleted: false } as any : prod,
-                                    );
-                                    return { ...prev, products: updated };
-                                  });
-                                  if (appMode === "cloud" && onCloudImport) {
-                                    try {
-                                      const parsed = { ...data };
-                                      parsed.products = (parsed.products || []).map((prod) =>
-                                        prod.id === p.id ? { ...prod, isDeleted: false } as any : prod,
-                                      );
-                                      await onCloudImport(parsed);
-                                      addToast("تمت الاستعادة", "تم استعادة المنتج ومزامنته بنجاح.", "success");
-                                    } catch (err) {
-                                      addToast("خطأ", "فشل الحفظ في السحابة", "warning");
-                                    }
-                                  } else {
-                                    addToast("تمت الاستعادة", "تم استعادة المنتج بنجاح.", "success");
-                                  }
-                                }}
-                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-xl transition-all"
-                              >
-                                استعادة
-                              </button>
-                            </div>
-                          ))}
-
-                          {/* Deleted Customers */}
-                          {deletedCustomers.map((c) => (
-                            <div key={c.id} className="bg-white border border-slate-150 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-right">
-                              <div>
-                                <div className="text-xs font-bold text-slate-900 font-sans">{c.name}</div>
-                                <div className="text-[10px] text-slate-500">تلفون: {c.phone || "بدون تلفون"}</div>
-                              </div>
-                              <button
-                                onClick={async () => {
-                                  // Undelete customer
-                                  setData((prev) => {
-                                    const updated = (prev?.customers || []).map((cust) =>
-                                      cust.id === c.id ? { ...cust, isDeleted: false, status: 'active' } as any : cust,
-                                    );
-                                    return { ...prev, customers: updated };
-                                  });
-                                  if (appMode === "cloud" && onCloudImport) {
-                                    try {
-                                      const parsed = { ...data };
-                                      parsed.customers = (parsed.customers || []).map((cust) =>
-                                        cust.id === c.id ? { ...cust, isDeleted: false, status: 'active' } as any : cust,
-                                      );
-                                      await onCloudImport(parsed);
-                                      addToast("تمت الاستعادة", "تم استعادة العميل ومزامنته بنجاح.", "success");
-                                    } catch (err) {
-                                      addToast("خطأ", "فشل الحفظ في السحابة", "warning");
-                                    }
-                                  } else {
-                                    addToast("تمت الاستعادة", "تم استعادة العميل بنجاح.", "success");
-                                  }
-                                }}
-                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-xl transition-all"
-                              >
-                                @ts-ignore
-                                استعادة
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
 
                   {/* Developer Info - Hidden as requested */}
                   {false && (

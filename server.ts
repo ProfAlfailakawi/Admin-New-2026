@@ -60,14 +60,15 @@ try {
     const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
     console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
-    // Defer cache warm-up until module initialization has created appDataCache.
-    setTimeout(() => initBootCache().catch(console.error), 0);
+    // Start warm-up / active real-time caching of the full appdata database
+    initBootCache().catch(console.error);
   } catch (err: any) {
     console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
       console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
     }
     firebaseInitialized = false;
+    db = null;
   }
 } catch (error) {
   firebaseInitialized = false;
@@ -500,74 +501,6 @@ function normalizePaymentStatusText(value: any) {
 }
 
 function classifyGatewayPaymentState(params: any): PaymentSyncState | "unknown" {
-  const normalizedPayload = normalizeGatewayPayload(params);
-  const transaction =
-    normalizedPayload?.data?.transaction ||
-    normalizedPayload?.transaction ||
-    normalizedPayload?.data?.data?.transaction ||
-    null;
-
-  const classifySingleValue = (value: any): PaymentSyncState | "unknown" => {
-    const text = normalizePaymentStatusText(value);
-    if (!text) return "unknown";
-
-    const failedTokens = [
-      "NOT CAPTURED",
-      "NOTCAPTURED",
-      "FAILED",
-      "FAILURE",
-      "CANCELLED",
-      "CANCELED",
-      "DECLINED",
-      "REJECTED",
-      "VOIDED",
-      "EXPIRED",
-      "ERROR",
-      "UNSUCCESSFUL",
-    ];
-
-    const paidTokens = [
-      "CAPTURED",
-      "SUCCESS",
-      "SUCCESSFUL",
-      "SUCCESSFULLY",
-      "SUCCEEDED",
-      "PAID",
-      "AUTHORIZED",
-      "AUTHORISED",
-      "APPROVED",
-      "COMPLETED",
-      "CHARGED",
-    ];
-
-    // Evaluate failure phrases first because values such as "NOT CAPTURED" and
-    // "UNSUCCESSFUL" contain success tokens as substrings.
-    if (failedTokens.some((token) => text === token || text.includes(token))) return "failed";
-    if (paidTokens.some((token) => text === token || text.includes(token))) return "paid";
-    return "unknown";
-  };
-
-  // UPayments may include generic wrapper fields whose wording conflicts with the
-  // actual transaction result. The transaction result is the authoritative value.
-  // This prevents a successful CAPTURED payment from being downgraded because an
-  // unrelated wrapper field contains words such as "error" or "failed".
-  const authoritativeCandidates = [
-    transaction?.result,
-    transaction?.payment_status,
-    transaction?.paymentStatus,
-    transaction?.transaction_status,
-    transaction?.transactionStatus,
-    transaction?.status,
-    normalizedPayload?.result,
-    normalizedPayload?.payment_status,
-    normalizedPayload?.paymentStatus,
-  ];
-
-  for (const candidate of authoritativeCandidates) {
-    const state = classifySingleValue(candidate);
-    if (state !== "unknown") return state;
-  }
-
   const statusKeys = new Set([
     "result",
     "status",
@@ -611,17 +544,12 @@ function classifyGatewayPaymentState(params: any): PaymentSyncState | "unknown" 
     "CHARGED",
   ];
 
-  // When a legacy payload contains both success and failure words, confirmed paid
-  // wins. A paid financial state is monotonic and must never be reversed by a stale
-  // status copied from an older attempt.
-  const hasConfirmedPaidValue = normalizedValues.some((text) => {
-    const isFailurePhrase = failedTokens.some((token) => text === token || text.includes(token));
-    return !isFailurePhrase && paidTokens.some((token) => text === token || text.includes(token));
-  });
-  if (hasConfirmedPaidValue) return "paid";
-
   if (normalizedValues.some((text) => failedTokens.some((token) => text === token || text.includes(token)))) {
     return "failed";
+  }
+
+  if (normalizedValues.some((text) => paidTokens.some((token) => text === token || text.includes(token)))) {
+    return "paid";
   }
 
   return "unknown";
@@ -1001,80 +929,6 @@ async function rememberPaymentSession(session: any) {
   }
 }
 
-async function resolveCanonicalPaymentAmount(orderId: any, requestedAmount: any) {
-  const requested = Number(Number(requestedAmount || 0).toFixed(3));
-  const businessId = normalizeBusinessId(orderId);
-  if (!db || !businessId) {
-    return { amount: requested, source: "request" };
-  }
-
-  // A retry must keep the exact amount quoted in the first payment session. This is
-  // especially important for invoices with a manual discount: the customer must never
-  // see the undiscounted amount after a failed attempt.
-  try {
-    const sessionSnap = await db.collection("paymentSessions").doc(safePaymentSessionDocId(businessId)).get();
-    if (sessionSnap.exists) {
-      const session = sessionSnap.data() || {};
-      const sessionAmount = Number(session?.amount);
-      const sessionStatus = String(session?.status || session?.paymentStatus || "").toLowerCase();
-      const sessionBusinessId = normalizeBusinessId(session?.invoiceId || session?.invoiceNo || session?.orderId || businessId);
-      if (
-        sessionBusinessId === businessId &&
-        Number.isFinite(sessionAmount) &&
-        sessionAmount > 0 &&
-        sessionStatus !== "paid"
-      ) {
-        return { amount: Number(sessionAmount.toFixed(3)), source: "original_payment_session" };
-      }
-    }
-  } catch (error: any) {
-    console.warn("[PAYMENT_AMOUNT] Could not read original payment session:", error?.message || error);
-  }
-
-  const recordAmount = (record: any): number => {
-    if (!record || typeof record !== "object") return 0;
-    const explicit = [
-      record?.totalAmount,
-      record?.finalTotal,
-      record?.grandTotal,
-      record?.finalPrice,
-      record?.total_amount,
-    ];
-    for (const value of explicit) {
-      const n = Number(value);
-      if (Number.isFinite(n) && n > 0) return Number(n.toFixed(3));
-    }
-
-    const itemsSubtotal = (Array.isArray(record?.items) ? record.items : []).reduce((sum: number, item: any) => {
-      const qty = Number(item?.quantity ?? item?.qty ?? 1) || 1;
-      const unit = Number(item?.priceAtTime ?? item?.price ?? item?.unitPrice ?? 0) || 0;
-      const addons = Number(item?.addonsTotal ?? item?.extrasTotal ?? item?.addonsAmount ?? 0) || 0;
-      return sum + (unit * qty) + addons;
-    }, 0);
-    const delivery = Number(record?.deliveryFee ?? record?.deliveryInfo?.cost ?? 0) || 0;
-    const discount = Number(record?.discount ?? record?.discountAmount ?? 0) || 0;
-    const derived = Math.max(0, itemsSubtotal + delivery - discount);
-    if (derived > 0) return Number(derived.toFixed(3));
-
-    const fallback = Number(record?.total ?? record?.amount ?? 0);
-    return Number.isFinite(fallback) && fallback > 0 ? Number(fallback.toFixed(3)) : 0;
-  };
-
-  for (const collectionName of ["invoices", "orders"] as const) {
-    try {
-      const snap = await db.collection(collectionName).doc(businessId).get();
-      if (snap.exists) {
-        const amount = recordAmount(snap.data() || {});
-        if (amount > 0) return { amount, source: `${collectionName}_record` };
-      }
-    } catch (error: any) {
-      console.warn(`[PAYMENT_AMOUNT] Could not read ${collectionName}/${businessId}:`, error?.message || error);
-    }
-  }
-
-  return { amount: requested, source: "request" };
-}
-
 async function markPaymentSessionsSynced(identifiers: PaymentSyncIdentifiers, state: PaymentSyncState, meta: any) {
   if (!db) return;
   const docIds = uniqueCleanStrings([
@@ -1269,182 +1123,6 @@ async function syncSharedCompanyPaymentData(identifiers: PaymentSyncIdentifiers,
   return result;
 }
 
-function normalizeSupplierLookupName(value: any) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[إأآا]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/[ىی]/g, "ي")
-    .replace(/ؤ/g, "و")
-    .replace(/ئ/g, "ي")
-    .replace(/[ًٌٍَُِّْـ]/g, "")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-async function mirrorPaidRootRecordsIntoSharedData(identifiers: PaymentSyncIdentifiers, meta: any) {
-  const result = { ordersAdded: 0, invoicesAdded: 0, recordsUpdated: 0 };
-  if (!db) return result;
-
-  const targetIds = uniqueCleanStrings((identifiers?.targetIds || []).map(normalizeBusinessId)).filter(Boolean).slice(0, 20);
-  if (targetIds.length === 0) return result;
-
-  const rootRef = db.collection("appData").doc("shared_company_data");
-  const foundOrders = new Map<string, any>();
-  const foundInvoices = new Map<string, any>();
-
-  const addRecord = (kind: "orders" | "invoices", id: any, data: any) => {
-    const cleanId = normalizeBusinessId(id || data?.id || data?.orderId || data?.invoiceId || data?.invoiceNo);
-    if (!cleanId || !data) return;
-    const patched = paymentItemPatch({ id: cleanId, ...data }, "paid", meta);
-    if (kind === "orders") foundOrders.set(cleanId, patched);
-    else foundInvoices.set(cleanId, patched);
-  };
-
-  for (const targetId of targetIds) {
-    try {
-      const snap = await db.collection("orders").doc(targetId).get();
-      if (snap.exists) addRecord("orders", snap.id, snap.data() || {});
-    } catch (error: any) {
-      console.warn(`[PAYMENT_MIRROR] Could not read orders/${targetId}:`, error?.message || error);
-    }
-    try {
-      const snap = await db.collection("invoices").doc(targetId).get();
-      if (snap.exists) addRecord("invoices", snap.id, snap.data() || {});
-    } catch (error: any) {
-      console.warn(`[PAYMENT_MIRROR] Could not read invoices/${targetId}:`, error?.message || error);
-    }
-
-    // Some historical customer records use an auto-generated Firestore document id
-    // while keeping the public ORD/INV number in a field. Include those records too.
-    for (const [collectionName, field, kind] of [
-      ["orders", "id", "orders"],
-      ["orders", "orderId", "orders"],
-      ["orders", "invoiceId", "orders"],
-      ["invoices", "id", "invoices"],
-      ["invoices", "invoiceId", "invoices"],
-      ["invoices", "invoiceNo", "invoices"],
-    ] as const) {
-      try {
-        const snap = await db.collection(collectionName).where(field, "==", targetId).limit(20).get();
-        snap.docs.forEach((docSnap: any) => addRecord(kind, targetId, docSnap.data() || {}));
-      } catch (error: any) {
-        console.warn(`[PAYMENT_MIRROR] Query ${collectionName}.${field} failed:`, error?.message || error);
-      }
-    }
-
-    for (const [collectionName, field, kind] of [
-      ["orders", "linkedInvoiceId", "orders"],
-      ["orders", "invoiceId", "orders"],
-      ["invoices", "linkedOrderId", "invoices"],
-      ["invoices", "orderId", "invoices"],
-    ] as const) {
-      try {
-        const snap = await db.collection(collectionName).where(field, "==", targetId).limit(20).get();
-        snap.docs.forEach((docSnap: any) => addRecord(kind, docSnap.id, docSnap.data() || {}));
-      } catch (error: any) {
-        console.warn(`[PAYMENT_MIRROR] Query ${collectionName}.${field} failed:`, error?.message || error);
-      }
-    }
-  }
-
-  if (foundOrders.size === 0 && foundInvoices.size === 0) return result;
-
-  // Preserve supplier snapshots on customer-app orders before inserting them into the
-  // admin shard. This lets a paid ORD record create supplier dues immediately even when
-  // its original item only carried productId/name.
-  let products: any[] = [];
-  let suppliers: any[] = [];
-  try {
-    const [principalProducts, supplierCopies, sharedRootSnap] = await Promise.all([
-      loadFullAppDataShard(rootRef, "products").catch(() => []),
-      loadFullAppDataShard(rootRef, "supplierCopies").catch(() => []),
-      rootRef.get().catch(() => null),
-    ]);
-    products = [
-      ...(Array.isArray(principalProducts) ? principalProducts : []),
-      ...(Array.isArray(supplierCopies) ? supplierCopies : []),
-    ];
-    const rootData = sharedRootSnap?.exists ? (sharedRootSnap.data() || {}) : {};
-    suppliers = Array.isArray(rootData?.suppliers) ? rootData.suppliers : [];
-  } catch {}
-
-  const productById = new Map<string, any>();
-  const productByUniqueName = new Map<string, any>();
-  const productsByName = new Map<string, any[]>();
-  (Array.isArray(products) ? products : []).forEach((product: any) => {
-    const id = String(product?.id || product?.productId || "").trim();
-    if (id) productById.set(id, product);
-    const key = normalizeSupplierLookupName(product?.name || product?.productName || product?.nameAr);
-    if (!key) return;
-    const list = productsByName.get(key) || [];
-    list.push(product);
-    productsByName.set(key, list);
-  });
-  productsByName.forEach((list, key) => {
-    const supplierIds = new Set(list.map((p: any) => String(p?.supplierId || p?.supplierID || p?.supplier?.id || "")).filter(Boolean));
-    if (supplierIds.size === 1) productByUniqueName.set(key, list[0]);
-  });
-  const supplierById = new Map((Array.isArray(suppliers) ? suppliers : []).map((supplier: any) => [String(supplier?.id || ""), supplier]));
-
-  const enrichRecord = (record: any) => ({
-    ...record,
-    date: record?.date || record?.createdAt || new Date().toISOString(),
-    items: (Array.isArray(record?.items) ? record.items : []).map((item: any) => {
-      const productId = String(item?.productId || item?.id || "").trim();
-      const nameKey = normalizeSupplierLookupName(item?.name || item?.productName);
-      const product = productById.get(productId) || productByUniqueName.get(nameKey);
-      const supplierId = String(item?.supplierId || item?.supplierID || item?.supplier?.id || product?.supplierId || product?.supplierID || product?.supplier?.id || "").trim();
-      const supplier = supplierById.get(supplierId);
-      const costAtTime = Number(item?.costAtTime ?? item?.supplierCost ?? item?.cost ?? product?.cost ?? product?.supplierCost ?? 0) || 0;
-      return removeUndefinedDeep({
-        ...item,
-        productId: productId || product?.id || item?.productId,
-        supplierId: supplierId || item?.supplierId,
-        supplierName: item?.supplierName || item?.supplier?.name || supplier?.name || product?.supplierName,
-        costAtTime: costAtTime > 0 ? costAtTime : item?.costAtTime,
-      });
-    }),
-  });
-
-  const mergeIntoShard = async (key: "orders" | "invoices", incomingMap: Map<string, any>) => {
-    if (incomingMap.size === 0) return;
-    const current = await loadFullAppDataShard(rootRef, key).catch(() => []);
-    const next = Array.isArray(current) ? [...current] : [];
-    let changed = false;
-
-    incomingMap.forEach((rawRecord, id) => {
-      const record = enrichRecord(rawRecord);
-      const index = next.findIndex((item: any) => normalizeBusinessId(item?.id || item?.orderId || item?.invoiceId || item?.invoiceNo) === id);
-      if (index < 0) {
-        next.unshift(record);
-        changed = true;
-        if (key === "orders") result.ordersAdded += 1;
-        else result.invoicesAdded += 1;
-        return;
-      }
-      const merged = { ...next[index], ...record };
-      if (JSON.stringify(merged) !== JSON.stringify(next[index])) {
-        next[index] = merged;
-        changed = true;
-        result.recordsUpdated += 1;
-      }
-    });
-
-    if (changed) {
-      await writeFullAppDataShard(rootRef, key, next, {
-        updatedAt: new Date().toISOString(),
-        lastPaidRootMirror: removeUndefinedDeep({ at: new Date().toISOString(), ...meta }),
-      });
-    }
-  };
-
-  await mergeIntoShard("orders", foundOrders);
-  await mergeIntoShard("invoices", foundInvoices);
-  return result;
-}
-
 // Announces a confirmed payment the moment the gateway confirms it.
 //
 // Why this exists: the alerts worker only ever looks at invoices already mirrored into
@@ -1509,73 +1187,6 @@ async function announcePaidInvoiceInstantly(identifiers: PaymentSyncIdentifiers,
   }
 }
 
-async function getFailureSyncGuard(
-  incomingIdentifiers: PaymentSyncIdentifiers,
-  resolvedIdentifiers: PaymentSyncIdentifiers,
-  meta: any,
-) {
-  if (!db) return { suppress: false, reason: "db_unavailable", paidTargetId: "" };
-
-  const targetIds = uniqueCleanStrings([
-    ...(incomingIdentifiers?.targetIds || []),
-    ...(resolvedIdentifiers?.targetIds || []),
-  ].map(normalizeBusinessId)).filter(Boolean).slice(0, 20);
-
-  const incomingAttemptIds = new Set(uniqueCleanStrings([
-    ...(incomingIdentifiers?.paymentIds || []),
-    ...(incomingIdentifiers?.gatewayOrderIds || []),
-    meta?.paymentId,
-    meta?.payment_id,
-    meta?.trackId,
-    meta?.paymentTrackId,
-    meta?.gatewayOrderId,
-  ].map(normalizePaymentIdentifier)).filter((value) => value && !targetIds.includes(value)));
-
-  for (const targetId of targetIds) {
-    for (const collectionName of ["invoices", "orders"] as const) {
-      try {
-        const snap = await db.collection(collectionName).doc(targetId).get();
-        if (snap.exists && paymentItemAlreadyPaid(snap.data() || {})) {
-          return { suppress: true, reason: `${collectionName}_already_paid`, paidTargetId: targetId };
-        }
-      } catch (error: any) {
-        console.warn(`[PAYMENT_SYNC] Failure guard could not read ${collectionName}/${targetId}:`, error?.message || error);
-      }
-    }
-
-    try {
-      const sessionSnap = await db.collection("paymentSessions").doc(safePaymentSessionDocId(targetId)).get();
-      if (!sessionSnap.exists) continue;
-      const session = sessionSnap.data() || {};
-
-      if (paymentItemAlreadyPaid(session) || String(session?.status || "").toLowerCase() === "paid") {
-        return { suppress: true, reason: "latest_session_already_paid", paidTargetId: targetId };
-      }
-
-      const currentAttemptIds = new Set(uniqueCleanStrings([
-        ...paymentItemPaymentIds(session),
-        ...paymentItemGatewayOrderIds(session),
-        session?.paymentTrackId,
-        session?.trackId,
-        session?.track_id,
-        session?.gatewayOrderId,
-        session?.gateway_order_id,
-      ].map(normalizePaymentIdentifier)).filter(Boolean));
-
-      if (incomingAttemptIds.size > 0 && currentAttemptIds.size > 0) {
-        const belongsToCurrentAttempt = Array.from(incomingAttemptIds).some((id) => currentAttemptIds.has(id));
-        if (!belongsToCurrentAttempt) {
-          return { suppress: true, reason: "stale_failed_attempt", paidTargetId: "" };
-        }
-      }
-    } catch (error: any) {
-      console.warn(`[PAYMENT_SYNC] Failure guard session lookup failed for ${targetId}:`, error?.message || error);
-    }
-  }
-
-  return { suppress: false, reason: "current_attempt", paidTargetId: "" };
-}
-
 async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifiers, state: PaymentSyncState, meta: any = {}) {
   const { identifiersAlreadyResolved, ...metaForSync } = meta || {};
   const identifiers = identifiersAlreadyResolved ? rawIdentifiers : await resolvePaymentSessionTargets(rawIdentifiers);
@@ -1597,42 +1208,16 @@ async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifier
     return { identifiers, root: { updated: 0, skipped: 0 }, shared: { updated: 0, shardsUpdated: 0, rootUpdated: 0, matchedIds: [] as string[] } };
   }
 
-  if (state === "failed") {
-    const guard = await getFailureSyncGuard(rawIdentifiers, identifiers, syncMeta);
-    if (guard.suppress) {
-      console.warn("[PAYMENT_SYNC] Suppressed stale/unsafe failed state:", JSON.stringify({
-        reason: guard.reason,
-        targetIds: identifiers.targetIds,
-        incomingPaymentIds: rawIdentifiers?.paymentIds || [],
-        incomingGatewayOrderIds: rawIdentifiers?.gatewayOrderIds || [],
-      }));
-      return {
-        identifiers,
-        root: { updated: 0, skipped: 0 },
-        shared: { updated: 0, shardsUpdated: 0, rootUpdated: 0, matchedIds: [] as string[] },
-        suppressed: true,
-        suppressedReason: guard.reason,
-        paidTargetId: guard.paidTargetId,
-      };
-    }
-  }
-
   const [root, shared] = await Promise.all([
     syncRootPaymentCollections(identifiers, state, syncMeta),
     syncSharedCompanyPaymentData(identifiers, state, syncMeta),
   ]);
-  const paidRootMirror = state === "paid"
-    ? await mirrorPaidRootRecordsIntoSharedData(identifiers, syncMeta).catch((error: any) => {
-        console.warn("[PAYMENT_MIRROR] Paid root mirror failed safely:", error?.message || error);
-        return { ordersAdded: 0, invoicesAdded: 0, recordsUpdated: 0 };
-      })
-    : { ordersAdded: 0, invoicesAdded: 0, recordsUpdated: 0 };
   void markPaymentSessionsSynced(identifiers, state, syncMeta);
   // Fire-and-forget, exactly like markPaymentSessionsSynced above: the payment result
   // is already committed and must not depend on a notification succeeding.
   if (state === "paid") void announcePaidInvoiceInstantly(identifiers, syncMeta);
 
-  return { identifiers, root, shared, paidRootMirror };
+  return { identifiers, root, shared };
 }
 
 function getUPaymentsTransactionObject(payload: any) {
@@ -1841,12 +1426,7 @@ async function verifyAndSyncUPaymentsInvoice(invoiceId: any, provided: any, apiK
       if (!attempt.ok || !attempt.data || typeof attempt.data === "string") continue;
 
       const meta = extractUPaymentsStatusMeta(attempt.data, String(invoiceId || ""));
-      const attemptIdentifiers = mergePaymentIdentifiers(meta.identifiers, {
-        targetIds: uniqueCleanStrings([normalizeBusinessId(invoiceId)]).filter(Boolean),
-        paymentIds: uniqueCleanStrings([meta.paymentId, meta.trackId, candidateId].map(normalizePaymentIdentifier)).filter((id) => id && !isBusinessIdLike(id)),
-        gatewayOrderIds: uniqueCleanStrings([meta.gatewayOrderId].map(normalizePaymentIdentifier)).filter(Boolean),
-      });
-      identifiers = await resolvePaymentSessionTargets(mergePaymentIdentifiers(identifiers, attemptIdentifiers));
+      identifiers = await resolvePaymentSessionTargets(mergePaymentIdentifiers(identifiers, meta.identifiers));
       const state = meta.state;
 
       if (state === "paid") {
@@ -1874,7 +1454,7 @@ async function verifyAndSyncUPaymentsInvoice(invoiceId: any, provided: any, apiK
       }
 
       if (state === "failed" && !firstFailed) {
-        firstFailed = { attempt, meta, candidateId, attemptIdentifiers };
+        firstFailed = { attempt, meta, candidateId, identifiers: mergePaymentIdentifiers(identifiers, meta.identifiers) };
       }
     } catch (error: any) {
       attempts.push({ candidateId, error: error?.message || String(error) });
@@ -1884,33 +1464,18 @@ async function verifyAndSyncUPaymentsInvoice(invoiceId: any, provided: any, apiK
 
   if (firstFailed) {
     const meta = firstFailed.meta;
-    const failedAttemptIdentifiers = firstFailed.attemptIdentifiers as PaymentSyncIdentifiers;
-    identifiers = await resolvePaymentSessionTargets(failedAttemptIdentifiers);
-    const paymentId = meta.paymentId || firstPaymentId(failedAttemptIdentifiers.paymentIds) || firstFailed.candidateId;
-    const syncResult = await syncPaymentStatusEverywhere(failedAttemptIdentifiers, "failed", {
+    identifiers = await resolvePaymentSessionTargets(firstFailed.identifiers);
+    const paymentId = meta.paymentId || firstPaymentId(identifiers.paymentIds) || firstFailed.candidateId;
+    const syncResult = await syncPaymentStatusEverywhere(identifiers, "failed", {
       source: "payment-status-confirm",
       gatewayResult: meta.rawResult || "failed",
       paymentId,
       trackId: meta.trackId || firstFailed.candidateId,
       paymentTrackId: meta.trackId || firstFailed.candidateId,
-      gatewayOrderId: meta.gatewayOrderId || failedAttemptIdentifiers.gatewayOrderIds[0] || "",
+      gatewayOrderId: meta.gatewayOrderId || identifiers.gatewayOrderIds[0] || "",
       verificationEndpoint: firstFailed.attempt.endpoint,
+      identifiersAlreadyResolved: true,
     });
-
-    if ((syncResult as any)?.suppressed) {
-      const paidTargetId = String((syncResult as any)?.paidTargetId || "");
-      return {
-        verified: Boolean(paidTargetId),
-        state: paidTargetId ? "paid" : "unknown",
-        identifiers: syncResult.identifiers,
-        syncResult,
-        gatewayData: firstFailed.attempt.data,
-        transaction: meta.tx,
-        paymentId,
-        attempts,
-      };
-    }
-
     await rememberPaymentSession({
       orderId: invoiceId,
       invoiceId,
@@ -2235,8 +1800,8 @@ async function initBootCache() {
 
   bootCachePromise = (async () => {
     try {
-      if (!db || !firebaseInitialized) {
-        console.warn("[CACHE] Cannot initialize boot cache yet: Firebase Admin DB is not ready or lacks access.");
+      if (!db) {
+        console.warn("[CACHE] Cannot initialize boot cache yet: Firebase Admin DB is not ready.");
         bootCachePromise = null;
         return;
       }
@@ -2249,7 +1814,7 @@ async function initBootCache() {
       const [rootSnap, ...shardSnaps] = await Promise.all([
         rootRef.get(),
         ...bootKeys.map(key => rootRef.collection("shards").doc(key).get().catch(err => {
-          console.warn(`[CACHE] Failed to get shard doc ${key}:`, err?.message || err);
+          console.error(`[CACHE] Failed to get shard doc ${key}:`, err);
           return { exists: false, data: () => null };
         }))
       ]);
@@ -2272,7 +1837,7 @@ async function initBootCache() {
       console.log(`[CACHE] Stage-1 boot cache hot in ${elapsed}ms! Loaded ${bootKeys.length} essential shards.`);
 
       // Fire off Stage-2 deferred cache in the background right away without stalling the boot
-      initDeferredCache().catch(console.warn);
+      initDeferredCache().catch(console.error);
 
       // Real-time synchronization listeners to keep the cache fully fresh
       rootRef.onSnapshot((snap: any) => {
@@ -2281,7 +1846,7 @@ async function initBootCache() {
           console.log("[CACHE] Root document updated in real-time from Firestore.");
         }
       }, (err: any) => {
-        console.warn("[CACHE] Root real-time sync error:", err?.message || err);
+        console.error("[CACHE] Root real-time sync error:", err);
       });
 
       bootKeys.forEach(key => {
@@ -2291,16 +1856,16 @@ async function initBootCache() {
               appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
               console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
             } catch (decodeError: any) {
-              console.warn(`[CACHE] Failed to decode live boot shard ${key}:`, decodeError?.message || decodeError);
+              console.error(`[CACHE] Failed to decode live boot shard ${key}:`, decodeError?.message || decodeError);
             }
           }
         }, (err: any) => {
-          console.warn(`[CACHE] Real-time sync error for boot key ${key}:`, err?.message || err);
+          console.error(`[CACHE] Real-time sync error for boot key ${key}:`, err);
         });
       });
 
     } catch (err: any) {
-      console.warn("[CACHE] Stage-1 boot cache initialization failed:", err?.message || err);
+      console.error("[CACHE] Stage-1 boot cache initialization failed:", err);
       appDataCache.bootInitialized = false;
       bootCachePromise = null;
     }
@@ -2315,8 +1880,8 @@ async function initDeferredCache() {
 
   deferredCachePromise = (async () => {
     try {
-      if (!db || !firebaseInitialized) {
-        console.warn("[CACHE] Cannot initialize deferred cache: Firebase Admin DB is not ready or lacks access.");
+      if (!db) {
+        console.warn("[CACHE] Cannot initialize deferred cache: Firebase Admin DB is not ready.");
         deferredCachePromise = null;
         return;
       }
@@ -2328,7 +1893,7 @@ async function initDeferredCache() {
 
       const shardSnaps = await Promise.all(
         deferredKeys.map(key => rootRef.collection("shards").doc(key).get().catch(err => {
-          console.warn(`[CACHE] Failed to get deferred shard doc ${key}:`, err?.message || err);
+          console.error(`[CACHE] Failed to get deferred shard doc ${key}:`, err);
           return { exists: false, data: () => null };
         }))
       );
@@ -2353,16 +1918,16 @@ async function initDeferredCache() {
               appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
               console.log(`[CACHE] Live sync: Deferred shard ${key} updated.`);
             } catch (decodeError: any) {
-              console.warn(`[CACHE] Failed to decode live deferred shard ${key}:`, decodeError?.message || decodeError);
+              console.error(`[CACHE] Failed to decode live deferred shard ${key}:`, decodeError?.message || decodeError);
             }
           }
         }, (err: any) => {
-          console.warn(`[CACHE] Real-time sync error for deferred key ${key}:`, err?.message || err);
+          console.error(`[CACHE] Real-time sync error for deferred key ${key}:`, err);
         });
       });
 
     } catch (err: any) {
-      console.warn("[CACHE] Stage-2 deferred cache initialization failed:", err?.message || err);
+      console.error("[CACHE] Stage-2 deferred cache initialization failed:", err);
       appDataCache.fullInitialized = false;
       deferredCachePromise = null;
     }
@@ -2432,6 +1997,41 @@ async function waRequireConsoleAuth(req: any, res: any, next: any) {
     return next();
   } catch {
     return res.status(401).json({ success: false, error: "Unauthorized: invalid or expired session" });
+  }
+}
+
+// Non-blocking variant: reports whether the request carries a valid, allow-listed admin
+// token — WITHOUT rejecting the request. Used to decide if PII (phone numbers) may be
+// included in an otherwise-public response, so no caller is ever broken by a 401.
+async function waIsConsoleAuthed(req: any): Promise<boolean> {
+  try {
+    const header = String(req?.headers?.authorization || "");
+    const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+    if (!token) return false;
+    const decoded: any = await admin.auth().verifyIdToken(token);
+    return waConsoleIdentityAllowed(String(decoded?.uid || ""), String(decoded?.email || ""));
+  } catch {
+    return false;
+  }
+}
+
+// Blanks every phone-like field in place, in a per-request object only. Diwaniya
+// leaderboard data is read by more than the admin console, so customer phone numbers
+// must reach an authenticated admin only — never an anonymous caller. Names and points
+// stay intact (a leaderboard needs them); only phones are cleared.
+function waRedactPhonesDeep(value: any, depth = 0): void {
+  if (!value || typeof value !== "object" || depth > 6) return;
+  if (Array.isArray(value)) {
+    for (const item of value) waRedactPhonesDeep(item, depth + 1);
+    return;
+  }
+  for (const key of Object.keys(value)) {
+    const lower = key.toLowerCase();
+    if ((lower === "mobile" || lower.includes("phone")) && typeof value[key] === "string") {
+      value[key] = "";
+    } else {
+      waRedactPhonesDeep(value[key], depth + 1);
+    }
   }
 }
 const WHATSAPP_TRANSPORT = () => {
@@ -2813,14 +2413,17 @@ async function waAppendConversationMessage(phone: string, message: any) {
 
 function waLooksLikeSupportIntent(text: string) {
   return waIntentMatches(text, [
-    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "الموظف", "اكلم موظف", "ابي اكلم", "ابي احد", "ابي انسان",
-    "كلموني", "اتصلوا", "اتصال", "خدمه العملاء", "خدمة العملاء", "مسؤول", "المسؤول", "اداره", "الاداره",
-    "مشكله", "مشكلة", "عندي مشكله", "شكوى", "اشتكي", "زعلان", "معصب", "مو راضي", "سيء", "غلط", "ناقص",
-    "طلب ناقص", "وصل غلط", "الاكل بارد", "تأخير", "تاخير", "تاخر", "تأخر", "وينكم", "ما وصل", "ماوصل",
-    "ابي اعدل", "تعديل الطلب", "غير الطلب", "اغير الطلب", "الغاء", "الغي", "إلغاء", "كنسل", "cancel",
-    "شالحل", "وش الحل", "وش السواه", "شنسوي", "ابي حل", "تكفون", "افزعوا", "فزعتكم", "لحقوا", "مابي الطلب",
-    "ردوا علي", "ماحد رد", "ما احد رد", "منو المسؤول", "ابي المسؤول", "ابي اكلم الاداره", "ترى الطلب غلط",
-    "support", "agent", "human", "help desk", "customer service", "complaint", "problem", "wrong", "late", "cancel",
+    "4", "دعم", "الدعم", "فريق الدعم", "موظف", "الموظف", "موظفه", "اكلم موظف", "ابي اكلم", "ابي اكلم احد", "ابي احد", "ابي انسان", "ابي بشر",
+    "ابي اكلم واحد", "ودي اكلم موظف", "كلموني", "اتصلوا", "اتصلوا فيني", "اتصال", "دقولي", "خدمه العملاء", "خدمة العملاء",
+    "مسؤول", "المسؤول", "اداره", "الاداره", "الادارة", "صاحب المحل", "المدير", "ابي المدير", "ابي مسؤول",
+    "مشكله", "مشكلة", "عندي مشكله", "عندي مشكلة", "في مشكله", "شكوى", "اشتكي", "اقدم شكوى", "زعلان", "معصب", "متضايق", "مو راضي", "مب راضي", "سيء", "سيئه", "غلط", "ناقص",
+    "طلب ناقص", "الطلب ناقص", "نقص", "وصل غلط", "وصلني غلط", "غلط بالطلب", "الاكل بارد", "الاكل خربان", "خربان", "مب حلو", "مو حلو",
+    "تأخير", "تاخير", "تاخر", "تأخر", "متأخر", "وينكم", "وين الطلب", "ما وصل", "ماوصل", "ما وصلني", "ماجاني", "ما جاني", "ما استلمت",
+    "ابي اعدل", "تعديل الطلب", "اعدل طلبي", "غير الطلب", "اغير الطلب", "ابدل", "ابي ابدل", "الغاء", "الغي", "إلغاء", "ابي الغي", "كنسل", "cancel",
+    "استرجاع", "استرداد", "ابي فلوسي", "رد الفلوس", "ابي استرجع", "شالحل", "وش الحل", "وش السواه", "شنسوي", "ابي حل", "حل المشكله",
+    "تكفون", "تكفين", "افزعوا", "افزعولي", "فزعتكم", "لحقوا", "لحقوني", "مابي الطلب", "ما ابي الطلب", "ابي اكلم الاداره",
+    "ردوا علي", "ماحد رد", "ما احد رد", "محد رد", "منو المسؤول", "ابي المسؤول", "ترى الطلب غلط", "عندي استفسار خاص", "ابي اسال",
+    "support", "agent", "human", "representative", "help desk", "customer service", "complaint", "problem", "issue", "wrong order", "late", "refund", "cancel",
   ]);
 }
 
@@ -3163,67 +2766,67 @@ const WA_BOT_TEXT_DEFS: Array<{ key: string; label: string; hint: string; def: s
     key: "greeting_known",
     label: "الترحيب — عميل معروف (يظهر اسمه)",
     hint: "{name} = اسم العميل من بياناتك",
-    def: "ياهلا {name} 💚 نورت التراث 🇰🇼\nاطلب مباشرة من هني:\n{menu_link}\n\nوإذا تحتاج شي اكتب: منيو · وين طلبي · موظف",
+    def: "أهلاً وسهلاً {name} 🤍\nحيّاك الله في مطبخ التراث الكويتي، نوّرتنا.\n\nتقدر تتصفّح المنيو وتطلب مباشرة من موقعنا:\n{menu_link}\n\nوأنا بخدمتك — إذا حبيت متابعة طلب سابق أو مساعدة من أحد موظفينا، اكتب لي وأنا حاضر.",
   },
   {
     key: "greeting_new",
     label: "الترحيب — عميل جديد",
     hint: "",
-    def: "ياهلا ومرحبا في التراث 🇰🇼\nاطلب مباشرة من هني:\n{menu_link}\n\nوإذا تحتاج شي اكتب: منيو · وين طلبي · موظف",
+    def: "أهلاً وسهلاً بك في مطبخ التراث الكويتي 🤍\nيسعدنا تواصلك معنا.\n\nتقدر تتصفّح المنيو الكامل بالصور والأسعار وتطلب مباشرة من موقعنا:\n{menu_link}\n\nوأنا بخدمتك لأي استفسار — للتحدث مع أحد موظفينا اكتب: موظف.",
   },
   {
     key: "help",
     label: "القائمة الرئيسية",
     hint: "",
-    def: "حياك الله 🤍 اكتب:\n• منيو — الأصناف والأسعار\n• وين طلبي — تتبع طلبك\n• موظف — نكلمك بنفسنا",
+    def: "حيّاك الله 🤍 كيف أقدر أساعدك؟\n\n• للاطّلاع على الأصناف والأسعار — اكتب: منيو\n• لمتابعة طلبك — اكتب: وين طلبي\n• للتحدث مع أحد موظفينا — اكتب: موظف\n\nوأنا جاهز لخدمتك بأي وقت.",
   },
   {
     key: "nudge",
     label: "رد عدم التكرار (بدل إعادة نفس الرسالة)",
     hint: "",
-    def: "إحنا معك 🤍\nقل لي وش تحتاج بالضبط وأخدمك على طول:\n• منيو\n• تتبع طلبي\n• موظف",
+    def: "أنا بخدمتك 🤍\nوضّح لي طلبك أكثر وأخدمك فوراً:\n\n• منيو — الأصناف والأسعار\n• وين طلبي — متابعة طلبك\n• موظف — للتحدث مع فريقنا",
   },
   {
     key: "support",
     label: "التحويل لموظف",
     hint: "",
-    def: "يسعدنا نخدمك 🤍\nاكتب رسالتك الآن وموظفنا بيرد عليك بنفسه بعد قليل.",
+    def: "يسعدنا خدمتك 🤍\nتفضّل بكتابة استفسارك الآن، وسيتواصل معك أحد موظفينا شخصياً خلال لحظات.",
   },
   {
     key: "thanks",
     label: "رد الشكر",
     hint: "{order_link} و {track_link} روابط تلقائية",
-    def: "العفو، حياك الله بأي وقت 🤍\nلطلب جديد:\n{order_link}\n\nولتتبع طلب سابق: {track_link}",
+    def: "العفو، هذا واجبنا وحيّاك الله في أي وقت 🤍\n\n• لطلب جديد: {order_link}\n• لمتابعة طلب سابق: {track_link}\n\nنسعد بخدمتك دائماً.",
   },
   {
     key: "media_received",
     label: "استلام صورة / صوت / موقع",
     hint: "{what} = صورتك / رسالتك الصوتية / موقعك",
-    def: "💚 وصلت {what} ❤️\n\nموظفنا بيشوفها ويرد عليك بنفسه بعد قليل 👌",
+    def: "وصلتنا {what}، شكراً لك 🤍\nأحد موظفينا بيطّلع عليها ويرد عليك شخصياً خلال لحظات.",
   },
   {
     key: "rating_request",
     label: "طلب التقييم (يُرسل يدويًا بعد التوصيل)",
     hint: "{name} = اسم العميل إن وجد",
-    def: "💚 هلا {name} ❤️\nوصلك طلبك من التراث؟ قيّم تجربتك برد واحد:\n\n1️⃣ ممتاز\n2️⃣ جيد\n3️⃣ يحتاج تحسين",
+    def: "أهلاً {name} 🤍\nنتمنّى وصلك طلبك من مطبخ التراث على أكمل وجه. يهمّنا رأيك — قيّم تجربتك برد واحد:\n\n1️⃣ ممتازة\n2️⃣ جيدة\n3️⃣ تحتاج تحسين",
   },
   {
     key: "rating_thanks_good",
     label: "رد التقييم — ممتاز/جيد",
     hint: "",
-    def: "يسعدنا هالكلام 🤍 نورتنا، ونشوفك على خير قريب 🇰🇼",
+    def: "سعدنا بهذا التقييم وأسعدنا رضاك 🤍\nشكراً لثقتك بمطبخ التراث، ونتشرّف بخدمتك دائماً.",
   },
   {
     key: "rating_thanks_bad",
     label: "رد التقييم — يحتاج تحسين",
     hint: "",
-    def: "شكرًا لصراحتك 🤍 رأيك يهمنا، وبيتواصل معك أحد موظفينا يعوّضك.",
+    def: "نشكر لك صراحتك، ونعتذر إن قصّرنا في أي جانب 🤍\nرأيك يهمّنا ويطوّر خدمتنا، وسيتواصل معك أحد موظفينا لتدارك الأمر.",
   },
   {
     key: "menu",
     label: "رد «منيو» — رسالة لطيفة + الرابط",
     hint: "{menu_link} = رابط المنيو التلقائي",
-    def: "💚 هلا والله ❤️\nمنيونا كامل بالصور والأسعار هني:\n{menu_link}\n\nواكتب اسم أي صنف وأعطيك سعره 👌",
+    def: "حيّاك الله في مطبخ التراث الكويتي 🤍\n\nتفضّل منيونا الكامل بالصور والأسعار والتفاصيل، والطلب مباشر وآمن من موقعنا:\n{menu_link}\n\nوإذا حبيت نساعدك في اختيارك أو في كمية تكفي عدد معيّن، اكتب: موظف — ويسعدنا خدمتك.",
   },
 ];
 
@@ -3548,6 +3151,15 @@ function waThanksReply() {
 // Greets a known customer by the name already on their record. Falls back to the
 // plain greeting for anyone we do not have, so a stranger is never told we looked.
 // The name is warmth, not data disclosure: balances and addresses still require asking.
+// A living, time-aware Kuwaiti salutation. Kuwait is UTC+3 year-round (no DST), so the
+// local hour is a plain offset from the server's UTC clock — no timezone library needed.
+function waKuwaitTimeSalutation(): string {
+  const kuwaitHour = (new Date().getUTCHours() + 3) % 24;
+  if (kuwaitHour >= 4 && kuwaitHour < 11) return "صباح الخير 🌅";
+  if (kuwaitHour >= 11 && kuwaitHour < 17) return "نهارك سعيد ☀️";
+  return "مساء الخير 🌙";
+}
+
 async function waGreetingReply(fromPhone = "") {
   let name = "";
   try {
@@ -3557,7 +3169,12 @@ async function waGreetingReply(fromPhone = "") {
     // A lookup problem must never cost the customer their greeting.
     console.warn("[WHATSAPP] Greeting name lookup failed; using the default:", error?.message || error);
   }
-  return name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
+  // Lead with the time-of-day salutation so the bot feels attentive and alive, then the
+  // owner's editable welcome. If the owner has customized the welcome to already open
+  // with a salutation, we don't double it.
+  const body = name ? waBotText("greeting_known", { name }) : waBotText("greeting_new");
+  const alreadyGreets = /^(صباح|مساء|نهارك|تصبح|مسا|صبح)/.test(body.trim());
+  return alreadyGreets ? body : `${waKuwaitTimeSalutation()}\n${body}`;
 }
 
 
@@ -3605,21 +3222,70 @@ function waStripArabicArticle(value: string) {
 }
 
 function waFindZoneByText(zones: any[], text: string) {
-  const clean = waNormalizeArabic(text);
+  // "سلام عليكم" is a greeting, not منطقة السلام: a customer opening with السلام عليكم
+  // used to get quoted the السلام zone price while his real area was ignored. The
+  // greeting pair is dropped before any zone name is looked for.
+  const clean = waNormalizeArabic(text)
+    .replace(/(?:ال)?سلامو?\s+عليكم/g, " ")
+    .replace(/عليكم\s+(?:ال)?سلام/g, " ")
+    .replace(/(?:ال)?سلام\s+عليج/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!clean) return null;
   // Compare word by word so "فنطاس" inside a sentence still matches.
   const words = clean.split(/[\s،,.؟?!]+/).map(waStripArabicArticle).filter((w) => w.length >= 3);
   if (!words.length) return null;
+
+  // "الاندلي" is الأندلس with one slipped letter. A shared prefix covering all but the
+  // last letter of the zone name (and at least 4 letters) accepts that slip without
+  // letting "السالم" claim السالمية: there the prefix falls a letter short.
+  const sharedPrefixLen = (a: string, b: string) => {
+    let i = 0;
+    while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+    return i;
+  };
 
   const hit = zones
     .filter((z) => {
       const bare = waStripArabicArticle(z.name);
       if (bare.length < 3) return false;
       // Multi-word zone names ("أبو حليفة") are matched against the whole sentence.
-      return bare.includes(" ") ? clean.includes(bare) : words.some((w) => w === bare || w.includes(bare));
+      if (bare.includes(" ")) return clean.includes(bare);
+      return words.some((w) =>
+        w === bare
+        || w.includes(bare)
+        || (w.length >= 4 && bare.length >= 4 && sharedPrefixLen(w, bare) >= Math.max(4, bare.length - 1))
+      );
     })
     .sort((a, b) => b.name.length - a.name.length)[0];
   return hit || null;
+}
+
+// One voice for a priced zone wherever it is answered from.
+function waZonePriceText(zone: any) {
+  return [
+    "حياك الله 🤍",
+    `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
+    "",
+    "🛒 للطلب:",
+    waNewOrderUrl(),
+  ].join("\n");
+}
+
+// The bot asks "اكتب اسم منطقتك" — and the customer answers with just the area name,
+// no delivery word around it ("الأندلس"). A short message naming a priced zone IS the
+// delivery question; anything longer keeps its normal routing.
+async function waZoneOnlyDeliveryReply(messageText: string) {
+  // A bare greeting that happens to share a name with a delivery zone ("السلام",
+  // "سلام") is a greeting — never quote it a zone price. Only "توصيل السلام" and the
+  // like (which carry a delivery word) reach waDeliveryReply and match the zone there.
+  if (waIsPureGreeting(messageText)) return "";
+  const wordCount = waNormalizeArabic(messageText).split(/\s+/).filter(Boolean).length;
+  if (!wordCount || wordCount > 3) return "";
+  const zones = await waDeliveryZones();
+  if (!zones.length) return "";
+  const zone = waFindZoneByText(zones, messageText);
+  return zone ? waZonePriceText(zone) : "";
 }
 
 async function waDeliveryReply(messageText: string) {
@@ -3628,13 +3294,7 @@ async function waDeliveryReply(messageText: string) {
 
   const zone = waFindZoneByText(zones, messageText);
   if (zone) {
-    return [
-      "حياك الله 🤍",
-      `توصيل ${zone.name}: ${waMoneyText(zone.price)} د.ك`,
-      "",
-      "🛒 للطلب:",
-      waNewOrderUrl(),
-    ].join("\n");
+    return waZonePriceText(zone);
   }
 
   const prices = [...new Set(zones.map((z: any) => z.price))].sort((a: number, b: number) => a - b);
@@ -3942,6 +3602,10 @@ function waLooksLikeServesIntent(text: string) {
 }
 
 async function waProductReply(messageText: string) {
+  // Typing a product name ("مجبوس دجاج", "ورق العنب") answers with that item's real
+  // details — price, availability, pieces, serves, minimum order, and add-ons — read
+  // straight from the owner's own product records. A bare "منيو"/"الأسعار" (no product
+  // named) still gets the site link, because it never reaches a product match here.
   const shared = await waLoadSharedData(["products"]);
   const asksAvailability = waLooksLikeAvailabilityIntent(messageText);
   const asksPieces = waLooksLikePiecesIntent(messageText);
@@ -4042,33 +3706,45 @@ async function waProductReply(messageText: string) {
 
 function waLooksLikeNewOrderIntent(text: string) {
   return waIntentMatches(text, [
-    "طلب جديد", "ابي اطلب", "أبي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "نبي نطلب",
-    "اطلب", "اطلب منكم", "اطلب الحين", "اطلب اونلاين", "ابي اوردر", "اوردر", "طلب", "اشتري", "شراء",
-    "ودنا نطلب", "ودّي اطلب", "ودي اطلب", "بغيت اطلب", "نبي غدا", "نبي عشا", "ابي غدا", "ابي عشا",
-    "جهزوا لنا", "عطنا طلب", "خل نسوي طلب", "بسوي طلب", "عطني رابط الطلب", "طرش رابط الطلب", "دز رابط الطلب",
-    "سلة", "السله", "السلة", "new order", "order now", "order", "make order", "place order", "buy", "shop",
+    "طلب جديد", "ابي اطلب", "أبي اطلب", "ابغى اطلب", "ابغي اطلب", "ابا اطلب", "اريد اطلب", "نبي نطلب", "نبغى نطلب", "نبغي نطلب",
+    "اطلب", "اطلب منكم", "اطلب الحين", "اطلب اونلاين", "ابي اوردر", "اوردر", "طلب", "اشتري", "شراء", "ابي اشتري", "بشتري",
+    "ودنا نطلب", "ودّي اطلب", "ودي اطلب", "بغيت اطلب", "بغيت", "ابغى", "ابغي", "اباه", "ابيه", "نبيه", "نباه", "ياخي ابي",
+    "نبي غدا", "نبي عشا", "ابي غدا", "ابي عشا", "ابي فطور", "نبي فطور", "ابي غداء", "ابي عشاء", "نبي وليمه", "ابي وليمه",
+    "جهزوا لنا", "جهزولي", "عطنا طلب", "عطني طلب", "خل نسوي طلب", "بسوي طلب", "اسوي طلب", "نسوي اوردر", "احجز", "ابي احجز",
+    "عطني رابط الطلب", "طرش رابط الطلب", "دز رابط الطلب", "دزلي رابط الطلب", "ورني رابط الطلب", "رابط الطلب",
+    "سلة", "السله", "السلة", "كارت", "cart", "new order", "order now", "order", "make order", "place order", "buy", "shop", "i want to order",
   ]);
 }
 
 function waLooksLikeMenuIntent(text: string) {
   return waIntentMatches(text, [
-    "منيو", "المنيو", "قائمه", "قائمة", "القائمة", "المنيوهات", "المنتجات", "منتجات", "اصناف", "الأصناف", "الاصناف",
-    "شنو عندكم", "اش عندكم", "وش عندكم", "عندكم شنو", "عندكم شي", "الاسعار", "الأسعار", "اسعاركم", "سعر", "كم السعر", "جم السعر",
-    "ابي اشوف", "بشوف", "ابي المنيو", "ارسل المنيو", "دز المنيو", "دزلي المنيو", "لينك المنيو", "رابط المنيو",
-    "طرش المنيو", "طرشلي المنيو", "عطني المنيو", "عطنا المنيو", "بجم", "بكم", "جم", "كم", "وش الاسعار", "شنهي الاصناف",
-    "شنو الموجود", "وش الموجود", "شنو متوفر", "وش متوفر", "عندكم عيش", "عندكم سمج", "عندكم ورق عنب", "عندكم محاشي",
-    "menu", "catalog", "products", "items", "prices", "price list",
+    // القائمة والأصناف
+    "منيو", "المنيو", "منو", "المنو", "قائمه", "قائمة", "القائمة", "لستة", "اللستة", "المنيوهات", "المنتجات", "منتجات",
+    "اصناف", "الأصناف", "الاصناف", "صنف", "الصنف", "الاكلات", "اكلات", "الاكل", "اكلكم", "طبخاتكم", "الطبخات",
+    // شنو عندكم (حضري + بدوي)
+    "شنو عندكم", "اش عندكم", "وش عندكم", "ايش عندكم", "شعندكم", "وشعندكم", "عندكم شنو", "عندكم شي", "عندكم ايش",
+    "شنو تبيعون", "وش تبيعون", "شتبيعون", "شنو موجود", "شنو الموجود", "وش الموجود", "شنو متوفر", "وش متوفر", "شفيه عندكم",
+    // الأسعار (حضري + بدوي: بجم/بكم/جم/كم/قداش)
+    "الاسعار", "الأسعار", "اسعاركم", "اسعار", "السعر", "سعر", "كم السعر", "جم السعر", "بجم", "بكم", "جم", "بقداش", "قداش", "كم يكلف", "كم يجي",
+    "وش الاسعار", "شنو الاسعار", "شكو اسعار", "سعرها كم", "كم سعرها", "كم سعره", "بجم الصحن", "بجم الطبق", "كم الصحن",
+    // اطلب لي / أرسل المنيو
+    "ابي اشوف", "بشوف", "ورني", "ورونا", "وريني", "ابي المنيو", "ارسل المنيو", "ارسلي المنيو", "دز المنيو", "دزلي المنيو",
+    "لينك المنيو", "رابط المنيو", "طرش المنيو", "طرشلي المنيو", "عطني المنيو", "عطنا المنيو", "ابغى المنيو", "ودي اشوف المنيو",
+    // ذكر أصناف شائعة (يوجّه للمنيو)
+    "عندكم عيش", "عندكم سمج", "عندكم سمك", "عندكم ورق عنب", "عندكم محاشي", "عندكم مجبوس", "عندكم مربيان", "عندكم ربيان", "عندكم مطبق",
+    "menu", "catalog", "products", "items", "prices", "price list", "how much", "what do you have", "food list",
   ]);
 }
 
 function waLooksLikeTrackIntent(text: string) {
   return waIntentMatches(text, [
-    "تتبع", "تتبع الطلب", "تتبع طلبي", "طلبي", "طلبى", "وين طلبي", "وين الطلب", "حاله", "حالة", "حالة الطلب",
-    "وين وصل", "وصل طلبي", "متى يوصل", "متى الوصول", "متى التوصيل", "التتبع", "رابط التتبع",
-    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "دفعت", "تم الدفع", "خلصت دفع", "وصلني", "وصل",
-    "وينه", "وينه طلبي", "وينها", "متى ياصل", "متى يوصلني", "متى يجي", "متى تجون", "ياصلنا متى", "ابي اعرف طلبي",
-    "شيك على طلبي", "شيكلي على طلبي", "طمني على الطلب", "دور طلبي", "شوف طلبي", "طلبي وين", "الحاله",
-    "invoice", "track", "tracking", "status", "my order", "where is my order", "paid", "payment done",
+    "تتبع", "تتبع الطلب", "تتبع طلبي", "اتتبع", "طلبي", "طلبى", "طلبيه", "وين طلبي", "وين الطلب", "حاله", "حالة", "حالة الطلب", "حالت الطلب",
+    "وين وصل", "وصل طلبي", "متى يوصل", "متى الوصول", "متى التوصيل", "التتبع", "رابط التتبع", "وين صار طلبي", "صار وين طلبي",
+    "فاتوره", "فاتورة", "فواتير", "رقم الفاتوره", "رقم الفاتورة", "وصلني", "وصل", "طلبي متأخر", "ليش تأخر", "ليش متأخر طلبي",
+    "وينه", "وينه طلبي", "وينها", "وينه الطلب", "متى ياصل", "متى يوصلني", "متى يجي", "متى تجون", "متى بيجي", "ياصلنا متى", "ابي اعرف طلبي",
+    "شيك على طلبي", "شيكلي على طلبي", "طمني على الطلب", "طمنوني", "دور طلبي", "دورولي طلبي", "شوف طلبي", "شوفولي طلبي", "طلبي وين", "الحاله",
+    "المندوب وين", "وين المندوب", "وين الدليفري", "الدليفري وين", "قرب المندوب", "متى يجيني المندوب",
+    "invoice", "track", "tracking", "status", "my order", "where is my order", "where is my order now", "order status",
   ]);
 }
 
@@ -4089,13 +3765,47 @@ function waLooksLikePaymentDoneIntent(text: string) {
   ]);
 }
 
+// Kuwaiti/Gulf/MSA greetings — bedouin ("يا هلا والله"، "حياك"), urban/hadhari
+// ("هلا والله"، "أهلين")، and formal ("السلام عليكم ورحمة الله"). Kept wide on purpose:
+// a greeting we miss falls through to a wrong branch, which is exactly the السلام bug.
+const WA_GREETING_WORDS = [
+  "هلا", "هلاو", "هلابك", "هلين", "ياهلا", "يا هلا", "هلا والله", "هلا وغلا", "هلا بيك", "هلا فيك", "هلا فيكم", "هلا بالربع",
+  "مرحبا", "مراحب", "مرحبتين", "يا مرحبا", "اهلا", "اهلين", "اهلا وسهلا", "اهلا فيك",
+  "السلام", "السلام عليكم", "سلام", "سلامو عليكم", "سلام عليكم", "عليكم السلام", "سلامات",
+  "صباح الخير", "صباح النور", "صباح الفل", "صباح الورد", "مساء الخير", "مساء النور", "مساء الفل",
+  "صبحكم الله بالخير", "مساكم الله بالخير", "صبحك الله بالخير", "مساك الله بالخير",
+  "حي الله", "حيالله", "حياك", "حياكم", "حياك الله", "حياكم الله", "الله يحييك", "يا حي الله", "يا هلا وياك",
+  "شخبارك", "شخبارج", "شخباركم", "شلونك", "شلونج", "شلونكم", "اشلونك", "چيفك", "كيفك", "كيف الحال", "عساك طيب", "عساكم طيبين",
+  "هاي", "هالو", "الو", "يوهو", "هلوو",
+  "hi", "hii", "hello", "helo", "hey", "heyy", "salam", "salamu", "asalam", "assalam", "good morning", "good evening", "good afternoon",
+];
+
 function waLooksLikeGreeting(text: string) {
-  const s = waNormalizeArabic(text);
-  return waIntentMatches(s, [
-    "هلا", "ياهلا", "مرحبا", "السلام", "السلام عليكم", "صباح الخير", "مساء الخير", "هاي", "الو", "اهلا", "اهلين",
-    "حياكم", "حياك", "حي الله", "حيالله", "مساكم الله بالخير", "صبحكم الله بالخير", "هلا والله", "يا مرحبا",
-    "hi", "hello", "hey", "salam", "good morning", "good evening",
-  ]);
+  return waIntentMatches(text, WA_GREETING_WORDS);
+}
+
+// A message that is ONLY a greeting (nothing actionable left after the greeting words
+// are removed) must be greeted — not routed to delivery, menu, or a zone name. This is
+// the root of the "السلام" bug: bare "السلام" matched the السلام delivery zone and got
+// quoted a price. Anything with real content ("السلام عليكم بجم المجبوس") keeps its
+// normal routing because leftover words remain after stripping the greeting.
+function waIsPureGreeting(text: string) {
+  let s = waNormalizeArabic(text);
+  if (!s) return false;
+  // Remove common companions of a greeting so they don't count as "content".
+  const fillers = [
+    "ورحمه الله", "وبركاته", "وبركا ته", "ورحمة", "وبركاته", "يا", "الله", "و", "عليكم", "عليك",
+    "اخوي", "اختي", "اخي", "استاذ", "حبيبي", "عزيزي", "الغالي", "الغاليه", "بعد", "لو سمحت", "لوسمحت", "ممكن", "من فضلك",
+  ];
+  // Longest first, so "حياكم" is removed whole before "حياك" can leave a stray "م".
+  const strip = [...WA_GREETING_WORDS, ...fillers]
+    .map(waNormalizeArabic)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  for (const word of strip) s = s.split(word).join(" ");
+  s = s.replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
+  // Nothing meaningful left → it was purely a greeting.
+  return s.length === 0 && waLooksLikeGreeting(text);
 }
 
 function waLooksLikeHelpIntent(text: string) {
@@ -4114,10 +3824,12 @@ function waLooksLikeDeliveryInfoIntent(text: string) {
 function waLooksLikeThanksIntent(text: string) {
   const s = waNormalizeArabic(text);
   return waIntentMatches(s, [
-    "شكرا", "مشكور", "يعطيك العافيه", "يعطيكم العافيه", "تمام", "اوكي", "بيض الله وجهك", "بيض الله وجيهكم",
-    "تسلم", "تسلمون", "ما قصرت", "ماقصرت", "كفو", "جزاك الله خير", "عساكم عالقوه", "عساكم عالقوة",
-    "ok", "thanks", "thank you",
-  ]) && s.length <= 50;
+    "شكرا", "شكراً", "مشكور", "مشكورين", "مشكوره", "يعطيك العافيه", "يعطيكم العافيه", "الله يعطيك العافيه", "تمام", "تمام التمام",
+    "اوكي", "اوك", "زين", "زينه", "بيض الله وجهك", "بيض الله وجيهكم", "بيّض الله وجهك", "الله يبيض وجهك",
+    "تسلم", "تسلمون", "تسلم ايدك", "ما قصرت", "ماقصرت", "ما قصرتو", "ماقصرتو", "كفو", "كفوو", "جزاك الله خير", "جزاكم الله خير",
+    "عساكم عالقوه", "عساكم عالقوة", "عسل", "يا بعدي", "الله يوفقكم", "ربي يحفظكم", "الله يسعدكم", "فديتكم", "ما شاء الله عليكم",
+    "ok", "okay", "thanks", "thank you", "thx", "appreciate it",
+  ]) && s.length <= 60;
 }
 
 // Account details are never volunteered. They are sent only when the customer asks
@@ -4165,17 +3877,20 @@ const WA_HANDOFF_MARKER = "__WA_HANDOFF__";
 
 function waLooksLikeDeliveryIntent(text: string) {
   return waIntentMatches(text, [
-    "توصيل", "التوصيل", "رسوم التوصيل", "سعر التوصيل", "كم التوصيل", "جم التوصيل",
-    "الدليفري", "دليفري", "توصلون", "توصلولي", "يوصل عندي", "منطقتي", "المنطقه", "المنطقة",
-    "مناطق", "المناطق", "تغطون", "تغطي", "delivery",
+    "توصيل", "التوصيل", "رسوم التوصيل", "سعر التوصيل", "كم التوصيل", "جم التوصيل", "بجم التوصيل", "قداش التوصيل",
+    "الدليفري", "دليفري", "توصلون", "توصلولي", "توصلون لي", "يوصل عندي", "يوصلني", "توصلون عندنا", "توصلون البيت", "توصلون للبيت",
+    "منطقتي", "المنطقه", "المنطقة", "مناطق", "المناطق", "تغطون", "تغطي", "تغطون منطقتي", "توصلون منطقتي",
+    "كم رسوم", "كم اجور التوصيل", "اجور التوصيل", "قيمة التوصيل", "التوصيل بكم", "التوصيل جم", "توصلون الديره", "توصلون بره",
+    "delivery", "delivery fee", "do you deliver", "shipping",
   ]);
 }
 
 function waLooksLikeHoursIntent(text: string) {
   return waIntentMatches(text, [
-    "دوام", "الدوام", "متى تفتحون", "متى تسكرون", "وقت الدوام", "اوقات العمل", "أوقات العمل",
-    "ساعات العمل", "متى تفتح", "متى تسكر", "مفتوح", "مفتوحين", "شغالين", "تشتغلون",
-    "الى متى", "إلى متى", "من متى", "opening", "hours", "open",
+    "دوام", "الدوام", "دوامكم", "متى تفتحون", "متى تسكرون", "متى تبنون", "وقت الدوام", "اوقات العمل", "أوقات العمل", "اوقاتكم", "وقتكم",
+    "ساعات العمل", "متى تفتح", "متى تسكر", "متى تبطلون", "متى تقفلون", "مفتوح", "مفتوحين", "شغالين", "تشتغلون", "دايمين", "مسكرين", "مقفلين",
+    "الى متى", "إلى متى", "من متى", "متى تشتغلون", "متى تستقبلون طلبات", "لين متى", "لين كم", "الحين مفتوحين", "تستقبلون طلبات",
+    "opening", "opening hours", "hours", "open", "are you open", "closing time", "working hours",
   ]);
 }
 
@@ -4183,12 +3898,21 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   const clean = waNormalizeArabic(messageText);
   if (waLooksLikeSupportIntent(messageText)) return waSupportReply();
 
+  // A bare greeting is greeted first — before delivery/zone matching — so "السلام"
+  // (hello) is never mistaken for the السلام delivery zone.
+  if (waIsPureGreeting(messageText)) return waGreetingReply(fromPhone);
+
   // Answered from the owner's own zone table and opening-hours schedule. Each helper
   // returns "" when its data is missing, so we simply fall through to the existing
   // rules rather than invent an answer.
   if (waLooksLikeDeliveryIntent(messageText)) {
     const delivery = await waDeliveryReply(messageText);
     if (delivery) return delivery;
+  }
+  {
+    // A bare area name ("الأندلس") is the customer answering the delivery question.
+    const zoneOnly = await waZoneOnlyDeliveryReply(messageText);
+    if (zoneOnly) return zoneOnly;
   }
   if (waLooksLikeHoursIntent(messageText)) {
     const hours = await waHoursReply();
@@ -4212,6 +3936,8 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   }
   if (clean === "3") return waMenuReply();
   if (waLooksLikeHelpIntent(messageText)) return waHelpReply();
+  // A named product gets its own details first (price, add-ons, availability...). Only
+  // a bare "منيو"/"الأسعار" with no product in it falls through to the site link below.
   const earlyProductReply = await waProductReply(messageText);
   if (earlyProductReply) return earlyProductReply;
   if (waLooksLikeMenuIntent(messageText)) return waMenuReply();
@@ -4517,7 +4243,7 @@ async function waSendText(to: string, body: string, options: any = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    console.warn("[WHATSAPP] Send failed with status:", response.status);
+    console.warn("[WHATSAPP] Send failed:", response.status, JSON.stringify(payload).slice(0, 1000));
   }
   return { ok: response.ok, status: response.status, payload };
 }
@@ -4571,9 +4297,18 @@ async function waProcessInboundMessage({
     waMessageId: messageId,
     raw,
   });
-  await waIncrementUnread(cleanFrom);
 
   let conversation = await waGetConversation(cleanFrom);
+
+  // While the owner is answering this chat himself (manual reply inside the human
+  // window) the unread badge stays quiet too — he is reading it on the phone, and a
+  // climbing red counter in the console for a chat he is inside is pure noise. Once
+  // he goes silent past the window, unread counts pile up again exactly as before.
+  const ownerLastReplyMs = waDateMs(conversation?.humanLastReplyAt);
+  const ownerActivelyHandling = conversation?.mode === "human"
+    && ownerLastReplyMs > 0
+    && Date.now() - ownerLastReplyMs < WHATSAPP_HUMAN_AUTO_RESUME_MINUTES * 60 * 1000;
+  if (!ownerActivelyHandling) await waIncrementUnread(cleanFrom);
   if (waHumanModeExpired(conversation)) {
     await waUpsertConversation(cleanFrom, {
       mode: "bot",
@@ -4630,19 +4365,30 @@ async function waProcessInboundMessage({
   // "منيو": the owner's wife answered a customer, he typed منيو, and the bot barged
   // in. When a person is talking, the bot's only job is to notify, never to speak.
   if (conversation?.mode === "human") {
-    await waUpsertConversation(cleanFrom, {
-      status: "needs_support",
-      priority: conversation?.priority || "high",
-      supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
-    });
-    const pushResult = await waSendHumanSupportPush({
-      phone: cleanFrom,
-      text: cleanText || `[${cleanType}]`,
-      contactName,
-      messageId,
-      reason: "already_human",
-    });
-    sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
+    // While the owner is answering this chat himself (his manual reply — phone or
+    // console — is inside the human window), the whole system stays quiet about it:
+    // no push, no "needs_support" escalation lighting up every corner of the console.
+    // Each reply he sends refreshes the window; once he goes silent past it, a waiting
+    // customer escalates and alerts exactly as before.
+    if (ownerActivelyHandling) {
+      await waUpsertConversation(cleanFrom, { status: "open" });
+      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", skipped: true, mutedBy: "owner_active_reply" });
+      console.log(`[WHATSAPP] Quiet mode for ${waMaskPhone(cleanFrom)} — owner replied ${Math.round((Date.now() - ownerLastReplyMs) / 60000)}m ago and is handling this chat himself.`);
+    } else {
+      await waUpsertConversation(cleanFrom, {
+        status: "needs_support",
+        priority: conversation?.priority || "high",
+        supportRequestedAt: conversation?.supportRequestedAt || waNowIso(),
+      });
+      const pushResult = await waSendHumanSupportPush({
+        phone: cleanFrom,
+        text: cleanText || `[${cleanType}]`,
+        contactName,
+        messageId,
+        reason: "already_human",
+      });
+      sendResults.push({ to: cleanFrom, channel: "admin_push", reason: "already_human", ...(pushResult || {}) });
+    }
     console.log(`[WHATSAPP] Conversation ${waMaskPhone(cleanFrom)} is in human support mode. Auto-reply skipped.`);
   } else if (cleanText && waLooksLikeBackToBotIntent(cleanText)) {
     await waUpsertConversation(cleanFrom, { mode: "bot", status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 });
@@ -4694,6 +4440,8 @@ async function waProcessInboundMessage({
     // missing, and the rules take over exactly as before.
     let groundedReply = "";
     if (cleanText && waLooksLikeDeliveryIntent(cleanText)) groundedReply = await waDeliveryReply(cleanText);
+    // A bare area name ("الأندلس") answers the bot's own "اكتب اسم منطقتك".
+    if (!groundedReply && cleanText) groundedReply = await waZoneOnlyDeliveryReply(cleanText);
     if (!groundedReply && cleanText && waLooksLikeHoursIntent(cleanText)) groundedReply = await waHoursReply();
 
     const customRule = groundedReply ? null : (cleanText ? await waFindCustomAutoReply(cleanText, cleanFrom) : null);
@@ -4769,7 +4517,12 @@ async function waProcessInboundMessage({
       // Conversations from before this field existed: keep the old behaviour rather
       // than risk double-sending a long welcome.
       : true;
-  if (reply && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
+  // The anti-repeat nudge exists only to avoid sending the long WELCOME twice in a row.
+  // It must never swallow an informational answer: a customer asking about one product
+  // after another ("بجم ورق العنب" ثم "ورق العنب") should get the menu link every time,
+  // not a generic "شنو تحتاج؟". So the menu reply is exempt from the repeat check.
+  const replyIsMenu = waString(reply).trim() === waString(waBotText("menu")).trim();
+  if (reply && !replyIsMenu && withinSameExchange && waString(conversation?.lastOutboundText || "").trim() === waString(reply).trim()) {
     reply = waRepeatNudgeReply();
   }
 
@@ -5311,11 +5064,21 @@ async function waMaybeSendDailySummary() {
   const todayKey = new Date(now2KuwaitDateOnly()).toISOString().slice(0, 10);
   const stateRef = db.collection("whatsappSettings").doc("dailySummaryState");
   try {
-    const state = await stateRef.get();
-    if (waString(state.data()?.lastSentDay) === todayKey) return; // already sent today
+    // Claim today ATOMICALLY before building/sending. The old code did a plain read
+    // ("already sent today?") and only wrote the flag AFTER the slow build+send. Two
+    // runner passes — or two Cloud Run instances — both passed that read during the gap
+    // and each fired the broadcast, so everyone received the summary twice. A Firestore
+    // transaction lets exactly one caller win the claim; every other caller aborts here.
+    const claimed = await db.runTransaction(async (tx: any) => {
+      const snap = await tx.get(stateRef);
+      if (waString(snap.data()?.lastSentDay) === todayKey) return false; // already claimed today
+      tx.set(stateRef, { lastSentDay: todayKey, claimedAt: waNowIso() }, { merge: true });
+      return true;
+    });
+    if (!claimed) return; // another pass/instance already owns today's summary
 
     const summary = await waBuildDailySummary();
-    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }); return; }
+    if (!summary) { await stateRef.set({ lastSentDay: todayKey, skipped: true, at: waNowIso() }, { merge: true }); return; }
 
     await sendSmartAlertPushNotification({
       title: "☀️ ملخص التراث اليومي",
@@ -5327,7 +5090,7 @@ async function waMaybeSendDailySummary() {
       notificationTag: "daily-summary",
       targetRoles: ["admin", "partner"],
     });
-    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) });
+    await stateRef.set({ lastSentDay: todayKey, sent: true, at: waNowIso(), preview: summary.text.slice(0, 200) }, { merge: true });
     console.log(`[SUMMARY] Daily summary sent for ${todayKey}.`);
   } catch (error: any) {
     console.warn("[SUMMARY] Daily summary failed:", error?.message || error);
@@ -5553,6 +5316,9 @@ app.post("/api/whatsapp/bridge/inbound", async (req, res) => {
       await waUpsertConversation(from, {
         mode: "human",
         status: "open",
+        // He answered from the phone, so he has obviously read the chat — clear the
+        // console's unread badge exactly as a console reply does.
+        unreadCount: 0,
         lastMessageText: text || `[${type}]`,
         lastMessageDirection: "outbound",
         lastOutboundText: text,
@@ -5681,11 +5447,18 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
       void (async () => {
         try {
           const ref = db!.collection("whatsappSettings").doc("bridgeAuthAlert");
-          const snap = await ref.get();
-          const lastAt = waDateMs(snap.data()?.notifiedAt);
-          // One alert per hour: enough to be heard, not enough to become noise.
-          if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return;
-          await ref.set({ notifiedAt: waNowIso() });
+          // Atomic throttle: claim the hour window in a transaction so two heartbeats
+          // (or two Cloud Run instances) can't both pass the "one per hour" check and
+          // each send the re-auth alert.
+          const claimed = await db!.runTransaction(async (tx: any) => {
+            const snap = await tx.get(ref);
+            const lastAt = waDateMs(snap.data()?.notifiedAt);
+            // One alert per hour: enough to be heard, not enough to become noise.
+            if (lastAt > 0 && Date.now() - lastAt < 60 * 60 * 1000) return false;
+            tx.set(ref, { notifiedAt: waNowIso() }, { merge: true });
+            return true;
+          });
+          if (!claimed) return;
           await sendSmartAlertPushNotification({
             title: "🔑 واتساب يحتاج إعادة ربط",
             body: "البوت متوقف عن الرد. افتح مركز الواتساب وامسح رمز QR.",
@@ -6016,13 +5789,63 @@ app.get("/api/cloud-health", async (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   const now = Date.now();
 
-  return res.json({
-    success: true,
-    firestoreReachable: true,
-    documentExists: true,
-    cached: false,
-    ts: now,
-  });
+  if (!db || !firebaseInitialized) {
+    return res.status(503).json({
+      success: false,
+      firestoreReachable: false,
+      reason: "firestore_not_ready",
+      ts: now,
+    });
+  }
+
+  if (now - cloudHealthCache.checkedAt < 4_000) {
+    const status = cloudHealthCache.reachable ? 200 : 503;
+    return res.status(status).json({
+      success: cloudHealthCache.reachable,
+      firestoreReachable: cloudHealthCache.reachable,
+      documentExists: cloudHealthCache.documentExists,
+      cached: true,
+      error: cloudHealthCache.error || undefined,
+      ts: now,
+    });
+  }
+
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("FIRESTORE_HEALTH_TIMEOUT")), 4_500);
+    });
+    const snap: any = await Promise.race([
+      db.collection("appData").doc("shared_company_data").get(),
+      timeout,
+    ]);
+
+    cloudHealthCache = {
+      checkedAt: Date.now(),
+      reachable: true,
+      documentExists: Boolean(snap?.exists),
+      error: "",
+    };
+    return res.json({
+      success: true,
+      firestoreReachable: true,
+      documentExists: cloudHealthCache.documentExists,
+      cached: false,
+      ts: Date.now(),
+    });
+  } catch (error: any) {
+    cloudHealthCache = {
+      checkedAt: Date.now(),
+      reachable: false,
+      documentExists: false,
+      error: error?.message || String(error),
+    };
+    return res.status(503).json({
+      success: false,
+      firestoreReachable: false,
+      error: cloudHealthCache.error,
+      ts: Date.now(),
+    });
+  }
 });
 
 // Proactive warm-up: kick the boot cache without blocking the caller. The client
@@ -6043,7 +5866,7 @@ app.get("/api/warmup", (_req, res) => {
   });
 });
 
-app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
+app.get("/api/appdata/full", async (_req, res) => {
   const startedAt = Date.now();
   try {
     if (!db || !firebaseInitialized) {
@@ -6051,12 +5874,6 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
     }
 
     const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
-    const expectedGeneration = String(
-      (_req.query?.expectedGeneration || _req.query?.generation || "") as string,
-    ).trim();
-    const shardKeys = profile === "boot"
-      ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
-      : FULL_APPDATA_SHARD_KEYS;
 
     // Lazy initialization safeguard depending on the requested profile
     if (profile === "boot") {
@@ -6072,62 +5889,9 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
       }
     }
 
-    // Reset/import writes carry a generation marker and publish the root last. A normal
-    // in-memory cache response can briefly contain the new root with old/empty shard values
-    // while Firestore listeners are still decoding large segmented documents. Whenever the
-    // client supplies an expected generation, bypass the cache once and rebuild the requested
-    // profile directly from Firestore before returning anything.
-    if (expectedGeneration) {
-      const rootRef = db.collection("appData").doc("shared_company_data");
-      const [rootSnap, ...shardSnaps] = await Promise.all([
-        rootRef.get(),
-        ...shardKeys.map((key) => rootRef.collection("shards").doc(key).get()),
-      ]);
-
-      const rootData = rootSnap.exists ? rootSnap.data() || {} : {};
-      const actualGeneration = String(rootData.__adminDataGenerationId || "");
-      if (!rootSnap.exists || actualGeneration !== expectedGeneration) {
-        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-        return res.status(409).json({
-          success: false,
-          error: "STALE_APPDATA_GENERATION",
-          expectedGeneration,
-          actualGeneration,
-        });
-      }
-
-      const refreshedShards: Record<string, any> = {};
-      for (let index = 0; index < shardKeys.length; index += 1) {
-        const key = shardKeys[index];
-        const shardSnap: any = shardSnaps[index];
-        if (!shardSnap?.exists) {
-          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-          return res.status(409).json({
-            success: false,
-            error: "INCOMPLETE_APPDATA_GENERATION",
-            expectedGeneration,
-            missingShard: key,
-          });
-        }
-
-        const shardData = shardSnap.data() || {};
-        const shardGeneration = String(shardData.__adminDataGenerationId || "");
-        if (shardGeneration !== expectedGeneration) {
-          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-          return res.status(409).json({
-            success: false,
-            error: "STALE_APPDATA_SHARD_GENERATION",
-            expectedGeneration,
-            actualGeneration: shardGeneration,
-            staleShard: key,
-          });
-        }
-        refreshedShards[key] = await loadFullAppDataShard(rootRef, key, shardData);
-      }
-
-      appDataCache.rootData = rootData;
-      Object.assign(appDataCache.shards, refreshedShards);
-    }
+    const shardKeys = profile === "boot"
+      ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
+      : FULL_APPDATA_SHARD_KEYS;
 
     const data: any = { ...appDataCache.rootData };
     const shardCounts: Record<string, number> = {};
@@ -6150,7 +5914,6 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
       source: "admin-server-firestore-cache-full-appdata",
       profile: profile === "boot" ? "boot" : "full",
       deferredShardKeys: profile === "boot" ? Array.from(BOOT_DEFERRED_APPDATA_SHARD_KEYS) : [],
-      generationId: String(data.__adminDataGenerationId || ""),
       durationMs,
       shardCounts,
       data,
@@ -6161,7 +5924,7 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
   }
 });
 
-app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => {
+app.get("/api/admin-dashboard-data", async (req, res) => {
   try {
     if (!db || !firebaseInitialized) {
       console.warn("[admin-dashboard-data] Firebase Admin not ready.");
@@ -6294,6 +6057,14 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
 
     console.log(`[admin-dashboard-data] Found ${squads.length} diwaniyas. root=${rootSquads.length}, shared=${sharedSquads.length}, fromOrders=${inferredSquads.length}, orders=${sharedOrders.length}`);
 
+    // Customer phone numbers travel only to a signed-in, allow-listed admin. Any other
+    // caller (the customer site, or someone who just knows the URL) gets the same
+    // leaderboard with phones blanked — so nothing breaks, and no PII leaks.
+    if (!(await waIsConsoleAuthed(req))) {
+      waRedactPhonesDeep(squads);
+      waRedactPhonesDeep(sharedOrders);
+    }
+
     return res.json({ success: true, squads, orders: sharedOrders });
   } catch (err: any) {
     console.error("[admin-dashboard-data] Total failure loading diwaniyas:", err?.message || err);
@@ -6386,7 +6157,6 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
       gatewayOrderIds: uniqueCleanStrings([...identifiers.gatewayOrderIds, legacyOrderId].filter(Boolean)),
     };
 
-    const incomingIdentifiers = mergePaymentIdentifiers(identifiers);
     identifiers = await resolvePaymentSessionTargets(identifiers);
 
     let orderId = identifiers.targetIds[0] || legacyOrderId;
@@ -6424,26 +6194,18 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
       return;
     }
 
-    let paymentSyncResult: any = null;
     if (isPaid || isFailed) {
-      paymentSyncResult = await syncPaymentStatusEverywhere(incomingIdentifiers, isPaid ? "paid" : "failed", {
+      const syncResult = await syncPaymentStatusEverywhere(identifiers, isPaid ? "paid" : "failed", {
         source: "payment-webhook",
         gatewayResult: rawResult || classifiedState,
-        paymentId: legacyPaymentId,
-        trackId: normalizePaymentIdentifier((gatewayPayload as any)?.track_id || (gatewayPayload as any)?.trackId || ""),
-        gatewayOrderId: normalizePaymentIdentifier((gatewayPayload as any)?.requested_order_id || (gatewayPayload as any)?.order_id || (gatewayPayload as any)?.orderId || ""),
+        identifiersAlreadyResolved: true,
       });
-      identifiers = paymentSyncResult.identifiers;
+      identifiers = syncResult.identifiers;
       orderId = identifiers.targetIds[0] || orderId;
       paymentId = firstPaymentId(identifiers.paymentIds) || paymentId;
-      console.log("[PAYMENT_SYNC] status sync result:", JSON.stringify(paymentSyncResult));
+      console.log("[PAYMENT_SYNC] status sync result:", JSON.stringify(syncResult));
     } else {
       console.warn("Payment update ignored: unknown payment status", { rawResult, classifiedState, identifiers });
-      return;
-    }
-
-    if (isFailed && paymentSyncResult?.suppressed) {
-      console.log("[PAYMENT_SYNC] Ignoring stale failed callback after guard decision:", paymentSyncResult.suppressedReason);
       return;
     }
 
@@ -6560,26 +6322,26 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
   };
 
   app.post("/api/webhook/upayments", async (req, res) => {
-    console.log("UPayments webhook received (POST)");
+    console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
     const mergedParams = { ...req.body, ...req.params, ...req.query };
     await handlePaymentUpdate(mergedParams);
     res.status(200).send('OK');
   });
   app.post("/api/payment-webhook/:orderId", async (req, res) => {
-    console.log("UPayments payment webhook received (POST)");
+    console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
     const mergedParams = { ...req.body, ...req.params, ...req.query };
     await handlePaymentUpdate(mergedParams);
     res.status(200).send('OK');
   });
 
   app.get("/api/webhook/upayments", async (req, res) => {
-     console.log("UPayments webhook received (GET)");
+     console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
      const mergedParams = { ...req.query, ...req.params, ...req.body };
      await handlePaymentUpdate(mergedParams);
      res.status(200).send('OK');
   });
   app.get("/api/payment-webhook/:orderId", async (req, res) => {
-     console.log("UPayments payment webhook received (GET)");
+     console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
      const mergedParams = { ...req.query, ...req.params, ...req.body };
      await handlePaymentUpdate(mergedParams);
      res.status(200).send('OK');
@@ -6591,21 +6353,21 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     res.setHeader("Surrogate-Control", "no-store");
-    console.log(`API REQUEST: ${req.method} ${req.path}`);
+    console.log(`API REQUEST: ${req.method} ${req.originalUrl}`);
     next();
   });
 
   // API TEST ROUTES (PROMINENTLY PLACED AFTER LOGGING)
-  app.get("/api/debug/push-secret", waRequireConsoleAuth, (_req, res) => {
-    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+  app.get("/api/debug/push-secret", (req, res) => {
+    // Report only whether the secret is configured — never its length, which would
+    // narrow a brute-force search for a would-be attacker.
     res.json({
       adminTestSecretExists: Boolean(process.env.ADMIN_TEST_SECRET),
-      expectedLength: expectedSecret.length,
       serverVersion: "push-debug-2026-05-08-v1"
     });
   });
 
-  app.get("/api/debug/push-tokens", waRequireConsoleAuth, async (req, res) => {
+  app.get("/api/debug/push-tokens", async (req, res) => {
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
     const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
     if (!expectedSecret || receivedSecret !== expectedSecret) {
@@ -6638,7 +6400,7 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
     }
   });
 
-  app.post("/api/debug/delete-push-tokens", waRequireConsoleAuth, async (req, res) => {
+  app.post("/api/debug/delete-push-tokens", async (req, res) => {
     const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
     const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
     if (!expectedSecret || receivedSecret !== expectedSecret) {
@@ -6709,8 +6471,11 @@ app.get("/api/admin-dashboard-data", waRequireConsoleAuth, async (_req, res) => 
   
 app.post("/api/push/clear-tokens", async (req, res) => {
   try {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+    // Fail closed: no weak "123456" default. If ADMIN_TEST_SECRET is unset, this
+    // destructive endpoint (wipes all push tokens) is unreachable rather than open.
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    const secret = String(req.headers["x-admin-secret"] || req.query.secret || "").trim();
+    if (!expectedSecret || secret !== expectedSecret) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -6741,8 +6506,10 @@ app.post("/api/push/clear-tokens", async (req, res) => {
 
 app.get("/api/push/debug-tokens", async (req, res) => {
   try {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(process.env.ADMIN_TEST_SECRET || "123456")) {
+    // Fail closed: no weak "123456" default. Unset secret → endpoint unreachable.
+    const expectedSecret = String(process.env.ADMIN_TEST_SECRET || "").trim();
+    const secret = String(req.headers["x-admin-secret"] || req.query.secret || "").trim();
+    if (!expectedSecret || secret !== expectedSecret) {
       return res.status(403).json({ success: false, error: "Forbidden" });
     }
 
@@ -7285,7 +7052,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
 
 
-  app.get("/api/debug/recent-orders", waRequireConsoleAuth, async (req, res) => {
+  app.get("/api/debug/recent-orders", async (req, res) => {
     try {
       const receivedSecret = String(req.headers["x-admin-secret"] || "").trim();
 
@@ -7460,12 +7227,30 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
       async function alreadySent(eventId: string) {
         if (__alertsPushEventsCache.knownIds.has(eventId)) return true;
-        const snap = await db!.collection("pushEvents").doc(eventId).get();
-        if (snap.exists) {
+        // Atomic claim — same proven pattern as alertsClaim. create() fails if the doc
+        // already exists, so exactly one caller wins. The old plain read let two runner
+        // passes / two Cloud Run instances both see "not sent" and each fire the same
+        // business alert (order-created, sales milestone, daily summary...) → duplicates.
+        try {
+          await db!.collection("pushEvents").doc(eventId).create({
+            eventId,
+            status: "claimed",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          __alertsPushEventsCache.knownIds.add(eventId);
+          return false; // we won the claim → not sent yet, caller proceeds to send
+        } catch (e: any) {
+          const code = String(e?.code || e?.message || "");
+          if (code.includes("ALREADY_EXISTS") || code.includes("already exists") || code.includes("6")) {
             __alertsPushEventsCache.knownIds.add(eventId);
-            return true;
+            return true; // another caller already claimed it → treat as already sent
+          }
+          // Unknown error: fall back to a read so a single bad claim can't crash the run.
+          const snap = await db!.collection("pushEvents").doc(eventId).get();
+          if (snap.exists) { __alertsPushEventsCache.knownIds.add(eventId); return true; }
+          throw e;
         }
-        return false;
       }
 
       async function markSent(eventId: string, payload: any, result: any) {
@@ -7508,6 +7293,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }
 
       function isPendingPayment(order: any) {
+        // A deleted order is never "pending payment" — the owner removed it, so it must
+        // not fire order-created / payment-pending reminders.
+        if (order?.isDeleted === true) return false;
         const paymentStatus = String(order.paymentStatus || "").toLowerCase();
         const status = String(order.status || "").toLowerCase();
 
@@ -7954,6 +7742,14 @@ function pushRecordMatchesTargetRoles(record: PushTokenRecordForArchive, targetR
   if (!roles.length) return true;
   const recordRole = String(record.userRole || "").trim().toLowerCase();
   if (roles.includes(recordRole)) return true;
+  // This app registers push tokens only for staff (admin/partner) — there is no public
+  // customer push here. Partners registered from the Partner Dashboard without a role,
+  // so their tokens are untagged and were wrongly dropped from ["admin","partner"]
+  // summaries (while still getting the unfiltered payment alerts). An untagged token is
+  // a staff member, so it should receive any partner-targeted alert. Scoped to
+  // "partner" on purpose: admin-only alerts (e.g. WhatsApp support) still won't leak to
+  // untagged tokens, since those fall through to the owner-identity check below.
+  if (!recordRole && roles.includes("partner")) return true;
   if (roles.includes("admin")) {
     const identity = [record.userId, record.userName, record.userEmail, record.tokenDocId].filter(Boolean).join(" ").toLowerCase();
     return recordRole.includes("admin") || /\badmin\b/.test(identity) || identity.includes("ahmad") || identity.includes("alfailakawi");
@@ -8835,11 +8631,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         normalizedReturnResult === "COMPLETED" ||
         normalizedReturnResult === "APPROVED";
 
-      const status: "paid" | "failed" | "pending" = isPaid
-        ? "paid"
-        : callbackState === "failed"
-          ? "failed"
-          : "pending";
+      const status = isPaid ? "paid" : "failed";
 
       console.log("Payment return:", {
         invoiceNo,
@@ -8867,19 +8659,17 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         track_id: trackId || q.track_id,
       };
 
-      if (status !== "pending") {
-        await syncPaymentStatusEverywhere({
-          targetIds: uniqueCleanStrings([invoiceNo, invoiceId].map(normalizeBusinessId)).filter(Boolean),
-          paymentIds: uniqueCleanStrings([paymentId, tranId, trackId].map(normalizePaymentIdentifier)).filter((value) => value && !isBusinessIdLike(value)),
-          gatewayOrderIds: uniqueCleanStrings([invoiceNo, invoiceId, q.requested_order_id, q.order_id].map(normalizePaymentIdentifier)).filter(Boolean),
-        }, status, {
-          source: "payment-return-fast",
-          gatewayResult: result || status,
-          paymentId: normalizePaymentIdentifier(paymentId || tranId || trackId || ""),
-          trackId: normalizePaymentIdentifier(trackId || tranId || ""),
-          gatewayOrderId: normalizePaymentIdentifier(q.requested_order_id || q.order_id || ""),
-        });
-      }
+      await syncPaymentStatusEverywhere({
+        targetIds: uniqueCleanStrings([invoiceNo, invoiceId].map(normalizeBusinessId)).filter(Boolean),
+        paymentIds: uniqueCleanStrings([paymentId, tranId, trackId].map(normalizePaymentIdentifier)).filter((value) => value && !isBusinessIdLike(value)),
+        gatewayOrderIds: uniqueCleanStrings([invoiceNo, invoiceId].map(normalizePaymentIdentifier)).filter(Boolean),
+      }, status === "paid" ? "paid" : "failed", {
+        source: "payment-return-fast",
+        gatewayResult: result || status,
+        paymentId: normalizePaymentIdentifier(paymentId || tranId || trackId || ""),
+        trackId: normalizePaymentIdentifier(trackId || tranId || ""),
+        identifiersAlreadyResolved: true,
+      });
       void handlePaymentUpdate(returnPayload);
 
       return res.redirect(
@@ -8913,30 +8703,24 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         const callbackState = classifyGatewayPaymentState({ ...q, result });
         const normalizedReturnResult = normalizePaymentStatusText(result);
         const isPaid = callbackState === "paid" || normalizedReturnResult === "CAPTURED" || normalizedReturnResult === "SUCCESS" || normalizedReturnResult === "SUCCESSFUL" || normalizedReturnResult === "PAID" || normalizedReturnResult === "AUTHORIZED" || normalizedReturnResult === "AUTHORISED" || normalizedReturnResult === "COMPLETED" || normalizedReturnResult === "APPROVED";
-        const status: "paid" | "failed" | "pending" = isPaid
-          ? "paid"
-          : callbackState === "failed"
-            ? "failed"
-            : "pending";
+        const status = isPaid ? "paid" : "failed";
         const returnPayload = {
           ...q,
           invoiceNo,
           orderId: invoiceNo,
           requested_order_id: invoiceNo,
         };
-        if (status !== "pending") {
-          await syncPaymentStatusEverywhere({
-            targetIds: uniqueCleanStrings([invoiceNo].map(normalizeBusinessId)).filter(Boolean),
-            paymentIds: uniqueCleanStrings([q.payment_id, q.paymentId, q.track_id, q.trackId, q.tran_id].map(normalizePaymentIdentifier)).filter((value) => value && !isBusinessIdLike(value)),
-            gatewayOrderIds: uniqueCleanStrings([invoiceNo, q.requested_order_id, q.order_id].map(normalizePaymentIdentifier)).filter(Boolean),
-          }, status, {
-            source: "payment-return-fast",
-            gatewayResult: result || status,
-            paymentId: normalizePaymentIdentifier(q.payment_id || q.paymentId || q.track_id || q.trackId || q.tran_id || ""),
-            trackId: normalizePaymentIdentifier(q.track_id || q.trackId || q.tran_id || ""),
-            gatewayOrderId: normalizePaymentIdentifier(q.requested_order_id || q.order_id || ""),
-          });
-        }
+        await syncPaymentStatusEverywhere({
+          targetIds: uniqueCleanStrings([invoiceNo].map(normalizeBusinessId)).filter(Boolean),
+          paymentIds: uniqueCleanStrings([q.payment_id, q.paymentId, q.track_id, q.trackId, q.tran_id].map(normalizePaymentIdentifier)).filter((value) => value && !isBusinessIdLike(value)),
+          gatewayOrderIds: uniqueCleanStrings([invoiceNo, q.requested_order_id, q.order_id].map(normalizePaymentIdentifier)).filter(Boolean),
+        }, status === "paid" ? "paid" : "failed", {
+          source: "payment-return-fast",
+          gatewayResult: result || status,
+          paymentId: normalizePaymentIdentifier(q.payment_id || q.paymentId || q.track_id || q.trackId || q.tran_id || ""),
+          trackId: normalizePaymentIdentifier(q.track_id || q.trackId || q.tran_id || ""),
+          identifiersAlreadyResolved: true,
+        });
         void handlePaymentUpdate(returnPayload);
         return res.redirect(`/?payment=${status}&invoice=${encodeURIComponent(invoiceNo)}&result=${encodeURIComponent(result)}`);
       } catch (error) {
@@ -8960,11 +8744,13 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       cancelUrl,
       notificationUrl,
       sourceOrderId,
-      linkedOrderId,
-      trackingAccessToken,
+      linkedOrderId
     } = req.body;
     
     // Clean and robust API Key retrieval
+    const envKeys = Object.keys(process.env).filter(k => k.includes('UPAYMENT'));
+    console.log("Available Upayments related env keys:", envKeys);
+    
     const apiKey = getUPaymentsApiKey();
 
     if (!apiKey) {
@@ -8974,6 +8760,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         message: "UPAYMENTS_API_KEY is not defined or empty on the server environment. Please define UPAYMENTS_API_KEY in the environment."
       });
     }
+    
+    console.log(`Using API key: ${apiKey.substring(0, 4)}... (Total length: ${apiKey.length})`);
     
     const protocol = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('host');
@@ -8997,50 +8785,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       });
     }
 
-    const cleanTrackingAccessToken = String(
-      trackingAccessToken || "",
-    ).trim();
-    if (
-      cleanTrackingAccessToken &&
-      !/^[A-Za-z0-9_-]{43,128}$/.test(cleanTrackingAccessToken)
-    ) {
-      return res.status(400).json({
-        error: "Invalid tracking access token",
-        message: "تعذر إنشاء رابط التتبع الآمن",
-      });
-    }
-
     try {
       const baseUrl = UPAYMENTS_API_BASE_URL; // Forced Live Mode as requested
       const orderIdForGateway = `${orderId}_${Date.now()}`;
-      let gatewayReturnUrl = String(returnUrl);
-      let gatewayCancelUrl = String(cancelUrl);
-
-      if (cleanTrackingAccessToken) {
-        const addTrackingAccess = (rawUrl: string) => {
-          const parsed = new URL(rawUrl);
-          const isAlturathHost =
-            parsed.hostname === "alturathkw.shop" ||
-            parsed.hostname.endsWith(".alturathkw.shop");
-          const isPaymentReturnPath =
-            parsed.pathname === "/api/payment-return" ||
-            parsed.pathname.startsWith("/api/payment-return/");
-          if (
-            parsed.protocol !== "https:" ||
-            !isAlturathHost ||
-            !isPaymentReturnPath
-          ) {
-            throw new Error("Tracking callback must use an Alturath HTTPS URL");
-          }
-          parsed.searchParams.set(
-            "track_access",
-            cleanTrackingAccessToken,
-          );
-          return parsed.toString();
-        };
-        gatewayReturnUrl = addTrackingAccess(gatewayReturnUrl);
-        gatewayCancelUrl = addTrackingAccess(gatewayCancelUrl);
-      }
       
       // Clean and format phone number (ensure 965 prefix for Kuwait)
       let cleanMobile = customerMobile ? customerMobile.toString().replace(/[^0-9]/g, '') : '';
@@ -9050,22 +8797,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         cleanMobile = '96500000000';
       }
       
-      const canonicalAmount = await resolveCanonicalPaymentAmount(orderId, amount);
-      const safeAmount = canonicalAmount.amount;
-      if (!Number.isFinite(safeAmount) || safeAmount <= 0) {
-        return res.status(400).json({
-          error: "Invalid payment amount",
-          message: "تعذر تحديد مبلغ الفاتورة الصحيح",
-        });
-      }
-      if (Math.abs(safeAmount - Number(amount)) >= 0.001) {
-        console.warn("[PAYMENT_AMOUNT] Reused canonical retry amount:", {
-          orderId,
-          requestedAmount: Number(amount),
-          canonicalAmount: safeAmount,
-          source: canonicalAmount.source,
-        });
-      }
+      const safeAmount = Number(Number(amount).toFixed(3));
       const rawEmail = String(customerEmail || '').trim();
       const safeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) && !/example\.com$/i.test(rawEmail)
         ? rawEmail
@@ -9090,12 +8822,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           email: safeEmail,
           mobile: cleanMobile
         },
-        returnUrl: gatewayReturnUrl,
-        cancelUrl: gatewayCancelUrl,
+        returnUrl: returnUrl,
+        cancelUrl: cancelUrl,
         notificationUrl: validNotificationUrl
       };
 
-      console.log("UPayments request prepared");
+      console.log("UPayments Request Payload:", JSON.stringify(payload));
 
       const response = await fetch(`${baseUrl}/charge`, {
         method: "POST",
@@ -9113,10 +8845,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         data = await response.json();
       } else {
         const text = await response.text();
-        console.error("UPayments returned a non-JSON error response");
+        console.error("Non-JSON UPayments API error:", text);
         return res.status(response.status).json({ 
           error: "Payment gateway request failed", 
-          message: "استجابة غير صالحة من بوابة الدفع"
+          message: `استجابة غير صالحة من بوابة الدفع (ليست بتنسيق JSON). النص المستلم: ${text.substring(0, 150)}`,
+          details: text 
         });
       }
       
@@ -9213,7 +8946,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         trackId: extractedTrackId,
         track_id: extractedTrackId,
         amount: safeAmount,
-        amountSource: canonicalAmount.source,
         customerName,
         customerMobile: cleanMobile,
         returnUrl,
@@ -9247,93 +8979,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
   });
 
-  function cleanPhoneDigitsServer(phone: any): string {
-    if (!phone) return "";
-    return String(phone).replace(/[^0-9]/g, "");
-  }
-
-  function phoneLooksSameServer(p1: any, p2: any): boolean {
-    const c1 = cleanPhoneDigitsServer(p1);
-    const c2 = cleanPhoneDigitsServer(p2);
-    if (!c1 || !c2) return false;
-    const len = Math.min(8, c1.length, c2.length);
-    return c1.slice(-len) === c2.slice(-len);
-  }
-
+  // The search route is replaced by the payment-return route moved up higher
   app.get("/api/search-order/:phone", async (req, res) => {
-    try {
-      const { phone } = req.params;
-      if (!phone) {
-        return res.status(400).json({ error: "Missing phone number" });
-      }
-
-      const queryDigits = phone.replace(/[^0-9]/g, "");
-      console.log(`[API] Searching orders for phone digits: ${queryDigits}`);
-
-      const resultsMap = new Map<string, any>();
-
-      // 1. Try to fetch directly from the lightweight 'orders' collection
-      try {
-        const directSnap = await db.collection("orders").where("customerPhone", "==", queryDigits).get();
-        if (!directSnap.empty) {
-          directSnap.docs.forEach((doc) => {
-            resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
-          });
-        }
-      } catch (err: any) {
-        console.warn(`[API] Failed to search direct orders collection by customerPhone: ${err.message}`);
-      }
-
-      try {
-        const directSnapMobile = await db.collection("orders").where("mobile", "==", queryDigits).get();
-        if (!directSnapMobile.empty) {
-          directSnapMobile.docs.forEach((doc) => {
-            resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
-          });
-        }
-      } catch (err: any) {
-        console.warn(`[API] Failed to search direct orders collection by mobile: ${err.message}`);
-      }
-
-      // 2. Try to fetch and search through sharded orders
-      try {
-        const rootRef = db.collection("appData").doc("shared_company_data");
-        const shardedOrders = await loadFullAppDataShard(rootRef, "orders");
-        if (Array.isArray(shardedOrders)) {
-          shardedOrders.forEach((o: any) => {
-            const isMatch =
-              phoneLooksSameServer(o.customerPhone, queryDigits) ||
-              phoneLooksSameServer(o.mobile, queryDigits) ||
-              (Array.isArray(o.participantPhones) && o.participantPhones.some((p: string) => phoneLooksSameServer(p, queryDigits))) ||
-              (Array.isArray(o.splitPayments) && o.splitPayments.some((sp: any) => phoneLooksSameServer(sp.phone, queryDigits))) ||
-              (Array.isArray(o.splitParticipants) && o.splitParticipants.some((sp: any) => phoneLooksSameServer(typeof sp === "object" ? sp.phone : sp, queryDigits)));
-
-            if (isMatch) {
-              const id = o.id || o.orderNumber || o.orderNo || "";
-              if (id) {
-                resultsMap.set(String(id), o);
-              }
-            }
-          });
-        }
-      } catch (err: any) {
-        console.warn(`[API] Failed to search sharded orders: ${err.message}`);
-      }
-
-      const userOrders = Array.from(resultsMap.values());
-
-      // Sort by date descending
-      userOrders.sort((a: any, b: any) => {
-        const tA = new Date(a.createdAt || a.date || 0).getTime();
-        const tB = new Date(b.createdAt || b.date || 0).getTime();
-        return tB - tA;
-      });
-
-      return res.json(userOrders);
-    } catch (error: any) {
-      console.error("[API] Error in search-order endpoint:", error);
-      return res.status(500).json({ error: "Internal server error", message: error?.message || String(error) });
-    }
+    res.json([]);
   });
 
   app.post("/api/invoice/confirm", async (req, res) => {
@@ -9731,6 +9379,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const orders = Array.isArray(shared.orders) ? shared.orders : [];
 
     for (const inv of invoices) {
+      // A deleted invoice must never fire "not paid yet" reminders — the owner already
+      // removed it. Deletion is soft (isDeleted: true), so the row stays in the array
+      // and would otherwise keep triggering the 10-min / 30-min pending alerts.
+      if (inv?.isDeleted === true) continue;
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
       const st = alertsStatusFor(inv);
@@ -9754,6 +9406,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
 
     for (const order of orders) {
+      if (order?.isDeleted === true) continue; // deleted orders never fire reminders
       const orderId = alertsBusinessIdFor(order, "ORD-");
       if (!orderId || !alertsInWindow(order, now)) continue;
       const st = alertsStatusFor(order);
