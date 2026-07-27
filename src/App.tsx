@@ -1363,29 +1363,40 @@ const MainApp: React.FC = () => {
     }
 
     // The server health route can be cold, temporarily overloaded, or not yet deployed with
-    // the matching frontend revision. For an authenticated session, a direct Firestore server
-    // read is the authoritative fallback. A successful read proves the exact cloud used by the app.
+    // the matching frontend revision. A direct Firestore server read is the authoritative fallback.
+    // A successful read (or valid server rejection like permission-denied/not-found) proves Firestore connectivity.
     if (!healthy) {
-      const probeUser = user || auth.currentUser;
-      if (probeUser) {
-        let directTimeoutId: number | undefined;
-        try {
-          const rootDataRef = getSmartDoc('appData', probeUser.uid, probeUser.email);
-          await Promise.race([
-            getDocFromServer(rootDataRef),
-            new Promise<never>((_, reject) => {
-              directTimeoutId = window.setTimeout(
-                () => reject(new Error('DIRECT_FIRESTORE_HEALTH_TIMEOUT')),
-                7_000,
-              );
-            }),
-          ]);
+      let directTimeoutId: number | undefined;
+      try {
+        const probeUser = user || auth.currentUser;
+        const rootDataRef = getSmartDoc('appData', probeUser?.uid || '', probeUser?.email || '');
+        await Promise.race([
+          getDocFromServer(rootDataRef),
+          new Promise<never>((_, reject) => {
+            directTimeoutId = window.setTimeout(
+              () => reject(new Error('DIRECT_FIRESTORE_HEALTH_TIMEOUT')),
+              7_000,
+            );
+          }),
+        ]);
+        healthy = true;
+      } catch (err: any) {
+        const errCode = String(err?.code || '').toLowerCase();
+        const errMsg = String(err?.message || '').toLowerCase();
+        const isServerResponse =
+          errCode.includes('permission-denied') ||
+          errCode.includes('not-found') ||
+          errMsg.includes('permission-denied') ||
+          errMsg.includes('permission_denied') ||
+          errMsg.includes('not-found');
+
+        if (isServerResponse) {
           healthy = true;
-        } catch {
+        } else {
           healthy = false;
-        } finally {
-          if (directTimeoutId !== undefined) window.clearTimeout(directTimeoutId);
         }
+      } finally {
+        if (directTimeoutId !== undefined) window.clearTimeout(directTimeoutId);
       }
     }
 
@@ -1413,10 +1424,9 @@ const MainApp: React.FC = () => {
     }
 
     // Do not lock the entire program because one health request timed out. Three consecutive
-    // failures are required while an already verified session is open. A real browser offline
-    // event still locks immediately through the listener below.
+    // failures are required while a session is open. A real browser offline event still locks immediately.
     cloudProbeFailuresRef.current += 1;
-    const keepVerifiedSessionOpen = wasOnline && cloudProbeFailuresRef.current < 3;
+    const keepVerifiedSessionOpen = cloudProbeFailuresRef.current < 3;
     if (!keepVerifiedSessionOpen) applyCloudOnlineState(false);
     setCloudChecking(false);
     return keepVerifiedSessionOpen;

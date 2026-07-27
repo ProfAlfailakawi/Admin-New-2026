@@ -67,8 +67,7 @@ try {
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
       console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
     }
-    firebaseInitialized = false;
-    db = null;
+    firebaseInitialized = Boolean(db);
   }
 } catch (error) {
   firebaseInitialized = false;
