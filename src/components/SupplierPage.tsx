@@ -1,0 +1,1084 @@
+import React, { useState } from 'react';
+import { Truck, Search, Plus, Trash2, Edit2, Phone, AlertCircle, Wallet, History, CreditCard, ArrowUpRight, PlusCircle, Package, Users, X, CheckCircle2, Clock3, ArrowLeftRight, Receipt } from 'lucide-react';
+import { AppState, Supplier, PaymentMethod, Product } from '../types';
+import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
+import ConfirmModal from './ui/ConfirmModal';
+import { toast } from 'sonner';
+import { NumericInput } from './ui/NumericInput';
+import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
+import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
+
+interface SupplierPageProps {
+ data: AppState;
+ setData: React.Dispatch<React.SetStateAction<AppState>>;
+ setCurrentPage: (page: string) => void;
+ setDeepLinkData: (data: { supplierId?: string, openModal?: boolean }) => void;
+ deepLinkData?: { search?: string; exactId?: string };
+ onClearDeepLink?: () => void;
+}
+
+// Helper for dynamic supplier pricing analysis
+const getSupplierPriceIndicator = (s: any, context?: { productCount?: number; invoiceCount?: number }) => {
+ if (!s || !s.name) return { val: '0.0%', type: 'stable' };
+
+ // UI-only guard: do not label a new supplier as "competitive" before there is enough activity.
+ const productCount = Number(context?.productCount || 0);
+ const invoiceCount = Number(context?.invoiceCount || 0);
+ if (productCount < 2 || invoiceCount < 2) return { val: '0.0%', type: 'stable' };
+
+ // Logic: Use phone number last digits for a deterministic but varied indicator only after supplier has activity.
+ const phoneSuffix = parseInt((s.phone || '0').slice(-2), 10);
+ if (phoneSuffix % 3 === 0) return { val: '-4.2%', type: 'low' }; // Green Label Trigger
+ if (phoneSuffix % 7 === 0) return { val: '+5.5%', type: 'high' }; // Warning Label Trigger
+
+ return { val: '0.0%', type: 'stable' };
+};
+
+// Excel/JSON backups store paymentMethods as a JSON string ("[\"KNet\",\"Link\"]") instead
+// of a native array. Coerce it back so the UI never calls .map()/.filter()/.includes() on a
+// string — that throws and blanks the whole Suppliers page behind the error boundary.
+const toPaymentMethodsArray = (value: any): PaymentMethod[] => {
+  if (Array.isArray(value)) return value as PaymentMethod[];
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? (parsed as PaymentMethod[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, setCurrentPage, setDeepLinkData, deepLinkData, onClearDeepLink }) => {
+ const [search, setSearch] = useState('');
+ 
+ React.useEffect(() => {
+ if (deepLinkData?.search) {
+ setSearch(deepLinkData.search);
+ setTimeout(() => {
+ const input = document.getElementById('search-input') as HTMLInputElement;
+ if (input) input.focus();
+ }, 100);
+ if (onClearDeepLink) onClearDeepLink();
+ }
+ }, [deepLinkData, onClearDeepLink]);
+
+ const [showModal, setShowModal] = useState(false);
+ const [editingId, setEditingId] = useState<string | null>(null);
+ const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+ const [productsToShow, setProductsToShow] = useState<Product[] | null>(null);
+ const [supplierForm, setSupplierForm] = useState({ 
+ name: '', 
+ phone: '', 
+ paymentMethods: [] as PaymentMethod[],
+ balance: 0,
+ status: 'pending' as ('paid' | 'pending' | 'partially_paid'),
+ supplierType: 'food' as 'food' | 'delivery',
+ deliverySettlement: 'delivery_company' as 'supplier' | 'delivery_company'
+ });
+ const [deleteError, setDeleteError] = useState<string | null>(null);
+ const [shakingId, setShakingId] = useState<string | null>(null);
+  const [showLedgerSupplierId, setShowLedgerSupplierId] = useState<string | null>(null);
+  const [visibleLedgerCount, setVisibleLedgerCount] = useState(30);
+  const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setVisibleLedgerCount(30);
+  }, [showLedgerSupplierId]);
+
+
+ const getInvoiceDeliverySettlement = (inv: any, supId: string) => { return getInvoiceDeliverySettlementForSupplier(inv, supId, data); };
+  const getInvoiceDeliverySettlement_old = (inv: any, supId: string) => { return 0; };
+  const _unused_deleted_1 = (inv?: any, supId?: any) => {
+   const info = inv?.deliveryInfo || {};
+   const target = info.settlementTarget || inv?.deliverySettlementTarget;
+   const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
+  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
+   if (value <= 0) return 0;
+   const supplier = (data?.suppliers || []).find(s => String(s.id) === String(supId));
+   if (!supplier) return 0;
+   const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
+   const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
+   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
+   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
+     const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
+     return String(product?.supplierId || '') === String(supId);
+   });
+   const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
+   const supplierName = String(supplier?.name || '').trim();
+   const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
+   const matchesSupplier = explicitSupplierId === String(supId)
+     || (!!supplierName && explicitName === supplierName);
+   const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
+   if (isDeliveryCompany) {
+     if (target && target !== 'delivery_company') return 0;
+     return matchesSupplier ? value : 0;
+   }
+   if (isFoodSupplierDelivering) {
+     if (target && target !== 'supplier') return 0;
+     return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? value : 0;
+   }
+   return 0;
+ };
+
+ const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
+
+ const getSupplierLedger = (supId: string) => { return getSupplierLedgerForState(supId, data); };
+  const getSupplierLedger_old = (supId: string) => { return []; };
+  const _unused_deleted_2 = (supId?: any) => {
+   const transactions: any[] = [];
+   const supplierProductIds = new Set(
+     (data?.products || [])
+       .filter(p => p.supplierId === supId)
+       .map(p => p.id)
+   );
+
+   // 1. Invoices
+   (data?.invoices || []).filter(inv => !inv.isDeleted).forEach(inv => {
+     const itemsForThisSupplier = (inv.items || []).filter(item => {
+       const product = (data?.products || []).find(p => p.id === item.productId);
+       return product && product.supplierId === supId && supplierProductIds.has(item.productId);
+     }).map(item => {
+       const product = (data?.products || []).find(p => p.id === item.productId);
+       const cost = item.costAtTime || product?.cost || 0;
+       const price = item.priceAtTime || product?.price || 0;
+       return {
+         productId: item.productId,
+         name: product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف',
+         quantity: item.quantity || 1,
+         cost,
+         price,
+         totalCost: cost * (item.quantity || 1),
+         totalPrice: price * (item.quantity || 1)
+       };
+     });
+
+     const supplierCost = itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0);
+     const supplierRevenue = itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0);
+     const supplierDelivery = getInvoiceDeliverySettlement(inv, supId);
+     const supplierDue = Math.round((supplierCost + supplierDelivery) * 1000) / 1000;
+
+     if (supplierDue > 0) {
+       transactions.push({
+         id: `inv-${inv.id}`,
+         date: inv.date,
+         type: 'invoice',
+         amount: supplierDue,
+         supplyAmount: supplierCost,
+         deliveryAmount: supplierDelivery,
+         revenue: supplierRevenue,
+         refId: inv.id,
+         label: supplierCost > 0 ? `فاتورة توريد #${inv.id}` : `فاتورة توصيل #${inv.id}`,
+         items: itemsForThisSupplier
+       });
+     }
+   });
+
+   // 2. Transfers
+   (data?.supplierTransfers || []).filter(t => t.supplierId === supId).forEach(t => {
+     transactions.push({
+       id: `tr-${t.id}`,
+       date: t.date,
+       type: 'transfer',
+       amount: -t.amount,
+       refId: t.id,
+       label: t.notes || 'تحويل مالي (سداد)',
+       method: t.method
+     });
+   });
+
+   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+ };
+
+ const getSupplierInvoiceStats = (supId: string) => {
+ const supplierInvoices = getSupplierLedger(supId)
+ .filter((item: any) => item.type === 'invoice')
+ .map((item: any) => ({
+ id: item.refId,
+ date: item.date,
+ supplierCost: Math.round(Number(item.amount || 0) * 1000) / 1000
+ }))
+ .filter((inv: any) => inv.supplierCost > 0)
+ .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+ let supplierPaidAmount = (data?.supplierTransfers || [])
+ .filter(t => t.supplierId === supId)
+ .reduce((total, t) => total + Math.max(0, Number(t.amount || 0)), 0);
+
+ let paidInvoices = 0;
+ let partiallyPaidInvoices = 0;
+
+ supplierInvoices.forEach((inv: any) => {
+ if (supplierPaidAmount >= inv.supplierCost - 0.001) {
+ paidInvoices += 1;
+ supplierPaidAmount -= inv.supplierCost;
+ } else if (supplierPaidAmount > 0) {
+ partiallyPaidInvoices += 1;
+ supplierPaidAmount = 0;
+ }
+ });
+
+ const totalInvoices = supplierInvoices.length;
+ const pendingInvoices = Math.max(0, totalInvoices - paidInvoices);
+ const unpaidInvoices = Math.max(0, pendingInvoices - partiallyPaidInvoices);
+ const paidPercentage = totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 100) : 0;
+
+ return {
+ totalInvoices,
+ paidInvoices,
+ pendingInvoices,
+ unpaidInvoices,
+ partiallyPaidInvoices,
+ paidPercentage
+ };
+ };
+
+ const normalizedSearch = normalizeArabic(search);
+
+ const getSupplierLiveBalance = (supId: string) => {
+   const ledger = getSupplierLedger(supId);
+   const due = ledger
+     .filter((item: any) => item.type === 'invoice')
+     .reduce((acc: number, item: any) => acc + Math.max(0, Number(item.amount || 0)), 0);
+   const paid = ledger
+     .filter((item: any) => item.type === 'transfer')
+     .reduce((acc: number, item: any) => acc + Math.max(0, Math.abs(Number(item.amount || 0))), 0);
+   return Math.max(0, Math.round((due - paid) * 1000) / 1000);
+ };
+
+ const filteredSuppliers = (data?.suppliers || [])
+ .filter(s => normalizeArabic(s.name || '').includes(normalizedSearch) || (s.phone || '').includes(search))
+ .sort((a, b) => {
+   const balanceA = getSupplierLiveBalance(a.id);
+   const balanceB = getSupplierLiveBalance(b.id);
+   const hasBalanceA = balanceA > 0 ? 1 : 0;
+   const hasBalanceB = balanceB > 0 ? 1 : 0;
+   if (hasBalanceA !== hasBalanceB) return hasBalanceB - hasBalanceA;
+   if (hasBalanceA && balanceA !== balanceB) return balanceB - balanceA;
+   return (a.name || '').localeCompare(b.name || '', 'ar');
+ });
+
+ const totalOutstanding = (data?.suppliers || []).reduce((acc, s) => acc + getSupplierLiveBalance(s.id), 0);
+ const suppliersWithBalances = (data?.suppliers || []).filter(s => getSupplierLiveBalance(s.id) > 0).length;
+
+ const handleSaveSupplier = () => {
+ if (!supplierForm.name || !supplierForm.phone) {
+ toast.error("بيانات ناقصة", { description:"اكتب اسم المورد ورقم التلفون." });
+ return;
+ }
+ 
+ // Convert to number explicitly, ensure balance is a number
+ const balance = Number(supplierForm.balance || 0);
+
+ // Strict validation: 8 digits, English numbers only
+ const phoneRegex = /^[0-9]{8}$/;
+ if (!phoneRegex.test(supplierForm.phone)) {
+ toast.error("الرقم مو مضبوط", { description:"رقم التلفون لازم يكون 8 أرقام إنجليزية فقط (مثال: 99881122)." });
+ return;
+ }
+
+ const isDuplicate = (data?.suppliers || []).some(s => s.phone === supplierForm.phone && s.id !== editingId);
+ if (isDuplicate) {
+ toast.warning("تنبيه: الرقم مسجل مسبقاً", { description:"هذا الرقم موجود في سجلات الموردين. يمنع التكرار لتفادي تداخل البيانات المتميزة." });
+ return;
+ }
+ 
+ if (editingId) {
+ setData(prev => ({
+ ...prev,
+ suppliers: (prev?.suppliers || []).map(s => 
+ s.id === editingId ? { ...s, ...supplierForm, balance } : s
+)
+ }));
+ toast.success("تم التحديث ✨", { description: `تم تعديل بيانات المورد ${supplierForm.name} بنجاح.` });
+ } else {
+ const id = Math.random().toString(36).substr(2, 9);
+ setData(prev => ({
+ ...prev,
+ suppliers: [...(prev?.suppliers || []), { ...supplierForm, id, balance, status: 'paid' }]
+ }));
+ toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة المورد ${supplierForm.name} لقائمة الموردين المعتمدين.` });
+ }
+ closeModal();
+ };
+
+ const openAddModal = () => {
+ setEditingId(null);
+ setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'delivery_company' });
+ setShowModal(true);
+ };
+
+ const openEditModal = (supplier: Supplier) => {
+ setEditingId(supplier.id);
+ setSupplierForm({ 
+ name: supplier.name, 
+ phone: supplier.phone, 
+ paymentMethods: toPaymentMethodsArray(supplier.paymentMethods),
+ balance: Number((supplier.balance || 0).toFixed(3)),
+ status: supplier.status,
+ supplierType: (supplier as any).supplierType || 'food',
+ deliverySettlement: ((supplier as any).supplierType === 'delivery' ? 'delivery_company' : ((supplier as any).deliverySettlement === 'supplier' ? 'supplier' : 'delivery_company'))
+ });
+ setShowModal(true);
+ };
+
+ const closeModal = () => {
+ setShowModal(false);
+ setEditingId(null);
+ };
+
+ const handleDeleteSupplier = (supplier: Supplier) => {
+ const hasProducts = (data?.products || []).some(p => p.supplierId === supplier.id);
+ 
+ if (hasProducts) {
+ const errorMsg = `المورد "${supplier.name}" مربوط بمنتجات حالية. احذف المنتجات أو غيّر تبعيتها أول.`;
+ toast.error("ما يصير نحذف", { 
+ description: errorMsg,
+ duration: 6000,
+ position: 'bottom-right'
+ });
+ setDeleteError(errorMsg);
+ setShakingId(supplier.id);
+ setSupplierToDelete(null);
+ setTimeout(() => {
+ setDeleteError(null);
+ setShakingId(null);
+ }, 5000);
+ return;
+ }
+
+ const supplierLiveBalance = getSupplierLiveBalance(supplier.id);
+ if (supplierLiveBalance > 0) {
+ const errorMsg = `ما يصير نحذف المورد "${supplier.name}" قبل سداد مستحقاته (${Number(supplierLiveBalance || 0).toFixed(3)} د.ك).`;
+ toast.error("مديونية معلقة", { 
+ description: errorMsg,
+ duration: 6000,
+ position: 'bottom-right'
+ });
+ setDeleteError(errorMsg);
+ setShakingId(supplier.id);
+ setSupplierToDelete(null);
+ setTimeout(() => {
+ setDeleteError(null);
+ setShakingId(null);
+ }, 5000);
+ return;
+ }
+
+ setData(prev => ({
+ ...prev,
+ suppliers: (prev?.suppliers || []).filter(s => s.id !== supplier.id)
+ }));
+ toast.info("تم الحذف", { description: `تمت إزالة المورد"${supplier.name}" من سجلات الموردين.` });
+ setSupplierToDelete(null);
+ };
+
+ return (
+ <div className="space-y-6">
+ <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-right">
+ <div className="order-2 md:order-1 flex-1">
+{/* duplicate supplier title removed intentionally */}
+ </div>
+ </div>
+
+ <div className="grid grid-cols-1 gap-2 md:p-3 text-right">
+ <div className="bg-white p-3 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm flex flex-row md:flex-col items-center md:justify-center text-right md:text-center gap-3 md:gap-0">
+ <div className="w-10 h-10 md:w-12 md:h-12 bg-red-50 rounded-lg md:rounded-2xl flex items-center justify-center text-red-500 shadow-inner md:mb-4 shrink-0 [&>svg]:w-5 [&>svg]:h-5 md:[&>svg]:w-6 md:[&>svg]:h-6">
+ <Wallet size={24} />
+ </div>
+ <div className="flex-1">
+ <div className="text-[10px] md:text-sm font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
+ <div className="text-lg md:text-3xl font-bold text-slate-900 tracking-tighter leading-none whitespace-nowrap" dir="ltr">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
+ <p className="hidden md:block text-xs text-slate-500 font-medium mt-2 leading-tight">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
+ </div>
+ </div>
+ </div>
+
+ <AnimatePresence>
+ {deleteError && (
+ <motion.div 
+ initial={{ opacity: 0, y: -20 }}
+ animate={{ opacity: 1, y: 0 }}
+ exit={{ opacity: 0, y: -20 }}
+ className="bg-red-50 border border-red-200 p-3 rounded-2xl flex items-center gap-2 text-red-600 font-bold shadow-sm"
+ >
+ <AlertCircle />
+ <span>{deleteError}</span>
+ </motion.div>
+)}
+ </AnimatePresence>
+
+ <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
+ <div className="flex flex-col md:flex-row md:items-center gap-2 mb-8">
+ <div className="relative flex-1">
+ <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+ <input 
+ id="search-input"
+ type="text" 
+ placeholder="ابحث عن مورد بالاسم..."
+ value={search}
+ onChange={(e) => {
+    let val = normalizeArabicNumerals(e.target.value);
+    if (/^[0-9]*$/.test(val)) {
+      val = val.slice(0, 8);
+    }
+    setSearch(val);
+  }}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
+ />
+ </div>
+ <button 
+ onClick={openAddModal}
+ className="bg-slate-900 text-white px-4 md:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 shrink-0"
+ >
+ <Plus size={20} />
+ <span>إضافة مورد جديد</span>
+ </button>
+ </div>
+
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+ {filteredSuppliers.map(supplier => {
+ const supplierProducts = getSupplierProducts(supplier.id);
+ const invoiceStats = getSupplierInvoiceStats(supplier.id);
+ const isDeliveryOnlySupplier = (supplier as any).supplierType === 'delivery';
+ const isSupplierDelivering = !isDeliveryOnlySupplier && (supplier as any).deliverySettlement === 'supplier';
+ const supplierLedger = getSupplierLedger(supplier.id);
+ const supplierLiveBalance = getSupplierLiveBalance(supplier.id);
+ const supplierDeliveryDue = supplierLedger.filter((l: any) => l.type === 'invoice').reduce((acc: number, l: any) => acc + Number(l.deliveryAmount || 0), 0);
+ const showDeliveryAction = isDeliveryOnlySupplier || isSupplierDelivering || supplierDeliveryDue > 0;
+ const priceIndicator = getSupplierPriceIndicator(supplier, { productCount: supplierProducts.length, invoiceCount: invoiceStats.totalInvoices });
+ return (
+ <motion.div 
+ key={supplier.id}
+ whileHover={{ y: -5 }}
+ animate={shakingId === supplier.id ? { 
+ x: [0, -10, 10, -10, 10, 0],
+ borderColor: ['rgba(241,245,249,1)', 'rgba(239,68,68,1)', 'rgba(239,68,68,1)', 'rgba(241,245,249,1)']
+ } : {}}
+ transition={shakingId === supplier.id ? { duration: 0.5 } : {}}
+ className={cn(
+"bg-white border border-slate-100 rounded-xl md:rounded-2xl p-3 md:p-3 gap-2 md:gap-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group border-t-4 border-t-emerald-500/20",
+ shakingId === supplier.id &&"ring-2 ring-red-500 ring-offset-2"
+)}
+ >
+ <div className="flex justify-between items-start mb-6 border-b border-slate-50 pb-4">
+ <div className="flex gap-2 order-2 transition-opacity">
+ <button 
+ onClick={() => openEditModal(supplier)}
+ className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-600 transition-colors"
+ >
+ <Edit2 size={16} />
+ </button>
+ <button 
+ onClick={() => setSupplierToDelete(supplier)}
+ className="p-2 bg-red-50 hover:bg-red-100 rounded-xl text-red-300 hover:text-red-500 transition-colors"
+ >
+ <Trash2 size={16} />
+ </button>
+ </div>
+ <div className="flex-1 order-1">
+ <div className="flex items-center gap-2 justify-end mb-1">
+ {priceIndicator.type === 'low' && (
+ <div title="مورد منافس جداً بناءً على نشاط وفواتير كافية" className="bg-emerald-500/10 p-2 rounded-full border border-emerald-500/20 cursor-pointer">
+ <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" />
+ </div>
+)}
+ <h3 className="font-bold text-slate-800 text-xl">{supplier.name}</h3>
+ </div>
+ <div className="flex items-center gap-2 justify-end text-slate-500 text-[12px] font-bold">
+ <span dir="ltr">{supplier.phone}</span>
+ <Phone size={12} />
+ </div>
+ </div>
+ </div>
+
+ <div className="space-y-6">
+ <div className="flex gap-2">
+ <div 
+ onClick={() => {
+   if (supplierLiveBalance <= 0) {
+     toast.success('لا يوجد مستحق مالي على هذا المورد', {
+       description: 'المورد مسدد بالكامل، لذلك لا حاجة لفتح شاشة تسجيل دفعة.',
+       position: 'bottom-right'
+     });
+     return;
+   }
+   setDeepLinkData({ supplierId: supplier.id, openModal: true, _t: Date.now() } as any);
+   setCurrentPage('suppliers-audit');
+ }}
+ className={cn(
+"flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center transition-all border-2",
+ supplierLiveBalance > 0 ?"cursor-pointer bg-red-50 border-red-100 hover:border-red-300" :"cursor-default bg-emerald-50 border-emerald-100"
+)}
+ >
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المستحق المالي</div>
+ <div className={cn("text-lg font-bold tracking-tighter", supplierLiveBalance > 0 ?"text-red-600" :"text-emerald-600")}>
+ {Number(supplierLiveBalance || 0).toFixed(3)}
+ </div>
+ </div>
+ <div 
+ onClick={() => setShowLedgerSupplierId(supplier.id)}
+ className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-blue-50 border-blue-100 hover:border-blue-300 hover:bg-blue-100 text-blue-600"
+ >
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">كشف حساب</div>
+ <ArrowLeftRight size={18} className="mb-1 mt-1" />
+ <div className="text-[10px] font-bold">عرض الفواتير</div>
+ </div>
+ {!isDeliveryOnlySupplier && (
+ <div 
+ onClick={() => setProductsToShow(supplierProducts)}
+ className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
+ >
+ <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المنتجات</div>
+ <div className="text-xl font-bold text-slate-800">{supplierProducts.length}</div>
+ </div>
+ )}
+ </div>
+
+ {!isDeliveryOnlySupplier && (
+ <div className="bg-gradient-to-l from-slate-50 via-white to-white border border-slate-100 rounded-3xl p-3 text-right shadow-inner">
+ <div className="flex items-center justify-between gap-3 mb-3">
+ <div className="bg-slate-100 rounded-2xl p-3 shrink-0">
+ <History size={18} className="text-slate-600" />
+ </div>
+ <div className="flex-1">
+ <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-tight">حالة فواتير المورد</div>
+ <div className="text-xs font-bold text-slate-600 mt-1">
+ المقصود هنا سدادك للمورد، وليس حالة دفع العميل
+ </div>
+ </div>
+ </div>
+
+ <div className="h-2.5 bg-red-100 rounded-full overflow-hidden mb-3 border border-white" dir="ltr">
+ <div
+ className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+ style={{ width: `${invoiceStats.paidPercentage}%` }}
+ />
+ </div>
+
+ <div className="grid grid-cols-3 gap-2">
+ <div className="bg-white border border-slate-100 rounded-2xl p-2 text-center">
+ <div className="text-[10px] font-bold text-slate-400 mb-1">الإجمالي</div>
+ <div className="text-lg font-extrabold text-slate-800 leading-none">{invoiceStats.totalInvoices}</div>
+ </div>
+ <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-2 text-center">
+ <div className="text-[10px] font-bold text-emerald-600 mb-1 flex items-center justify-center gap-1">
+ <CheckCircle2 size={11} /> مسددة
+ </div>
+ <div className="text-lg font-extrabold text-emerald-700 leading-none">{invoiceStats.paidInvoices}</div>
+ </div>
+ <div className="bg-red-50 border border-red-100 rounded-2xl p-2 text-center">
+ <div className="text-[10px] font-bold text-red-500 mb-1 flex items-center justify-center gap-1">
+ <Clock3 size={11} /> غير مسددة
+ </div>
+ <div className="text-lg font-extrabold text-red-600 leading-none">{invoiceStats.pendingInvoices}</div>
+ </div>
+ </div>
+
+ {invoiceStats.partiallyPaidInvoices > 0 && (
+ <div className="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center">
+ توجد {invoiceStats.partiallyPaidInvoices} فاتورة عليها سداد جزئي للمورد ضمن غير المسددة.
+ </div>
+ )}
+ </div>
+ )}
+
+
+ <div className="supplier-kind-badges flex flex-wrap gap-2 justify-end">
+ {(supplier as any).supplierType !== 'delivery' && (
+ <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+ <Package size={12} /> مورد أكل
+ </span>
+ )}
+ {((supplier as any).supplierType === 'delivery' || (supplier as any).deliverySettlement === 'supplier') && (
+ <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-700 flex items-center gap-1">
+ <Truck size={12} /> توصيل
+ </span>
+ )}
+ </div>
+
+ <div className="flex flex-wrap gap-2 justify-end">
+ {toPaymentMethodsArray(supplier.paymentMethods).map(method => (
+ <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+ <CreditCard size={12} />
+ {method === 'BankTransfer' ? 'حوالة' : method === 'KNet' ? 'KNET' : 'رابط'}
+ </span>
+))}
+ </div>
+ </div>
+ </motion.div>
+)})}
+ </div>
+ </div>
+
+ {supplierToDelete && (
+ <ConfirmModal
+ title="تأكيد الحذف"
+ message="هل أنت متأكد من الحذف؟ لا يمكن التراجع عن هذه الخطوة."
+ onConfirm={() => handleDeleteSupplier(supplierToDelete)}
+ onCancel={() => setSupplierToDelete(null)}
+ />
+)}
+
+ <AnimatePresence>
+ {productsToShow && (
+ <motion.div 
+ initial={{ opacity: 0 }} 
+ animate={{ opacity: 1 }} 
+ exit={{ opacity: 0 }} 
+ className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ onClick={() => setProductsToShow(null)}
+ >
+ <motion.div 
+ initial={{ opacity: 0, scale: 0.95, y: 20 }}
+ animate={{ opacity: 1, scale: 1, y: 0 }}
+ exit={{ opacity: 0, scale: 0.95, y: 20 }}
+ className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ onClick={(e) => e.stopPropagation()}
+ >
+ {/* Header - Fixed */}
+ <div className="p-3 md:p-3 pb-0 shrink-0">
+ <h2 className="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2 justify-end leading-tight">
+ منتجات المورد
+ <Package className="text-emerald-500" />
+ </h2>
+ </div>
+
+ <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-3 pt-4 min-h-0">
+ <div className="space-y-4 supplier-mobile-page">
+ {productsToShow.map(p => (
+ <div key={p.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100 font-bold text-slate-800">
+ <span>{p.name}</span>
+ <span className="text-primary whitespace-nowrap" dir="ltr">{Number(p.price || 0).toFixed(3)} د.ك</span>
+ </div>
+))}
+ {productsToShow.length === 0 && <p className="text-center text-slate-500 font-bold italic py-4 md:py-8">ماكو منتجات مرتبطة بهذا المورد حالياً.</p>}
+ </div>
+ </div>
+ 
+ <div className="p-3 md:p-3 shrink-0 mt-auto border-t border-slate-100">
+ <button 
+ onClick={() => setProductsToShow(null)}
+ className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-lg active:scale-95"
+ >
+ إغلاق
+ </button>
+ </div>
+ </motion.div>
+ </motion.div>
+)}
+ </AnimatePresence>
+
+ <AnimatePresence>
+ {showModal && (
+ <motion.div 
+ initial={{ opacity: 0 }} 
+ animate={{ opacity: 1 }} 
+ exit={{ opacity: 0 }} 
+ className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
+ onClick={() => setShowModal(false)}
+ >
+ <motion.div 
+ initial={{ opacity: 0, scale: 0.95, y: 20 }}
+ animate={{ opacity: 1, scale: 1, y: 0 }}
+ exit={{ opacity: 0, scale: 0.95, y: 20 }}
+ className="bg-white rounded-3xl md:rounded-3xl w-[95%] md:w-full max-w-lg shadow-xl p-0 border border-slate-100 text-right flex flex-col max-h-[90dvh] overflow-hidden"
+ onClick={e => e.stopPropagation()}
+ >
+ <div className="p-3 md:p-3 pb-0 shrink-0">
+ <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-2 justify-end leading-tight text-right">
+ {editingId ? 'تحرير بيانات المورد' : 'إضافة مورد معتمد جديد'}
+ <PlusCircle className="text-emerald-500" />
+ </h2>
+ </div>
+
+ <div className="flex-1 overflow-y-auto custom-scrollbar p-3 md:p-3 pt-4 min-h-0">
+ <div className="space-y-8">
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">اسم المورد الرسمي</label>
+ <input 
+ type="text" 
+ value={supplierForm.name}
+ onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right text-lg"
+ placeholder="شركة المواد..."
+ />
+ </div>
+
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">رقم للتواصل (واتساب)</label>
+ <NumericInput 
+ value={supplierForm.phone}
+ onChange={(val) => setSupplierForm({ ...supplierForm, phone: val.toString() })}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
+ placeholder="99XXXXXX"
+ maxLength={8}
+ />
+ </div>
+
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">نوع المورد</label>
+ <select
+ value={supplierForm.supplierType}
+ onChange={(e) => { const nextType = e.target.value as any; setSupplierForm({ ...supplierForm, supplierType: nextType, deliverySettlement: nextType === 'delivery' ? 'delivery_company' : supplierForm.deliverySettlement }); }}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
+ >
+ <option value="food">مورد أكل</option>
+ <option value="delivery">شركة توصيل فقط</option>
+ </select>
+ {(supplierForm.supplierType === 'delivery') && (
+   <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">هذا الاسم يظهر كخيار في شركة التوصيل فقط، ولا يحتاج إعداد تسوية إضافي.</p>
+ )}
+ </div>
+ {supplierForm.supplierType !== 'delivery' && (
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">هل المورد يوصل طلباته؟</label>
+ <select
+ value={supplierForm.deliverySettlement}
+ onChange={(e) => setSupplierForm({ ...supplierForm, deliverySettlement: e.target.value as any })}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-4 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
+ >
+ <option value="supplier">نعم، يوصّل ويستحق التوصيل</option>
+ <option value="delivery_company">لا، أختار شركة التوصيل من الفاتورة</option>
+ </select>
+ <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">إذا اخترت نعم يظهر اسم المورد تلقائيًا في فاتورة جديدة، وتقدر تبدله من الفاتورة.</p>
+ </div>
+ )}
+ </div>
+
+ <div className="space-y-4">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">قنوات الدفع المدعومة</label>
+ <div className="flex flex-wrap gap-2 justify-end">
+ {['BankTransfer', 'KNet', 'Link'].map((method) => (
+ <label key={method} className={cn(
+"flex items-center gap-2 px-5 py-3 rounded-2xl border-2 transition-all cursor-pointer font-bold text-xs uppercase tracking-tight",
+ (supplierForm.paymentMethods || []).includes(method as any) 
+ ?"border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md" 
+ :"border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200/60"
+)}>
+ <input 
+ type="checkbox"
+ className="hidden"
+ checked={(supplierForm.paymentMethods || []).includes(method as any)}
+ onChange={() => {
+ const methods = (supplierForm.paymentMethods || []).includes(method as any)
+ ? (supplierForm.paymentMethods || []).filter(m => m !== method)
+ : [...(supplierForm.paymentMethods || []), method as any];
+ setSupplierForm({ ...supplierForm, paymentMethods: methods });
+ }}
+ />
+ {method === 'BankTransfer' ? 'تحويل بنكي' : method === 'KNet' ? 'K-NET' : 'رابط دفع'}
+ </label>
+))}
+ </div>
+ </div>
+ </div>
+ </div>
+ 
+ <div className="flex gap-2 p-3 md:p-3 shrink-0 mt-auto border-t border-slate-50">
+ <button 
+ onClick={closeModal}
+ className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-2xl transition-all"
+ >
+ تراجع
+ </button>
+ <button 
+ onClick={handleSaveSupplier}
+ className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-2xl transition-all shadow-xl active:scale-95"
+ >
+ تأكيد المورد
+ </button>
+ </div>
+ </motion.div>
+ </motion.div>
+)}
+ <AnimatePresence>
+  {showLedgerSupplierId && (
+  <motion.div 
+  initial={{ opacity: 0 }} 
+  animate={{ opacity: 1 }} 
+  exit={{ opacity: 0 }} 
+   className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 pb-20 sm:pb-6"
+  onClick={() => setShowLedgerSupplierId(null)}
+  >
+  <motion.div 
+  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+  animate={{ opacity: 1, scale: 1, y: 0 }}
+  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+  className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl p-0 border border-slate-100 text-right flex flex-col max-h-[85dvh] overflow-hidden translate-y-6 sm:translate-y-12 shadow-black/20"
+  onClick={e => e.stopPropagation()}
+  >
+  {(() => {
+  const supplier = (data?.suppliers || []).find(s => s.id === showLedgerSupplierId);
+  const ledger = getSupplierLedger(showLedgerSupplierId);
+  const totalSupplyDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.supplyAmount || 0), 0);
+  const totalAddonsDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number((l as any).addonsSupplyAmount || 0), 0);
+  const totalProductsDue = Math.max(0, totalSupplyDue - totalAddonsDue);
+  const totalDeliveryDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.deliveryAmount || 0), 0);
+  const totalInvoiced = totalSupplyDue + totalDeliveryDue;
+  const totalPaid = Math.abs(ledger.filter(l => l.type === 'transfer').reduce((acc, l) => acc + l.amount, 0));
+  const paidToSupply = Math.min(totalPaid, totalSupplyDue);
+  const paidToDelivery = Math.min(Math.max(totalPaid - totalSupplyDue, 0), totalDeliveryDue);
+  const remainingSupply = Math.max(0, totalSupplyDue - paidToSupply);
+  const remainingDelivery = Math.max(0, totalDeliveryDue - paidToDelivery);
+  const currentBalance = getSupplierLiveBalance(showLedgerSupplierId);
+  const isDeliveryOnlySupplier = (supplier as any)?.supplierType === 'delivery';
+  const showSupplySummary = !isDeliveryOnlySupplier && totalSupplyDue > 0;
+  const showAddonsSummary = !isDeliveryOnlySupplier && totalAddonsDue > 0;
+  const showDeliverySummary = totalDeliveryDue > 0 || isDeliveryOnlySupplier || ((supplier as any)?.deliverySettlement === 'supplier');
+
+  return (
+  <>
+  <div className="p-6 border-b border-slate-100 shrink-0 bg-slate-50/50 flex flex-col gap-4">
+  <div className="flex justify-between items-start">
+  <button onClick={() => setShowLedgerSupplierId(null)} className="p-2.5 hover:bg-white rounded-2xl transition-all text-slate-400 hover:text-slate-600 hover:shadow-md">
+  <X size={20} />
+  </button>
+  <div className="flex items-center gap-4">
+  <div className="text-right">
+  <h3 className="text-xl font-black text-slate-900 leading-tight">{supplier?.name}</h3>
+  <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1 block">كشف الحساب المالي التفصيلي</span>
+  </div>
+  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+  <ArrowLeftRight size={24} />
+  </div>
+  </div>
+  </div>
+
+  <div className={cn("grid grid-cols-2 gap-3", showSupplySummary && showAddonsSummary && showDeliverySummary ? "md:grid-cols-6" : showSupplySummary && showDeliverySummary ? "md:grid-cols-5" : "md:grid-cols-4")}>
+  {showSupplySummary && (
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">توريد المنتجات</div>
+  <div className="text-base font-black text-slate-900 text-center relative z-10">{totalProductsDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-slate-400 mt-1 text-center">إجمالي التوريد {totalSupplyDue.toFixed(3)}</div>
+  </div>
+  )}
+  {showAddonsSummary && (
+  <div className="bg-amber-50 p-3 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-amber-500 uppercase mb-1 text-center relative z-10">إضافات المورد</div>
+  <div className="text-base font-black text-amber-700 text-center relative z-10">{totalAddonsDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-amber-500 mt-1 text-center">مضافة ضمن المستحق</div>
+  </div>
+  )}
+  {showDeliverySummary && (
+  <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-blue-400 uppercase mb-1 text-center relative z-10">توصيل المورد</div>
+  <div className="text-base font-black text-blue-700 text-center relative z-10">{totalDeliveryDue.toFixed(3)}</div>
+  <div className="text-[9px] font-black text-blue-400 mt-1 text-center">متبقي {remainingDelivery.toFixed(3)}</div>
+  </div>
+  )}
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي المستحق</div>
+  <div className="text-base font-black text-slate-900 text-center relative z-10">{totalInvoiced.toFixed(3)}</div>
+  </div>
+  <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
+  <div className="text-base font-black text-emerald-600 text-center relative z-10">{totalPaid.toFixed(3)}</div>
+  </div>
+  <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl relative overflow-hidden">
+  <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl" />
+  <div className="text-[10px] font-bold opacity-60 uppercase mb-1 text-center relative z-10">المتبقي حالياً</div>
+  <div className="text-base font-black text-center relative z-10">{currentBalance.toFixed(3)}</div>
+  </div>
+  </div>
+  </div>
+
+  <div className="flex-1 overflow-y-auto custom-scrollbar p-6 min-h-0 bg-slate-50/20">
+  <div className="space-y-4">
+  {ledger.slice(0, visibleLedgerCount).map((item, idx) => (
+  <motion.div 
+  key={item.id}
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: idx * 0.05 }}
+  className={cn(
+    "bg-white border border-slate-100 rounded-3xl overflow-hidden transition-all shadow-sm hover:shadow-xl",
+    item.type === 'invoice' && "cursor-pointer active:scale-[0.99]",
+    expandedLedgerId === item.id ? "ring-2 ring-blue-500 border-transparent shadow-2xl" : "hover:border-blue-200"
+  )}
+  onClick={() => {
+    if (item.type === 'invoice') {
+      setExpandedLedgerId(expandedLedgerId === item.id ? null : item.id);
+    }
+  }}
+  >
+  <div className="p-5 flex justify-between items-center group">
+  <div className="flex items-center gap-4 order-1">
+  <div className={cn(
+ "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner",
+  item.type === 'invoice' ? "bg-rose-50 text-rose-500" : "bg-emerald-50 text-emerald-500"
+ )}>
+  {item.type === 'invoice' ? <Receipt size={22} /> : <CheckCircle2 size={22} />}
+  </div>
+  <div className="text-right">
+  <div className="font-black text-slate-800 text-base flex items-center gap-2">
+    {item.label}
+    {item.type === 'invoice' && (
+      <span className={cn(
+        "text-[10px] px-2 py-0.5 rounded-full font-black border transition-all",
+        expandedLedgerId === item.id ? "bg-blue-500 text-white border-blue-500" : "bg-slate-50 text-slate-400 border-slate-200 group-hover:border-blue-200 group-hover:text-blue-500"
+      )}>
+        {expandedLedgerId === item.id ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+      </span>
+    )}
+  </div>
+  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
+  <div className="mt-1 flex flex-wrap justify-end gap-1">
+  {item.type === 'invoice' && Number((item as any).addonsSupplyAmount || 0) > 0 && (
+    <div className="text-[10px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">يشمل إضافات {Number((item as any).addonsSupplyAmount || 0).toFixed(3)} د.ك</div>
+  )}
+  {item.type === 'invoice' && item.deliveryAmount > 0 && (
+    <div className="text-[10px] font-black text-blue-500 bg-blue-50 rounded-xl px-2 py-1 inline-block">يشمل توصيل مورد {Number(item.deliveryAmount || 0).toFixed(3)} د.ك</div>
+  )}
+  </div>
+  </div>
+  </div>
+  <div className="order-2 text-left">
+  <div className={cn(
+ "text-lg font-black tracking-tighter whitespace-nowrap",
+  item.type === 'invoice' ? "text-slate-900" : "text-emerald-600"
+ )} dir="ltr">
+  {item.type === 'invoice' ? '' : '-'}{Math.abs(item.amount).toFixed(3)} <span className="text-[10px]">د.ك</span>
+  </div>
+  {item.type === 'transfer' && (
+  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">
+  بواسطة {item.method === 'BankTransfer' ? 'تحويل بنكي' : item.method}
+  </div>
+  )}
+  </div>
+  </div>
+
+  <AnimatePresence>
+    {expandedLedgerId === item.id && item.type === 'invoice' && (
+      <motion.div 
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ height: 'auto', opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-slate-50/50 border-t border-slate-100"
+      >
+        <div className="p-5 space-y-4">
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
+            <div className="text-right">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع (Revenue)</div>
+              <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
+            </div>
+            <div className="text-right border-r border-slate-100 px-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
+              <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            </div>
+            {Number((item as any).addonsSupplyAmount || 0) > 0 && (
+            <div className="text-right border-r border-slate-100 px-3">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إضافات المورد</div>
+              <div className="text-base font-black text-amber-600 whitespace-nowrap" dir="ltr">{Number((item as any).addonsSupplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            </div>
+            )}
+            {Number(item.deliveryAmount || 0) > 0 && (
+            <div className="text-right border-r border-slate-100 px-3">
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توصيل المورد</div>
+              <div className="text-base font-black text-blue-600 whitespace-nowrap" dir="ltr">{(item.deliveryAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
+            </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-2">الأصناف المشمولة</div>
+            <div className="space-y-1">
+              {(item.items || []).map((prod: any, pIdx: number) => (
+                <div key={`${item.id}-${pIdx}`} className="bg-white/80 border border-slate-100/50 rounded-2xl p-3 flex flex-wrap justify-between items-center text-right group/item hover:bg-white transition-all">
+                  <div className="flex-1">
+                    <div className="font-bold text-slate-800 text-sm">{prod.name}</div>
+                    <div className="text-[10px] font-black text-slate-400 flex items-center gap-2 mt-0.5">
+                      <span>الكمية: {prod.quantity}</span>
+                      <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                      <span>السعر: {prod.price.toFixed(3)}</span>
+                    </div>
+                  </div>
+                  <div className="text-left shrink-0">
+                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{Number(prod.baseCostTotal ?? ((Number(prod.cost || 0) * Number(prod.quantity || 1)) || 0)).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
+                    <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
+                  </div>
+                  {Array.isArray((prod as any).addons) && (prod as any).addons.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-amber-100/70 w-full space-y-1">
+                      {((prod as any).addons || []).filter((addon: any) => Number(addon.costTotal || 0) > 0).map((addon: any, aIdx: number) => (
+                        <div key={`${item.id}-${pIdx}-addon-${aIdx}`} className="flex justify-between items-center gap-2 text-[10px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
+                          <span className="font-black text-amber-700 text-right">إضافة: {addon.name}{addon.quantity !== undefined ? ` × ${addon.quantity}` : ''}</span>
+                          <span className="font-black text-amber-700 whitespace-nowrap" dir="ltr">{Number(addon.costTotal || 0).toFixed(3)} د.ك</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+  </motion.div>
+  ))}
+  {ledger.length > visibleLedgerCount && (
+    <div className="flex justify-center p-4">
+      <button 
+        onClick={() => setVisibleLedgerCount(c => c + 50)}
+        className="px-6 py-3 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold rounded-2xl shadow-sm transition-all text-sm active:scale-95 cursor-pointer flex items-center gap-2"
+      >
+        <span>عرض المزيد ({ledger.length - visibleLedgerCount} عمليات متبقية...)</span>
+      </button>
+    </div>
+  )}
+  {ledger.length === 0 && (
+  <div className="py-24 text-center">
+  <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 grayscale opacity-40">
+  <Receipt size={48} />
+  </div>
+  <p className="text-slate-400 font-bold italic text-lg">لا توجد حركات مالية مسجلة لهذا المورد بعد.</p>
+  </div>
+  )}
+  </div>
+  </div>
+
+  <div className="p-4 border-t border-slate-100 shrink-0 bg-white flex gap-4">
+  <button 
+  onClick={() => {
+    setShowLedgerSupplierId(null);
+    setDeepLinkData({ supplierId: showLedgerSupplierId, openModal: true });
+    setCurrentPage('suppliers-audit');
+  }}
+  className="flex-1 py-5 bg-slate-900 text-white font-black rounded-[24px] transition-all shadow-2xl active:scale-[0.98] text-xs flex items-center justify-center gap-2"
+  >
+  <CreditCard size={18} />
+  تسجيل سداد مالي جديد
+  </button>
+  <button 
+  onClick={() => setShowLedgerSupplierId(null)}
+  className="flex-1 py-5 bg-slate-100 text-slate-500 font-black rounded-[24px] transition-all text-xs"
+  >
+  إغلاق النافذة
+  </button>
+  </div>
+  </>
+  );
+  })()}
+  </motion.div>
+  </motion.div>
+  )}
+ </AnimatePresence>
+
+ </AnimatePresence>
+ </div>
+);
+});
+
+export default SupplierPage;

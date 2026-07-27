@@ -1,0 +1,19 @@
+=== TypeScript syntax transpile ===
+/mnt/data/ktk_work/src/lib/firestoreShardStorage.ts: OK
+/mnt/data/ktk_work/src/components/GeneralSettings.tsx: OK
+/mnt/data/ktk_work/src/App.tsx: OK
+/mnt/data/ktk_work/server.ts: OK
+
+=== Logical shard integration test ===
+{
+  "invoices": 74,
+  "rawBytes": 5948517,
+  "segmentedParts": 14,
+  "maxPhysicalDocumentBytes": 600125,
+  "manifestBytes": 862,
+  "roundTripExact": true,
+  "stalePartsCleaned": true
+}
+
+=== Legacy direct shard writes found ===
+/mnt/data/ktk_work/server.ts:1745:      partDocuments.map((part) => rootRef.collection("shards").doc(part.id).set(part.content, { merge: false })),

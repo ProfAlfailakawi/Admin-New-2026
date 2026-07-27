@@ -1,0 +1,284 @@
+let pushStage = "module-start";
+
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+
+  return outputArray;
+}
+
+import { initializeApp, getApps } from "firebase/app";
+import { getMessaging, getToken, isSupported } from "firebase/messaging";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k",
+  authDomain: "gen-lang-client-0200723670.firebaseapp.com",
+  projectId: "gen-lang-client-0200723670",
+  storageBucket: "gen-lang-client-0200723670.firebasestorage.app",
+  messagingSenderId: "119610604304",
+  appId: "1:119610604304:web:55eba98b72a9a7f98d4395",
+};
+
+export const FALLBACK_VAPID_KEY =
+  "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
+
+export async function getPushSupportStatus() {
+  const hasWindow = typeof window !== "undefined";
+  const hasNavigator = typeof navigator !== "undefined";
+  const hasNotification = typeof Notification !== "undefined";
+  const hasServiceWorker = hasNavigator && "serviceWorker" in navigator;
+  const hasPushManager = hasWindow && "PushManager" in window;
+
+  const standalone =
+    hasWindow &&
+    (
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (navigator as any).standalone === true
+    );
+
+  const permission = hasNotification ? Notification.permission : "unsupported";
+
+  return {
+    supported: hasNotification && hasServiceWorker && hasPushManager,
+    firebaseSupported: hasNotification && hasServiceWorker && hasPushManager,
+    permission,
+    standalone,
+    hasNotification,
+    hasServiceWorker,
+    hasPushManager,
+    platform: /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      ? "iPhone"
+      : /Android/i.test(navigator.userAgent)
+        ? "Android"
+        : "Web",
+  };
+}
+
+async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWorkerRegistration> {
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("Service Worker غير مدعوم في هذا المتصفح");
+  }
+
+  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+    scope: "/",
+    updateViaCache: "none",
+  });
+
+  if (registration.installing) {
+    await new Promise<void>((resolve) => {
+      const worker = registration.installing;
+      if (!worker) return resolve();
+
+      worker.addEventListener("statechange", () => {
+        if (worker.state === "activated") {
+          resolve();
+        }
+      });
+    });
+  }
+
+  return registration;
+}
+
+async function saveTokenToServer(token: string, options?: {
+  userId?: string;
+  restaurantId?: string;
+}) {
+  const payload = {
+    token,
+    userId: options?.userId || "admin",
+    restaurantId: options?.restaurantId || "default",
+    platform: /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "iPhone" : "web",
+    userAgent: navigator.userAgent || null,
+    vendor: navigator.vendor || null,
+    language: navigator.language || null,
+    standalone:
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (navigator as any).standalone === true ||
+      false,
+    notificationPermission: Notification.permission,
+    serviceWorkerController: Boolean(navigator.serviceWorker?.controller),
+    currentUrl: window.location.href,
+    screen: {
+      width: window.screen?.width || null,
+      height: window.screen?.height || null,
+      availWidth: window.screen?.availWidth || null,
+      availHeight: window.screen?.availHeight || null,
+    },
+    savedAtClient: new Date().toISOString(),
+  };
+
+  const response = await fetch(`${window.location.origin}/api/push/save-token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || data?.success !== true) {
+    throw new Error(data?.error || "فشل حفظ التوكن في الخادم");
+  }
+
+  return data;
+}
+
+export async function registerPushNotifications(options?: {
+  userId?: string;
+  restaurantId?: string;
+}): Promise<{
+  success: boolean;
+  token?: string;
+  error?: string;
+}> {
+  try {
+    if (typeof Notification === "undefined") {
+      return {
+        success: false,
+        error: "الإشعارات غير مدعومة على هذا الجهاز أو المتصفح",
+      };
+    }
+
+    pushStage = "Notification.permission";
+    const permission = Notification.permission;
+    if (permission !== "granted") {
+      return {
+        success: false,
+        error: "لم يتم السماح بالإشعارات",
+      };
+    }
+
+    pushStage = "getPushSupportStatus";
+    const support = await getPushSupportStatus();
+
+    if (!support.supported) {
+      return {
+        success: false,
+        error: "الإشعارات غير مدعومة على هذا الجهاز أو المتصفح",
+      };
+    }
+
+    pushStage = "initializeApp";
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    pushStage = "getMessaging";
+    const messaging = getMessaging(app);
+    pushStage = "getFreshMessagingServiceWorkerRegistration";
+    const registration = await getFreshMessagingServiceWorkerRegistration();
+
+    let token = "";
+
+    try {
+      pushStage = "Firebase getToken";
+      token = await getToken(messaging, {
+        vapidKey: FALLBACK_VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+    } catch (getTokenError: any) {
+      console.error("[Push] Firebase getToken failed:", getTokenError);
+
+      try {
+        pushStage = "Native pushManager.subscribe";
+        const nativeSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(FALLBACK_VAPID_KEY),
+        });
+
+        alert(
+          "NATIVE_PUSH_OK\n\n" +
+          JSON.stringify(nativeSub.toJSON()).slice(0, 1200)
+        );
+
+        return {
+          success: false,
+          error: "NATIVE_PUSH_OK - أرسل صورة هذه الرسالة"
+        };
+      } catch (nativeError: any) {
+        alert(
+          "NATIVE_PUSH_FAILED\n\nFirebase: " +
+          (getTokenError?.message || getTokenError?.code || String(getTokenError)) +
+          "\n\nNative: " +
+          (nativeError?.message || nativeError?.code || String(nativeError))
+        );
+
+        return {
+          success: false,
+          error: "NATIVE_PUSH_FAILED - أرسل صورة هذه الرسالة"
+        };
+      }
+
+      const message =
+        getTokenError?.message ||
+        getTokenError?.code ||
+        String(getTokenError) ||
+        "فشل Firebase getToken";
+
+      throw new Error("Firebase getToken failed: " + message);
+    }
+
+    if (!token) {
+      return {
+        success: false,
+        error: "لم يتم إنشاء توكن الإشعارات",
+      };
+    }
+
+    pushStage = "saveTokenToServer";
+    await saveTokenToServer(token, options);
+
+    localStorage.setItem("push_notifications_enabled", "true");
+    localStorage.setItem("last_push_token", token);
+    localStorage.setItem("push_enabled_at", new Date().toISOString());
+
+    return {
+      success: true,
+      token,
+    };
+  } catch (error: any) {
+    console.error("[Push] registerPushNotifications failed:", error);
+
+    const realMessage =
+      error?.message ||
+      error?.code ||
+      String(error) ||
+      "Unknown push error";
+
+    const supportInfo = {
+      notificationPermission:
+        typeof Notification !== "undefined" ? Notification.permission : "NO_NOTIFICATION",
+      hasServiceWorker:
+        typeof navigator !== "undefined" && "serviceWorker" in navigator,
+      hasPushManager:
+        typeof window !== "undefined" && "PushManager" in window,
+      userAgent:
+        typeof navigator !== "undefined" ? navigator.userAgent : "NO_UA",
+      standalone:
+        typeof window !== "undefined" &&
+        (
+          window.matchMedia?.("(display-mode: standalone)")?.matches ||
+          (navigator as any).standalone === true
+        ),
+    };
+
+    alert(
+      "خطأ الإشعارات الحقيقي:\n\n" +
+      "STAGE: " + (typeof pushStage !== "undefined" ? pushStage : "unknown") + "\n\n" +
+      realMessage +
+      "\n\nSupport:\n" +
+      JSON.stringify(supportInfo, null, 2)
+    );
+
+    return {
+      success: false,
+      error: realMessage,
+    };
+  }
+}

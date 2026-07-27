@@ -1,0 +1,56 @@
+{
+  "firestore": [
+    {
+      "database": "ai-studio-7058254a-1b06-4783-89b7-2b95cb116681",
+      "rules": "firestore.rules"
+    },
+    {
+      "database": "(default)",
+      "rules": "firestore.rules"
+    }
+  ],
+  "hosting": {
+    "site": "alturath-admin-0200723670",
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/run-alerts",
+        "run": {
+          "serviceId": "service",
+          "region": "europe-west3"
+        }
+      },
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "service",
+          "region": "europe-west3"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/firebase-messaging-sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          },
+          {
+            "key": "Service-Worker-Allowed",
+            "value": "/"
+          }
+        ]
+      }
+    ]
+  }
+}

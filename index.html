@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>شركة مطبخ التراث الكويتي</title>
+
+    <!-- Preconnect to critical origins to cut down handshake latency on first paint -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://www.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://apis.google.com" crossorigin />
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin />
+    <link rel="preconnect" href="https://firebaseinstallations.googleapis.com" crossorigin />
+    <link rel="dns-prefetch" href="https://firebaseinstallations.googleapis.com" />
+    <link rel="dns-prefetch" href="https://apis.google.com" />
+    <link rel="dns-prefetch" href="https://accounts.google.com" />
+
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json?v=6.0.0" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/ios-icon-192-v6.png?v=6.0.0" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/ios-icon-512-v6.png?v=6.0.0" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v6.png?v=6.0.0" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/ios-icon-152-v6.png?v=6.0.0" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/ios-icon-167-v6.png?v=6.0.0" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-v6.png?v=6.0.0" />
+    
+    <meta name="theme-color" content="#f8f4ea" />
+    <meta name="apple-mobile-web-app-title" content="التراث" />
+    <meta name="application-name" content="التراث" />
+    <meta name="description" content="نظام إدارة العمليات والطلبات لشركة مطبخ التراث الكويتي" />
+    <!-- Canonical URL for SEO and consistent link sharing -->
+    <link rel="canonical" href="https://admin.alturathkw.shop/" />
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="شركة مطبخ التراث الكويتي" />
+    <meta property="og:description" content="نظام إدارة العمليات والطلبات لشركة مطبخ التراث الكويتي" />
+    <!-- Use custom OG image with the company logo for a clean WhatsApp preview -->
+    <meta property="og:image" content="https://admin.alturathkw.shop/og-admin-v7.jpg" />
+    <meta property="og:url" content="https://admin.alturathkw.shop/" />
+    <meta property="og:type" content="website" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="شركة مطبخ التراث الكويتي" />
+    <meta name="twitter:description" content="نظام إدارة العمليات والطلبات لشركة مطبخ التراث الكويتي" />
+    <meta name="twitter:image" content="https://admin.alturathkw.shop/og-admin-v7.jpg" />
+    <meta name="twitter:domain" content="admin.alturathkw.shop" />
+    
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    
+    <script>
+      // Warm Cloud Run before the JS bundle downloads. This endpoint initializes
+      // the server cache but never returns the protected admin dataset.
+      try {
+        var __mode = null;
+        try { __mode = localStorage.getItem('appMode'); } catch (e) {}
+        if (__mode !== 'local') {
+          var __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+          // 9s (was 4.5s): a cold Cloud Run instance needs ~10–40s, so a short abort here
+          // killed the very request that was warming it. App.tsx's prewarmCloudBoot() picks
+          // up the resilient retry if this one still times out, so we lose nothing by waiting.
+          var __timer = setTimeout(function(){ if (__ctrl) __ctrl.abort(); }, 9000);
+          window.__bootWarmupPromise = fetch('/api/warmup', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+            signal: __ctrl ? __ctrl.signal : undefined
+          })
+            .then(function(r){ clearTimeout(__timer); return r && r.ok; })
+            .catch(function(){ clearTimeout(__timer); return null; });
+        }
+      } catch (e) {}
+    </script>
+    <script>
+      // Service Worker Cleanup: only unregister the OLD generic sw.js
+      // (firebase-messaging-sw.js stays untouched for push notifications)
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            if (registration.active && registration.active.scriptURL.includes('sw.js') && !registration.active.scriptURL.includes('firebase-messaging-sw.js')) {
+              registration.unregister();
+              console.log("Unregistered old SW:", registration);
+            }
+          }
+        });
+      }
+      // Note: version-aware cache cleanup runs inside App.tsx after a real version change,
+      // so we no longer wipe browser caches on every page load (that was killing performance).
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
