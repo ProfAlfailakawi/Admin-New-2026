@@ -89,7 +89,6 @@ import {
   DEFAULT_GLOBAL_LOGO,
 } from "../constants";
 import { recalculateStateBalances } from "../lib/business-logic";
-import { adminApiFetch } from "../lib/adminApi";
 import {
   getProtectedStorageItem,
   removeProtectedStorageItemIntentionally,
@@ -2319,7 +2318,6 @@ const GeneralSettings: React.FC<Props> = ({
       }
 
       setData(INITIAL_DATA);
-      adminApiFetch("/api/appdata/invalidate-cache", { method: "POST" }).catch(() => {});
       removeProtectedStorageItemIntentionally("ktk_local_accounting_data");
       removeProtectedStorageItemIntentionally(
         "ktk_local_accounting_data_last_good",
@@ -3152,51 +3150,19 @@ const GeneralSettings: React.FC<Props> = ({
           const workbook = XLSX.read(dataArray, { type: "array" });
 
           // VALIDATE XLSX is actually a KT backup (must contain at least one known sheet)
-          const sheetAliases: Record<string, string[]> = {
-            FullState: ["FullState", "fullstate", "الحالة الشاملة", "النسخة الشاملة"],
-            Invoices: ["Invoices", "invoices", "الفواتير", "فواتير", "جدول الفواتير"],
-            InvoiceItems: ["InvoiceItems", "invoiceitems", "بنود الفواتير", "تفاصيل الفواتير", "اصناف الفواتير"],
-            Products: ["Products", "products", "المنتجات", "منتجات", "الأصناف", "أصناف", "قائمة المنتجات"],
-            Orders: ["Orders", "orders", "الطلبات", "طلبات", "جدول الطلبات"],
-            Customers: ["Customers", "customers", "العملاء", "عملاء", "الزبائن", "قائمة العملاء"],
-            Expenses: ["Expenses", "expenses", "المصروفات", "مصروفات", "المصاريف"],
-            Suppliers: ["Suppliers", "suppliers", "الموردين", "موردين"],
-            SupplierTransfers: ["SupplierTransfers", "suppliertransfers", "تحويلات الموردين"],
-            Zones: ["Zones", "zones", "المناطق", "مناطق", "مناطق التوصيل"],
-            Testimonials: ["Testimonials", "testimonials", "الآراء", "تقييمات العملاء"],
-            PulseHistory: ["PulseHistory", "pulsehistory", "سجل التحليل"],
-            QuickPulse: ["QuickPulse", "quickpulse", "تقييمات خاطفة"],
-            SmartCampaigns: ["SmartCampaigns", "AICampaigns", "الحملات"],
-            PromoCodes: ["PromoCodes", "promocodes", "كوبونات الخصم", "أكواد الخصم"],
-            Diwaniyas: ["Diwaniyas", "diwaniyas", "الدواوين", "مجموعات الدواوين"],
-            SquadTiers: ["SquadTiers", "squadtiers", "مستويات الدواوين"],
-            DiwaniyaTiers: ["DiwaniyaTiers", "diwaniyatiers"],
-            SmartLearningMemory: ["SmartLearningMemory", "AILearningMemory", "الذاكرة الذكية"],
-            Notifications: ["Notifications", "notifications", "الإشعارات"],
-            LoyaltySettings: ["LoyaltySettings", "loyaltysettings", "إعدادات المكافآت"],
-            ActiveGoal: ["ActiveGoal", "activegoal", "الهدف النشط"],
-            Settings: ["Settings", "settings", "الإعدادات"],
-          };
-
-          const findSheetName = (possibleNames: string[]): string | null => {
-            const map = new Map<string, string>();
-            workbook.SheetNames.forEach((s) => map.set(s.trim().toLowerCase(), s));
-            for (const name of possibleNames) {
-              const matched = map.get(name.trim().toLowerCase());
-              if (matched) return matched;
-            }
-            return null;
-          };
-
-          const hasKnownSheet = workbook.SheetNames.some((s) => {
-            const norm = s.trim().toLowerCase();
-            return (
-              Object.values(sheetAliases).some((aliases) =>
-                aliases.some((alias) => norm.includes(alias.toLowerCase()))
-              ) || workbook.SheetNames.length === 1
-            );
-          });
-
+          const knownSheets = [
+            "FullState",
+            "Invoices",
+            "Products",
+            "Orders",
+            "Customers",
+            "Summary",
+            "Expenses",
+            WHATSAPP_QUICK_REPLIES_SHEET,
+          ];
+          const hasKnownSheet = workbook.SheetNames.some((s) =>
+            knownSheets.includes(s),
+          );
           if (!hasKnownSheet) {
             addToast(
               "فشل الاستيراد",
@@ -3245,13 +3211,9 @@ const GeneralSettings: React.FC<Props> = ({
             return restored;
           };
 
-          const safeSheetToObj = (sheetKey: string, customAliases?: string[]) => {
-            const aliases = customAliases || sheetAliases[sheetKey] || [sheetKey];
-            const actualName =
-              findSheetName(aliases) ||
-              (workbook.SheetNames.length === 1 ? workbook.SheetNames[0] : null);
-            if (actualName && workbook.Sheets[actualName]) {
-              const rows = XLSX.utils.sheet_to_json(workbook.Sheets[actualName]) || [];
+          const safeSheetToObj = (sheetName: string) => {
+            if (workbook.SheetNames.includes(sheetName)) {
+              const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]) || [];
               return (rows as any[]).map(restoreSplitExcelColumns);
             }
             return [];
@@ -3276,23 +3238,30 @@ const GeneralSettings: React.FC<Props> = ({
                   .replace(/""/g, '"');
                 result = JSON.parse(deCsv);
               } catch (e2) {
+                // Never eval untrusted cell content. Backups are exported as valid JSON,
+                // so this path only hits malformed/foreign cells — give up safely instead
+                // of executing them as code.
                 return isArray ? [] : null;
               }
             }
             if (typeof result === "string") {
               try {
                 result = JSON.parse(result);
-              } catch (e4) {}
+              } catch (e4) {
+                // Not valid JSON, and we never eval — keep it as the plain string.
+              }
             }
             if (isArray && !Array.isArray(result)) return [];
             return result;
           };
 
           const parseChunkedSheet = (
-            sheetKey: string,
+            sheetName: string,
             isArray: boolean = false,
           ) => {
-            const rows = safeSheetToObj(sheetKey) as any[];
+            if (!workbook.SheetNames.includes(sheetName))
+              return isArray ? [] : null;
+            const rows = (safeSheetToObj(sheetName) || []) as any[];
             if (!Array.isArray(rows) || rows.length === 0)
               return isArray ? [] : null;
             const hasChunk = rows.some((r: any) => r.chunk !== undefined);
@@ -3334,22 +3303,21 @@ const GeneralSettings: React.FC<Props> = ({
               !parsed.fullText
             )
               return parsed;
-            const fullText = parsed?.fullText || row.addressFull || row["العنوان الكامل"] || "";
+            const fullText = parsed?.fullText || row.addressFull || "";
             const address = {
               region:
                 row.addressRegion ||
                 row.region ||
                 row.governorate ||
                 row.area ||
-                row["المنطقة"] ||
                 "",
-              area: row.addressArea || row.area || row["المنطقة"] || "",
-              block: row.addressBlock || row.block || row["القطعة"] || "",
-              street: row.addressStreet || row.street || row["الشارع"] || "",
-              jaddah: row.addressJaddah || row.jaddah || row["الجادة"] || "",
-              building: row.addressBuilding || row.building || row.house || row["المنزل"] || "",
-              floor: row.addressFloor || row.floor || row["الدور"] || "",
-              apartment: row.addressApartment || row.apartment || row["الشقة"] || "",
+              area: row.addressArea || row.area || "",
+              block: row.addressBlock || row.block || "",
+              street: row.addressStreet || row.street || "",
+              jaddah: row.addressJaddah || row.jaddah || "",
+              building: row.addressBuilding || row.building || row.house || "",
+              floor: row.addressFloor || row.floor || "",
+              apartment: row.addressApartment || row.apartment || "",
               notes: row.addressNotes || row.notesAddress || "",
             };
             return Object.values(address).some(Boolean)
@@ -3358,7 +3326,6 @@ const GeneralSettings: React.FC<Props> = ({
                 ? { fullText }
                 : undefined;
           };
-
           const restoreCustomerRow = (row: any) => {
             const raw = parseSafeJson(row.rawCustomer, false);
             const base =
@@ -3367,111 +3334,24 @@ const GeneralSettings: React.FC<Props> = ({
             delete base.rawCustomer;
             delete base.addressFull;
             if (address) base.address = address;
-
-            const name = String(
-              base.name ||
-                base.customerName ||
-                base["اسم العميل"] ||
-                base["العميل"] ||
-                base["الاسم"] ||
-                "",
-            ).trim();
-            const phone = String(
-              base.phone ||
-                base.customerPhone ||
-                base.mobile ||
-                base["رقم الهاتف"] ||
-                base["الهاتف"] ||
-                base["الجوال"] ||
-                base["رقم الجوال"] ||
-                "",
-            ).trim();
-            const notes = String(
-              base.notes || base["ملاحظات"] || "",
-            ).trim();
-
-            if (name) base.name = name;
-            if (phone) base.phone = phone;
-            if (notes) base.notes = notes;
             return stripUndefined(base);
           };
-
           const restoreProductRow = (row: any) => {
             const raw = parseSafeJson(row.rawProduct, false);
             const base =
               raw && typeof raw === "object" ? { ...raw, ...row } : { ...row };
-            const addons = parseSafeJson(row.addons || row["الإضافات"], true);
+            const addons = parseSafeJson(row.addons, true);
             const addOns = parseSafeJson(row.addOns, true);
-            const extras = parseSafeJson(row.extras || row["الخيارات"], true);
+            const extras = parseSafeJson(row.extras, true);
             if (addons.length) base.addons = addons;
             if (addOns.length) base.addOns = addOns;
             if (extras.length) base.extras = extras;
             delete base.rawProduct;
-
-            const id = String(
-              base.id ||
-                base.productId ||
-                base["رمز المنتج"] ||
-                base["الباركود"] ||
-                base["رقم المنتج"] ||
-                "",
-            ).trim();
-            const name = String(
-              base.name ||
-                base.productName ||
-                base["اسم المنتج"] ||
-                base["المنتج"] ||
-                base["اسم الصنف"] ||
-                base["الصنف"] ||
-                base["الاسم"] ||
-                "",
-            ).trim();
-            const priceVal =
-              base.price ??
-              base.finalPrice ??
-              base["السعر"] ??
-              base["سعر البيع"] ??
-              base["السعر النهائي"];
-            const costVal =
-              base.cost ??
-              base.costAtTime ??
-              base["التكلفة"] ??
-              base["سعر التكلفة"];
-            const category = String(
-              base.category ||
-                base.productCategory ||
-                base["التصنيف"] ||
-                base["الفئة"] ||
-                base["القسم"] ||
-                "عام",
-            ).trim();
-            const image = String(
-              base.image ||
-                base.productImage ||
-                base["الصورة"] ||
-                base["رابط الصورة"] ||
-                "",
-            ).trim();
-            const description = String(
-              base.description || base["الوصف"] || base["التفاصيل"] || "",
-            ).trim();
-
-            if (id) base.id = id;
-            if (name) base.name = name;
-            if (priceVal !== undefined && priceVal !== "")
-              base.price = Number(priceVal) || 0;
-            if (costVal !== undefined && costVal !== "")
-              base.cost = Number(costVal) || 0;
-            if (category) base.category = category;
-            if (image) base.image = image;
-            if (description) base.description = description;
-
             return stripUndefined(base);
           };
 
           let baseState: any = {};
-          const fullStateSheetName = findSheetName(sheetAliases.FullState);
-          if (fullStateSheetName) {
+          if (workbook.SheetNames.includes("FullState")) {
             const fullStateRows = (safeSheetToObj("FullState") || []) as any[];
             const joinedJson = (
               Array.isArray(fullStateRows) ? fullStateRows : []
@@ -3482,108 +3362,123 @@ const GeneralSettings: React.FC<Props> = ({
               .map((row: any) => String(row.chunk || ""))
               .join("");
             if (joinedJson.trim()) {
-              try {
-                baseState = JSON.parse(joinedJson);
-              } catch (e) {
-                console.warn("Could not parse FullState JSON chunk:", e);
-              }
+              baseState = JSON.parse(joinedJson);
             }
           }
-
-          const productsSheetName = findSheetName(sheetAliases.Products);
-          const customersSheetName = findSheetName(sheetAliases.Customers);
-          const expensesSheetName = findSheetName(sheetAliases.Expenses);
-          const suppliersSheetName = findSheetName(sheetAliases.Suppliers);
-          const zonesSheetName = findSheetName(sheetAliases.Zones);
-          const supplierTransfersSheetName = findSheetName(sheetAliases.SupplierTransfers);
 
           const newState: AppState = {
             ...INITIAL_DATA,
             ...baseState,
-            products: productsSheetName
-              ? ((safeSheetToObj("Products") as any[]).map(restoreProductRow) as any as Product[])
-              : baseState.products || [],
-            customers: customersSheetName
-              ? ((safeSheetToObj("Customers") as any[]).map(restoreCustomerRow) as any as Customer[])
-              : baseState.customers || [],
-            invoices: baseState.invoices || [],
-            orders: baseState.orders || [],
-            zones: zonesSheetName
-              ? (stripUndefined(safeSheetToObj("Zones")) as any as Zone[])
-              : baseState.zones || INITIAL_DATA.zones,
-            supplierTransfers: supplierTransfersSheetName
-              ? (stripUndefined(safeSheetToObj("SupplierTransfers")) as any as SupplierTransfer[])
-              : baseState.supplierTransfers || [],
-            expenses: expensesSheetName
+            products: workbook.SheetNames.includes("Products")
+              ? ((safeSheetToObj("Products") as any[]).map(
+                  restoreProductRow,
+                ) as any as Product[])
+              : baseState.products || data.products || INITIAL_DATA.products,
+            customers: workbook.SheetNames.includes("Customers")
+              ? ((safeSheetToObj("Customers") as any[]).map(
+                  restoreCustomerRow,
+                ) as any as Customer[])
+              : baseState.customers || data.customers || INITIAL_DATA.customers,
+            invoices:
+              baseState.invoices || data.invoices || INITIAL_DATA.invoices,
+            orders: baseState.orders || data.orders || INITIAL_DATA.orders,
+            zones: baseState.zones || data.zones || INITIAL_DATA.zones,
+            supplierTransfers:
+              baseState.supplierTransfers ||
+              data.supplierTransfers ||
+              INITIAL_DATA.supplierTransfers,
+            expenses: workbook.SheetNames.includes("Expenses")
               ? (stripUndefined(safeSheetToObj("Expenses")) as any as Expense[])
               : baseState.expenses || [],
-            suppliers: suppliersSheetName
+            suppliers: workbook.SheetNames.includes("Suppliers")
               ? (stripUndefined(
                   (safeSheetToObj("Suppliers") as any[]).map((row: any) => ({
                     ...row,
+                    // paymentMethods is exported as a JSON string in Excel; parse it back to a
+                    // native array so the Suppliers page never calls .map() on a string.
                     paymentMethods: parseSafeJson(row.paymentMethods, true),
                   })),
                 ) as any as Supplier[])
               : baseState.suppliers || [],
-            testimonials: findSheetName(sheetAliases.Testimonials)
-              ? (stripUndefined(safeSheetToObj("Testimonials")) as any as Testimonial[])
+            testimonials: workbook.SheetNames.includes("Testimonials")
+              ? (stripUndefined(
+                  safeSheetToObj("Testimonials"),
+                ) as any as Testimonial[])
               : baseState.testimonials || [],
-            pulseAnalysisHistory: findSheetName(sheetAliases.PulseHistory)
-              ? (stripUndefined(safeSheetToObj("PulseHistory")) as any as PulseAnalysisRecord[])
+            pulseAnalysisHistory: workbook.SheetNames.includes("PulseHistory")
+              ? (stripUndefined(
+                  safeSheetToObj("PulseHistory"),
+                ) as any as PulseAnalysisRecord[])
               : baseState.pulseAnalysisHistory || [],
-            pulseReviews: findSheetName(sheetAliases.QuickPulse)
+            pulseReviews: workbook.SheetNames.includes("QuickPulse")
               ? (stripUndefined(safeSheetToObj("QuickPulse")) as any as any[])
               : baseState.pulseReviews || [],
             campaigns: (() => {
-              const sheet = findSheetName(sheetAliases.SmartCampaigns);
+              const legacy = "A" + "ICampaigns";
+              const sheet = workbook.SheetNames.includes("SmartCampaigns")
+                ? "SmartCampaigns"
+                : workbook.SheetNames.includes(legacy)
+                  ? legacy
+                  : "";
               return sheet
-                ? (stripUndefined(safeSheetToObj("SmartCampaigns")) as any as AICampaign[])
+                ? (stripUndefined(safeSheetToObj(sheet)) as any as AICampaign[])
                 : baseState.campaigns || [];
             })(),
-            promocodes: findSheetName(sheetAliases.PromoCodes)
+            promocodes: workbook.SheetNames.includes("PromoCodes")
               ? (stripUndefined(safeSheetToObj("PromoCodes")) as any)
               : baseState.promocodes || [],
-            squads: findSheetName(sheetAliases.Diwaniyas)
+            squads: workbook.SheetNames.includes("Diwaniyas")
               ? (stripUndefined(safeSheetToObj("Diwaniyas")) as any)
               : baseState.squads || [],
-            squadTiers: findSheetName(sheetAliases.SquadTiers)
+            squadTiers: workbook.SheetNames.includes("SquadTiers")
               ? (stripUndefined(safeSheetToObj("SquadTiers")) as any)
               : baseState.squadTiers || [],
-            diwaniyaTiers: findSheetName(sheetAliases.DiwaniyaTiers)
+            diwaniyaTiers: workbook.SheetNames.includes("DiwaniyaTiers")
               ? (stripUndefined(safeSheetToObj("DiwaniyaTiers")) as any)
               : baseState.diwaniyaTiers || [],
             aiLearningMemory: (() => {
-              const sheet = findSheetName(sheetAliases.SmartLearningMemory);
+              const legacy = "A" + "ILearningMemory";
+              const sheet = workbook.SheetNames.includes("SmartLearningMemory")
+                ? "SmartLearningMemory"
+                : workbook.SheetNames.includes(legacy)
+                  ? legacy
+                  : "";
               return sheet
-                ? (stripUndefined(safeSheetToObj("SmartLearningMemory")) as any)
+                ? (stripUndefined(safeSheetToObj(sheet)) as any)
                 : baseState.aiLearningMemory || [];
             })(),
-            notifications: findSheetName(sheetAliases.Notifications)
+            notifications: workbook.SheetNames.includes("Notifications")
               ? (stripUndefined(safeSheetToObj("Notifications")) as any)
               : baseState.notifications || [],
-            loyaltySettings: findSheetName(sheetAliases.LoyaltySettings)
+            loyaltySettings: workbook.SheetNames.includes("LoyaltySettings")
               ? ((safeSheetToObj("LoyaltySettings") as any[])[0] as any) ||
                 baseState.loyaltySettings ||
                 (INITIAL_DATA as any).loyaltySettings
               : baseState.loyaltySettings ||
                 (INITIAL_DATA as any).loyaltySettings,
-            activeGoal: findSheetName(sheetAliases.ActiveGoal)
-              ? ((safeSheetToObj("ActiveGoal") as any[])[0] as any) || baseState.activeGoal
+            activeGoal: workbook.SheetNames.includes("ActiveGoal")
+              ? ((safeSheetToObj("ActiveGoal") as any[])[0] as any) ||
+                baseState.activeGoal
               : baseState.activeGoal,
-            pulseArchiveAnalysis: findSheetName(sheetAliases.PulseArchiveAnalysis)
+            pulseArchiveAnalysis: workbook.SheetNames.includes(
+              "PulseArchiveAnalysis",
+            )
               ? parseChunkedSheet("PulseArchiveAnalysis", false)
               : baseState.pulseArchiveAnalysis,
-            deepArchiveAnalysis: findSheetName(sheetAliases.DeepArchiveAnalysis)
+            deepArchiveAnalysis: workbook.SheetNames.includes(
+              "DeepArchiveAnalysis",
+            )
               ? parseChunkedSheet("DeepArchiveAnalysis", false)
               : baseState.deepArchiveAnalysis,
-            nameMatchMemory: findSheetName(sheetAliases.NameMatchMemory)
+            nameMatchMemory: workbook.SheetNames.includes("NameMatchMemory")
               ? parseChunkedSheet("NameMatchMemory", false) || {}
               : baseState.nameMatchMemory || {},
             settings:
-              (findSheetName(sheetAliases.Settings)
+              (workbook.SheetNames.includes("Settings")
                 ? ((safeSheetToObj("Settings") as any[])[0] as any)
                 : null) ||
               baseState.settings ||
+              data.settings ||
               INITIAL_DATA.settings,
           };
 
@@ -3593,36 +3488,31 @@ const GeneralSettings: React.FC<Props> = ({
             orderRows: 0,
           };
 
-          const restoredWhatsAppQuickRepliesCount = findSheetName([WHATSAPP_QUICK_REPLIES_SHEET])
-            ? restoreWhatsAppQuickRepliesFromBackup(
-                safeSheetToObj(WHATSAPP_QUICK_REPLIES_SHEET) as any[],
-              )
-            : 0;
+          const restoredWhatsAppQuickRepliesCount =
+            workbook.SheetNames.includes(WHATSAPP_QUICK_REPLIES_SHEET)
+              ? restoreWhatsAppQuickRepliesFromBackup(
+                  safeSheetToObj(WHATSAPP_QUICK_REPLIES_SHEET) as any[],
+                )
+              : 0;
 
-          const invoicesSheetName = findSheetName(sheetAliases.Invoices);
-          if (invoicesSheetName) {
-            const invoiceItemsSheetName = findSheetName(sheetAliases.InvoiceItems);
-            const invoiceItemsRows = invoiceItemsSheetName
-              ? (safeSheetToObj("InvoiceItems") as any[])
-              : [];
+          if (workbook.SheetNames.includes("Invoices")) {
+            const invoiceItemsRows = safeSheetToObj("InvoiceItems") as any[];
             importIntegrity.invoiceItemRows = invoiceItemsRows.length;
             const invoiceItemsByInvoice = new Map<string, any[]>();
             invoiceItemsRows.forEach((row: any) => {
-              const invoiceId = String(
-                row.invoiceId || row.id || row["رقم الفاتورة"] || "",
-              ).trim();
+              const invoiceId = String(row.invoiceId || "").trim();
               if (!invoiceId) return;
               const rawItem = parseSafeJson(row.rawItem, false);
               const restoredItem =
                 rawItem && typeof rawItem === "object"
                   ? { ...rawItem }
                   : {
-                      productId: row.productId || row["رمز المنتج"] || row["المنتج"] || "",
-                      quantity: Number(row.quantity || row["الكمية"] || 1),
-                      priceAtTime: Number(row.priceAtTime || row.price || row["السعر"] || 0),
-                      costAtTime: Number(row.costAtTime || row.cost || row["التكلفة"] || 0),
-                      itemNotes: row.itemNotes || row["ملاحظات"] || "",
-                      addons: parseSafeJson(row.addons || row["الإضافات"], true),
+                      productId: row.productId,
+                      quantity: Number(row.quantity || 1),
+                      priceAtTime: Number(row.priceAtTime || 0),
+                      costAtTime: Number(row.costAtTime || 0),
+                      itemNotes: row.itemNotes || "",
+                      addons: parseSafeJson(row.addons, true),
                     };
               if (!invoiceItemsByInvoice.has(invoiceId))
                 invoiceItemsByInvoice.set(invoiceId, []);
@@ -3630,105 +3520,43 @@ const GeneralSettings: React.FC<Props> = ({
                 .get(invoiceId)!
                 .push(stripUndefined(restoredItem));
             });
-
             const rawInvoices = safeSheetToObj("Invoices") as any[];
             importIntegrity.invoiceRows = rawInvoices.length;
             newState.invoices = rawInvoices.map((inv, invoiceIndex) => {
               const rawInvoiceText = String(inv.rawInvoice || "").trim();
               const rawInvoice = parseSafeJson(rawInvoiceText, false);
+              if (
+                rawInvoiceText &&
+                (!rawInvoice || typeof rawInvoice !== "object" || Array.isArray(rawInvoice))
+              ) {
+                throw new Error(`INVALID_RAW_INVOICE_BACKUP_ROW:${invoiceIndex + 2}`);
+              }
+              // rawInvoice is only a completeness fallback. The visible Excel columns are
+              // authoritative because they contain the latest reviewed payment/status values.
               const explicitInvoiceColumns = Object.fromEntries(
-                Object.entries(inv).filter(
-                  ([, value]) =>
-                    value !== "" && value !== null && value !== undefined,
-                ),
+                Object.entries(inv).filter(([, value]) => value !== "" && value !== null && value !== undefined),
               );
               const merged =
-                rawInvoice &&
-                typeof rawInvoice === "object" &&
-                !Array.isArray(rawInvoice)
+                rawInvoice && typeof rawInvoice === "object" && !Array.isArray(rawInvoice)
                   ? { ...rawInvoice, ...explicitInvoiceColumns }
                   : { ...explicitInvoiceColumns };
 
-              const id = String(
-                merged.id ||
-                  merged.invoiceId ||
-                  merged.invoiceNumber ||
-                  merged["رقم الفاتورة"] ||
-                  merged["الفاتورة"] ||
-                  merged["رقم_الفاتورة"] ||
-                  (invoiceIndex + 1000),
-              ).trim();
-              const date = String(
-                merged.date ||
-                  merged.invoiceDate ||
-                  merged["التاريخ"] ||
-                  merged["تاريخ الفاتورة"] ||
-                  new Date().toISOString(),
-              ).trim();
-              const customerName = String(
-                merged.customerName ||
-                  merged.clientName ||
-                  merged["اسم العميل"] ||
-                  merged["العميل"] ||
-                  "",
-              ).trim();
-              const customerPhone = String(
-                merged.customerPhone ||
-                  merged.clientPhone ||
-                  merged.phone ||
-                  merged["رقم الهاتف"] ||
-                  merged["الهاتف"] ||
-                  merged["الجوال"] ||
-                  "",
-              ).trim();
-              const totalVal =
-                merged.total ??
-                merged.totalAmount ??
-                merged.amount ??
-                merged["المبلغ"] ??
-                merged["الإجمالي"] ??
-                merged["المبلغ الإجمالي"] ??
-                merged["المجموع"];
-              const deliveryCostVal =
-                merged.deliveryCost ??
-                merged.deliveryFee ??
-                merged["رسوم التوصيل"] ??
-                merged["التوصيل"];
-              const discountVal =
-                merged.discount ?? merged["الخصم"] ?? merged["قيمة الخصم"];
-              const paymentMethod = String(
-                merged.paymentMethod ||
-                  merged.payment_method ||
-                  merged["طريقة الدفع"] ||
-                  merged["وسيلة الدفع"] ||
-                  "KNet",
-              ).trim();
-
-              if (id) merged.id = id;
-              if (date) merged.date = date;
-              if (customerName) merged.customerName = customerName;
-              if (customerPhone) merged.customerPhone = customerPhone;
-              if (totalVal !== undefined && totalVal !== "")
-                merged.total = Number(totalVal) || 0;
-              if (deliveryCostVal !== undefined && deliveryCostVal !== "")
-                merged.deliveryCost = Number(deliveryCostVal) || 0;
-              if (discountVal !== undefined && discountVal !== "")
-                merged.discount = Number(discountVal) || 0;
-              if (paymentMethod) merged.paymentMethod = paymentMethod;
-
+              // Resolve payment state generically from the latest explicit Excel fields,
+              // with rawInvoice used only as a fallback for missing details. This prevents
+              // stale nested snapshots from downgrading a paid invoice without hardcoding IDs.
               const resolvedAsPaid =
                 isPaidStatus(merged.paymentStatus) ||
                 isPaidStatus(merged.payment_status) ||
                 isPaidStatus(merged.status) ||
-                isPaidStatus(merged["الحالة"]) ||
                 merged.paid === true;
               const resolvedAsFailed =
                 !resolvedAsPaid &&
-                (isFailedStatus(merged.paymentStatus) ||
+                (
+                  isFailedStatus(merged.paymentStatus) ||
                   isFailedStatus(merged.payment_status) ||
                   isFailedStatus(merged.status) ||
-                  isFailedStatus(merged["الحالة"]) ||
-                  merged.failed === true);
+                  merged.failed === true
+                );
 
               if (resolvedAsPaid) {
                 merged.paymentStatus = "paid";
@@ -3754,22 +3582,20 @@ const GeneralSettings: React.FC<Props> = ({
                 merged.isDeleted === true ||
                 merged.isDeleted === "TRUE" ||
                 merged.isDeleted === "true";
-              const parsedItems = parseSafeJson(
-                merged.items || merged["البنود"] || merged["المنتجات"],
-                true,
-              );
+              const parsedItems = parseSafeJson(merged.items, true);
               const itemRows =
-                invoiceItemsByInvoice.get(String(merged.id || "").trim()) ||
-                [];
+                invoiceItemsByInvoice.get(String(merged.id || "").trim()) || [];
               const parsedAddress =
                 parseSafeJson(merged.address, false) ||
                 parseSafeJson(merged.rawAddress, false) ||
                 makeAddressFromRow(merged) ||
                 merged.address;
               const parsedDeliveryInfo =
-                parseSafeJson(merged.deliveryInfo, false) ||
-                merged.deliveryInfo;
+                parseSafeJson(merged.deliveryInfo, false) || merged.deliveryInfo;
 
+              // These fields exist only to make the Excel workbook readable/recoverable.
+              // Keeping them inside the live invoice duplicates the full invoice JSON and can
+              // inflate the Firestore shard beyond 1 MiB after an otherwise valid import.
               [
                 "rawInvoice",
                 "rawAddress",
@@ -3809,88 +3635,33 @@ const GeneralSettings: React.FC<Props> = ({
                     : undefined,
               });
             });
+            if (newState.invoices.length !== importIntegrity.invoiceRows) {
+              throw new Error(
+                `INVOICE_IMPORT_COUNT_MISMATCH:${newState.invoices.length}/${importIntegrity.invoiceRows}`,
+              );
+            }
           }
 
-          const ordersSheetName = findSheetName(sheetAliases.Orders);
-          if (ordersSheetName) {
+          if (workbook.SheetNames.includes("Orders")) {
             const rawOrders = safeSheetToObj("Orders") as any[];
             importIntegrity.orderRows = rawOrders.length;
             newState.orders = rawOrders.map((o, orderIndex) => {
               const rawOrderText = String(o.rawOrder || "").trim();
               const rawOrder = parseSafeJson(rawOrderText, false);
+              if (
+                rawOrderText &&
+                (!rawOrder || typeof rawOrder !== "object" || Array.isArray(rawOrder))
+              ) {
+                throw new Error(`INVALID_RAW_ORDER_BACKUP_ROW:${orderIndex + 2}`);
+              }
               const explicitOrderColumns = Object.fromEntries(
-                Object.entries(o).filter(
-                  ([, value]) =>
-                    value !== "" && value !== null && value !== undefined,
-                ),
+                Object.entries(o).filter(([, value]) => value !== "" && value !== null && value !== undefined),
               );
               const merged =
-                rawOrder &&
-                typeof rawOrder === "object" &&
-                !Array.isArray(rawOrder)
+                rawOrder && typeof rawOrder === "object" && !Array.isArray(rawOrder)
                   ? { ...rawOrder, ...explicitOrderColumns }
                   : { ...explicitOrderColumns };
-
-              const id = String(
-                merged.id ||
-                  merged.orderId ||
-                  merged.orderNumber ||
-                  merged["رقم الطلب"] ||
-                  merged["الطلب"] ||
-                  (orderIndex + 5000),
-              ).trim();
-              const date = String(
-                merged.date ||
-                  merged.orderDate ||
-                  merged["التاريخ"] ||
-                  merged["تاريخ الطلب"] ||
-                  new Date().toISOString(),
-              ).trim();
-              const customerName = String(
-                merged.customerName ||
-                  merged["اسم العميل"] ||
-                  merged["العميل"] ||
-                  "",
-              ).trim();
-              const customerPhone = String(
-                merged.customerPhone ||
-                  merged.phone ||
-                  merged["رقم الهاتف"] ||
-                  merged["الهاتف"] ||
-                  "",
-              ).trim();
-              const totalVal =
-                merged.total ??
-                merged.totalAmount ??
-                merged["المبلغ"] ??
-                merged["الإجمالي"];
-              const status = String(
-                merged.status ||
-                  merged.orderStatus ||
-                  merged["حالة الطلب"] ||
-                  merged["الحالة"] ||
-                  "جديد",
-              ).trim();
-              const deliveryDate = String(
-                merged.deliveryDate ||
-                  merged.toursDate ||
-                  merged["تاريخ التوصيل"] ||
-                  "",
-              ).trim();
-
-              if (id) merged.id = id;
-              if (date) merged.date = date;
-              if (customerName) merged.customerName = customerName;
-              if (customerPhone) merged.customerPhone = customerPhone;
-              if (totalVal !== undefined && totalVal !== "")
-                merged.total = Number(totalVal) || 0;
-              if (status) merged.status = status;
-              if (deliveryDate) merged.deliveryDate = deliveryDate;
-
-              const parsedItems = parseSafeJson(
-                merged.items || merged["البنود"] || merged["المنتجات"],
-                true,
-              );
+              const parsedItems = parseSafeJson(merged.items, true);
               const parsedAddress =
                 parseSafeJson(merged.address, false) ||
                 makeAddressFromRow(merged) ||
@@ -3910,11 +3681,14 @@ const GeneralSettings: React.FC<Props> = ({
                 ...merged,
                 items: parsedItems,
                 address:
-                  typeof parsedAddress === "object"
-                    ? parsedAddress
-                    : merged.address,
+                  typeof parsedAddress === "object" ? parsedAddress : merged.address,
               });
             });
+            if (newState.orders.length !== importIntegrity.orderRows) {
+              throw new Error(
+                `ORDER_IMPORT_COUNT_MISMATCH:${newState.orders.length}/${importIntegrity.orderRows}`,
+              );
+            }
           }
           if (workbook.SheetNames.includes("Zones")) {
             newState.zones = stripUndefined(
