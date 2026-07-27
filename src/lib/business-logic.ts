@@ -117,6 +117,19 @@ const buildSupplierProductIndexes = (products: any[] = []) => {
   return { byId, uniqueSupplierByName, bySupplierAndName };
 };
 
+type SupplierProductIndexes = ReturnType<typeof buildSupplierProductIndexes>;
+
+const supplierProductIndexesCache = new WeakMap<any[], SupplierProductIndexes>();
+
+const getSupplierProductIndexes = (products: any[] = []): SupplierProductIndexes => {
+  const safeProducts = Array.isArray(products) ? products : [];
+  const cached = supplierProductIndexesCache.get(safeProducts);
+  if (cached) return cached;
+  const built = buildSupplierProductIndexes(safeProducts);
+  supplierProductIndexesCache.set(safeProducts, built);
+  return built;
+};
+
 const getItemSupplierId = (
   item: any,
   productMap: Map<string, any>,
@@ -170,7 +183,8 @@ export const getInvoiceDeliverySettlementForSupplier = (
   supId: string, 
   state: AppState,
   productMap?: Map<string, any>,
-  supplierMap?: Map<string, any>
+  supplierMap?: Map<string, any>,
+  uniqueSupplierByNameMap?: Map<string, string>
 ): number => {
   const info = inv?.deliveryInfo || {};
   const target = info.settlementTarget || inv?.deliverySettlementTarget;
@@ -185,13 +199,18 @@ export const getInvoiceDeliverySettlementForSupplier = (
   const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
 
-  const deliveryProductIndexes = buildSupplierProductIndexes(state?.products || []);
-  const deliveryProductMap = productMap || deliveryProductIndexes.byId;
+  const deliveryProductIndexes =
+    (!productMap || !uniqueSupplierByNameMap)
+      ? getSupplierProductIndexes(state?.products || [])
+      : null;
+  const deliveryProductMap = productMap || deliveryProductIndexes!.byId;
+  const uniqueSupplierByName =
+    uniqueSupplierByNameMap || deliveryProductIndexes!.uniqueSupplierByName;
   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
     const itemSupplierId = getItemSupplierId(
       item,
       deliveryProductMap,
-      deliveryProductIndexes.uniqueSupplierByName,
+      uniqueSupplierByName,
     );
     return itemSupplierId === String(supId);
   });
@@ -215,6 +234,8 @@ export const getInvoiceDeliverySettlementForSupplier = (
   return 0;
 };
 
+const supplierLedgerCache = new WeakMap<object, Map<string, any[]>>();
+
 /**
  * Centrally calculates the detailed financial ledger (invoices and payments) for a supplier.
  */
@@ -229,21 +250,31 @@ export function getSupplierLedgerForState(
   uniqueSupplierByNameMap?: Map<string, string>,
   supplierProductByNameMap?: Map<string, any>
 ): any[] {
-  const transactions: any[] = [];
-  
-  const supplierProductIndexes = buildSupplierProductIndexes(state.products || []);
-  const pMap: Map<string, any> = productMap || supplierProductIndexes.byId;
-  const sMap: Map<string, any> = supplierMap || new Map<string, any>((state.suppliers || []).map(s => [String(s.id), s]));
-  const uniqueSupplierByName = uniqueSupplierByNameMap || supplierProductIndexes.uniqueSupplierByName;
-  const supplierProductByName = supplierProductByNameMap || supplierProductIndexes.bySupplierAndName;
+  const useDefaultLedgerCache =
+    !productMap &&
+    !supplierMap &&
+    !invoicesBySupplierMap &&
+    !supplierProductsMap &&
+    !transfersBySupplierMap &&
+    !uniqueSupplierByNameMap &&
+    !supplierProductByNameMap;
 
-  const supplierProductIds = supplierProductsMap
-    ? (supplierProductsMap.get(String(supId)) || new Set<string>())
-    : new Set(
-        (state.products || [])
-          .filter(p => p && p.id && String(p.supplierId) === String(supId))
-          .map(p => String(p.id))
-      );
+  if (useDefaultLedgerCache) {
+    const stateCache = supplierLedgerCache.get(state as any);
+    const cachedLedger = stateCache?.get(String(supId));
+    if (cachedLedger) return cachedLedger;
+  }
+
+  const transactions: any[] = [];
+
+  const supplierProductIndexes =
+    (!productMap || !uniqueSupplierByNameMap || !supplierProductByNameMap)
+      ? getSupplierProductIndexes(state.products || [])
+      : null;
+  const pMap: Map<string, any> = productMap || supplierProductIndexes!.byId;
+  const sMap: Map<string, any> = supplierMap || new Map<string, any>((state.suppliers || []).map(s => [String(s.id), s]));
+  const uniqueSupplierByName = uniqueSupplierByNameMap || supplierProductIndexes!.uniqueSupplierByName;
+  const supplierProductByName = supplierProductByNameMap || supplierProductIndexes!.bySupplierAndName;
 
   const storedInvoices = getUnifiedInvoices(state).filter(isSupplierChargeableInvoice);
   const invoiceSource = invoicesBySupplierMap
@@ -334,7 +365,14 @@ export function getSupplierLedgerForState(
     const supplierCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0));
     const supplierAddonsCost = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + Number(item.addonsCost || 0), 0));
     const supplierRevenue = roundKwd(itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0));
-    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(inv, supId, state, pMap, sMap);
+    const supplierDelivery = getInvoiceDeliverySettlementForSupplier(
+      inv,
+      supId,
+      state,
+      pMap,
+      sMap,
+      uniqueSupplierByName,
+    );
     const supplierDue = roundKwd(supplierCost + supplierDelivery);
 
     if (supplierDue > 0) {
@@ -379,7 +417,20 @@ export function getSupplierLedgerForState(
     });
   });
 
-  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedTransactions = transactions.sort(
+    (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+  );
+
+  if (useDefaultLedgerCache) {
+    let stateCache = supplierLedgerCache.get(state as any);
+    if (!stateCache) {
+      stateCache = new Map<string, any[]>();
+      supplierLedgerCache.set(state as any, stateCache);
+    }
+    stateCache.set(String(supId), sortedTransactions);
+  }
+
+  return sortedTransactions;
 }
 
 /**
@@ -431,7 +482,7 @@ export function recalculateStateBalances(state: AppState): AppState {
 
   const newState = { ...state };
   
-  const supplierProductIndexes = buildSupplierProductIndexes(newState.products || []);
+  const supplierProductIndexes = getSupplierProductIndexes(newState.products || []);
   const productMap = supplierProductIndexes.byId;
   const supplierMap = new Map<string, any>((newState.suppliers || []).map(s => [String(s.id), s]));
 
