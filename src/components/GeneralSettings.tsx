@@ -3600,12 +3600,21 @@ const GeneralSettings: React.FC<Props> = ({
             });
 
             const consumed = new Set<string>();
-            const mergedRows = baseRows.map((baseRow: any) => {
+            const mergedRows: any[] = [];
+
+            baseRows.forEach((baseRow: any) => {
               const identity = identityOf(baseRow);
-              const sheetRow = identity ? sheetByIdentity.get(identity) : null;
-              if (!sheetRow) return stripUndefined(baseRow);
-              consumed.add(identity);
-              return stripUndefined({ ...baseRow, ...sheetRow });
+              if (identity) {
+                const sheetRow = sheetByIdentity.get(identity);
+                if (sheetRow) {
+                  consumed.add(identity);
+                  mergedRows.push(stripUndefined({ ...baseRow, ...sheetRow }));
+                }
+                // If it has an identity but is NOT in the imported sheet, it was deleted in the sheet.
+                // So we do not include it.
+              } else {
+                mergedRows.push(stripUndefined(baseRow));
+              }
             });
 
             sheetByIdentity.forEach((sheetRow, identity) => {
