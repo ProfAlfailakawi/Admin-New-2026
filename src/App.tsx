@@ -2671,6 +2671,22 @@ const MainApp: React.FC = () => {
     return `{${res.join(',')}}`;
   };
 
+  // The root document contains a large Google/Looker mirror plus volatile timestamps.
+  // Neither is authoritative; full business arrays live in shards. Excluding them from
+  // change detection prevents a near-1MiB root rewrite after every tiny admin edit.
+  const stableRootStringify = (obj: any): string => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return stableStringify(obj);
+    const stableRoot = { ...obj };
+    SHARDED_KEYS.forEach(key => delete stableRoot[key]);
+    [
+      '__adminLastAuthoritativeWriteAt',
+      '__googleStudioMirrorAt',
+      '__rootMirrorByteSize',
+      '__rootMirrorLimited',
+    ].forEach(key => delete stableRoot[key]);
+    return stableStringify(stableRoot);
+  };
+
   const hasMeaningfulValue = (value: any) => {
     if (Array.isArray(value)) return value.length > 0;
     if (value && typeof value === 'object') return Object.keys(value).length > 0;
@@ -2808,7 +2824,7 @@ const MainApp: React.FC = () => {
       };
       const rootForStudioAndApp = withGoogleStudioRootMirror(authoritativeRoot, splitData);
       const sanitizedRoot = makeFirestoreSafeRootDocument(rootForStudioAndApp);
-      const serializedRootCurrent = stableStringify(sanitizedRoot);
+      const serializedRootCurrent = stableRootStringify(sanitizedRoot);
       const preparedShardPlans: Record<string, Awaited<ReturnType<typeof buildLogicalShardWritePlan>>> = {};
 
       // An explicit backup restore is authoritative, including intentional empty arrays.
@@ -3334,7 +3350,7 @@ const MainApp: React.FC = () => {
 
             // Defer ALL heavy stableStringify/JSON.stringify to idle frames.
             // This eliminates the 10-30s UI freeze caused by serializing 16 shards synchronously.
-            // Auto-save fires 8 seconds later — plenty of time to complete during idle.
+            // Auto-save now starts quickly; shard baselines are still prepared progressively during idle.
             const _bootState = loadedState;
             const _bootRoot = rootDataOnly;
             const _bootProcessed = finalProcessedState;
@@ -3349,7 +3365,7 @@ const MainApp: React.FC = () => {
                 if (i + 1 < SHARDED_KEYS.length) {
                   _scheduleBootShard(i + 1);
                 } else {
-                  lastRemoteKeysRef.current['__root__'] = stableStringify(_bootRoot);
+                  lastRemoteKeysRef.current['__root__'] = stableRootStringify(_bootRoot);
                   const snap = JSON.stringify(_bootProcessed);
                   lastRemoteSnapshotRef.current = snap;
                   try { saveCloudSnapshotMirror(snap); } catch {}
@@ -3467,7 +3483,7 @@ const MainApp: React.FC = () => {
           SHARDED_KEYS.forEach(k => {
             if (k !== 'products') delete rootDataOnly[k];
           });
-          lastRemoteKeysRef.current['__root__'] = stableStringify(rootDataOnly);
+          lastRemoteKeysRef.current['__root__'] = stableRootStringify(rootDataOnly);
 
           const sanitizedRoot = { ...rawRootData };
           SHARDED_KEYS.forEach(key => {
@@ -3485,7 +3501,7 @@ const MainApp: React.FC = () => {
             }
 	          // Important: never restore local/demo data into an empty cloud account.
 	          cloudRootExistsRef.current = false;
-	          lastRemoteKeysRef.current['__root__'] = stableStringify(splitProductsForDatabase(INITIAL_DATA));
+	          lastRemoteKeysRef.current['__root__'] = stableRootStringify(splitProductsForDatabase(INITIAL_DATA));
 	        }
 
 	        const shardResults = await Promise.all(SHARDED_KEYS.map(async (key) => {
@@ -3761,16 +3777,13 @@ const MainApp: React.FC = () => {
       // Auto-save is cloud-only and requires a currently verified connection.
       if (user && appMode === 'cloud' && isOnline) {
         try {
-          const sanitizedDataStr = JSON.stringify(data);
-          if (!sanitizedDataStr || sanitizedDataStr === '{}' || !hasMeaningfulData(data)) return;
+          if (!hasMeaningfulData(data)) return;
 
-          // Deduplication: prevent writing back what we just read.
-          if (sanitizedDataStr === lastRemoteSnapshotRef.current) return;
-
-          // Yield before heavy stableStringify work, but reject this run if a newer edit lands.
+          // Give React one short frame, then begin shard comparison immediately. The previous
+          // 8-second idle wait made every cloud save appear frozen even when Firestore was healthy.
           await new Promise<void>(resolve => {
             const _ric = (window as any).requestIdleCallback;
-            if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 8000 });
+            if (typeof _ric === 'function') _ric(() => resolve(), { timeout: 1200 });
             else setTimeout(resolve, 0);
           });
           if (isStaleRun()) return;
@@ -3784,7 +3797,7 @@ const MainApp: React.FC = () => {
             splitData
           );
           const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
-          const serializedRootCurrent = stableStringify(sanitizedRootPreview);
+          const serializedRootCurrent = stableRootStringify(sanitizedRootPreview);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
 
@@ -3905,8 +3918,23 @@ const MainApp: React.FC = () => {
             loadedCloudShardKeysRef.current.add(key);
           });
 
-          lastRemoteSnapshotRef.current = sanitizedDataStr;
-          saveCloudSnapshotMirror(sanitizedDataStr);
+          // Snapshot serialization is only an optional warm-start cache. Run it after the
+          // authoritative cloud write and outside the critical sync path.
+          const snapshotState = data;
+          const persistSnapshot = () => {
+            if (isStaleRun()) return;
+            try {
+              const snapshot = JSON.stringify(snapshotState);
+              lastRemoteSnapshotRef.current = snapshot;
+              saveCloudSnapshotMirror(snapshot);
+            } catch (snapshotError) {
+              console.warn('[CLOUD_CACHE] Could not refresh local cloud snapshot:', snapshotError);
+            }
+          };
+          const snapshotIdle = (window as any).requestIdleCallback;
+          if (typeof snapshotIdle === 'function') snapshotIdle(persistSnapshot, { timeout: 3000 });
+          else setTimeout(persistSnapshot, 0);
+
           console.log(`Sharded auto-save successful. Saved blocks: ${hasRootChanged ? 'Root ' : ''}[${Object.keys(shardedPayloadsToSave).join(', ')}]`);
         } catch (e) {
           const isPermissionError = String(e).includes('Missing or insufficient permissions') || String(e).includes('PERMISSION_DENIED');
@@ -3920,7 +3948,7 @@ const MainApp: React.FC = () => {
           }
         }
       }
-    }, 8000);
+    }, 900);
 
     return () => {
       cancelled = true;

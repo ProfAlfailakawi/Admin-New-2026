@@ -1,10 +1,36 @@
 import { AppState } from '../types';
-import { isPaidStatus } from './status-utils';
+import { isCancelledStatus, isFailedStatus, isPaidStatus } from './status-utils';
 import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
 import { getUnifiedInvoices } from './utils';
 
 
 const roundKwd = (value: number) => Math.round((Number(value || 0)) * 1000) / 1000;
+
+const isSupplierChargeableInvoice = (inv: any): boolean => {
+  if (!inv || inv.isDeleted) return false;
+  const values = [inv.paymentStatus, inv.payment_status, inv.payment?.status, inv.status]
+    .filter((value: any) => value !== undefined && value !== null && String(value).trim() !== '');
+  const statusText = values.map((value: any) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
+
+  if (inv.failed === true || values.some((value: any) => isFailedStatus(value))) return false;
+  if (values.some((value: any) => isCancelledStatus(value))) return false;
+  if (statusText.includes('split pending') || statusText.includes('تجميع القطية')) return false;
+
+  const isWebsiteOrder = String(inv.id || '').startsWith('ORD-') || inv.isORDOrder === true || inv.__supplierLedgerSource === 'paid_order';
+  if (!isWebsiteOrder && String(inv.id || '').startsWith('INV-')) return true;
+  return inv.paid === true || values.some((value: any) => isPaidStatus(value));
+};
+
+const getItemSupplierId = (item: any, productMap: Map<string, any>): string => {
+  const product = productMap.get(String(item?.productId || item?.id || ''));
+  return String(
+    item?.supplierId ??
+    item?.supplier?.id ??
+    item?.supplierID ??
+    product?.supplierId ??
+    ''
+  );
+};
 
 export const getInvoiceDeliverySettlementForSupplier = (
   inv: any, 
@@ -28,7 +54,8 @@ export const getInvoiceDeliverySettlementForSupplier = (
 
   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
     const product = productMap ? productMap.get(String(item.productId)) : (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
-    return String(product?.supplierId || '') === String(supId);
+    const itemSupplierId = item?.supplierId ?? item?.supplier?.id ?? item?.supplierID ?? product?.supplierId;
+    return String(itemSupplierId || '') === String(supId);
   });
 
   const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
@@ -64,8 +91,8 @@ export function getSupplierLedgerForState(
 ): any[] {
   const transactions: any[] = [];
   
-  const pMap = productMap || new Map((state.products || []).map(p => [String(p.id), p]));
-  const sMap = supplierMap || new Map((state.suppliers || []).map(s => [String(s.id), s]));
+  const pMap: Map<string, any> = productMap || new Map<string, any>((state.products || []).map(p => [String(p.id), p]));
+  const sMap: Map<string, any> = supplierMap || new Map<string, any>((state.suppliers || []).map(s => [String(s.id), s]));
 
   const supplierProductIds = supplierProductsMap
     ? (supplierProductsMap.get(String(supId)) || new Set<string>())
@@ -75,11 +102,7 @@ export function getSupplierLedgerForState(
           .map(p => String(p.id))
       );
 
-  const storedInvoices = getUnifiedInvoices(state).filter(inv => {
-    if (!inv || inv.isDeleted) return false;
-    if (String(inv.id).startsWith('INV-')) return true;
-    return inv.paymentStatus === 'paid';
-  });
+  const storedInvoices = getUnifiedInvoices(state).filter(isSupplierChargeableInvoice);
   const invoiceSource = invoicesBySupplierMap
     ? (invoicesBySupplierMap.get(String(supId)) || [])
     : storedInvoices;
@@ -90,8 +113,9 @@ export function getSupplierLedgerForState(
   invoicesSource.forEach(inv => {
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
-      const product = pMap.get(String(item.productId));
-      return product && String(product.supplierId) === String(supId) && supplierProductIds.has(String(item.productId));
+      const productId = String(item?.productId || item?.id || '');
+      const itemSupplierId = getItemSupplierId(item, pMap);
+      return itemSupplierId === String(supId) && (!productId || supplierProductIds.size === 0 || supplierProductIds.has(productId) || Boolean(item?.supplierId || item?.supplier?.id || item?.supplierID));
     }).map(item => {
       const product = pMap.get(String(item.productId));
       const cost = computeInvoiceItemBaseCost(item, pMap);
@@ -253,24 +277,18 @@ export function recalculateStateBalances(state: AppState): AppState {
 
   const newState = { ...state };
   
-  const productMap = new Map((newState.products || []).map(p => [String(p.id), p]));
-  const supplierMap = new Map((newState.suppliers || []).map(s => [String(s.id), s]));
+  const productMap = new Map<string, any>((newState.products || []).map(p => [String(p.id), p]));
+  const supplierMap = new Map<string, any>((newState.suppliers || []).map(s => [String(s.id), s]));
 
   // Build a pre-index of invoices by supplier to avoid O(N * M) loops
   const invoicesBySupplierMap = new Map<string, any[]>();
-  const unifiedInvoices = getUnifiedInvoices(newState).filter(inv => {
-    if (!inv || inv.isDeleted) return false;
-    if (String(inv.id).startsWith('INV-')) return true;
-    return inv.paymentStatus === 'paid';
-  });
+  const unifiedInvoices = getUnifiedInvoices(newState).filter(isSupplierChargeableInvoice);
 
   unifiedInvoices.forEach(inv => {
     const seenSuppliers = new Set<string>();
     (inv.items || []).forEach((item: any) => {
-      const prod = productMap.get(String(item.productId));
-      if (prod && prod.supplierId) {
-        seenSuppliers.add(String(prod.supplierId));
-      }
+      const supplierId = getItemSupplierId(item, productMap);
+      if (supplierId) seenSuppliers.add(supplierId);
     });
     
     // Also check delivery settlement supplier if any
