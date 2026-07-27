@@ -27,7 +27,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
 
 import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, getArabicWeekdayAndDate } from '../lib/utils';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import {
   buildSecureTrackingUrl,
   issueTrackingAccess,
@@ -628,6 +628,10 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         );
         return;
       }
+
+      try {
+        deleteDoc(doc(db, "invoices", id)).catch(() => null);
+      } catch {}
 
       setData((prev) => {
         const updatedInvoices = (prev?.invoices || []).map((inv) =>
