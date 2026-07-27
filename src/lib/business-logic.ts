@@ -16,9 +16,7 @@ const isSupplierChargeableInvoice = (inv: any): boolean => {
   if (values.some((value: any) => isCancelledStatus(value))) return false;
   if (statusText.includes('split pending') || statusText.includes('تجميع القطية')) return false;
 
-  const isWebsiteOrder = String(inv.id || '').startsWith('ORD-') || inv.isORDOrder === true || inv.__supplierLedgerSource === 'paid_order';
-  if (!isWebsiteOrder && String(inv.id || '').startsWith('INV-')) return true;
-  return inv.paid === true || values.some((value: any) => isPaidStatus(value));
+  return true;
 };
 
 const firstNonBlankString = (...values: any[]): string => {
@@ -134,6 +132,7 @@ const getItemSupplierId = (
   item: any,
   productMap: Map<string, any>,
   uniqueSupplierByName?: Map<string, string>,
+  suppliers: any[] = [],
 ): string => {
   const directSupplierId = firstNonBlankString(
     item?.supplierId,
@@ -153,7 +152,18 @@ const getItemSupplierId = (
   const nameKey = normalizeSupplierProductName(
     item?.name || item?.productName || product?.name || product?.productName,
   );
-  return nameKey && uniqueSupplierByName ? (uniqueSupplierByName.get(nameKey) || '') : '';
+  const matchedByName = nameKey && uniqueSupplierByName ? (uniqueSupplierByName.get(nameKey) || '') : '';
+  if (matchedByName) return matchedByName;
+
+  const foodSuppliers = (suppliers || []).filter((s: any) => s && s.supplierType !== 'delivery');
+  if (foodSuppliers.length === 1) {
+    return String(foodSuppliers[0]?.id || '');
+  }
+  if (Array.isArray(suppliers) && suppliers.length === 1) {
+    return String(suppliers[0]?.id || '');
+  }
+
+  return '';
 };
 
 const getSupplierCatalogProductForItem = (
@@ -234,7 +244,12 @@ export const getInvoiceDeliverySettlementForSupplier = (
   return 0;
 };
 
-const supplierLedgerCache = new WeakMap<object, Map<string, any[]>>();
+let lastLedgerInvoicesRef: any = null;
+let lastLedgerOrdersRef: any = null;
+let lastLedgerProductsRef: any = null;
+let lastLedgerTransfersRef: any = null;
+let lastLedgerSuppliersRef: any = null;
+const globalSupplierLedgerCache = new Map<string, any[]>();
 
 /**
  * Centrally calculates the detailed financial ledger (invoices and payments) for a supplier.
@@ -250,6 +265,12 @@ export function getSupplierLedgerForState(
   uniqueSupplierByNameMap?: Map<string, string>,
   supplierProductByNameMap?: Map<string, any>
 ): any[] {
+  const invoices = state?.invoices;
+  const orders = state?.orders;
+  const products = state?.products;
+  const stateTransfers = state?.supplierTransfers;
+  const suppliers = state?.suppliers;
+
   const useDefaultLedgerCache =
     !productMap &&
     !supplierMap &&
@@ -260,8 +281,21 @@ export function getSupplierLedgerForState(
     !supplierProductByNameMap;
 
   if (useDefaultLedgerCache) {
-    const stateCache = supplierLedgerCache.get(state as any);
-    const cachedLedger = stateCache?.get(String(supId));
+    if (
+      lastLedgerInvoicesRef !== invoices ||
+      lastLedgerOrdersRef !== orders ||
+      lastLedgerProductsRef !== products ||
+      lastLedgerTransfersRef !== stateTransfers ||
+      lastLedgerSuppliersRef !== suppliers
+    ) {
+      lastLedgerInvoicesRef = invoices;
+      lastLedgerOrdersRef = orders;
+      lastLedgerProductsRef = products;
+      lastLedgerTransfersRef = stateTransfers;
+      lastLedgerSuppliersRef = suppliers;
+      globalSupplierLedgerCache.clear();
+    }
+    const cachedLedger = globalSupplierLedgerCache.get(String(supId));
     if (cachedLedger) return cachedLedger;
   }
 
@@ -287,7 +321,7 @@ export function getSupplierLedgerForState(
   invoicesSource.forEach(inv => {
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
-      const itemSupplierId = getItemSupplierId(item, pMap, uniqueSupplierByName);
+      const itemSupplierId = getItemSupplierId(item, pMap, uniqueSupplierByName, state.suppliers);
       return itemSupplierId === String(supId);
     }).map(item => {
       const product = getSupplierCatalogProductForItem(item, String(supId), pMap, supplierProductByName);
@@ -299,6 +333,10 @@ export function getSupplierLedgerForState(
         product?.cost,
         product?.supplierCost,
         product?.purchaseCost,
+        item?.priceAtTime,
+        item?.price,
+        product?.price,
+        item?.total ? item.total / Math.max(1, Number(item.quantity || 1)) : 0
       );
       const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
@@ -422,12 +460,7 @@ export function getSupplierLedgerForState(
   );
 
   if (useDefaultLedgerCache) {
-    let stateCache = supplierLedgerCache.get(state as any);
-    if (!stateCache) {
-      stateCache = new Map<string, any[]>();
-      supplierLedgerCache.set(state as any, stateCache);
-    }
-    stateCache.set(String(supId), sortedTransactions);
+    globalSupplierLedgerCache.set(String(supId), sortedTransactions);
   }
 
   return sortedTransactions;
