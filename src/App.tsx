@@ -2718,7 +2718,7 @@ const MainApp: React.FC = () => {
     __bootPrewarmFiredAt = 0;
 
     let lastError: any = null;
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const params = new URLSearchParams({
           profile: 'full',
@@ -2726,7 +2726,7 @@ const MainApp: React.FC = () => {
         });
         const response = await adminApiFetch(`/api/appdata/full?${params.toString()}`, {
           cache: 'no-store',
-          signal: AbortSignal.timeout(20_000),
+          signal: AbortSignal.timeout(8_000),
         });
         const payload = await response.json().catch(() => null);
         const serverGeneration = String(payload?.data?.__adminDataGenerationId || '');
@@ -2806,19 +2806,26 @@ const MainApp: React.FC = () => {
 
       // Immutable shard generations are committed first; the root generation marker is
       // published last. Therefore no reader can mistake a partial restore for a complete one.
-      await Promise.all(
-        Object.keys(preparedShardPlans).map((key) =>
-          enqueuePersistenceWrite(`shard:${key}`, async () => {
-            assertImportStillCurrent();
-            await commitLogicalShardWritePlan(
-              user.uid,
-              user.email,
-              preparedShardPlans[key],
-            );
-          }),
-        ),
-      );
-      assertImportStillCurrent();
+      const importShardKeys = Object.keys(preparedShardPlans);
+      // Keep Firestore pressure bounded. Large Excel restores used to launch every shard and
+      // every segmented part at once, which could intermittently exhaust the browser SDK after
+      // a reset. Three logical shards at a time is fast while remaining reliable on phones.
+      for (let offset = 0; offset < importShardKeys.length; offset += 3) {
+        const batchKeys = importShardKeys.slice(offset, offset + 3);
+        await Promise.all(
+          batchKeys.map((key) =>
+            enqueuePersistenceWrite(`shard:${key}`, async () => {
+              assertImportStillCurrent();
+              await commitLogicalShardWritePlan(
+                user.uid,
+                user.email,
+                preparedShardPlans[key],
+              );
+            }),
+          ),
+        );
+        assertImportStillCurrent();
+      }
 
       await enqueuePersistenceWrite('root', async () => {
         assertImportStillCurrent();
@@ -2837,29 +2844,33 @@ const MainApp: React.FC = () => {
         throw new Error('CLOUD_IMPORT_ROOT_VERIFICATION_FAILED');
       }
 
-      await Promise.all(
-        Object.keys(preparedShardPlans).map(async (key) => {
-          const verified = await readLogicalAppDataShard(
-            user.uid,
-            user.email,
-            key,
-            true,
-          );
-          if (
-            !verified.exists ||
-            String(verified.manifest?.__adminDataGenerationId || '') !== importGenerationId ||
-            stableStringify(verified.value) !== stableStringify(shardedPayloads[key])
-          ) {
-            throw new Error(`CLOUD_IMPORT_VERIFICATION_FAILED:${key}`);
-          }
-        }),
-      );
-      assertImportStillCurrent();
+      for (let offset = 0; offset < importShardKeys.length; offset += 3) {
+        const batchKeys = importShardKeys.slice(offset, offset + 3);
+        await Promise.all(
+          batchKeys.map(async (key) => {
+            const verified = await readLogicalAppDataShard(
+              user.uid,
+              user.email,
+              key,
+              true,
+            );
+            if (
+              !verified.exists ||
+              String(verified.manifest?.__adminDataGenerationId || '') !== importGenerationId ||
+              stableStringify(verified.value) !== stableStringify(shardedPayloads[key])
+            ) {
+              throw new Error(`CLOUD_IMPORT_VERIFICATION_FAILED:${key}`);
+            }
+          }),
+        );
+        assertImportStillCurrent();
+      }
 
-      // Force the Admin server cache onto the same generation before reporting success.
-      // This closes the intermittent reset→import race that could repaint an empty cache.
-      await synchronizeAdminServerGeneration(importGenerationId);
-      assertImportStillCurrent();
+      // Firestore is the source of truth. The Admin server cache refresh is useful, but it
+      // must never be allowed to reject an otherwise complete import (for example when the
+      // frontend was deployed before the matching server revision, or individual storage is
+      // enabled). The expected-generation marker already forces the next boot to bypass stale
+      // cache and fall back to direct Firestore reads safely.
 
       const mirrorPromises: Promise<any>[] = [];
       try {
@@ -2925,10 +2936,18 @@ const MainApp: React.FC = () => {
         throw new Error('CLOUD_IMPORT_UI_APPLICATION_FAILED');
       }
 
+      // Refresh the server cache without blocking or invalidating a verified Firestore import.
+      void synchronizeAdminServerGeneration(importGenerationId).catch((serverSyncError) => {
+        console.warn(
+          '[FAST_APPDATA] Import succeeded; Admin server cache will self-heal on the next generation-aware load.',
+          serverSyncError,
+        );
+      });
+
       // Any old prewarm result is now invalid even if it resolved before the import.
       __bootPrewarmPromise = null;
       __bootPrewarmFiredAt = 0;
-      console.log('Cloud Import completed with full Firestore, cache, and UI verification.');
+      console.log('Cloud Import completed with full Firestore and UI verification.');
       return true;
     } catch (error) {
       // Before the root marker is committed, restore the prior boot expectation. After root
