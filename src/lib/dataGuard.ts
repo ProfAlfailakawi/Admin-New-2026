@@ -139,7 +139,7 @@ export const hasMeaningfulData = (value: any): boolean => {
 };
 
 const mergeArrayByIdentity = (oldArray: any[], newArray: any[]) => {
-  if (newArray.length === 0 && oldArray.length > 0) return oldArray; // NOTE: we might want to fix this to allow deletion! But for now, keeping it same. Wait, user says "الاسترجاع في وضع السحابة لا يأخذ نسخة المحلي كبديل" so probably newArray shouldn't be blocked.
+  if (newArray.length === 0 && oldArray.length > 0) return oldArray;
   if (newArray.length > 0 && newArray.length < oldArray.length) return newArray;
 
   const hasIds = newArray.concat(oldArray).some(item => 
@@ -149,20 +149,30 @@ const mergeArrayByIdentity = (oldArray: any[], newArray: any[]) => {
 
   if (!hasIds) return newArray;
 
-  const byKey = new Map<string, any>();
-  const order: string[] = [];
-  const push = (item: any, index: number, source: 'old' | 'new') => {
-    const key = item && typeof item === 'object'
+  const oldByKey = new Map<string, any>();
+  const getIdentityKey = (item: any, index: number, source: string) => {
+    return item && typeof item === 'object'
       ? String(item.id ?? item.docId ?? item.invoiceId ?? item.orderId ?? item.code ?? item.phone ?? `${source}-${index}`)
       : `${source}-${index}`;
-    if (!byKey.has(key)) order.push(key);
-    const prev = byKey.get(key);
-    byKey.set(key, prev && item && typeof item === 'object' ? safeMergeData(prev, item) : item);
   };
 
-  oldArray.forEach((item, index) => push(item, index, 'old'));
-  newArray.forEach((item, index) => push(item, index, 'new'));
-  return order.map(key => byKey.get(key));
+  oldArray.forEach((item, index) => {
+    const key = getIdentityKey(item, index, 'old');
+    oldByKey.set(key, item);
+  });
+
+  const merged: any[] = [];
+  newArray.forEach((item, index) => {
+    const key = getIdentityKey(item, index, 'new');
+    const oldItem = oldByKey.get(key);
+    if (oldItem && item && typeof item === 'object') {
+      merged.push(safeMergeData(oldItem, item));
+    } else {
+      merged.push(item);
+    }
+  });
+
+  return merged;
 };
 
 export const safeMergeData = <T = any>(oldValue: any, newValue: T): T => {
