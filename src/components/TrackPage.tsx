@@ -339,7 +339,7 @@ export default function TrackPage() {
  {Number(order.discount) > 0 && (
  <div className="flex justify-between text-xs font-bold text-red-500">
  <span>الخصم:</span>
- <span dir="ltr" className="inline-flex items-baseline gap-1 whitespace-nowrap"><span>−</span><span>{Number(order.discount).toFixed(3)}</span><span dir="rtl">د.ك</span></span>
+ <span>-{Number(order.discount).toFixed(3)} د.ك</span>
  </div>
 )}
  <div className="flex justify-between text-lg font-bold text-emerald-700 pt-2 border-t border-slate-200/60">

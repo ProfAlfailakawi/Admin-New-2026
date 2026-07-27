@@ -79,10 +79,6 @@ import { NumericInput } from "./ui/NumericInput";
 import { MagneticButton } from "./ui/MagneticButton";
 import { getPublicUrl, getWebhookUrl } from "../lib/urlUtils";
 import {
-  buildSecureTrackingUrl,
-  issueTrackingAccess,
-} from "../lib/trackingAccess";
-import {
   recalculateStateBalances,
   generateNextInvoiceId,
 } from "../lib/business-logic";
@@ -327,10 +323,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
     const [isZenMode, setIsZenMode] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("KNet");
 
-    const getWhatsAppLink = (
-      invoice: Invoice,
-      trackingAccessToken?: string,
-    ) => {
+    const getWhatsAppLink = (invoice: Invoice) => {
       const customer = (data?.customers || []).find(
         (c) => c.id === invoice.customerId,
       );
@@ -452,10 +445,7 @@ const InvoicePage: React.FC<InvoicePageProps> = React.memo(
 
       const invoiceEmoji = "\u2728";
       const linkEmoji = "\u2705";
-      const trackingUrl = buildSecureTrackingUrl(
-        invoice.id,
-        trackingAccessToken,
-      );
+      const trackingUrl = `https://alturathkw.shop/track?tracked_order=${encodeURIComponent(String(invoice.id))}`;
       const customerName = customer?.name || "عميلنا العزيز";
       const paymentSection = paymentLinkLine
         ? `
@@ -970,19 +960,12 @@ Alturath.kw`;
       let createdPaymentId = existingInvoice?.paymentId || "";
       let createdTrackId = (existingInvoice as any)?.paymentTrackId || (existingInvoice as any)?.trackId || (existingInvoice as any)?.track_id || "";
       let createdGatewayOrderId = (existingInvoice as any)?.gatewayOrderId || (existingInvoice as any)?.gateway_order_id || "";
-      let createdTrackingAccessToken = "";
-      let createdTrackingAccessTokenHash =
-        (existingInvoice as any)?.trackingAccessTokenHash || "";
 
       const priceChanged = existingInvoice ? Math.abs(existingInvoice.totalAmount - totalValue) > 0.005 : true;
       const needsNewPayment = !createdLink || priceChanged;
 
       if (needsNewPayment) {
         try {
-          const trackingAccess = await issueTrackingAccess();
-          createdTrackingAccessToken = trackingAccess.token;
-          createdTrackingAccessTokenHash = trackingAccess.tokenHash;
-
           const response = await fetch("/api/create-payment", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -997,7 +980,6 @@ Alturath.kw`;
               returnUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
               cancelUrl: `https://alturathkw.shop/api/payment-return/${invoiceId}`,
               notificationUrl: `https://admin.alturathkw.shop/api/webhook/upayments`,
-              trackingAccessToken: createdTrackingAccessToken,
             }),
           });
           const paymentData = await response.json();
@@ -1099,33 +1081,6 @@ Alturath.kw`;
         fullAddress: fullAddressValue
       };
 
-      // Build one supplier snapshot index for this invoice. Customer-facing principal products
-      // may intentionally omit supplier metadata while an internal duplicate carries the supplier
-      // and purchase cost. Resolve that copy once here and freeze it into every invoice line.
-      const supplierSnapshotByName = new Map<string, any>();
-      const ambiguousSupplierNames = new Set<string>();
-      (data.products || []).forEach((candidate: any) => {
-        const candidateSupplierId = String(
-          candidate?.supplierId || candidate?.supplierID || candidate?.supplier?.id || ''
-        ).trim();
-        const nameKey = robustNormalize(candidate?.name || candidate?.productName || '');
-        if (!candidateSupplierId || !nameKey) return;
-
-        const existing = supplierSnapshotByName.get(nameKey);
-        const existingSupplierId = String(
-          existing?.supplierId || existing?.supplierID || existing?.supplier?.id || ''
-        ).trim();
-        if (existing && existingSupplierId && existingSupplierId !== candidateSupplierId) {
-          ambiguousSupplierNames.add(nameKey);
-          return;
-        }
-
-        const existingCost = Number(existing?.cost ?? existing?.supplierCost ?? existing?.purchaseCost ?? 0) || 0;
-        const candidateCost = Number(candidate?.cost ?? candidate?.supplierCost ?? candidate?.purchaseCost ?? 0) || 0;
-        if (!existing || candidateCost > existingCost) supplierSnapshotByName.set(nameKey, candidate);
-      });
-      ambiguousSupplierNames.forEach((nameKey) => supplierSnapshotByName.delete(nameKey));
-
       const newInvoice: Invoice = {
         ...(existingInvoice || {}),
         id: invoiceId,
@@ -1149,54 +1104,13 @@ Alturath.kw`;
         apartment: addressDetails.apartment,
         fullAddress: fullAddressValue,
         deliveryAddressSnapshot: deliveryAddressSnapshotValue,
-        items: cartItems.map((it) => {
-          const product = it.product!;
-          const fallbackSupplierProduct = supplierSnapshotByName.get(
-            robustNormalize(product.name || (product as any).productName || '')
-          );
-          const supplierId = String(
-            (product as any).supplierId ||
-            (product as any).supplierID ||
-            (product as any).supplier?.id ||
-            fallbackSupplierProduct?.supplierId ||
-            fallbackSupplierProduct?.supplierID ||
-            fallbackSupplierProduct?.supplier?.id ||
-            ''
-          ).trim();
-          const supplier = (data.suppliers || []).find(
-            (candidate: any) => String(candidate?.id || '') === supplierId
-          );
-          const costCandidates = [
-            it.costAtTime,
-            (product as any).cost,
-            (product as any).supplierCost,
-            (product as any).purchaseCost,
-            fallbackSupplierProduct?.cost,
-            fallbackSupplierProduct?.supplierCost,
-            fallbackSupplierProduct?.purchaseCost,
-          ];
-          const frozenCost = costCandidates
-            .map((value) => Number(value))
-            .find((value) => Number.isFinite(value) && value > 0) || 0;
-          return {
-            productId: product.id,
-            supplierProductId: fallbackSupplierProduct?.id || product.id,
-            name: product.name,
-            productName: product.name,
-            quantity: it.qty,
-            qty: it.qty,
-            priceAtTime: Number(it.priceAtTime ?? product.price ?? 0) || 0,
-            costAtTime: frozenCost,
-            supplierId,
-            supplierName:
-              supplier?.name ||
-              (product as any).supplierName ||
-              fallbackSupplierProduct?.supplierName ||
-              '',
-            itemNotes: it.itemNotes || '',
-            addons: Array.isArray(it.addons) ? it.addons : [],
-          };
-        }),
+        items: cartItems.map((it) => ({
+          ...it,
+          productId: it.product!.id,
+          name: it.product!.name,
+          productName: it.product!.name,
+          quantity: it.qty,
+        })),
         deliveryFee,
         deliveryType,
         deliveryInfo: {
@@ -1228,7 +1142,6 @@ Alturath.kw`;
         track_id: createdTrackId || createdPaymentId,
         gatewayOrderId: createdGatewayOrderId,
         gateway_order_id: createdGatewayOrderId,
-        trackingAccessTokenHash: createdTrackingAccessTokenHash,
         gatewayFee: data.settings.gatewayFeeAmount || 0,
         notes: notesText || "---",
       } as any;
@@ -1303,10 +1216,7 @@ Alturath.kw`;
 
       toast.success("تم الحفظ وإرسال الفاتورة");
 
-      const waLink = getWhatsAppLink(
-        newInvoice,
-        createdTrackingAccessToken,
-      );
+      const waLink = getWhatsAppLink(newInvoice);
       if (waLink && waLink !== "#") {
         // Point the tab we already claimed during the click; fall back to a fresh
         // open if the browser never gave us one.
@@ -2131,15 +2041,7 @@ Alturath.kw`;
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-xs text-rose-500 font-bold">
-                  <span>خصم</span>
-                  <span
-                    dir="ltr"
-                    className="inline-flex items-baseline gap-1 whitespace-nowrap"
-                  >
-                    <span>−</span>
-                    <span>{discountAmount.toFixed(3)}</span>
-                    <span dir="rtl">د.ك</span>
-                  </span>
+                  <span>خصم</span> <span>-{discountAmount.toFixed(3)} د.ك</span>
                 </div>
               )}
               <div className="flex justify-between items-center gap-3 text-base sm:text-lg font-bold text-rose-600 bg-rose-50 p-3 rounded-xl mt-2 border border-rose-100">
