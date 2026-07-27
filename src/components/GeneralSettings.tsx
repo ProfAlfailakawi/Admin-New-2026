@@ -6096,6 +6096,147 @@ const GeneralSettings: React.FC<Props> = ({
                     </div>
                   )}
 
+                  {/* سلة المحذوفات المسترجعة */}
+                  {(() => {
+                    const deletedInvoices = ((data?.invoices || []) as any[]).filter(inv => inv?.isDeleted === true || inv?.status === 'deleted');
+                    const deletedProducts = ((data?.products || []) as any[]).filter(p => p?.isDeleted === true || p?.status === 'deleted' || p?.isDeleted === 'true');
+                    const deletedCustomers = ((data?.customers || []) as any[]).filter(c => c?.isDeleted === true || c?.status === 'deleted' || c?.isDeleted === 'true');
+                    const hasDeletedItems = deletedInvoices.length > 0 || deletedProducts.length > 0 || deletedCustomers.length > 0;
+
+                    if (!hasDeletedItems) return null;
+
+                    return (
+                      <div className="mt-6 border border-slate-200/60 rounded-3xl p-4 bg-slate-50/50 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black text-slate-800 flex items-center gap-2">
+                            <Trash2 size={16} className="text-slate-500" />
+                            <span>سلة المحذوفات (استعادة العناصر)</span>
+                          </h3>
+                          <span className="text-[10px] bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
+                            {deletedInvoices.length + deletedProducts.length + deletedCustomers.length} عناصر محذوفة
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+                          {/* Deleted Invoices */}
+                          {deletedInvoices.map((inv) => (
+                            <div key={inv.id} className="bg-white border border-slate-150 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-right">
+                              <div>
+                                <div className="text-xs font-bold text-slate-900 font-sans">فاتورة #{inv.id}</div>
+                                <div className="text-[10px] text-slate-500">مبلغ الفاتورة: {inv.totalAmount || 0} د.ك</div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  // Undelete invoice
+                                  setData((prev) => {
+                                    const updated = (prev?.invoices || []).map((i) =>
+                                      i.id === inv.id ? { ...i, isDeleted: false } : i,
+                                    );
+                                    return { ...prev, invoices: updated };
+                                  });
+                                  if (appMode === "cloud" && onCloudImport) {
+                                    try {
+                                      const parsed = { ...data };
+                                      parsed.invoices = (parsed.invoices || []).map((i) =>
+                                        i.id === inv.id ? { ...i, isDeleted: false } : i,
+                                      );
+                                      await onCloudImport(parsed);
+                                      addToast("تمت الاستعادة", "تم استعادة الفاتورة ومزامنتها بنجاح.", "success");
+                                    } catch (err) {
+                                      addToast("خطأ", "فشل الحفظ في السحابة", "warning");
+                                    }
+                                  } else {
+                                    addToast("تمت الاستعادة", "تم استعادة الفاتورة بنجاح.", "success");
+                                  }
+                                }}
+                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-xl transition-all"
+                              >
+                                استعادة
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Deleted Products */}
+                          {deletedProducts.map((p) => (
+                            <div key={p.id} className="bg-white border border-slate-150 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-right">
+                              <div>
+                                <div className="text-xs font-bold text-slate-900 font-sans">{p.name}</div>
+                                <div className="text-[10px] text-slate-500">كود: {p.id} | سعر: {p.price || 0} د.ك</div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  // Undelete product
+                                  setData((prev) => {
+                                    const updated = (prev?.products || []).map((prod) =>
+                                      prod.id === p.id ? { ...prod, isDeleted: false } as any : prod,
+                                    );
+                                    return { ...prev, products: updated };
+                                  });
+                                  if (appMode === "cloud" && onCloudImport) {
+                                    try {
+                                      const parsed = { ...data };
+                                      parsed.products = (parsed.products || []).map((prod) =>
+                                        prod.id === p.id ? { ...prod, isDeleted: false } as any : prod,
+                                      );
+                                      await onCloudImport(parsed);
+                                      addToast("تمت الاستعادة", "تم استعادة المنتج ومزامنته بنجاح.", "success");
+                                    } catch (err) {
+                                      addToast("خطأ", "فشل الحفظ في السحابة", "warning");
+                                    }
+                                  } else {
+                                    addToast("تمت الاستعادة", "تم استعادة المنتج بنجاح.", "success");
+                                  }
+                                }}
+                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-xl transition-all"
+                              >
+                                استعادة
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Deleted Customers */}
+                          {deletedCustomers.map((c) => (
+                            <div key={c.id} className="bg-white border border-slate-150 p-2.5 rounded-2xl flex items-center justify-between gap-3 text-right">
+                              <div>
+                                <div className="text-xs font-bold text-slate-900 font-sans">{c.name}</div>
+                                <div className="text-[10px] text-slate-500">تلفون: {c.phone || "بدون تلفون"}</div>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  // Undelete customer
+                                  setData((prev) => {
+                                    const updated = (prev?.customers || []).map((cust) =>
+                                      cust.id === c.id ? { ...cust, isDeleted: false, status: 'active' } as any : cust,
+                                    );
+                                    return { ...prev, customers: updated };
+                                  });
+                                  if (appMode === "cloud" && onCloudImport) {
+                                    try {
+                                      const parsed = { ...data };
+                                      parsed.customers = (parsed.customers || []).map((cust) =>
+                                        cust.id === c.id ? { ...cust, isDeleted: false, status: 'active' } as any : cust,
+                                      );
+                                      await onCloudImport(parsed);
+                                      addToast("تمت الاستعادة", "تم استعادة العميل ومزامنته بنجاح.", "success");
+                                    } catch (err) {
+                                      addToast("خطأ", "فشل الحفظ في السحابة", "warning");
+                                    }
+                                  } else {
+                                    addToast("تمت الاستعادة", "تم استعادة العميل بنجاح.", "success");
+                                  }
+                                }}
+                                className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-xl transition-all"
+                              >
+                                @ts-ignore
+                                استعادة
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Developer Info - Hidden as requested */}
                   {false && (
                     <div className="mt-8 p-3 md:p-4 bg-slate-900 text-white rounded-3xl space-y-4 border border-slate-700 shadow-xl">

@@ -1494,15 +1494,8 @@ const MainApp: React.FC = () => {
       localStorage.setItem('appMode', 'cloud');
       [
         'ktk_cloud_offline_snapshot',
-        'ktk_cloud_offline_snapshot_last_good',
-        'ktk_cloud_offline_snapshot_backup',
-        'ktk_cloud_offline_snapshot_safety_restore',
         'ktk_local_accounting_data',
-        'ktk_local_accounting_data_last_good',
-        'ktk_local_accounting_data_backup',
-        'ktk_local_accounting_data_safety_restore',
         'ktk_accounting_data',
-        'ktk_accounting_data_backup',
       ].forEach((key) => localStorage.removeItem(key));
     } catch {}
     setAppMode('cloud');
@@ -4233,8 +4226,8 @@ const MainApp: React.FC = () => {
     }
 
     switch (currentPage) {
-      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
-      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} onActiveTabChange={setDashboardTab} />;
+      case 'dashboard': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab={deepLinkData.exactId || 'pulse'} scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
+      case 'dashboard-ai': return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="intelligence" scrollTarget={deepLinkData.scrollTarget} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
       case 'new-invoice': return (
         <InvoicePage 
           data={data} 
@@ -4271,7 +4264,7 @@ const MainApp: React.FC = () => {
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
       case 'coupons':
       case 'loyalty':
-        return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
+        return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
       case 'growth-simulator': return <WhatIfSimulator data={data} onUpdateData={setData} />;
       case 'profit-guard': return <RealProfitGuard data={data} />;
       case 'reports': return (
@@ -4297,7 +4290,7 @@ const MainApp: React.FC = () => {
           deepLinkData={deepLinkData}
         />
       );
-      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} onActiveTabChange={setDashboardTab} />;
+      default: return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={setCurrentPage} onActiveTabChange={setDashboardTab} onCloudImport={onCloudImport} />;
     }
   };
 
