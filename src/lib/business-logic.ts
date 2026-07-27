@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isCancelledStatus, isFailedStatus, isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
 import { getUnifiedInvoices } from './utils';
 
 
@@ -21,15 +21,148 @@ const isSupplierChargeableInvoice = (inv: any): boolean => {
   return inv.paid === true || values.some((value: any) => isPaidStatus(value));
 };
 
-const getItemSupplierId = (item: any, productMap: Map<string, any>): string => {
-  const product = productMap.get(String(item?.productId || item?.id || ''));
-  return String(
-    item?.supplierId ??
-    item?.supplier?.id ??
-    item?.supplierID ??
-    product?.supplierId ??
-    ''
+const firstNonBlankString = (...values: any[]): string => {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const firstPositiveNumber = (...values: any[]): number => {
+  for (const value of values) {
+    const parsed = safeParsePrice(value);
+    if (parsed > 0) return parsed;
+  }
+  return 0;
+};
+
+const normalizeSupplierProductName = (value: any): string =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[إأآا]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/[ىی]/g, 'ي')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/[ًٌٍَُِّْـ]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getSupplierProductScore = (product: any): number =>
+  (firstNonBlankString(product?.supplierId, product?.supplierID, product?.supplier?.id) ? 100 : 0) +
+  (firstPositiveNumber(product?.cost, product?.supplierCost, product?.purchaseCost) > 0 ? 25 : 0) +
+  (product?.isActive !== false ? 5 : 0) +
+  (product?.isOutOfStock ? 0 : 2);
+
+const mergeSupplierProductRecord = (current: any, incoming: any): any => {
+  if (!current) return incoming;
+  if (!incoming) return current;
+  const preferred = getSupplierProductScore(incoming) >= getSupplierProductScore(current) ? incoming : current;
+  const secondary = preferred === incoming ? current : incoming;
+  const merged: any = { ...secondary, ...preferred };
+  const supplierId = firstNonBlankString(
+    preferred?.supplierId,
+    preferred?.supplierID,
+    preferred?.supplier?.id,
+    secondary?.supplierId,
+    secondary?.supplierID,
+    secondary?.supplier?.id,
   );
+  if (supplierId) merged.supplierId = supplierId;
+  const cost = firstPositiveNumber(
+    preferred?.cost,
+    preferred?.supplierCost,
+    preferred?.purchaseCost,
+    secondary?.cost,
+    secondary?.supplierCost,
+    secondary?.purchaseCost,
+  );
+  if (cost > 0) merged.cost = cost;
+  return merged;
+};
+
+const buildSupplierProductIndexes = (products: any[] = []) => {
+  const byId = new Map<string, any>();
+  const supplierIdsByName = new Map<string, Set<string>>();
+  const bySupplierAndName = new Map<string, any>();
+
+  (Array.isArray(products) ? products : []).forEach((product: any) => {
+    if (!product) return;
+    const id = firstNonBlankString(product.id, product.productId);
+    if (id) byId.set(id, mergeSupplierProductRecord(byId.get(id), product));
+
+    const nameKey = normalizeSupplierProductName(product.name || product.productName || product.nameAr);
+    const supplierId = firstNonBlankString(product.supplierId, product.supplierID, product.supplier?.id);
+    if (!nameKey || !supplierId) return;
+
+    const supplierIds = supplierIdsByName.get(nameKey) || new Set<string>();
+    supplierIds.add(supplierId);
+    supplierIdsByName.set(nameKey, supplierIds);
+
+    const supplierNameKey = `${supplierId}::${nameKey}`;
+    bySupplierAndName.set(
+      supplierNameKey,
+      mergeSupplierProductRecord(bySupplierAndName.get(supplierNameKey), product),
+    );
+  });
+
+  const uniqueSupplierByName = new Map<string, string>();
+  supplierIdsByName.forEach((supplierIds, nameKey) => {
+    if (supplierIds.size === 1) uniqueSupplierByName.set(nameKey, Array.from(supplierIds)[0]);
+  });
+
+  return { byId, uniqueSupplierByName, bySupplierAndName };
+};
+
+const getItemSupplierId = (
+  item: any,
+  productMap: Map<string, any>,
+  uniqueSupplierByName?: Map<string, string>,
+): string => {
+  const directSupplierId = firstNonBlankString(
+    item?.supplierId,
+    item?.supplierID,
+    item?.supplier?.id,
+  );
+  if (directSupplierId) return directSupplierId;
+
+  const product = productMap.get(firstNonBlankString(item?.productId, item?.id));
+  const catalogSupplierId = firstNonBlankString(
+    product?.supplierId,
+    product?.supplierID,
+    product?.supplier?.id,
+  );
+  if (catalogSupplierId) return catalogSupplierId;
+
+  const nameKey = normalizeSupplierProductName(
+    item?.name || item?.productName || product?.name || product?.productName,
+  );
+  return nameKey && uniqueSupplierByName ? (uniqueSupplierByName.get(nameKey) || '') : '';
+};
+
+const getSupplierCatalogProductForItem = (
+  item: any,
+  supplierId: string,
+  productMap: Map<string, any>,
+  bySupplierAndName?: Map<string, any>,
+): any => {
+  const exact = productMap.get(firstNonBlankString(item?.productId, item?.id));
+  const exactSupplierId = firstNonBlankString(
+    exact?.supplierId,
+    exact?.supplierID,
+    exact?.supplier?.id,
+  );
+  if (exact && exactSupplierId === String(supplierId)) return exact;
+
+  const nameKey = normalizeSupplierProductName(
+    item?.name || item?.productName || exact?.name || exact?.productName,
+  );
+  return (nameKey && bySupplierAndName)
+    ? (bySupplierAndName.get(`${String(supplierId)}::${nameKey}`) || exact)
+    : exact;
 };
 
 export const getInvoiceDeliverySettlementForSupplier = (
@@ -52,10 +185,15 @@ export const getInvoiceDeliverySettlementForSupplier = (
   const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
 
+  const deliveryProductIndexes = buildSupplierProductIndexes(state?.products || []);
+  const deliveryProductMap = productMap || deliveryProductIndexes.byId;
   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
-    const product = productMap ? productMap.get(String(item.productId)) : (state?.products || []).find((p: any) => String(p.id) === String(item.productId));
-    const itemSupplierId = item?.supplierId ?? item?.supplier?.id ?? item?.supplierID ?? product?.supplierId;
-    return String(itemSupplierId || '') === String(supId);
+    const itemSupplierId = getItemSupplierId(
+      item,
+      deliveryProductMap,
+      deliveryProductIndexes.uniqueSupplierByName,
+    );
+    return itemSupplierId === String(supId);
   });
 
   const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
@@ -87,12 +225,17 @@ export function getSupplierLedgerForState(
   supplierMap?: Map<string, any>,
   invoicesBySupplierMap?: Map<string, any[]>,
   supplierProductsMap?: Map<string, Set<string>>,
-  transfersBySupplierMap?: Map<string, any[]>
+  transfersBySupplierMap?: Map<string, any[]>,
+  uniqueSupplierByNameMap?: Map<string, string>,
+  supplierProductByNameMap?: Map<string, any>
 ): any[] {
   const transactions: any[] = [];
   
-  const pMap: Map<string, any> = productMap || new Map<string, any>((state.products || []).map(p => [String(p.id), p]));
+  const supplierProductIndexes = buildSupplierProductIndexes(state.products || []);
+  const pMap: Map<string, any> = productMap || supplierProductIndexes.byId;
   const sMap: Map<string, any> = supplierMap || new Map<string, any>((state.suppliers || []).map(s => [String(s.id), s]));
+  const uniqueSupplierByName = uniqueSupplierByNameMap || supplierProductIndexes.uniqueSupplierByName;
+  const supplierProductByName = supplierProductByNameMap || supplierProductIndexes.bySupplierAndName;
 
   const supplierProductIds = supplierProductsMap
     ? (supplierProductsMap.get(String(supId)) || new Set<string>())
@@ -113,12 +256,19 @@ export function getSupplierLedgerForState(
   invoicesSource.forEach(inv => {
     // Collect products of this supplier in the invoice
     const itemsForThisSupplier = (inv.items || []).filter(item => {
-      const productId = String(item?.productId || item?.id || '');
-      const itemSupplierId = getItemSupplierId(item, pMap);
-      return itemSupplierId === String(supId) && (!productId || supplierProductIds.size === 0 || supplierProductIds.has(productId) || Boolean(item?.supplierId || item?.supplier?.id || item?.supplierID));
+      const itemSupplierId = getItemSupplierId(item, pMap, uniqueSupplierByName);
+      return itemSupplierId === String(supId);
     }).map(item => {
-      const product = pMap.get(String(item.productId));
-      const cost = computeInvoiceItemBaseCost(item, pMap);
+      const product = getSupplierCatalogProductForItem(item, String(supId), pMap, supplierProductByName);
+      const cost = firstPositiveNumber(
+        item?.costAtTime,
+        item?.supplierCost,
+        item?.purchaseCost,
+        item?.cost,
+        product?.cost,
+        product?.supplierCost,
+        product?.purchaseCost,
+      );
       const price = item.priceAtTime !== undefined ? item.priceAtTime : (product?.price || 0);
       const qty = item.quantity !== undefined ? item.quantity : ((item as any).qty !== undefined ? (item as any).qty : 1);
       
@@ -242,7 +392,9 @@ export function getSupplierLiveBalanceForState(
   supplierMap?: Map<string, any>,
   invoicesBySupplierMap?: Map<string, any[]>,
   supplierProductsMap?: Map<string, Set<string>>,
-  transfersBySupplierMap?: Map<string, any[]>
+  transfersBySupplierMap?: Map<string, any[]>,
+  uniqueSupplierByNameMap?: Map<string, string>,
+  supplierProductByNameMap?: Map<string, any>
 ): number {
   const ledger = getSupplierLedgerForState(
     supId, 
@@ -251,7 +403,9 @@ export function getSupplierLiveBalanceForState(
     supplierMap, 
     invoicesBySupplierMap, 
     supplierProductsMap, 
-    transfersBySupplierMap
+    transfersBySupplierMap,
+    uniqueSupplierByNameMap,
+    supplierProductByNameMap
   );
   const due = ledger.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.amount || 0), 0);
   const paid = Math.abs(ledger.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amount || 0), 0));
@@ -277,7 +431,8 @@ export function recalculateStateBalances(state: AppState): AppState {
 
   const newState = { ...state };
   
-  const productMap = new Map<string, any>((newState.products || []).map(p => [String(p.id), p]));
+  const supplierProductIndexes = buildSupplierProductIndexes(newState.products || []);
+  const productMap = supplierProductIndexes.byId;
   const supplierMap = new Map<string, any>((newState.suppliers || []).map(s => [String(s.id), s]));
 
   // Build a pre-index of invoices by supplier to avoid O(N * M) loops
@@ -287,7 +442,7 @@ export function recalculateStateBalances(state: AppState): AppState {
   unifiedInvoices.forEach(inv => {
     const seenSuppliers = new Set<string>();
     (inv.items || []).forEach((item: any) => {
-      const supplierId = getItemSupplierId(item, productMap);
+      const supplierId = getItemSupplierId(item, productMap, supplierProductIndexes.uniqueSupplierByName);
       if (supplierId) seenSuppliers.add(supplierId);
     });
     
@@ -318,7 +473,7 @@ export function recalculateStateBalances(state: AppState): AppState {
         set = new Set();
         supplierProductsMap.set(sId, set);
       }
-      set.add(p.id);
+      set.add(String(p.id));
     }
   });
 
@@ -346,7 +501,9 @@ export function recalculateStateBalances(state: AppState): AppState {
       supplierMap, 
       invoicesBySupplierMap, 
       supplierProductsMap, 
-      transfersBySupplierMap
+      transfersBySupplierMap,
+      supplierProductIndexes.uniqueSupplierByName,
+      supplierProductIndexes.bySupplierAndName
     )
   }));
 
