@@ -67,7 +67,7 @@ try {
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
       console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
     }
-    firebaseInitialized = Boolean(db);
+    firebaseInitialized = false;
   }
 } catch (error) {
   firebaseInitialized = false;
@@ -1799,8 +1799,8 @@ async function initBootCache() {
 
   bootCachePromise = (async () => {
     try {
-      if (!db) {
-        console.warn("[CACHE] Cannot initialize boot cache yet: Firebase Admin DB is not ready.");
+      if (!db || !firebaseInitialized) {
+        console.warn("[CACHE] Cannot initialize boot cache yet: Firebase Admin DB is not ready or lacks access.");
         bootCachePromise = null;
         return;
       }
@@ -1813,7 +1813,7 @@ async function initBootCache() {
       const [rootSnap, ...shardSnaps] = await Promise.all([
         rootRef.get(),
         ...bootKeys.map(key => rootRef.collection("shards").doc(key).get().catch(err => {
-          console.error(`[CACHE] Failed to get shard doc ${key}:`, err);
+          console.warn(`[CACHE] Failed to get shard doc ${key}:`, err?.message || err);
           return { exists: false, data: () => null };
         }))
       ]);
@@ -1836,7 +1836,7 @@ async function initBootCache() {
       console.log(`[CACHE] Stage-1 boot cache hot in ${elapsed}ms! Loaded ${bootKeys.length} essential shards.`);
 
       // Fire off Stage-2 deferred cache in the background right away without stalling the boot
-      initDeferredCache().catch(console.error);
+      initDeferredCache().catch(console.warn);
 
       // Real-time synchronization listeners to keep the cache fully fresh
       rootRef.onSnapshot((snap: any) => {
@@ -1845,7 +1845,7 @@ async function initBootCache() {
           console.log("[CACHE] Root document updated in real-time from Firestore.");
         }
       }, (err: any) => {
-        console.error("[CACHE] Root real-time sync error:", err);
+        console.warn("[CACHE] Root real-time sync error:", err?.message || err);
       });
 
       bootKeys.forEach(key => {
@@ -1855,16 +1855,16 @@ async function initBootCache() {
               appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
               console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
             } catch (decodeError: any) {
-              console.error(`[CACHE] Failed to decode live boot shard ${key}:`, decodeError?.message || decodeError);
+              console.warn(`[CACHE] Failed to decode live boot shard ${key}:`, decodeError?.message || decodeError);
             }
           }
         }, (err: any) => {
-          console.error(`[CACHE] Real-time sync error for boot key ${key}:`, err);
+          console.warn(`[CACHE] Real-time sync error for boot key ${key}:`, err?.message || err);
         });
       });
 
     } catch (err: any) {
-      console.error("[CACHE] Stage-1 boot cache initialization failed:", err);
+      console.warn("[CACHE] Stage-1 boot cache initialization failed:", err?.message || err);
       appDataCache.bootInitialized = false;
       bootCachePromise = null;
     }
@@ -1879,8 +1879,8 @@ async function initDeferredCache() {
 
   deferredCachePromise = (async () => {
     try {
-      if (!db) {
-        console.warn("[CACHE] Cannot initialize deferred cache: Firebase Admin DB is not ready.");
+      if (!db || !firebaseInitialized) {
+        console.warn("[CACHE] Cannot initialize deferred cache: Firebase Admin DB is not ready or lacks access.");
         deferredCachePromise = null;
         return;
       }
@@ -1892,7 +1892,7 @@ async function initDeferredCache() {
 
       const shardSnaps = await Promise.all(
         deferredKeys.map(key => rootRef.collection("shards").doc(key).get().catch(err => {
-          console.error(`[CACHE] Failed to get deferred shard doc ${key}:`, err);
+          console.warn(`[CACHE] Failed to get deferred shard doc ${key}:`, err?.message || err);
           return { exists: false, data: () => null };
         }))
       );
@@ -1917,16 +1917,16 @@ async function initDeferredCache() {
               appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
               console.log(`[CACHE] Live sync: Deferred shard ${key} updated.`);
             } catch (decodeError: any) {
-              console.error(`[CACHE] Failed to decode live deferred shard ${key}:`, decodeError?.message || decodeError);
+              console.warn(`[CACHE] Failed to decode live deferred shard ${key}:`, decodeError?.message || decodeError);
             }
           }
         }, (err: any) => {
-          console.error(`[CACHE] Real-time sync error for deferred key ${key}:`, err);
+          console.warn(`[CACHE] Real-time sync error for deferred key ${key}:`, err?.message || err);
         });
       });
 
     } catch (err: any) {
-      console.error("[CACHE] Stage-2 deferred cache initialization failed:", err);
+      console.warn("[CACHE] Stage-2 deferred cache initialization failed:", err?.message || err);
       appDataCache.fullInitialized = false;
       deferredCachePromise = null;
     }
