@@ -569,20 +569,25 @@ type UnifiedPaymentState = 'paid' | 'failed' | 'cancelled' | 'split_pending' | '
 const getNormalizedPaymentState = (record: any): UnifiedPaymentState => {
   if (!record) return 'pending';
 
-  const values = [
+  const paymentValues = [
     record.paymentStatus,
     record.payment_status,
     record.payment?.status,
     record.transactionStatus,
-    record.status,
   ].filter((value) => value !== undefined && value !== null && String(value).trim() !== '');
+  const values = [...paymentValues, record.status]
+    .filter((value) => value !== undefined && value !== null && String(value).trim() !== '');
   const joined = values.map((value) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
 
-  // Failure/cancellation must win over any stale success marker copied into another record.
-  if (record.failed === true || values.some((value) => isFailedStatus(value)) || joined.includes('مرفوض')) return 'failed';
+  // A confirmed paid flag or an explicit payment field is authoritative and monotonic.
+  // Legacy records can retain an old Arabic failure label in `status` after a successful
+  // retry; that stale label must never reverse the financial state or hide supplier dues.
+  if (record.paid === true || paymentValues.some((value) => isPaidStatus(value))) return 'paid';
+  if (record.failed === true || paymentValues.some((value) => isFailedStatus(value))) return 'failed';
   if (values.some((value) => isCancelledStatus(value))) return 'cancelled';
   if (joined.includes('split pending') || joined.includes('تجميع القطية') || joined.includes('بانتظار اكتمال القطية')) return 'split_pending';
-  if (record.paid === true || values.some((value) => isPaidStatus(value))) return 'paid';
+  if (values.some((value) => isPaidStatus(value))) return 'paid';
+  if (values.some((value) => isFailedStatus(value)) || joined.includes('مرفوض')) return 'failed';
   return 'pending';
 };
 
@@ -733,6 +738,14 @@ const selectAuthoritativePaymentRecord = (order: any, invoiceMirror?: any): any 
   const orderFinal = isUnifiedFinalPaymentState(orderState);
   const invoiceFinal = isUnifiedFinalPaymentState(invoiceState);
 
+  // Payment success is monotonic across the order/invoice mirrors. A delayed failure
+  // callback from an older attempt can carry a newer timestamp, but it cannot undo a
+  // captured payment or remove the supplier entitlement.
+  if (orderFinal && invoiceFinal && orderState !== invoiceState) {
+    if (invoiceState === 'paid') return invoiceMirror;
+    if (orderState === 'paid') return order;
+  }
+
   // A stale pending mirror must never hide a confirmed paid/failed state.
   if (orderFinal !== invoiceFinal) return orderFinal ? order : invoiceMirror;
 
@@ -741,10 +754,8 @@ const selectAuthoritativePaymentRecord = (order: any, invoiceMirror?: any): any 
   if (orderTime !== invoiceTime) return orderTime > invoiceTime ? order : invoiceMirror;
 
   if (orderFinal && invoiceFinal && orderState !== invoiceState) {
-    // When legacy records have no reliable timestamps, fail-safe against false supplier debt:
-    // a failed/cancelled record wins over a stale paid marker.
-    if (invoiceState === 'failed' || invoiceState === 'cancelled') return invoiceMirror;
-    if (orderState === 'failed' || orderState === 'cancelled') return order;
+    if (invoiceState === 'cancelled') return invoiceMirror;
+    if (orderState === 'cancelled') return order;
   }
 
   if (hasAuthoritativePaymentSignal(invoiceMirror) && !hasAuthoritativePaymentSignal(order)) {
