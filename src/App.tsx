@@ -485,21 +485,22 @@ const getInitialPageFromDeepLink = () => {
 // Remove deduplication import as requested
 // import { getDeduplicatedProducts } from './lib/deduplication';
 
-const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallback, mode = 'cloud' }: any) => {
+const PaymentFeedbackView = ({ invoiceId, path, searchParams, mode = 'cloud' }: any) => {
   const [statusMsg, setStatusMsg] = useState<{title: string, sub: string, isError: boolean} | null>(null);
   
   const resultParam = (searchParams.get('result') || searchParams.get('Result') || searchParams.get('status') || searchParams.get('Status') || '')?.toUpperCase();
   const paymentIdParam = searchParams.get('track_id') || searchParams.get('TrackID') || searchParams.get('charge_id') || searchParams.get('id') || searchParams.get('payment_id') || searchParams.get('paymentId') || searchParams.get('PaymentID');
   
   const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'CANCELLED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED' || resultParam === 'REJECTED';
-  const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || resultParam === 'PAID' || resultParam === 'AUTHORIZED' || resultParam === 'COMPLETED' || resultParam === 'APPROVED' || isUpaymentsCallback);
 
   useEffect(() => {
-    const showMessageAndRedirect = (status: 'success' | 'failed', invoiceIdToSearch: string) => {
+    const showMessageAndRedirect = (status: 'success' | 'failed' | 'pending', invoiceIdToSearch: string) => {
         if (status === 'success') {
             setStatusMsg({ title: "تمت العملية", sub: "الدفع تم بنجاح", isError: false });
-        } else {
+        } else if (status === 'failed') {
             setStatusMsg({ title: "لم تكتمل العملية", sub: "Payment was not completed, you can try again", isError: true });
+        } else {
+            setStatusMsg({ title: "جاري التأكد", sub: "نتحقق من حالة الدفع، ولن نسجلها كفشل", isError: false });
         }
 
         try {
@@ -528,14 +529,14 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
     }
 
     if (!invoiceId) {
-      showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', '');
+      showMessageAndRedirect('pending', '');
       return;
     }
 
     // Try verifying with a timeout safety net
     const verificationTimeout = setTimeout(() => {
        if (!statusMsg) {
-          showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId || '');
+          showMessageAndRedirect('pending', invoiceId || '');
        }
     }, 10000); // 10 seconds max wait for backend verification
 
@@ -569,8 +570,8 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
              })
          }).then(res => res.json()).then(async (verifyObj) => {
              clearTimeout(verificationTimeout);
-             let finalStatus: 'success' | 'failed' = 'failed';
-             if (verifyObj.verified) {
+             let finalStatus: 'success' | 'failed' | 'pending' = 'pending';
+             if (verifyObj.verified || verifyObj.state === 'paid') {
                  finalStatus = 'success';
                  try {
                     await updateDoc(doc(db, 'invoices', invoiceId), {
@@ -590,42 +591,21 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                     });
                     await Promise.all(updatePromises);
                  } catch (e) {}
-             } else {
-                if (urlIndicatesSuccess) {
-                    finalStatus = 'success';
-                    try {
-                       await updateDoc(doc(db, 'invoices', invoiceId), {
-                         paymentStatus: 'paid',
-                         status: 'تم الدفع بنجاح',
-                         paymentId: actualPaymentId || actualTrackId,
-                         payment_id: actualPaymentId || actualTrackId,
-                         paymentTrackId: actualTrackId || actualPaymentId,
-                         trackId: actualTrackId || actualPaymentId,
-                         gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
-                         verifiedByBackend: false,
-                         verificationError: verifyObj.debugData || 'not_found'
-                       });
-                        const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
-                        const updatePromises: Promise<any>[] = [];
-                        ordersSnap.forEach((orderDoc) => {
-                           updatePromises.push(updateDoc(doc(db, 'orders', orderDoc.id), { status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' }));
-                        });
-                        await Promise.all(updatePromises);
-                    } catch (e) {}
-                }
+             } else if (verifyObj.state === 'failed') {
+                finalStatus = 'failed';
              }
              showMessageAndRedirect(finalStatus, invoiceId);
          }).catch(() => {
              clearTimeout(verificationTimeout);
-             showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId);
+             showMessageAndRedirect('pending', invoiceId);
          });
        } else {
          clearTimeout(verificationTimeout);
-         showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId);
+         showMessageAndRedirect('pending', invoiceId);
        }
     }).catch(() => {
        clearTimeout(verificationTimeout);
-       showMessageAndRedirect(urlIndicatesSuccess ? 'success' : 'failed', invoiceId);
+       showMessageAndRedirect('pending', invoiceId);
     });
 
   }, [invoiceId]);
