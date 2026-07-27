@@ -2063,7 +2063,15 @@ Alturath.kw`;
 
               {discountAmount > 0 && (
                 <div className="flex justify-between text-xs text-rose-500 font-bold">
-                  <span>خصم</span> <span>-{discountAmount.toFixed(3)} د.ك</span>
+                  <span>خصم</span>
+                  <span
+                    dir="ltr"
+                    className="inline-flex items-baseline gap-1 whitespace-nowrap"
+                  >
+                    <span>−</span>
+                    <span>{discountAmount.toFixed(3)}</span>
+                    <span dir="rtl">د.ك</span>
+                  </span>
                 </div>
               )}
               <div className="flex justify-between items-center gap-3 text-base sm:text-lg font-bold text-rose-600 bg-rose-50 p-3 rounded-xl mt-2 border border-rose-100">
