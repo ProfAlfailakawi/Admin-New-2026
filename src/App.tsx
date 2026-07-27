@@ -2721,6 +2721,16 @@ const MainApp: React.FC = () => {
     return Number.isFinite(parsed) ? parsed : 0;
   };
 
+  const getOrderSupplierSnapshotSignature = (order: any): string => {
+    const items = Array.isArray(order?.items) ? order.items : [];
+    return JSON.stringify(items.map((item: any) => [
+      String(item?.productId || item?.id || ''),
+      String(item?.supplierId || item?.supplierID || item?.supplier?.id || ''),
+      Number(item?.costAtTime ?? item?.supplierCost ?? item?.cost ?? 0) || 0,
+      Number(item?.quantity ?? item?.qty ?? 1) || 1,
+    ]));
+  };
+
   const parseStoredState = (raw: string | null): AppState | null => {
     if (!raw) return null;
     try {
@@ -3154,8 +3164,24 @@ const MainApp: React.FC = () => {
                          combined.push(eo);
                          changed = true;
                      } else {
-                         if (combined[idx].status !== eo.status || combined[idx].paymentStatus !== eo.paymentStatus || (combined[idx] as any).paymentId !== (eo as any).paymentId) {
-                             combined[idx] = { ...combined[idx], ...eo };
+                         const currentOrder: any = combined[idx] as any;
+                         const externalOrder: any = eo as any;
+                         const supplierSnapshotChanged =
+                           Array.isArray(externalOrder.items) &&
+                           getOrderSupplierSnapshotSignature(currentOrder) !==
+                             getOrderSupplierSnapshotSignature(externalOrder);
+                         if (
+                           currentOrder.status !== externalOrder.status ||
+                           currentOrder.paymentStatus !== externalOrder.paymentStatus ||
+                           currentOrder.payment_status !== externalOrder.payment_status ||
+                           currentOrder.paid !== externalOrder.paid ||
+                           currentOrder.failed !== externalOrder.failed ||
+                           currentOrder.paymentId !== externalOrder.paymentId ||
+                           currentOrder.transactionId !== externalOrder.transactionId ||
+                           currentOrder.linkedInvoiceId !== externalOrder.linkedInvoiceId ||
+                           supplierSnapshotChanged
+                         ) {
+                             combined[idx] = { ...currentOrder, ...externalOrder };
                              changed = true;
                          }
                      }
