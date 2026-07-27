@@ -1289,22 +1289,65 @@ const MainApp: React.FC = () => {
   const [isOnline, setIsOnline] = useState(false); // means verified cloud, not merely Wi-Fi
   const [cloudChecking, setCloudChecking] = useState(true);
   const [retryingOffline, setRetryingOffline] = useState(false);
+  const [authoritativeCloudOperationActive, setAuthoritativeCloudOperationActive] = useState(false);
   const cloudProbeSequenceRef = useRef(0);
+  const cloudProbeFailuresRef = useRef(0);
+  const cloudOnlineRef = useRef(false);
+  const authoritativeCloudOperationRef = useRef(false);
+
+  useEffect(() => {
+    cloudOnlineRef.current = isOnline;
+  }, [isOnline]);
+
+  const applyCloudOnlineState = React.useCallback((online: boolean) => {
+    cloudOnlineRef.current = online;
+    setIsOnline(online);
+  }, []);
+
+  const beginAuthoritativeCloudOperation = React.useCallback(() => {
+    // Invalidate a health request that started before reset/import. Its late failure must
+    // never repaint a verified write as offline while Firestore is under temporary load.
+    authoritativeCloudOperationRef.current = true;
+    setAuthoritativeCloudOperationActive(true);
+    cloudProbeSequenceRef.current += 1;
+    cloudProbeFailuresRef.current = 0;
+    setCloudChecking(false);
+    applyCloudOnlineState(true);
+  }, [applyCloudOnlineState]);
+
+  const endAuthoritativeCloudOperation = React.useCallback((firestoreVerified: boolean) => {
+    authoritativeCloudOperationRef.current = false;
+    setAuthoritativeCloudOperationActive(false);
+    if (firestoreVerified) {
+      cloudProbeFailuresRef.current = 0;
+      setCloudChecking(false);
+      applyCloudOnlineState(true);
+    }
+  }, [applyCloudOnlineState]);
 
   const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
+    // An import/reset already performs stronger server round-trip verification for the root
+    // and every shard. A parallel health request is weaker and can fail transiently under the
+    // same write pressure, so it is intentionally ignored until the authoritative operation ends.
+    if (authoritativeCloudOperationRef.current) return true;
+
     const sequence = ++cloudProbeSequenceRef.current;
+    const wasOnline = cloudOnlineRef.current;
     const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
     if (!browserOnline) {
+      cloudProbeFailuresRef.current = 3;
       if (sequence === cloudProbeSequenceRef.current) {
         setCloudChecking(false);
-        setIsOnline(false);
+        applyCloudOnlineState(false);
       }
       return false;
     }
 
     setCloudChecking(true);
+    let healthy = false;
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 5_500);
+    const timeoutId = window.setTimeout(() => controller.abort(), 4_500);
+
     try {
       const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
         cache: 'no-store',
@@ -1312,29 +1355,72 @@ const MainApp: React.FC = () => {
         headers: { 'x-ktk-cloud-probe': '1' },
       });
       const payload = await response.json().catch(() => null);
-      const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
-      if (sequence === cloudProbeSequenceRef.current) {
-        setIsOnline(healthy);
-        setCloudChecking(false);
+      healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
+    } catch {
+      healthy = false;
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+
+    // The server health route can be cold, temporarily overloaded, or not yet deployed with
+    // the matching frontend revision. For an authenticated session, a direct Firestore server
+    // read is the authoritative fallback. A successful read proves the exact cloud used by the app.
+    if (!healthy) {
+      const probeUser = user || auth.currentUser;
+      if (probeUser) {
+        let directTimeoutId: number | undefined;
+        try {
+          const rootDataRef = getSmartDoc('appData', probeUser.uid, probeUser.email);
+          await Promise.race([
+            getDocFromServer(rootDataRef),
+            new Promise<never>((_, reject) => {
+              directTimeoutId = window.setTimeout(
+                () => reject(new Error('DIRECT_FIRESTORE_HEALTH_TIMEOUT')),
+                7_000,
+              );
+            }),
+          ]);
+          healthy = true;
+        } catch {
+          healthy = false;
+        } finally {
+          if (directTimeoutId !== undefined) window.clearTimeout(directTimeoutId);
+        }
       }
-      if (showFeedback && healthy) {
+    }
+
+    // A reset/import may have started while the probe was awaiting the network. Discard this
+    // result entirely; the operation's own generation verification is now the source of truth.
+    if (
+      sequence !== cloudProbeSequenceRef.current ||
+      authoritativeCloudOperationRef.current
+    ) {
+      return true;
+    }
+
+    if (healthy) {
+      cloudProbeFailuresRef.current = 0;
+      applyCloudOnlineState(true);
+      setCloudChecking(false);
+      if (showFeedback) {
         toast.success('عاد الاتصال بالسحابة ✨', {
           description: 'تم التحقق من Firestore، وعاد النظام للعمل والحفظ بأمان.',
           position: 'bottom-right',
           className: 'arabic-font',
         });
       }
-      return healthy;
-    } catch {
-      if (sequence === cloudProbeSequenceRef.current) {
-        setIsOnline(false);
-        setCloudChecking(false);
-      }
-      return false;
-    } finally {
-      window.clearTimeout(timeoutId);
+      return true;
     }
-  }, []);
+
+    // Do not lock the entire program because one health request timed out. Three consecutive
+    // failures are required while an already verified session is open. A real browser offline
+    // event still locks immediately through the listener below.
+    cloudProbeFailuresRef.current += 1;
+    const keepVerifiedSessionOpen = wasOnline && cloudProbeFailuresRef.current < 3;
+    if (!keepVerifiedSessionOpen) applyCloudOnlineState(false);
+    setCloudChecking(false);
+    return keepVerifiedSessionOpen;
+  }, [applyCloudOnlineState, user]);
 
   const handleManualRetryOffline = async () => {
     if (retryingOffline) return;
@@ -1360,8 +1446,10 @@ const MainApp: React.FC = () => {
     };
     const markOffline = () => {
       cloudProbeSequenceRef.current += 1;
+      if (authoritativeCloudOperationRef.current) return;
+      cloudProbeFailuresRef.current = 3;
       setCloudChecking(false);
-      setIsOnline(false);
+      applyCloudOnlineState(false);
     };
     const onOnline = () => verify();
     const onFocus = () => verify();
@@ -1386,7 +1474,7 @@ const MainApp: React.FC = () => {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [probeCloudConnection]);
+  }, [applyCloudOnlineState, probeCloudConnection]);
 
   
   // Persist authentication state
@@ -2531,17 +2619,22 @@ const MainApp: React.FC = () => {
   const cloudStateEpochRef = useRef(0);
 
   const enqueuePersistenceWrite = (key: string, task: () => Promise<void>): Promise<void> => {
-    if (!isOnline) {
+    const authoritativeWrite = authoritativeCloudOperationRef.current;
+    if (!isOnline && !authoritativeWrite) {
       return Promise.reject(new Error('CLOUD_CONNECTION_REQUIRED'));
     }
     const previous = persistenceWriteChainsRef.current[key] || Promise.resolve();
     const next = previous.catch(() => {}).then(async () => {
-      if (!isOnline) throw new Error('CLOUD_CONNECTION_REQUIRED');
+      if (!isOnline && !authoritativeCloudOperationRef.current) {
+        throw new Error('CLOUD_CONNECTION_REQUIRED');
+      }
       setActivePersistenceWrites(count => count + 1);
       try {
         await task();
       } catch (error) {
-        setIsOnline(false);
+        // Let the import/reset owner verify and report the actual failure. A single shard
+        // rejection must not independently fire the global offline gate mid-operation.
+        if (!authoritativeCloudOperationRef.current) applyCloudOnlineState(false);
         throw error;
       } finally {
         setActivePersistenceWrites(count => Math.max(0, count - 1));
@@ -2745,6 +2838,7 @@ const MainApp: React.FC = () => {
   const onCloudImport = async (importedState: AppState): Promise<boolean> => {
     if (!user) return false;
 
+    beginAuthoritativeCloudOperation();
     const importEpoch = cloudStateEpochRef.current + 1;
     cloudStateEpochRef.current = importEpoch;
     isCloudSyncApplyingRef.current = true;
@@ -2752,6 +2846,7 @@ const MainApp: React.FC = () => {
     const previousExpectedGeneration = readExpectedAuthoritativeGeneration();
     let importGenerationId = '';
     let rootCommitted = false;
+    let importVerified = false;
 
     const assertImportStillCurrent = () => {
       if (cloudStateEpochRef.current !== importEpoch) {
@@ -2929,6 +3024,9 @@ const MainApp: React.FC = () => {
       setData(authoritativeImportedState);
       hasLoadedDataRef.current = true;
       setDataLoading(false);
+      cloudProbeFailuresRef.current = 0;
+      setCloudChecking(false);
+      applyCloudOnlineState(true);
       if (
         String((latestDataRef.current as any)?.__adminDataGenerationId || '') !==
         importGenerationId
@@ -2947,6 +3045,7 @@ const MainApp: React.FC = () => {
       // Any old prewarm result is now invalid even if it resolved before the import.
       __bootPrewarmPromise = null;
       __bootPrewarmFiredAt = 0;
+      importVerified = true;
       console.log('Cloud Import completed with full Firestore and UI verification.');
       return true;
     } catch (error) {
@@ -2973,6 +3072,12 @@ const MainApp: React.FC = () => {
       window.setTimeout(() => {
         if (cloudStateEpochRef.current === importEpoch) {
           isCloudSyncApplyingRef.current = false;
+          endAuthoritativeCloudOperation(importVerified);
+          // Recheck after Firestore has settled. The import remains accepted because its own
+          // root/shard round-trip is stronger than this lightweight background probe.
+          window.setTimeout(() => {
+            void probeCloudConnection(false);
+          }, 1_200);
         }
       }, 300);
     }
@@ -4085,7 +4190,10 @@ const MainApp: React.FC = () => {
 
   // Full runtime cloud gate: it remains authoritative after login and reappears instantly
   // whenever internet/Firestore is lost. There is no timeout bypass and no local mode.
-  const shouldHoldCloudEntry = isAuthenticated && (!isOnline || dataLoading || !hasLoadedDataRef.current);
+  const shouldHoldCloudEntry =
+    isAuthenticated &&
+    !authoritativeCloudOperationActive &&
+    (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
   if (shouldHoldCloudEntry) {
     return (
