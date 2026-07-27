@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { isCancelledStatus, isFailedStatus, isPaidStatus } from './status-utils';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -565,78 +566,164 @@ export function joinProductsFromDatabase(data: any): any {
 
 const unifiedInvoicesCache = new WeakMap<any, any[]>();
 
+type UnifiedPaymentState = 'paid' | 'failed' | 'cancelled' | 'split_pending' | 'pending';
+
+const getNormalizedPaymentState = (record: any): UnifiedPaymentState => {
+  if (!record) return 'pending';
+
+  const values = [
+    record.paymentStatus,
+    record.payment_status,
+    record.payment?.status,
+    record.transactionStatus,
+    record.status,
+  ].filter((value) => value !== undefined && value !== null && String(value).trim() !== '');
+  const joined = values.map((value) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
+
+  // Failure/cancellation must win over any stale success marker copied into another record.
+  if (record.failed === true || values.some((value) => isFailedStatus(value)) || joined.includes('مرفوض')) return 'failed';
+  if (values.some((value) => isCancelledStatus(value))) return 'cancelled';
+  if (joined.includes('split pending') || joined.includes('تجميع القطية') || joined.includes('بانتظار اكتمال القطية')) return 'split_pending';
+  if (record.paid === true || values.some((value) => isPaidStatus(value))) return 'paid';
+  return 'pending';
+};
+
+const hasAuthoritativePaymentSignal = (record: any): boolean => {
+  if (!record) return false;
+  if (
+    record.paymentStatus !== undefined ||
+    record.payment_status !== undefined ||
+    record.payment?.status !== undefined ||
+    record.transactionStatus !== undefined ||
+    record.paid !== undefined ||
+    record.failed !== undefined
+  ) return true;
+
+  const status = record.status;
+  return isPaidStatus(status) || isFailedStatus(status) || isCancelledStatus(status) ||
+    String(status || '').toLowerCase().replace(/_/g, ' ').includes('split pending') ||
+    String(status || '').includes('تجميع القطية');
+};
+
+const mergeOrderItemsWithInvoiceItems = (orderItems: any[], invoiceItems: any[]): any[] => {
+  if (!Array.isArray(invoiceItems) || invoiceItems.length === 0) return Array.isArray(orderItems) ? orderItems : [];
+  if (!Array.isArray(orderItems) || orderItems.length === 0) return invoiceItems;
+
+  return invoiceItems.map((invoiceItem: any, index: number) => {
+    const productId = String(invoiceItem?.productId || invoiceItem?.id || '');
+    const orderItem = orderItems.find((item: any) => String(item?.productId || item?.id || '') === productId) || orderItems[index] || {};
+    return { ...orderItem, ...invoiceItem };
+  });
+};
+
+const normalizeWebsiteOrderAsInvoice = (order: any, invoiceMirror?: any) => {
+  const merged = invoiceMirror ? { ...order, ...invoiceMirror } : { ...order };
+  const authoritativePaymentRecord = invoiceMirror && hasAuthoritativePaymentSignal(invoiceMirror)
+    ? invoiceMirror
+    : order;
+  const paymentStatus = getNormalizedPaymentState(authoritativePaymentRecord);
+  const items = mergeOrderItemsWithInvoiceItems(order?.items || [], invoiceMirror?.items || []);
+
+  const itemsCost = items.reduce((acc: number, item: any) => {
+    const itemCost = Number(item?.costAtTime ?? item?.cost ?? item?.supplierCost ?? 0) || 0;
+    const qty = Number(item?.quantity ?? item?.qty ?? 1) || 1;
+    return acc + (itemCost * qty);
+  }, 0);
+
+  const amount = Number(
+    merged.totalAmount ??
+    merged.total ??
+    merged.grandTotal ??
+    merged.finalTotal ??
+    0
+  ) || 0;
+
+  let customerName = merged.customerName || merged.customerInfo?.name || merged.customer?.name || '';
+  if (!customerName || customerName === 'بيانات مفقودة') {
+    customerName = order?.customerName || order?.customerInfo?.name || order?.customer?.name || 'عميل عام';
+  }
+  const customerPhone = merged.customerPhone || merged.customerInfo?.phone || merged.customer?.phone || order?.customerPhone || '';
+  const rawDeliveryFee = merged.deliveryInfo?.cost ?? merged.deliveryFee ?? order?.deliveryInfo?.cost ?? order?.deliveryFee ?? 0;
+
+  return {
+    ...merged,
+    items,
+    customerName,
+    customerPhone,
+    paymentStatus,
+    payment_status: paymentStatus,
+    paid: paymentStatus === 'paid',
+    failed: paymentStatus === 'failed',
+    isORDOrder: true,
+    __supplierLedgerSource: 'paid_order',
+    deliveryType: (merged.deliveryType === 'standard' && String(order?.id || merged.id || '').startsWith('ORD-'))
+      ? 'company'
+      : (merged.deliveryType || order?.deliveryType || 'company'),
+    deliveryFee: Number(rawDeliveryFee) || 0,
+    totalAmount: amount,
+    total: Number(merged.total ?? amount) || amount,
+    totalCost: itemsCost,
+    profit: amount - itemsCost,
+    discount: Number(merged.discount || 0) || 0,
+    gatewayFee: Number(merged.gatewayFee || 0) || 0,
+    paymentMethod: merged.paymentMethod || order?.paymentMethod || 'KNet',
+    date: merged.date || merged.createdAt || order?.date || order?.createdAt || new Date().toISOString(),
+  };
+};
+
 export function getUnifiedInvoices(data: any): any[] {
   if (!data) return [];
-  if (unifiedInvoicesCache.has(data)) {
-    return unifiedInvoicesCache.get(data)!;
-  }
+  if (unifiedInvoicesCache.has(data)) return unifiedInvoicesCache.get(data)!;
 
-  const invs = Array.isArray(data?.invoices) ? data.invoices.map((i: any) => {
-    // Fix for older invoices that incorrectly got 'standard' default from orders
-    if (i.deliveryType === 'standard' && (i.linkedOrderId?.startsWith('ORD-') || (i as any).isConvertedFromWebsite) && !i.manuallyModifiedDeliveryType) {
-      return { ...i, deliveryType: 'company' };
-    }
-    return i;
-  }) : [];
-  const ords = Array.isArray(data?.orders) ? data.orders : [];
+  const rawInvoices = Array.isArray(data?.invoices) ? data.invoices : [];
+  const websiteOrders = (Array.isArray(data?.orders) ? data.orders : [])
+    .filter((order: any) => String(order?.id || '').startsWith('ORD-'));
 
-  const invIds = new Set(invs.map((i: any) => i.id));
-  const mappedOrdOrders = ords
-    .filter((o: any) => o.id?.startsWith('ORD-') && !invIds.has(o.id))
-    .map((o: any) => {
-    let pStatus = o.paymentStatus || 'pending';
-    const sTxt = String(o.status || '').toLowerCase();
-    const pTxt = String(o.paymentStatus || '').toLowerCase();
-    
-    if (sTxt.includes('مدفوع') || sTxt.includes('تم الدفع') || sTxt.includes('جاري التوصيل') || sTxt.includes('paid') || sTxt === 'تم الدفع بنجاح' || pTxt === 'paid') {
-      pStatus = 'paid';
-    } else if (sTxt.includes('ملغي') || sTxt.includes('انتهى وقت') || sTxt.includes('cancel') || pTxt.includes('cancel')) {
-      pStatus = 'cancelled';
-    } else if (sTxt.includes('فشل') || sTxt.includes('fail') || pTxt.includes('fail') || sTxt.includes('مرفوض')) {
-      pStatus = 'failed';
-    }
-    
-    const itemsCost = (o.items || []).reduce((acc: number, item: any) => {
-      const itemCost = item.costAtTime !== undefined ? item.costAtTime : 0;
-      const qty = item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : 1);
-      return acc + (itemCost * qty);
-    }, 0);
-    const amount = Number(o.totalAmount || 0);
-
-    let finalCustomerName = o.customerName || o.customerInfo?.name || o.customer?.name || '';
-    if (finalCustomerName === 'بيانات مفقودة') finalCustomerName = o.customerInfo?.name || o.customer?.name || 'عميل عام';
-    
-    let finalCustomerPhone = o.customerPhone || o.customerInfo?.phone || o.customer?.phone || '';
-
-    return {
-      ...o,
-      customerName: finalCustomerName,
-      customerPhone: finalCustomerPhone,
-      paymentStatus: pStatus,
-      isORDOrder: true,
-      deliveryType: (o.deliveryType === 'standard' && o.id?.startsWith('ORD-')) ? 'company' : (o.deliveryType || 'company'),
-      deliveryFee: o.deliveryInfo?.cost || typeof o.deliveryFee === 'number' ? o.deliveryFee : 0,
-      totalCost: itemsCost,
-      profit: amount - itemsCost,
-      discount: o.discount || 0,
-      gatewayFee: 0,
-      paymentMethod: o.paymentMethod || 'KNet',
-      date: o.date || o.createdAt || new Date().toISOString()
-    };
+  const orderLookup = new Map<string, any>();
+  websiteOrders.forEach((order: any) => {
+    [order?.id, order?.linkedInvoiceId, order?.invoiceId].forEach((key) => {
+      if (key) orderLookup.set(String(key), order);
+    });
   });
 
-  const combined = [...invs, ...mappedOrdOrders];
-  const unique = [];
-  const handled = new Set();
-  for (const item of combined) {
-    if (item && item.id && !handled.has(item.id)) {
-      handled.add(item.id);
-      unique.push(item);
-    } else if (!item || !item.id) {
-      unique.push(item);
+  const matchedOrderIds = new Set<string>();
+  const normalizedInvoices = rawInvoices.map((invoice: any) => {
+    let normalizedInvoice = invoice;
+    if (
+      invoice?.deliveryType === 'standard' &&
+      (String(invoice?.linkedOrderId || '').startsWith('ORD-') || invoice?.isConvertedFromWebsite) &&
+      !invoice?.manuallyModifiedDeliveryType
+    ) {
+      normalizedInvoice = { ...invoice, deliveryType: 'company' };
     }
+
+    const linkedOrder = orderLookup.get(String(normalizedInvoice?.linkedOrderId || '')) ||
+      orderLookup.get(String(normalizedInvoice?.orderId || '')) ||
+      orderLookup.get(String(normalizedInvoice?.id || ''));
+
+    if (!linkedOrder) return normalizedInvoice;
+    matchedOrderIds.add(String(linkedOrder.id));
+    return normalizeWebsiteOrderAsInvoice(linkedOrder, normalizedInvoice);
+  });
+
+  const unmatchedOrders = websiteOrders
+    .filter((order: any) => !matchedOrderIds.has(String(order.id)))
+    .map((order: any) => normalizeWebsiteOrderAsInvoice(order));
+
+  const combined = [...normalizedInvoices, ...unmatchedOrders];
+  const unique: any[] = [];
+  const handled = new Set<string>();
+  for (const item of combined) {
+    const id = item?.id ? String(item.id) : '';
+    if (!id) {
+      unique.push(item);
+      continue;
+    }
+    if (handled.has(id)) continue;
+    handled.add(id);
+    unique.push(item);
   }
-  
+
   unifiedInvoicesCache.set(data, unique);
   return unique;
 }
