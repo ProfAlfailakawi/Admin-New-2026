@@ -114,6 +114,68 @@ const WHATSAPP_QUICK_REPLIES_SHEET = "WhatsAppQuickReplies";
 const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   "ktk_expected_admin_reset_generation_id";
 
+// Older Excel round-trips could stringify split-payment arrays repeatedly. After a few
+// exports an empty array could become a gigantic escaped string (sometimes even truncated
+// by Excel), making the invoices shard tens of megabytes and causing intermittent imports.
+// These helpers are intentionally limited to the two split-payment collection fields; they
+// never alter invoice payment status, gateway IDs, payment links, totals, or notifications.
+const decodeRepeatedBackupJson = (value: any, maxDepth = 40): any => {
+  let current = value;
+  for (let depth = 0; depth < maxDepth && typeof current === "string"; depth += 1) {
+    let text = current.trim();
+    if (!text) return "";
+
+    // Excel can prefix formula-looking text with an apostrophe. Remove it only when the
+    // remaining value clearly begins as JSON.
+    if (text.startsWith("'") && /^[\[{"]/.test(text.slice(1).trim())) {
+      text = text.slice(1).trim();
+    }
+
+    if (!/^(?:[\[{"]|null$|true$|false$|-?\d)/.test(text)) break;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed === current) break;
+      current = parsed;
+    } catch {
+      break;
+    }
+  }
+  return current;
+};
+
+const normalizeSplitBackupCollection = (value: any): any[] => {
+  const decoded = decodeRepeatedBackupJson(value);
+  if (Array.isArray(decoded)) return decoded;
+  if (decoded && typeof decoded === "object") return [decoded];
+
+  // splitPayments/splitParticipants are array fields. A non-array string here is either an
+  // old empty value or a truncated repeated-stringification artifact; keeping it would make
+  // every future backup grow exponentially again.
+  return [];
+};
+
+const normalizeBackupSplitFields = (state: any): any => {
+  if (!state || typeof state !== "object" || Array.isArray(state)) return state;
+  const normalizeRecord = (record: any) => {
+    if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+    return {
+      ...record,
+      splitPayments: normalizeSplitBackupCollection(record.splitPayments),
+      splitParticipants: normalizeSplitBackupCollection(record.splitParticipants),
+    };
+  };
+
+  return {
+    ...state,
+    invoices: Array.isArray(state.invoices)
+      ? state.invoices.map(normalizeRecord)
+      : state.invoices,
+    orders: Array.isArray(state.orders)
+      ? state.orders.map(normalizeRecord)
+      : state.orders,
+  };
+};
+
 type PushDeviceSnapshot = {
   id: string;
   label: string;
@@ -2540,6 +2602,7 @@ const GeneralSettings: React.FC<Props> = ({
     }];
 
     const wb = XLSX.utils.book_new();
+    const exportState = normalizeBackupSplitFields(data || {}) as AppState;
     const normalizeExcelRows = (rows: any[]) =>
       (Array.isArray(rows) ? rows : []).map((row: any) => {
         const source = row && typeof row === "object" && !Array.isArray(row)
@@ -2631,7 +2694,7 @@ const GeneralSettings: React.FC<Props> = ({
       rawProduct: json(product),
     });
 
-    const invoiceRows = (data?.invoices || []).map((i: any) => {
+    const invoiceRows = (exportState.invoices || []).map((i: any) => {
       const c: any =
         customerById.get(i.customerId) ||
         customerByPhone.get(String(i.customerPhone || "")) ||
@@ -2742,7 +2805,7 @@ const GeneralSettings: React.FC<Props> = ({
       "InvoiceItems",
     );
 
-    const payerRows = (data?.invoices || []).flatMap((i: any) => {
+    const payerRows = (exportState.invoices || []).flatMap((i: any) => {
       const payments = Array.isArray(i.splitPayments) ? i.splitPayments : [];
       const participants = Array.isArray(i.splitParticipants)
         ? i.splitParticipants
@@ -2774,7 +2837,7 @@ const GeneralSettings: React.FC<Props> = ({
       "Payers",
     );
 
-    const orderRows = (data?.orders || []).map((o: any) => {
+    const orderRows = (exportState.orders || []).map((o: any) => {
       const c: any =
         customerById.get(o.customerId) ||
         customerByPhone.get(String(o.customerPhone || "")) ||
@@ -2996,7 +3059,7 @@ const GeneralSettings: React.FC<Props> = ({
       "NameMatchMemory",
     );
 
-    const fullStateJson = JSON.stringify(data || {});
+    const fullStateJson = JSON.stringify(exportState);
     const fullStateChunks = fullStateJson.match(/[\s\S]{1,30000}/g) || ["{}"];
     XLSX.utils.book_append_sheet(
       wb,
@@ -3250,13 +3313,7 @@ const GeneralSettings: React.FC<Props> = ({
                 return isArray ? [] : null;
               }
             }
-            if (typeof result === "string") {
-              try {
-                result = JSON.parse(result);
-              } catch (e4) {
-                // Not valid JSON, and we never eval — keep it as the plain string.
-              }
-            }
+            result = decodeRepeatedBackupJson(result);
             if (isArray && !Array.isArray(result)) return [];
             return result;
           };
@@ -3381,7 +3438,7 @@ const GeneralSettings: React.FC<Props> = ({
               .map((row: any) => String(row.chunk || ""))
               .join("");
             if (joinedJson.trim()) {
-              baseState = JSON.parse(joinedJson);
+              baseState = normalizeBackupSplitFields(JSON.parse(joinedJson));
             }
           }
 
@@ -3636,6 +3693,9 @@ const GeneralSettings: React.FC<Props> = ({
                 merged.canPay = true;
               }
 
+              merged.splitPayments = normalizeSplitBackupCollection(merged.splitPayments);
+              merged.splitParticipants = normalizeSplitBackupCollection(merged.splitParticipants);
+
               const isDeleted =
                 merged.isDeleted === true ||
                 merged.isDeleted === "TRUE" ||
@@ -3724,6 +3784,8 @@ const GeneralSettings: React.FC<Props> = ({
                 rawOrder && typeof rawOrder === "object" && !Array.isArray(rawOrder)
                   ? { ...rawOrder, ...explicitOrderColumns }
                   : { ...explicitOrderColumns };
+              merged.splitPayments = normalizeSplitBackupCollection(merged.splitPayments);
+              merged.splitParticipants = normalizeSplitBackupCollection(merged.splitParticipants);
               const parsedItems = parseSafeJson(merged.items, true);
               const parsedAddress =
                 parseSafeJson(merged.address, false) ||
@@ -3770,7 +3832,9 @@ const GeneralSettings: React.FC<Props> = ({
             ) as any as SupplierTransfer[];
           }
 
-          const finalizedState = recalculateStateBalances(newState);
+          const finalizedState = recalculateStateBalances(
+            normalizeBackupSplitFields(newState) as AppState,
+          );
           try {
             if (appMode === "cloud" && onCloudImport) {
               addToast(
