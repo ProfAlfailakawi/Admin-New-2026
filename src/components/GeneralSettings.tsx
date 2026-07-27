@@ -2435,7 +2435,7 @@ const GeneralSettings: React.FC<Props> = ({
     }
   };
 
-  const handleRestoreBackup = () => {
+  const handleRestoreBackup = async () => {
     try {
       const backupKey =
         appMode === "local"
@@ -2452,7 +2452,12 @@ const GeneralSettings: React.FC<Props> = ({
 
       if (backupStr) {
         const parsed = JSON.parse(backupStr);
-        setData(parsed);
+        if (appMode === "cloud" && onCloudImport) {
+          const saved = await onCloudImport(parsed);
+          if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+        } else {
+          setData(parsed);
+        }
         sessionStorage.setItem("hideSampleDataPrompt", "true");
         setShowRestoreConfirm(false);
         addToast(
@@ -2488,7 +2493,7 @@ const GeneralSettings: React.FC<Props> = ({
       console.error("Restore error", e);
       addToast(
         "فشلت الاستعادة",
-        "حدث خطأ غير متوقع أثناء تفكيك بيانات النسخة الاحتياطية.",
+        "حدث خطأ غير متوقع أثناء تفكيك أو حفظ بيانات النسخة الاحتياطية.",
         "warning",
       );
     }
