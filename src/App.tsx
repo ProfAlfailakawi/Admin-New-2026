@@ -2536,6 +2536,16 @@ const MainApp: React.FC = () => {
     supplierTransfers: null,
   });
   const financialFastSaveContextRef = useRef('');
+  const lastCriticalFastSaveRef = useRef<Record<'invoices' | 'orders' | 'customers' | 'products' | 'supplierCopies', string | null>>({
+    invoices: null,
+    orders: null,
+    customers: null,
+    products: null,
+    supplierCopies: null,
+  });
+  const criticalFastSaveContextRef = useRef('');
+  const lastCriticalFastSaveSourceRefsRef = useRef<Record<string, any>>({});
+  const lastAutoSaveSourceRefsRef = useRef<Record<string, any>>({});
   const persistenceWriteChainsRef = useRef<Record<string, Promise<void>>>({});
   // Any explicit cloud import increments this epoch. Async boot/deferred loads capture
   // the old value and are forbidden from repainting stale reset data after import wins.
@@ -2671,6 +2681,17 @@ const MainApp: React.FC = () => {
     return `{${res.join(',')}}`;
   };
 
+  // Shards are arrays produced by immutable React state updates. Native JSON serialization is
+  // dramatically faster than recursively sorting every nested object and is stable for these
+  // persisted records. Root metadata still uses stableRootStringify below.
+  const serializeShardValue = (value: any): string => {
+    try {
+      return JSON.stringify(value ?? null);
+    } catch {
+      return stableStringify(value);
+    }
+  };
+
   // The root document contains a large Google/Looker mirror plus volatile timestamps.
   // Neither is authoritative; full business arrays live in shards. Excluding them from
   // change detection prevents a near-1MiB root rewrite after every tiny admin edit.
@@ -2684,6 +2705,16 @@ const MainApp: React.FC = () => {
       '__rootMirrorByteSize',
       '__rootMirrorLimited',
     ].forEach(key => delete stableRoot[key]);
+
+    // Supplier balance is derived from invoices/orders/transfers on every load. Ignoring only
+    // that field prevents a full root rewrite after each sale while still detecting real
+    // supplier profile edits (name, phone, settlement settings, etc.).
+    if (Array.isArray(stableRoot.suppliers)) {
+      stableRoot.suppliers = stableRoot.suppliers.map((supplier: any) => {
+        const { balance: _derivedBalance, ...profile } = supplier || {};
+        return profile;
+      });
+    }
     return stableStringify(stableRoot);
   };
 
@@ -2901,7 +2932,7 @@ const MainApp: React.FC = () => {
             if (
               !verified.exists ||
               String(verified.manifest?.__adminDataGenerationId || '') !== importGenerationId ||
-              stableStringify(verified.value) !== stableStringify(shardedPayloads[key])
+              serializeShardValue(verified.value) !== serializeShardValue(shardedPayloads[key])
             ) {
               throw new Error(`CLOUD_IMPORT_VERIFICATION_FAILED:${key}`);
             }
@@ -2967,7 +2998,7 @@ const MainApp: React.FC = () => {
       cloudRootExistsRef.current = true;
       SHARDED_KEYS.forEach((key) => {
         if (shardedPayloads[key] !== undefined) {
-          lastRemoteKeysRef.current[key] = stableStringify(shardedPayloads[key]);
+          lastRemoteKeysRef.current[key] = serializeShardValue(shardedPayloads[key]);
           loadedCloudShardKeysRef.current.add(key);
         }
       });
@@ -3386,7 +3417,7 @@ const MainApp: React.FC = () => {
                 if (isObsoleteCloudLoad()) return;
                 const key = SHARDED_KEYS[i];
                 if (key && (_bootState as any)[key] !== undefined) {
-                  lastRemoteKeysRef.current[key] = stableStringify((_bootState as any)[key]);
+                  lastRemoteKeysRef.current[key] = serializeShardValue((_bootState as any)[key]);
                 }
                 if (i + 1 < SHARDED_KEYS.length) {
                   _scheduleBootShard(i + 1);
@@ -3447,7 +3478,7 @@ const MainApp: React.FC = () => {
                       if (isObsoleteCloudLoad()) return;
                       _deferKeys.forEach((key: string) => {
                         if ((_deferFull as any)[key] !== undefined) {
-                          lastRemoteKeysRef.current[key] = stableStringify((_deferFull as any)[key]);
+                          lastRemoteKeysRef.current[key] = serializeShardValue((_deferFull as any)[key]);
                         }
                       });
                       const snap = JSON.stringify(_deferMerged);
@@ -3583,7 +3614,7 @@ const MainApp: React.FC = () => {
               // لذلك لا نستبدل البيانات بقائمة فارغة، ونحتفظ بطلبات الديوانية منفصلة حتى لا نمس صفحة الطلبات أو الدفع.
 	              if (dashboardData.squads.length > 0) {
 	                loadedState.squads = safeMergeData(loadedState.squads, dashboardData.squads);
-	                lastRemoteKeysRef.current['squads'] = stableStringify(dashboardData.squads);
+	                lastRemoteKeysRef.current['squads'] = serializeShardValue(dashboardData.squads);
 	                loadedCloudShardKeysRef.current.add('squads');
 	              }
 	              if (Array.isArray(dashboardData?.orders) && dashboardData.orders.length > 0) {
@@ -3598,7 +3629,7 @@ const MainApp: React.FC = () => {
             const squadsSnap = await getDocs(collection(db, 'squads'));
             const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
-	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = serializeShardValue(cloudSquads);
 	            loadedCloudShardKeysRef.current.add('squads');
           }
         } catch (apiErr) {
@@ -3607,7 +3638,7 @@ const MainApp: React.FC = () => {
             const squadsSnap = await getDocs(collection(db, 'squads'));
             const cloudSquads = squadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 	            if (cloudSquads.length > 0) loadedState.squads = safeMergeData(loadedState.squads, cloudSquads);
-	            lastRemoteKeysRef.current['squads'] = stableStringify(cloudSquads);
+	            lastRemoteKeysRef.current['squads'] = serializeShardValue(cloudSquads);
 	            loadedCloudShardKeysRef.current.add('squads');
           } catch (fallbackErr) {
             console.error('Direct Firestore fetch for squads also failed:', fallbackErr);
@@ -3636,7 +3667,7 @@ const MainApp: React.FC = () => {
             const key = SHARDED_KEYS[i];
             if (key) {
               const val = (_fbState as any)[key];
-              lastRemoteKeysRef.current[key] = stableStringify(val !== undefined ? val : []);
+              lastRemoteKeysRef.current[key] = serializeShardValue(val !== undefined ? val : []);
             }
             if (i + 1 < SHARDED_KEYS.length) {
               _fbSchedule(i + 1);
@@ -3684,6 +3715,139 @@ const MainApp: React.FC = () => {
     };
   }, [user, appMode, triggerSyncReload]);
 
+  // Sales-critical shards are saved independently and almost immediately. This keeps new
+  // invoices/orders visible across sessions without waiting for the broader background save.
+  // Product shards are included because supplier attribution and purchase cost depend on them.
+  useEffect(() => {
+    const persistenceContext = `${appMode}:${user?.uid || 'local'}`;
+    if (criticalFastSaveContextRef.current !== persistenceContext) {
+      criticalFastSaveContextRef.current = persistenceContext;
+      lastCriticalFastSaveRef.current = {
+        invoices: null,
+        orders: null,
+        customers: null,
+        products: null,
+        supplierCopies: null,
+      };
+      lastCriticalFastSaveSourceRefsRef.current = {};
+    }
+
+    if (
+      dataLoading ||
+      !hasLoadedDataRef.current ||
+      !isOnline ||
+      isCloudSyncApplyingRef.current ||
+      (window as any).__ktkAdminResetInProgress ||
+      !user ||
+      appMode !== 'cloud'
+    ) return;
+
+    const splitData = splitProductsForDatabase(data);
+    type CriticalShardKey = 'invoices' | 'orders' | 'customers' | 'products' | 'supplierCopies';
+    const criticalKeys: CriticalShardKey[] = ['invoices', 'orders', 'customers', 'products', 'supplierCopies'];
+    const sourceRefs: Record<CriticalShardKey, any> = {
+      invoices: data.invoices,
+      orders: data.orders,
+      customers: data.customers,
+      products: data.products,
+      supplierCopies: data.products,
+    };
+    const baselines = lastCriticalFastSaveRef.current;
+    const snapshots = {} as Record<CriticalShardKey, string>;
+
+    criticalKeys.forEach((key) => {
+      const sourceRef = sourceRefs[key];
+      const baseline = baselines[key];
+      snapshots[key] =
+        lastCriticalFastSaveSourceRefsRef.current[key] === sourceRef && baseline !== null
+          ? baseline
+          : serializeShardValue((splitData as any)[key] || []);
+
+      if (baselines[key] === null) {
+        baselines[key] = lastRemoteKeysRef.current[key] || snapshots[key];
+      }
+      if (snapshots[key] === baselines[key]) {
+        lastCriticalFastSaveSourceRefsRef.current[key] = sourceRef;
+      }
+    });
+
+    const changedKeys = criticalKeys.filter(key => snapshots[key] !== baselines[key]);
+    if (changedKeys.length === 0) return;
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      const run = async () => {
+        if (
+          cancelled ||
+          !hasLoadedDataRef.current ||
+          !isOnline ||
+          isCloudSyncApplyingRef.current ||
+          (window as any).__ktkAdminResetInProgress
+        ) return;
+
+        try {
+          const latestSplit = splitProductsForDatabase(latestDataRef.current);
+          const prepared = await Promise.all(
+            changedKeys.map(async (key) => {
+              const latestValue = (latestSplit as any)[key] || [];
+              const latestSnapshot = serializeShardValue(latestValue);
+              if (latestSnapshot !== snapshots[key]) return null;
+
+              const plan = await buildLogicalShardWritePlan(key, latestValue, {
+                __adminDataGenerationId: getAdminDataGenerationId(),
+                __adminLastAuthoritativeWriteAt: new Date().toISOString(),
+              });
+              return { key, latestValue, latestSnapshot, plan };
+            })
+          );
+
+          await Promise.all(
+            prepared.filter(Boolean).map((entry: any) =>
+              enqueuePersistenceWrite(`shard:${entry.key}`, async () => {
+                if (cancelled) return;
+                const newestSplit = splitProductsForDatabase(latestDataRef.current);
+                const newestSnapshot = serializeShardValue((newestSplit as any)[entry.key] || []);
+                if (newestSnapshot !== entry.latestSnapshot) return;
+
+                await commitLogicalShardWritePlan(user.uid, user.email, entry.plan);
+                lastRemoteKeysRef.current[entry.key] = entry.latestSnapshot;
+                loadedCloudShardKeysRef.current.add(entry.key);
+                baselines[entry.key as keyof typeof baselines] = entry.latestSnapshot;
+                const savedSourceRef =
+                  entry.key === 'products' || entry.key === 'supplierCopies'
+                    ? latestDataRef.current.products
+                    : (latestDataRef.current as any)[entry.key];
+                lastCriticalFastSaveSourceRefsRef.current[entry.key] = savedSourceRef;
+                lastAutoSaveSourceRefsRef.current[entry.key] = savedSourceRef;
+              })
+            )
+          );
+        } catch (error) {
+          if (cancelled) return;
+          console.error('Critical cloud fast-save error', error);
+          setIsOnline(false);
+          hasLoadedDataRef.current = false;
+        }
+      };
+
+      void run();
+    }, 140);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    data?.invoices,
+    data?.orders,
+    data?.customers,
+    data?.products,
+    dataLoading,
+    user,
+    appMode,
+    isOnline,
+  ]);
+
   // Financial records are accounting-critical. Persist expenses and supplier payments quickly,
   // independently of the large 8-second full-state save. The previous supplier-only effect also
   // missed the first change after boot when its baseline had not been initialized yet.
@@ -3703,8 +3867,8 @@ const MainApp: React.FC = () => {
     ) return;
 
     const snapshots = {
-      expenses: stableStringify(data?.expenses || []),
-      supplierTransfers: stableStringify(data?.supplierTransfers || []),
+      expenses: serializeShardValue(data?.expenses || []),
+      supplierTransfers: serializeShardValue(data?.supplierTransfers || []),
     };
 
     const baselines = lastFinancialFastSaveRef.current;
@@ -3738,7 +3902,7 @@ const MainApp: React.FC = () => {
               if (cancelled) return;
 
               const latestValue = (latestDataRef.current as any)?.[key] || [];
-              const latestSnapshot = stableStringify(latestValue);
+              const latestSnapshot = serializeShardValue(latestValue);
               if (latestSnapshot !== snapshots[key]) return;
 
               const shardPlan = await buildLogicalShardWritePlan(key, latestValue, {
@@ -3748,7 +3912,7 @@ const MainApp: React.FC = () => {
               if (cancelled) return;
 
               const newestValue = (latestDataRef.current as any)?.[key] || [];
-              const newestSnapshot = stableStringify(newestValue);
+              const newestSnapshot = serializeShardValue(newestValue);
               if (newestSnapshot !== latestSnapshot) return;
 
               await commitLogicalShardWritePlan(user.uid, user.email, shardPlan);
@@ -3817,30 +3981,49 @@ const MainApp: React.FC = () => {
           const rootDataRef = getSmartDoc('appData', user.uid, user.email);
           const splitData = splitProductsForDatabase(data);
 
-          // 1. Detect whether the root Google/Looker Studio mirror changed.
-          const rootDocData = withGoogleStudioRootMirror(
-            withAuthoritativeSharedMeta({ ...splitData }),
-            splitData
-          );
-          const sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
-          const serializedRootCurrent = stableRootStringify(sanitizedRootPreview);
+          // 1. Compare only the lightweight authoritative root first. Building the large
+          // Google/Looker mirror (sorting and sanitizing every record) is intentionally deferred
+          // until a root write is genuinely required. This removes the largest UI-thread cost
+          // from ordinary invoice/order saves.
+          const rootCandidate = withAuthoritativeSharedMeta({ ...splitData });
+          const serializedRootCurrent = stableRootStringify(rootCandidate);
           const serializedRootLast = lastRemoteKeysRef.current['__root__'];
           const hasRootChanged = serializedRootCurrent !== serializedRootLast;
+          let sanitizedRootPreview: any = null;
+          if (hasRootChanged || !cloudRootExistsRef.current) {
+            const rootDocData = withGoogleStudioRootMirror(rootCandidate, splitData);
+            sanitizedRootPreview = makeFirestoreSafeRootDocument(rootDocData);
+          }
 
-          // 2. Detect exactly which authoritative shards changed.
+          // 2. Detect exactly which authoritative shards changed. Preserve object-reference
+          // baselines so unchanged large arrays are not serialized on every React state update.
           const shardedPayloadsToSave: Record<string, any> = {};
+          const shardedSerializedToSave: Record<string, string> = {};
           SHARDED_KEYS.forEach(key => {
             const currentVal = splitData[key];
             if (currentVal === undefined) return;
 
-            const serializedCurrent = stableStringify(currentVal);
+            const sourceRef =
+              key === 'products' || key === 'supplierCopies'
+                ? data.products
+                : (data as any)[key];
             const serializedLast = lastRemoteKeysRef.current[key];
-            if (serializedCurrent === serializedLast) return;
+            if (
+              lastAutoSaveSourceRefsRef.current[key] === sourceRef &&
+              serializedLast !== undefined
+            ) return;
+
+            const serializedCurrent = serializeShardValue(currentVal);
+            if (serializedCurrent === serializedLast) {
+              lastAutoSaveSourceRefsRef.current[key] = sourceRef;
+              return;
+            }
 
             const shouldPersistShard = loadedCloudShardKeysRef.current.has(key) || hasMeaningfulValue(currentVal);
             const dangerousEmptyOverwrite = isDangerousEmptyOverwrite(key, currentVal);
             if (shouldPersistShard && !dangerousEmptyOverwrite) {
               shardedPayloadsToSave[key] = currentVal;
+              shardedSerializedToSave[key] = serializedCurrent;
             } else if (dangerousEmptyOverwrite) {
               console.warn(`[DATA_GUARD] Prevented empty overwrite for shard '${key}'. Keeping existing cloud data safe.`);
             }
@@ -3868,6 +4051,9 @@ const MainApp: React.FC = () => {
             console.log(`Saving modified shard '${key}' to Firestore...`);
             shardSavePromises.push(enqueuePersistenceWrite(`shard:${key}`, async () => {
               if (isStaleRun()) return;
+              // A sales-critical fast-save may have committed this exact shard while the broad
+              // save was preparing. Do not send the same payload twice.
+              if (lastRemoteKeysRef.current[key] === shardedSerializedToSave[key]) return;
 
               await commitLogicalShardWritePlan(user.uid, user.email, preparedShardPlans[key]);
 
@@ -3940,8 +4126,12 @@ const MainApp: React.FC = () => {
             cloudRootExistsRef.current = true;
           }
           Object.keys(shardedPayloadsToSave).forEach(key => {
-            lastRemoteKeysRef.current[key] = stableStringify(shardedPayloadsToSave[key]);
+            lastRemoteKeysRef.current[key] = shardedSerializedToSave[key];
             loadedCloudShardKeysRef.current.add(key);
+            lastAutoSaveSourceRefsRef.current[key] =
+              key === 'products' || key === 'supplierCopies'
+                ? latestDataRef.current.products
+                : (latestDataRef.current as any)[key];
           });
 
           // Snapshot serialization is only an optional warm-start cache. Run it after the
@@ -3974,7 +4164,7 @@ const MainApp: React.FC = () => {
           }
         }
       }
-    }, 900);
+    }, 650);
 
     return () => {
       cancelled = true;

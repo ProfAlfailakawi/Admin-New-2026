@@ -1099,6 +1099,33 @@ Alturath.kw`;
         fullAddress: fullAddressValue
       };
 
+      // Build one supplier snapshot index for this invoice. Customer-facing principal products
+      // may intentionally omit supplier metadata while an internal duplicate carries the supplier
+      // and purchase cost. Resolve that copy once here and freeze it into every invoice line.
+      const supplierSnapshotByName = new Map<string, any>();
+      const ambiguousSupplierNames = new Set<string>();
+      (data.products || []).forEach((candidate: any) => {
+        const candidateSupplierId = String(
+          candidate?.supplierId || candidate?.supplierID || candidate?.supplier?.id || ''
+        ).trim();
+        const nameKey = robustNormalize(candidate?.name || candidate?.productName || '');
+        if (!candidateSupplierId || !nameKey) return;
+
+        const existing = supplierSnapshotByName.get(nameKey);
+        const existingSupplierId = String(
+          existing?.supplierId || existing?.supplierID || existing?.supplier?.id || ''
+        ).trim();
+        if (existing && existingSupplierId && existingSupplierId !== candidateSupplierId) {
+          ambiguousSupplierNames.add(nameKey);
+          return;
+        }
+
+        const existingCost = Number(existing?.cost ?? existing?.supplierCost ?? existing?.purchaseCost ?? 0) || 0;
+        const candidateCost = Number(candidate?.cost ?? candidate?.supplierCost ?? candidate?.purchaseCost ?? 0) || 0;
+        if (!existing || candidateCost > existingCost) supplierSnapshotByName.set(nameKey, candidate);
+      });
+      ambiguousSupplierNames.forEach((nameKey) => supplierSnapshotByName.delete(nameKey));
+
       const newInvoice: Invoice = {
         ...(existingInvoice || {}),
         id: invoiceId,
@@ -1122,13 +1149,54 @@ Alturath.kw`;
         apartment: addressDetails.apartment,
         fullAddress: fullAddressValue,
         deliveryAddressSnapshot: deliveryAddressSnapshotValue,
-        items: cartItems.map((it) => ({
-          ...it,
-          productId: it.product!.id,
-          name: it.product!.name,
-          productName: it.product!.name,
-          quantity: it.qty,
-        })),
+        items: cartItems.map((it) => {
+          const product = it.product!;
+          const fallbackSupplierProduct = supplierSnapshotByName.get(
+            robustNormalize(product.name || (product as any).productName || '')
+          );
+          const supplierId = String(
+            (product as any).supplierId ||
+            (product as any).supplierID ||
+            (product as any).supplier?.id ||
+            fallbackSupplierProduct?.supplierId ||
+            fallbackSupplierProduct?.supplierID ||
+            fallbackSupplierProduct?.supplier?.id ||
+            ''
+          ).trim();
+          const supplier = (data.suppliers || []).find(
+            (candidate: any) => String(candidate?.id || '') === supplierId
+          );
+          const costCandidates = [
+            it.costAtTime,
+            (product as any).cost,
+            (product as any).supplierCost,
+            (product as any).purchaseCost,
+            fallbackSupplierProduct?.cost,
+            fallbackSupplierProduct?.supplierCost,
+            fallbackSupplierProduct?.purchaseCost,
+          ];
+          const frozenCost = costCandidates
+            .map((value) => Number(value))
+            .find((value) => Number.isFinite(value) && value > 0) || 0;
+          return {
+            productId: product.id,
+            supplierProductId: fallbackSupplierProduct?.id || product.id,
+            name: product.name,
+            productName: product.name,
+            quantity: it.qty,
+            qty: it.qty,
+            priceAtTime: Number(it.priceAtTime ?? product.price ?? 0) || 0,
+            costAtTime: frozenCost,
+            supplierId,
+            supplierName:
+              supplier?.name ||
+              (product as any).supplierName ||
+              fallbackSupplierProduct?.supplierName ||
+              '',
+            itemNotes: it.itemNotes || '',
+            addons: Array.isArray(it.addons) ? it.addons : [],
+          };
+        }),
         deliveryFee,
         deliveryType,
         deliveryInfo: {
