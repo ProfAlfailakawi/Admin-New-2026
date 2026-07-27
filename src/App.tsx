@@ -2920,9 +2920,28 @@ const MainApp: React.FC = () => {
             }
           });
         }
+
+        // Clean up standalone top-level invoices collection so deleted/removed invoices don't resurrect
+        const activeInvoiceIds = new Set((Array.isArray(shardedPayloads.invoices) ? shardedPayloads.invoices : []).map((inv: any) => String(inv.id || inv.invoiceNumber || '')));
+        const invoicesSnap = await getDocs(collection(db, 'invoices'));
+        invoicesSnap.docs.forEach((invDoc) => {
+          if (!activeInvoiceIds.has(invDoc.id)) {
+            mirrorPromises.push(deleteDoc(invDoc.ref));
+          }
+        });
+
+        // Clean up standalone top-level orders collection so deleted/removed orders don't resurrect
+        const activeOrderIds = new Set((Array.isArray(shardedPayloads.orders) ? shardedPayloads.orders : []).map((ord: any) => String(ord.id || ord.orderNumber || '')));
+        const ordersSnap = await getDocs(collection(db, 'orders'));
+        ordersSnap.docs.forEach((ordDoc) => {
+          if (!activeOrderIds.has(ordDoc.id)) {
+            mirrorPromises.push(deleteDoc(ordDoc.ref));
+          }
+        });
+
         await Promise.all(mirrorPromises);
       } catch (mirrorErr) {
-        console.warn('[DATA_GUARD] Could not fully refresh root squads mirror during import:', mirrorErr);
+        console.warn('[DATA_GUARD] Could not fully refresh root mirrors during import:', mirrorErr);
       }
 
       lastRemoteKeysRef.current['__root__'] = serializedRootCurrent;
@@ -3179,8 +3198,12 @@ const MainApp: React.FC = () => {
                      const externalIsPaid = isPaidStatus(ei.paymentStatus) || isPaidStatus(ei.payment_status) || isPaidStatus(ei.status) || ei.paid === true;
                      const externalIsFailed = isFailedStatus(ei.paymentStatus) || isFailedStatus(ei.payment_status) || isFailedStatus(ei.status) || ei.failed === true;
                      if (idx === -1) {
-                         combined.push(ei);
-                         changed = true;
+                         if (authoritativeDataWrittenAtRef.current > 0) {
+                             deleteDoc(doc(db, 'invoices', String(ei.id))).catch(() => null);
+                         } else {
+                             combined.push(ei);
+                             changed = true;
+                         }
                      } else {
                          const current = combined[idx] as any;
                          const currentIsPaid = isPaidStatus(current.paymentStatus) || isPaidStatus(current.payment_status) || isPaidStatus(current.status) || current.paid === true;
@@ -3276,6 +3299,10 @@ const MainApp: React.FC = () => {
               expectedResetGenerationId &&
               fastPayloadGenerationId !== expectedResetGenerationId
             ) {
+              console.warn('[FAST_APPDATA] Server cache generation mismatch:', fastPayloadGenerationId, 'expected:', expectedResetGenerationId, '— clearing marker and falling back to direct Firestore read.');
+              try {
+                localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
+              } catch {}
               throw new Error('STALE_FAST_APPDATA_AFTER_ADMIN_RESET');
             }
             if (expectedResetGenerationId) {
@@ -3436,7 +3463,10 @@ const MainApp: React.FC = () => {
             expectedAuthoritativeGenerationId &&
             fallbackRootGenerationId !== expectedAuthoritativeGenerationId
           ) {
-            throw new Error('STALE_FIRESTORE_ROOT_AFTER_AUTHORITATIVE_WRITE');
+            console.warn('[DATA_GUARD] Firestore root generation mismatch:', fallbackRootGenerationId, 'expected:', expectedAuthoritativeGenerationId, '— clearing expected generation marker and accepting live root doc.');
+            try {
+              localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
+            } catch {}
           }
           const rootWrittenAt = new Date(rawRootData.__adminLastAuthoritativeWriteAt || '').getTime();
           authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
@@ -3455,7 +3485,10 @@ const MainApp: React.FC = () => {
           loadedState = { ...loadedState, ...sanitizedRoot };
 	        } else {
             if (expectedAuthoritativeGenerationId) {
-              throw new Error('MISSING_FIRESTORE_ROOT_AFTER_AUTHORITATIVE_WRITE');
+              console.warn('[DATA_GUARD] Root document missing after write expectation — clearing marker.');
+              try {
+                localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
+              } catch {}
             }
 	          // Important: never restore local/demo data into an empty cloud account.
 	          cloudRootExistsRef.current = false;
@@ -3473,7 +3506,6 @@ const MainApp: React.FC = () => {
             };
           } catch (err) {
             console.error(`Shard load error for ${key}:`, err);
-            if (expectedAuthoritativeGenerationId) throw err;
             return { key, exists: false, value: undefined, generationId: '' };
           }
         }));
@@ -3484,9 +3516,7 @@ const MainApp: React.FC = () => {
               !exists || generationId !== expectedAuthoritativeGenerationId,
           );
           if (staleShard) {
-            throw new Error(
-              `STALE_FIRESTORE_SHARD_AFTER_AUTHORITATIVE_WRITE:${staleShard.key}`,
-            );
+            console.warn(`[DATA_GUARD] Shard ${staleShard.key} generation mismatch — clearing expected generation marker and accepting live shard data.`);
           }
           try {
             localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
