@@ -194,6 +194,7 @@ interface DashboardProps {
   appMode?: "local" | "cloud";
   setDeepLinkData?: (data: any) => void;
   onActiveTabChange?: (tab: string) => void;
+  onCloudImport?: (importedState: AppState) => Promise<boolean>;
 }
 
 
@@ -958,6 +959,7 @@ const Dashboard: React.FC<DashboardProps> = React.memo(
     scrollTargetTimestamp,
     setDeepLinkData,
     onActiveTabChange,
+    onCloudImport,
   }) => {
     
     const data = rawData;
@@ -1023,7 +1025,7 @@ const [isPending, startTransition] = useTransition();
       }
     }, [data.invoices?.length, data.products?.length]);
 
-    const handleLoadDemoData = React.useCallback(() => {
+    const handleLoadDemoData = React.useCallback(async () => {
       try {
         const backupKey = appMode === 'local' ? 'ktk_local_accounting_data_safety_restore' : 'ktk_cloud_offline_snapshot_safety_restore';
         let backupStr = localStorage.getItem(backupKey);
@@ -1035,7 +1037,12 @@ const [isPending, startTransition] = useTransition();
 
         if (backupStr) {
           const parsed = JSON.parse(backupStr);
-          onUpdateData(parsed);
+          if (appMode === "cloud" && onCloudImport) {
+            const saved = await onCloudImport(parsed);
+            if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+          } else {
+            onUpdateData(parsed);
+          }
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
           toast.success(appMode === 'cloud' ? "تمت استعادة كافة البيانات السحابية الأخيرة بنجاح! ☁️" : "تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح! ⛑️");
@@ -1043,7 +1050,12 @@ const [isPending, startTransition] = useTransition();
           // In cloud mode, if no backup found, we still call it "restore" attempt but might end up with demo?
           // Actually, let's keep the demo behavior as absolute fallback if they click it, but change UI intent.
           const demo = GET_DEMO_DATA();
-          onUpdateData(demo);
+          if (appMode === "cloud" && onCloudImport) {
+            const saved = await onCloudImport(demo);
+            if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+          } else {
+            onUpdateData(demo);
+          }
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
           toast.success(appMode === 'cloud' ? "تم استرجاع جلسة البيانات السحابية بنجاح! ☁️" : "تم تحميل البيانات التجريبية بنجاح! 🎉");
@@ -1051,12 +1063,16 @@ const [isPending, startTransition] = useTransition();
       } catch (e) {
         console.error("Dashboard restore backup error", e);
         const demo = GET_DEMO_DATA();
-        onUpdateData(demo);
+        if (appMode === "cloud" && onCloudImport) {
+          try { await onCloudImport(demo); } catch {}
+        } else {
+          onUpdateData(demo);
+        }
         setShowSampleDataPrompt(false);
         sessionStorage.setItem('hideSampleDataPrompt', 'true');
         toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
       }
-    }, [onUpdateData, appMode]);
+    }, [onUpdateData, appMode, onCloudImport]);
 
     const handleDismissDemoData = React.useCallback(() => {
       setShowSampleDataPrompt(false);
