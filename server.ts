@@ -8774,9 +8774,93 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
   });
 
-  // The search route is replaced by the payment-return route moved up higher
+  function cleanPhoneDigitsServer(phone: any): string {
+    if (!phone) return "";
+    return String(phone).replace(/[^0-9]/g, "");
+  }
+
+  function phoneLooksSameServer(p1: any, p2: any): boolean {
+    const c1 = cleanPhoneDigitsServer(p1);
+    const c2 = cleanPhoneDigitsServer(p2);
+    if (!c1 || !c2) return false;
+    const len = Math.min(8, c1.length, c2.length);
+    return c1.slice(-len) === c2.slice(-len);
+  }
+
   app.get("/api/search-order/:phone", async (req, res) => {
-    res.json([]);
+    try {
+      const { phone } = req.params;
+      if (!phone) {
+        return res.status(400).json({ error: "Missing phone number" });
+      }
+
+      const queryDigits = phone.replace(/[^0-9]/g, "");
+      console.log(`[API] Searching orders for phone digits: ${queryDigits}`);
+
+      const resultsMap = new Map<string, any>();
+
+      // 1. Try to fetch directly from the lightweight 'orders' collection
+      try {
+        const directSnap = await db.collection("orders").where("customerPhone", "==", queryDigits).get();
+        if (!directSnap.empty) {
+          directSnap.docs.forEach((doc) => {
+            resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
+          });
+        }
+      } catch (err: any) {
+        console.warn(`[API] Failed to search direct orders collection by customerPhone: ${err.message}`);
+      }
+
+      try {
+        const directSnapMobile = await db.collection("orders").where("mobile", "==", queryDigits).get();
+        if (!directSnapMobile.empty) {
+          directSnapMobile.docs.forEach((doc) => {
+            resultsMap.set(doc.id, { id: doc.id, ...doc.data() });
+          });
+        }
+      } catch (err: any) {
+        console.warn(`[API] Failed to search direct orders collection by mobile: ${err.message}`);
+      }
+
+      // 2. Try to fetch and search through sharded orders
+      try {
+        const rootRef = db.collection("appData").doc("shared_company_data");
+        const shardedOrders = await loadFullAppDataShard(rootRef, "orders");
+        if (Array.isArray(shardedOrders)) {
+          shardedOrders.forEach((o: any) => {
+            const isMatch =
+              phoneLooksSameServer(o.customerPhone, queryDigits) ||
+              phoneLooksSameServer(o.mobile, queryDigits) ||
+              (Array.isArray(o.participantPhones) && o.participantPhones.some((p: string) => phoneLooksSameServer(p, queryDigits))) ||
+              (Array.isArray(o.splitPayments) && o.splitPayments.some((sp: any) => phoneLooksSameServer(sp.phone, queryDigits))) ||
+              (Array.isArray(o.splitParticipants) && o.splitParticipants.some((sp: any) => phoneLooksSameServer(typeof sp === "object" ? sp.phone : sp, queryDigits)));
+
+            if (isMatch) {
+              const id = o.id || o.orderNumber || o.orderNo || "";
+              if (id) {
+                resultsMap.set(String(id), o);
+              }
+            }
+          });
+        }
+      } catch (err: any) {
+        console.warn(`[API] Failed to search sharded orders: ${err.message}`);
+      }
+
+      const userOrders = Array.from(resultsMap.values());
+
+      // Sort by date descending
+      userOrders.sort((a: any, b: any) => {
+        const tA = new Date(a.createdAt || a.date || 0).getTime();
+        const tB = new Date(b.createdAt || b.date || 0).getTime();
+        return tB - tA;
+      });
+
+      return res.json(userOrders);
+    } catch (error: any) {
+      console.error("[API] Error in search-order endpoint:", error);
+      return res.status(500).json({ error: "Internal server error", message: error?.message || String(error) });
+    }
   });
 
   app.post("/api/invoice/confirm", async (req, res) => {
