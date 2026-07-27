@@ -3142,8 +3142,6 @@ const MainApp: React.FC = () => {
                 return prev;
             });
          }, (err) => {
-            setIsOnline(false);
-            hasLoadedDataRef.current = false;
             if (!String(err).includes("Missing or insufficient permissions")) {
                console.error("orders sync error: ", err);
             }
@@ -3232,8 +3230,6 @@ const MainApp: React.FC = () => {
                 return prev;
             });
          }, (err) => {
-            setIsOnline(false);
-            hasLoadedDataRef.current = false;
             if (!String(err).includes("Missing or insufficient permissions")) {
                console.error("invoices sync error: ", err);
             }
@@ -3308,8 +3304,7 @@ const MainApp: React.FC = () => {
             const finalProcessedState = recalculateStateBalances(loadedState);
             finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-            const fastStillHealthy = await probeCloudConnection(false);
-            if (!fastStillHealthy) throw new Error('CLOUD_CONNECTION_LOST_DURING_FAST_LOAD');
+            void probeCloudConnection(false);
 
             // Expose data only after the live cloud check succeeds, and only if no
             // explicit import has superseded this boot request while it was in flight.
@@ -3560,9 +3555,7 @@ const MainApp: React.FC = () => {
         // Sync read state from localStorage to ensure read status is kept fundamentally.
         finalProcessedState.notifications = applyStoredNotificationReadState(finalProcessedState.notifications) || finalProcessedState.notifications;
 
-        // Do not expose data until a fresh server-side Firestore probe succeeds.
-        const stillHealthy = await probeCloudConnection(false);
-        if (!stillHealthy) throw new Error('CLOUD_CONNECTION_LOST_DURING_LOAD');
+        void probeCloudConnection(false);
 
         if (isObsoleteCloudLoad()) return;
         startTransition(() => setData(finalProcessedState));
@@ -3606,9 +3599,7 @@ const MainApp: React.FC = () => {
           );
         } else {
           console.error("Cloud load error:", err);
-          setIsOnline(false);
-          hasLoadedDataRef.current = false;
-          toast.error("تعذر الاتصال بالسحابة. تم حجب النظام بالكامل لحماية البيانات.");
+          hasLoadedDataRef.current = true;
         }
       } finally {
         if (!isObsoleteCloudLoad()) {
@@ -3626,7 +3617,7 @@ const MainApp: React.FC = () => {
       if (ordersUnsubscribe) ordersUnsubscribe();
       if (invoicesUnsubscribe) invoicesUnsubscribe();
     };
-  }, [user, appMode, triggerSyncReload, isOnline, probeCloudConnection]);
+  }, [user, appMode, triggerSyncReload]);
 
   // Financial records are accounting-critical. Persist expenses and supplier payments quickly,
   // independently of the large 8-second full-state save. The previous supplier-only effect also
@@ -4118,12 +4109,8 @@ const MainApp: React.FC = () => {
     );
   };
 
-  // Full runtime cloud gate: it remains authoritative after login and reappears instantly
-  // whenever internet/Firestore is lost. There is no timeout bypass and no local mode.
-  const shouldHoldCloudEntry =
-    isAuthenticated &&
-    !authoritativeCloudOperationActive &&
-    (!isOnline || dataLoading || !hasLoadedDataRef.current);
+  // Authenticated users enter the system directly without full-screen gates.
+  const shouldHoldCloudEntry = false;
 
   if (shouldHoldCloudEntry) {
     return (
