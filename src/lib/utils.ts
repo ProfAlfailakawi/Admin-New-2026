@@ -564,8 +564,6 @@ export function joinProductsFromDatabase(data: any): any {
   return result;
 }
 
-const unifiedInvoicesCache = new WeakMap<any, any[]>();
-
 type UnifiedPaymentState = 'paid' | 'failed' | 'cancelled' | 'split_pending' | 'pending';
 
 const getNormalizedPaymentState = (record: any): UnifiedPaymentState => {
@@ -820,9 +818,17 @@ const normalizeWebsiteOrderAsInvoice = (order: any, invoiceMirror?: any) => {
   };
 };
 
+let lastUnifiedInvoicesRef: any = null;
+let lastUnifiedOrdersRef: any = null;
+let lastUnifiedResult: any[] = [];
+
 export function getUnifiedInvoices(data: any): any[] {
   if (!data) return [];
-  if (unifiedInvoicesCache.has(data)) return unifiedInvoicesCache.get(data)!;
+  const invoices = data?.invoices;
+  const orders = data?.orders;
+  if (lastUnifiedInvoicesRef === invoices && lastUnifiedOrdersRef === orders) {
+    return lastUnifiedResult;
+  }
 
   const rawInvoices = Array.isArray(data?.invoices) ? data.invoices : [];
   const websiteOrders = (Array.isArray(data?.orders) ? data.orders : [])
@@ -873,7 +879,9 @@ export function getUnifiedInvoices(data: any): any[] {
     unique.push(item);
   }
 
-  unifiedInvoicesCache.set(data, unique);
+  lastUnifiedInvoicesRef = invoices;
+  lastUnifiedOrdersRef = orders;
+  lastUnifiedResult = unique;
   return unique;
 }
 
