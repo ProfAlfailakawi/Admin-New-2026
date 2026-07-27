@@ -181,6 +181,7 @@ import {
   isPendingStatus,
   isFailedStatus,
   isPaidStatus,
+  isCancelledStatus,
 } from "../lib/status-utils";
 import { GET_DEMO_DATA } from "../data";
 
@@ -1525,15 +1526,58 @@ const [isPending, startTransition] = useTransition();
       allTimeSupplierPayments,
       allTimeGatewayFees,
     } = useMemo(() => {
-      const invoices = activeInvoices.filter((inv) => {
-        const isPaid = isPaidStatus(inv.paymentStatus);
-        const isLegacyPaid = (inv.paymentStatus === undefined || inv.paymentStatus === null || inv.paymentStatus === '') && (inv.status === 'completed' || inv.status === 'delivered');
-        
-        return (isPaid || isLegacyPaid) && 
-          !String(inv.status).includes('تجميع القطية') && 
-          inv.paymentStatus !== 'split_pending' && 
-          inv.status !== 'split_pending';
-      });
+      const getInvoiceStatusValues = (inv: any) => [
+        inv?.paymentStatus,
+        inv?.payment_status,
+        inv?.payment?.status,
+        inv?.transactionStatus,
+        inv?.status,
+      ].filter((value) => value !== undefined && value !== null && String(value).trim() !== '');
+
+      const isCollectedInvoice = (inv: any) => {
+        if (!inv || inv.isDeleted) return false;
+        const values = getInvoiceStatusValues(inv);
+        const statusText = values.map((value) => String(value).toLowerCase().replace(/_/g, ' ').trim()).join(' | ');
+
+        // Never count failed/cancelled/split transactions as cash, even when another stale
+        // field still contains a previous success label.
+        if (inv.failed === true || values.some((value) => isFailedStatus(value))) return false;
+        if (values.some((value) => isCancelledStatus(value))) return false;
+        if (statusText.includes('split pending') || statusText.includes('تجميع القطية')) return false;
+
+        return inv.paid === true || values.some((value) => isPaidStatus(value));
+      };
+
+      const getCollectedInvoiceTotal = (inv: any) => {
+        const storedCandidates = [
+          inv?.totalAmount,
+          inv?.total,
+          inv?.grandTotal,
+          inv?.finalTotal,
+          inv?.netTotal,
+          inv?.amount,
+        ];
+        for (const candidate of storedCandidates) {
+          const numeric = Number(candidate);
+          if (Number.isFinite(numeric) && numeric > 0) return numeric;
+        }
+        const calculated = Number(computeInvoiceTotal(inv, data?.products || []));
+        return Number.isFinite(calculated) ? Math.max(0, calculated) : 0;
+      };
+
+      const getCollectedDeliveryFee = (inv: any) => {
+        const fee = Number(
+          inv?.deliveryFee ??
+          inv?.deliveryPrice ??
+          inv?.deliveryInfo?.finalPrice ??
+          inv?.deliveryInfo?.price ??
+          inv?.deliveryInfo?.cost ??
+          0,
+        ) || 0;
+        return Math.max(0, fee);
+      };
+
+      const invoices = activeInvoices.filter(isCollectedInvoice);
 
 
       const getInvoiceAddonsRevenue = (inv: any) => {
@@ -1562,16 +1606,10 @@ const [isPending, startTransition] = useTransition();
 
       // Total delivery fees collected from invoices, regardless of delivery type.
       // The dashboard should show actual delivery income whenever a delivery fee exists.
-      const collectedDeliveryFees = invoices.reduce((acc, inv) => {
-        const fee = Number(
-          (inv as any)?.deliveryFee ??
-          (inv as any)?.deliveryPrice ??
-          (inv as any)?.deliveryInfo?.finalPrice ??
-          (inv as any)?.deliveryInfo?.price ??
-          0,
-        ) || 0;
-        return acc + Math.max(0, fee);
-      }, 0);
+      const collectedDeliveryFees = invoices.reduce(
+        (acc, inv) => acc + getCollectedDeliveryFee(inv),
+        0,
+      );
 
       const sales = foodSales + collectedDeliveryFees;
 
@@ -1651,7 +1689,7 @@ const [isPending, startTransition] = useTransition();
 
       // Period bank balance/cash change
       const periodNetRevenue = invoices.reduce(
-        (acc, inv) => acc + computeInvoiceTotal(inv, data?.products || []),
+        (acc, inv) => acc + getCollectedInvoiceTotal(inv),
         0,
       );
 
@@ -1677,39 +1715,30 @@ const [isPending, startTransition] = useTransition();
         (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
       );
 
-      const allTimePaidInvoices = allTimeActiveInvs.filter((inv) => {
-        const isPaid = isPaidStatus(inv.paymentStatus);
-        // Only count as paid if explicitly paid status, or if legacy order without paymentStatus field that is marked as completed
-        const isLegacyPaid = (inv.paymentStatus === undefined || inv.paymentStatus === null || inv.paymentStatus === '') && (inv.status === 'completed' || inv.status === 'delivered');
-        
-        return (isPaid || isLegacyPaid) && 
-          !String(inv.status).includes('تجميع القطية') && 
-          inv.paymentStatus !== 'split_pending' && 
-          inv.status !== 'split_pending';
-      });
+      const allTimePaidInvoices = allTimeActiveInvs.filter(isCollectedInvoice);
 
-      const allTimeFoodSales = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
+      const allTimeCollectedDeliveryFees = allTimePaidInvoices.reduce(
+        (acc, inv) => acc + getCollectedDeliveryFee(inv),
         0,
       );
-
-      const allTimeCollectedDeliveryFees = allTimePaidInvoices.reduce((acc, inv) => {
-        const fee = Number(
-          (inv as any)?.deliveryFee ??
-          (inv as any)?.deliveryPrice ??
-          (inv as any)?.deliveryInfo?.finalPrice ??
-          (inv as any)?.deliveryInfo?.price ??
-          0,
-        ) || 0;
-        return acc + Math.max(0, fee);
-      }, 0);
 
       const allTimeDiscounts = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + Number(inv.discount || 0),
+        (acc, inv) => acc + Math.max(0, Number(inv.discount || 0)),
         0,
       );
 
-      const allTimeNetRevenue = allTimeFoodSales + allTimeCollectedDeliveryFees - allTimeDiscounts;
+      // Cash liquidity must use the amount actually stored/collected on each invoice. Rebuilding
+      // old invoice totals from today's product catalogue can omit historical revenue entirely.
+      const allTimeNetRevenue = allTimePaidInvoices.reduce(
+        (acc, inv) => acc + getCollectedInvoiceTotal(inv),
+        0,
+      );
+
+      // Keep the explanatory breakdown mathematically reconciled with collected cash.
+      const allTimeFoodSales = Math.max(
+        0,
+        allTimeNetRevenue - allTimeCollectedDeliveryFees + allTimeDiscounts,
+      );
 
       const allTimeExpenses = (data?.expenses || []).reduce(
         (acc, exp) => acc + Math.abs(exp.amount || 0),
