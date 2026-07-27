@@ -5666,6 +5666,12 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
     }
 
     const profile = String((_req.query?.profile || _req.query?.mode || "") as string).toLowerCase();
+    const expectedGeneration = String(
+      (_req.query?.expectedGeneration || _req.query?.generation || "") as string,
+    ).trim();
+    const shardKeys = profile === "boot"
+      ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
+      : FULL_APPDATA_SHARD_KEYS;
 
     // Lazy initialization safeguard depending on the requested profile
     if (profile === "boot") {
@@ -5681,9 +5687,62 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
       }
     }
 
-    const shardKeys = profile === "boot"
-      ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
-      : FULL_APPDATA_SHARD_KEYS;
+    // Reset/import writes carry a generation marker and publish the root last. A normal
+    // in-memory cache response can briefly contain the new root with old/empty shard values
+    // while Firestore listeners are still decoding large segmented documents. Whenever the
+    // client supplies an expected generation, bypass the cache once and rebuild the requested
+    // profile directly from Firestore before returning anything.
+    if (expectedGeneration) {
+      const rootRef = db.collection("appData").doc("shared_company_data");
+      const [rootSnap, ...shardSnaps] = await Promise.all([
+        rootRef.get(),
+        ...shardKeys.map((key) => rootRef.collection("shards").doc(key).get()),
+      ]);
+
+      const rootData = rootSnap.exists ? rootSnap.data() || {} : {};
+      const actualGeneration = String(rootData.__adminDataGenerationId || "");
+      if (!rootSnap.exists || actualGeneration !== expectedGeneration) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        return res.status(409).json({
+          success: false,
+          error: "STALE_APPDATA_GENERATION",
+          expectedGeneration,
+          actualGeneration,
+        });
+      }
+
+      const refreshedShards: Record<string, any> = {};
+      for (let index = 0; index < shardKeys.length; index += 1) {
+        const key = shardKeys[index];
+        const shardSnap: any = shardSnaps[index];
+        if (!shardSnap?.exists) {
+          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+          return res.status(409).json({
+            success: false,
+            error: "INCOMPLETE_APPDATA_GENERATION",
+            expectedGeneration,
+            missingShard: key,
+          });
+        }
+
+        const shardData = shardSnap.data() || {};
+        const shardGeneration = String(shardData.__adminDataGenerationId || "");
+        if (shardGeneration !== expectedGeneration) {
+          res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+          return res.status(409).json({
+            success: false,
+            error: "STALE_APPDATA_SHARD_GENERATION",
+            expectedGeneration,
+            actualGeneration: shardGeneration,
+            staleShard: key,
+          });
+        }
+        refreshedShards[key] = await loadFullAppDataShard(rootRef, key, shardData);
+      }
+
+      appDataCache.rootData = rootData;
+      Object.assign(appDataCache.shards, refreshedShards);
+    }
 
     const data: any = { ...appDataCache.rootData };
     const shardCounts: Record<string, number> = {};
@@ -5706,6 +5765,7 @@ app.get("/api/appdata/full", waRequireConsoleAuth, async (_req, res) => {
       source: "admin-server-firestore-cache-full-appdata",
       profile: profile === "boot" ? "boot" : "full",
       deferredShardKeys: profile === "boot" ? Array.from(BOOT_DEFERRED_APPDATA_SHARD_KEYS) : [],
+      generationId: String(data.__adminDataGenerationId || ""),
       durationMs,
       shardCounts,
       data,

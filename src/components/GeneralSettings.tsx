@@ -577,6 +577,7 @@ const GeneralSettings: React.FC<Props> = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const importInFlightRef = useRef(false);
   const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
   const [checkingPushHealth, setCheckingPushHealth] = useState(false);
   const [pushDevices, setPushDevices] = useState<PushDeviceSnapshot[]>([]);
@@ -3042,13 +3043,19 @@ const GeneralSettings: React.FC<Props> = ({
   };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
     const file = e.target.files?.[0];
     if (!file) return;
+    if (importInFlightRef.current) {
+      input.value = "";
+      return;
+    }
+    importInFlightRef.current = true;
 
     const reader = new FileReader();
     const isJson = file.name.endsWith(".json");
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const result = event.target?.result;
         if (!result) throw new Error("File result is empty");
@@ -3117,24 +3124,23 @@ const GeneralSettings: React.FC<Props> = ({
                 "يتم مزامنة النسخة الاحتياطية سحابياً لتلافي الفقدان...",
                 "info",
               );
-              onCloudImport(validatedData)
-                .then((saved) => {
-                  if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
-                  addToast(
-                    "تمت العملية",
-                    "تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨",
-                    "success",
-                  );
-                })
-                .catch((err) => {
-                  console.error("Cloud import failed:", err);
-                  addToast(
-                    "فشل الحفظ",
-                    "فشل تخزين النسخة سحابياً: " +
-                      (err instanceof Error ? err.message : String(err)),
-                    "warning",
-                  );
-                });
+              try {
+                const saved = await onCloudImport(validatedData);
+                if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
+                addToast(
+                  "تمت العملية",
+                  "تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨",
+                  "success",
+                );
+              } catch (err) {
+                console.error("Cloud import failed:", err);
+                addToast(
+                  "فشل الحفظ",
+                  "فشل تخزين النسخة سحابياً: " +
+                    (err instanceof Error ? err.message : String(err)),
+                  "warning",
+                );
+              }
             } else {
               addToast(
                 "السحابة مطلوبة",
@@ -3353,12 +3359,25 @@ const GeneralSettings: React.FC<Props> = ({
           let baseState: any = {};
           if (workbook.SheetNames.includes("FullState")) {
             const fullStateRows = (safeSheetToObj("FullState") || []) as any[];
-            const joinedJson = (
+            const sortedFullStateRows = (
               Array.isArray(fullStateRows) ? fullStateRows : []
             )
+              .filter((row: any) => String(row?.chunk || "").length > 0)
               .sort(
                 (a: any, b: any) => Number(a.part || 0) - Number(b.part || 0),
-              )
+              );
+
+            sortedFullStateRows.forEach((row: any, index: number) => {
+              const actualPart = Number(row.part || 0);
+              const expectedPart = index + 1;
+              if (actualPart !== expectedPart) {
+                throw new Error(
+                  `CORRUPT_FULL_STATE_CHUNKS:EXPECTED_${expectedPart}:FOUND_${actualPart || "EMPTY"}`,
+                );
+              }
+            });
+
+            const joinedJson = sortedFullStateRows
               .map((row: any) => String(row.chunk || ""))
               .join("");
             if (joinedJson.trim()) {
@@ -3482,6 +3501,46 @@ const GeneralSettings: React.FC<Props> = ({
               INITIAL_DATA.settings,
           };
 
+          const mergeSheetRowsWithFullState = (
+            fullStateRows: any,
+            sheetRows: any[],
+            identityFields: string[],
+          ) => {
+            const baseRows = Array.isArray(fullStateRows) ? fullStateRows : [];
+            if (!baseRows.length) return sheetRows;
+
+            const identityOf = (row: any) => {
+              for (const field of identityFields) {
+                const value = String(row?.[field] ?? "").trim();
+                if (value) return `${field}:${value}`;
+              }
+              return "";
+            };
+
+            const sheetByIdentity = new Map<string, any>();
+            const sheetRowsWithoutIdentity: any[] = [];
+            sheetRows.forEach((row) => {
+              const identity = identityOf(row);
+              if (identity) sheetByIdentity.set(identity, row);
+              else sheetRowsWithoutIdentity.push(row);
+            });
+
+            const consumed = new Set<string>();
+            const mergedRows = baseRows.map((baseRow: any) => {
+              const identity = identityOf(baseRow);
+              const sheetRow = identity ? sheetByIdentity.get(identity) : null;
+              if (!sheetRow) return stripUndefined(baseRow);
+              consumed.add(identity);
+              return stripUndefined({ ...baseRow, ...sheetRow });
+            });
+
+            sheetByIdentity.forEach((sheetRow, identity) => {
+              if (!consumed.has(identity)) mergedRows.push(stripUndefined(sheetRow));
+            });
+            sheetRowsWithoutIdentity.forEach((row) => mergedRows.push(stripUndefined(row)));
+            return mergedRows;
+          };
+
           const importIntegrity = {
             invoiceRows: 0,
             invoiceItemRows: 0,
@@ -3521,8 +3580,7 @@ const GeneralSettings: React.FC<Props> = ({
                 .push(stripUndefined(restoredItem));
             });
             const rawInvoices = safeSheetToObj("Invoices") as any[];
-            importIntegrity.invoiceRows = rawInvoices.length;
-            newState.invoices = rawInvoices.map((inv, invoiceIndex) => {
+            const restoredInvoices = rawInvoices.map((inv, invoiceIndex) => {
               const rawInvoiceText = String(inv.rawInvoice || "").trim();
               const rawInvoice = parseSafeJson(rawInvoiceText, false);
               if (
@@ -3635,17 +3693,22 @@ const GeneralSettings: React.FC<Props> = ({
                     : undefined,
               });
             });
-            if (newState.invoices.length !== importIntegrity.invoiceRows) {
+            newState.invoices = mergeSheetRowsWithFullState(
+              baseState.invoices,
+              restoredInvoices,
+              ["id", "invoiceNumber"],
+            );
+            importIntegrity.invoiceRows = newState.invoices.length;
+            if (newState.invoices.length < rawInvoices.length) {
               throw new Error(
-                `INVOICE_IMPORT_COUNT_MISMATCH:${newState.invoices.length}/${importIntegrity.invoiceRows}`,
+                `INVOICE_IMPORT_COUNT_MISMATCH:${newState.invoices.length}/${rawInvoices.length}`,
               );
             }
           }
 
           if (workbook.SheetNames.includes("Orders")) {
             const rawOrders = safeSheetToObj("Orders") as any[];
-            importIntegrity.orderRows = rawOrders.length;
-            newState.orders = rawOrders.map((o, orderIndex) => {
+            const restoredOrders = rawOrders.map((o, orderIndex) => {
               const rawOrderText = String(o.rawOrder || "").trim();
               const rawOrder = parseSafeJson(rawOrderText, false);
               if (
@@ -3684,9 +3747,15 @@ const GeneralSettings: React.FC<Props> = ({
                   typeof parsedAddress === "object" ? parsedAddress : merged.address,
               });
             });
-            if (newState.orders.length !== importIntegrity.orderRows) {
+            newState.orders = mergeSheetRowsWithFullState(
+              baseState.orders,
+              restoredOrders,
+              ["id", "orderNumber"],
+            );
+            importIntegrity.orderRows = newState.orders.length;
+            if (newState.orders.length < rawOrders.length) {
               throw new Error(
-                `ORDER_IMPORT_COUNT_MISMATCH:${newState.orders.length}/${importIntegrity.orderRows}`,
+                `ORDER_IMPORT_COUNT_MISMATCH:${newState.orders.length}/${rawOrders.length}`,
               );
             }
           }
@@ -3702,51 +3771,48 @@ const GeneralSettings: React.FC<Props> = ({
           }
 
           const finalizedState = recalculateStateBalances(newState);
-          setTimeout(() => {
-            try {
-              if (appMode === "cloud" && onCloudImport) {
+          try {
+            if (appMode === "cloud" && onCloudImport) {
+              addToast(
+                "جاري الرفع سحابياً",
+                "يتم رفع ومزامنة بيانات Excel سحابياً...",
+                "info",
+              );
+              try {
+                const saved = await onCloudImport(finalizedState);
+                if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
                 addToast(
-                  "جاري الرفع سحابياً",
-                  "يتم رفع ومزامنة بيانات Excel سحابياً...",
-                  "info",
+                  "تمت العملية",
+                  `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
+                  "success",
                 );
-                onCloudImport(finalizedState)
-                  .then((saved) => {
-                    if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
-                    addToast(
-                      "تمت العملية",
-                      `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
-                      "success",
-                    );
-                  })
-                  .catch((err) => {
-                    console.error("Cloud Excel import failed:", err);
-                    addToast(
-                      "لم يُعتمد الاستيراد",
-                      "رفضت السحابة الحفظ، لذلك لم يتم تطبيق البيانات داخل النظام ولم تُحفظ نسخة تشغيل محلية. أعد المحاولة بعد عودة الاتصال: " +
-                        (err instanceof Error ? err.message : String(err)),
-                      "warning",
-                    );
-                  });
-              } else {
+              } catch (err) {
+                console.error("Cloud Excel import failed:", err);
                 addToast(
-                  "السحابة مطلوبة",
-                  "لا يمكن استيراد أو تشغيل البيانات دون اتصال سحابي موثّق.",
+                  "لم يُعتمد الاستيراد",
+                  "رفضت السحابة الحفظ، لذلك لم يتم تطبيق البيانات داخل النظام ولم تُحفظ نسخة تشغيل محلية. أعد المحاولة بعد عودة الاتصال: " +
+                    (err instanceof Error ? err.message : String(err)),
                   "warning",
                 );
               }
-            } catch (renderError) {
-              console.error(
-                "CRITICAL RENDER ERROR during import:",
-                renderError,
-              );
+            } else {
               addToast(
-                "خلل في العرض",
-                "استوردنا البيانات بس التطبيق ما قدر يعرضها.",
+                "السحابة مطلوبة",
+                "لا يمكن استيراد أو تشغيل البيانات دون اتصال سحابي موثّق.",
                 "warning",
               );
             }
-          }, 150);
+          } catch (renderError) {
+            console.error(
+              "CRITICAL RENDER ERROR during import:",
+              renderError,
+            );
+            addToast(
+              "خلل في العرض",
+              "استوردنا البيانات بس التطبيق ما قدر يعرضها.",
+              "warning",
+            );
+          }
         }
       } catch (error) {
         console.error("Import error:", error);
@@ -3756,7 +3822,20 @@ const GeneralSettings: React.FC<Props> = ({
             (error instanceof Error ? error.message : ""),
           "warning",
         );
+      } finally {
+        importInFlightRef.current = false;
+        input.value = "";
       }
+    };
+
+    reader.onerror = () => {
+      importInFlightRef.current = false;
+      input.value = "";
+      addToast(
+        "خطأ",
+        "تعذر فتح ملف النسخة الاحتياطية من الجهاز.",
+        "warning",
+      );
     };
 
     if (isJson) {
