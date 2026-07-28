@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import 'dotenv/config';
 import { GoogleGenAI } from "@google/genai";
 import LZString from "lz-string";
+import { packBootInlineAssets } from "./src/lib/bootAssetTransport.ts";
 
 let firebaseInitialized = false;
 let db: any = null;
@@ -1595,7 +1596,6 @@ const BOOT_DEFERRED_APPDATA_SHARD_KEYS = new Set([
   "deepArchiveAnalysis",
   "nameMatchMemory",
 ]);
-
 
 const FIRESTORE_SAFE_SHARD_DOCUMENT_BYTES = 850_000;
 const FIRESTORE_SHARD_BASE64_PART_CHARS = 600_000;
@@ -5905,6 +5905,9 @@ app.get("/api/appdata/full", async (_req, res) => {
       }
     }
 
+    const packedBootData =
+      profile === "boot" ? packBootInlineAssets(data) : null;
+    const responseData = packedBootData?.data || data;
     const durationMs = Date.now() - startedAt;
     console.log(`[FAST_API] /api/appdata/full served instantly in ${durationMs}ms (profile: ${profile || "full"})`);
 
@@ -5914,9 +5917,15 @@ app.get("/api/appdata/full", async (_req, res) => {
       source: "admin-server-firestore-cache-full-appdata",
       profile: profile === "boot" ? "boot" : "full",
       deferredShardKeys: profile === "boot" ? Array.from(BOOT_DEFERRED_APPDATA_SHARD_KEYS) : [],
+      ...(packedBootData?.assetPack
+        ? {
+            bootAssetPack: packedBootData.assetPack,
+            bootAssetStats: packedBootData.stats,
+          }
+        : {}),
       durationMs,
       shardCounts,
-      data,
+      data: responseData,
     });
   } catch (error: any) {
     console.error("[api/appdata/full] failed:", error?.message || error);

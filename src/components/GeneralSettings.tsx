@@ -89,11 +89,7 @@ import {
   DEFAULT_GLOBAL_LOGO,
 } from "../constants";
 import { recalculateStateBalances } from "../lib/business-logic";
-import {
-  getProtectedStorageItem,
-  removeProtectedStorageItemIntentionally,
-  setProtectedStorageItem,
-} from "../lib/dataGuard";
+import { removeProtectedStorageItemIntentionally } from "../lib/dataGuard";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 interface Props {
@@ -113,6 +109,37 @@ const WHATSAPP_QUICK_REPLIES_STORAGE_KEY = "alturath_whatsapp_quick_replies_v1";
 const WHATSAPP_QUICK_REPLIES_SHEET = "WhatsAppQuickReplies";
 const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   "ktk_expected_admin_reset_generation_id";
+const CLOUD_RECOVERY_SHARD_KEY = "__adminRecoverySnapshot";
+const CLOUD_RECOVERY_FORMAT_VERSION = 1;
+
+const stableRecoveryStringify = (value: any): string => {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableRecoveryStringify).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map(
+        (key) =>
+          `${JSON.stringify(key)}:${stableRecoveryStringify(value[key])}`,
+      )
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+};
+
+const sha256Hex = async (value: string): Promise<string> => {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("CLOUD_RECOVERY_INTEGRITY_UNAVAILABLE");
+  }
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
 
 type PushDeviceSnapshot = {
   id: string;
@@ -577,6 +604,7 @@ const GeneralSettings: React.FC<Props> = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [pushHealth, setPushHealth] = useState<PushHealthCheck | null>(null);
   const [checkingPushHealth, setCheckingPushHealth] = useState(false);
   const [pushDevices, setPushDevices] = useState<PushDeviceSnapshot[]>([]);
@@ -2176,33 +2204,75 @@ const GeneralSettings: React.FC<Props> = ({
   };
 
   const handleResetData = async () => {
-    if (isResetting) return;
+    if (isResetting || isRestoring) return;
     setIsResetting(true);
     try {
       (window as any).__ktkAdminResetInProgress = true;
     } catch {}
-    addToast("جاري التصفير", "يتم حفظ نسخة أمان ثم تنظيف البيانات.", "info");
+    addToast(
+      "جاري تجهيز التصفير",
+      "يتم أولاً حفظ نسخة استرجاع سحابية والتحقق منها قبل لمس أي بيانات.",
+      "info",
+    );
     try {
-      const hasRealData =
-        (data.invoices && data.invoices.length > 0) ||
-        (data.products && data.products.length > 0) ||
-        (data.customers && data.customers.length > 0);
-      if (hasRealData) {
-        if (appMode === "cloud") {
-          setProtectedStorageItem(
-            "ktk_cloud_offline_snapshot_safety_restore",
-            JSON.stringify(data),
-          );
-          setProtectedStorageItem(
-            "ktk_cloud_offline_snapshot_last_good",
-            JSON.stringify(data),
-          );
-        }
+      const currentUser = auth.currentUser;
+      if (appMode !== "cloud" || !currentUser) {
+        throw new Error("CLOUD_AUTH_REQUIRED");
       }
 
-      const currentUser = auth.currentUser;
       if (appMode === "cloud" && currentUser) {
         try {
+          // The app is cloud-only. Keep the pre-reset recovery point in its own
+          // logical Firestore shard so a reload, browser cleanup or another device
+          // cannot erase the only recovery copy. The reset below deliberately does
+          // not include this reserved shard.
+          const recoveryId = `admin-recovery-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const recoveryCreatedAt = new Date().toISOString();
+          const recoveryData = JSON.parse(JSON.stringify(data)) as AppState;
+          const recoveryFingerprint = await sha256Hex(
+            stableRecoveryStringify(recoveryData),
+          );
+          await writeLogicalAppDataShard(
+            currentUser.uid,
+            currentUser.email,
+            CLOUD_RECOVERY_SHARD_KEY,
+            {
+              formatVersion: CLOUD_RECOVERY_FORMAT_VERSION,
+              recoveryId,
+              createdAt: recoveryCreatedAt,
+              createdByUid: currentUser.uid,
+              createdByEmail: currentUser.email || "",
+              reason: "pre-admin-reset",
+              dataFingerprint: recoveryFingerprint,
+              data: recoveryData,
+            },
+            {
+              __adminRecoverySnapshot: true,
+              recoveryId,
+              recoveryCreatedAt,
+            },
+          );
+
+          const recoveryVerification = await readLogicalAppDataShard(
+            currentUser.uid,
+            currentUser.email,
+            CLOUD_RECOVERY_SHARD_KEY,
+            true,
+          );
+          const verifiedRecovery = recoveryVerification.value as any;
+          if (
+            !recoveryVerification.exists ||
+            verifiedRecovery?.formatVersion !==
+              CLOUD_RECOVERY_FORMAT_VERSION ||
+            verifiedRecovery?.recoveryId !== recoveryId ||
+            verifiedRecovery?.dataFingerprint !== recoveryFingerprint ||
+            !verifiedRecovery?.data ||
+            (await sha256Hex(stableRecoveryStringify(verifiedRecovery.data))) !==
+              recoveryFingerprint
+          ) {
+            throw new Error("CLOUD_RECOVERY_BACKUP_VERIFICATION_FAILED");
+          }
+
           const generationId = `admin-data-reset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           try {
             localStorage.setItem("ktk_admin_data_generation_id", generationId);
@@ -2341,9 +2411,7 @@ const GeneralSettings: React.FC<Props> = ({
 
       addToast(
         "تم التصفير",
-        appMode === "cloud"
-          ? "تمت العملية بنجاح وحُفظت نسخة أمان."
-          : "تم مسح كافة البيانات من النظام المحلي بلا رجعة.",
+        "تم تنظيف البيانات سحابياً، ونسخة الاسترجاع المؤكدة محفوظة في السحابة.",
         "warning",
       );
       setShowResetConfirm(false);
@@ -2357,10 +2425,15 @@ const GeneralSettings: React.FC<Props> = ({
         msg.includes("FIRESTORE_PERMISSION_DENIED") ||
         msg.includes("permissions") ||
         msg.includes("permission-denied");
+      const isRecoveryVerification =
+        msg.includes("CLOUD_RECOVERY_BACKUP_VERIFICATION_FAILED") ||
+        msg.includes("CLOUD_AUTH_REQUIRED");
       addToast(
         "تعذر التصفير",
         isPermission
           ? "Firestore رفض التصفير لهذا الحساب. تأكد من صلاحيات المشرف أو تفعيل المساحة الفردية."
+          : isRecoveryVerification
+            ? "لم يبدأ التصفير لأن نسخة الاسترجاع السحابية لم تُحفظ وتُقرأ بشكل مؤكد."
           : "لم يتم مسح البيانات. جرّب مرة أخرى.",
         "warning",
       );
@@ -2372,62 +2445,86 @@ const GeneralSettings: React.FC<Props> = ({
     }
   };
 
-  const handleRestoreBackup = () => {
+  const handleRestoreBackup = async () => {
+    if (isRestoring || isResetting) return;
+    setIsRestoring(true);
     try {
-      const backupKey =
-        appMode === "local"
-          ? "ktk_local_accounting_data_safety_restore"
-          : "ktk_cloud_offline_snapshot_safety_restore";
-      let backupStr = getProtectedStorageItem(backupKey);
-
-      // Strict separation: Cloud mode never falls back to legacy/local backup keys
-      if (!backupStr && appMode === "local") {
-        backupStr =
-          getProtectedStorageItem("ktk_local_accounting_data_backup") ||
-          getProtectedStorageItem("ktk_accounting_data_backup");
+      const currentUser = auth.currentUser;
+      if (appMode !== "cloud" || !currentUser || !onCloudImport) {
+        throw new Error("CLOUD_RESTORE_UNAVAILABLE");
       }
 
-      if (backupStr) {
-        const parsed = JSON.parse(backupStr);
-        setData(parsed);
-        sessionStorage.setItem("hideSampleDataPrompt", "true");
+      addToast(
+        "جاري قراءة نسخة الاسترجاع",
+        "يتم جلب النسخة المحفوظة من السحابة والتحقق من سلامتها.",
+        "info",
+      );
+      const recoverySnapshot = await readLogicalAppDataShard(
+        currentUser.uid,
+        currentUser.email,
+        CLOUD_RECOVERY_SHARD_KEY,
+        true,
+      );
+      const recoveryEnvelope = recoverySnapshot.value as any;
+      if (
+        !recoverySnapshot.exists ||
+        recoveryEnvelope?.formatVersion !== CLOUD_RECOVERY_FORMAT_VERSION ||
+        !recoveryEnvelope?.recoveryId ||
+        !recoveryEnvelope?.data
+      ) {
         setShowRestoreConfirm(false);
         addToast(
-          appMode === "cloud"
-            ? "تمت استعادة البيانات السحابية"
-            : "تمت استعادة البيانات الأخيرة",
-          appMode === "cloud"
-            ? "تم استرجاع نسخة البيانات السحابية الاحتياطية بنجاح ☁️"
-            : "تم استرجاع كافة مبيعاتك وعملائك وعملياتك من النسخة الاحتياطية بنجاح ⛑️",
-          "success",
+          "لا توجد نسخة استرجاع سحابية",
+          "لم نجد نسخة مؤكدة محفوظة قبل آخر تهيئة. لم يتم تغيير أي بيانات.",
+          "warning",
         );
-      } else {
-        if (appMode === "cloud") {
-          setShowRestoreConfirm(false);
-          addToast(
-            "لا توجد نسخة سحابية",
-            "عفواً، لم نجد نسخة احتياطية سحابية محفوظة سابقاً في هذا الموقع.",
-            "warning",
-          );
-        } else {
-          const demo = GET_DEMO_DATA();
-          setData(demo);
-          sessionStorage.setItem("hideSampleDataPrompt", "true");
-          setShowRestoreConfirm(false);
-          addToast(
-            "تم ملء البيانات التجريبية",
-            "ما لقينا نسخة احتياطية سابقة بالمتصفح، فملأنا لك النظام ببيانات ترويجية جاهزة للاستكشاف والتحليل.",
-            "info",
-          );
-        }
+        return;
       }
+
+      const restoredState = recoveryEnvelope.data as AppState;
+      const restoredFingerprint = await sha256Hex(
+        stableRecoveryStringify(restoredState),
+      );
+      if (
+        typeof recoveryEnvelope.dataFingerprint !== "string" ||
+        restoredFingerprint !== recoveryEnvelope.dataFingerprint
+      ) {
+        throw new Error("INVALID_CLOUD_RECOVERY_FINGERPRINT");
+      }
+      const hasValidStructure =
+        Array.isArray(restoredState.invoices) &&
+        Array.isArray(restoredState.orders) &&
+        Array.isArray(restoredState.customers) &&
+        Array.isArray(restoredState.products) &&
+        Array.isArray(restoredState.expenses);
+      if (!hasValidStructure) {
+        throw new Error("INVALID_CLOUD_RECOVERY_SNAPSHOT");
+      }
+
+      addToast(
+        "جاري الاسترجاع السحابي",
+        "تم التحقق من النسخة، ويجري الآن اعتمادها وقراءة الفواتير والطلبات بعد الحفظ.",
+        "info",
+      );
+      const saved = await onCloudImport(restoredState);
+      if (!saved) throw new Error("CLOUD_RESTORE_NOT_CONFIRMED");
+
+      sessionStorage.setItem("hideSampleDataPrompt", "true");
+      setShowRestoreConfirm(false);
+      addToast(
+        "تم الاسترجاع السحابي",
+        "استُعيدت البيانات كاملة، وتم اعتمادها سحابياً والتحقق من الفواتير والطلبات بنجاح ☁️",
+        "success",
+      );
     } catch (e) {
       console.error("Restore error", e);
       addToast(
         "فشلت الاستعادة",
-        "حدث خطأ غير متوقع أثناء تفكيك بيانات النسخة الاحتياطية.",
+        "لم يتم اعتماد أي استرجاع غير مؤكد. تأكد من الاتصال السحابي ثم أعد المحاولة.",
         "warning",
       );
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -5819,8 +5916,15 @@ const GeneralSettings: React.FC<Props> = ({
                       {(() => {
                         const hasData =
                           (data.invoices && data.invoices.length > 0) ||
-                          (data.products && data.products.length > 0);
-                        const isDisabled = hasData;
+                          (data.orders && data.orders.length > 0) ||
+                          (data.products && data.products.length > 0) ||
+                          (data.customers && data.customers.length > 0) ||
+                          (data.expenses && data.expenses.length > 0) ||
+                          (data.suppliers && data.suppliers.length > 0) ||
+                          (data.supplierTransfers &&
+                            data.supplierTransfers.length > 0);
+                        const isDisabled =
+                          hasData || isRestoring || isResetting;
 
                         return (
                           <button
@@ -5904,6 +6008,7 @@ const GeneralSettings: React.FC<Props> = ({
 
                       <button
                         onClick={() => setShowResetConfirm(true)}
+                        disabled={isResetting || isRestoring}
                         className="w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
                       >
                         <Trash2
@@ -5951,9 +6056,10 @@ const GeneralSettings: React.FC<Props> = ({
                           هل أنت متأكد؟
                         </h3>
                         <p className="text-slate-500 font-bold mb-8 leading-relaxed">
-                          هذا الإجراء سيقوم بحذف{" "}
+                          هذا الإجراء سينظف{" "}
                           <span className="text-rose-600 underline">كافة</span>{" "}
-                          بيانات المبيعات والعملاء والمصروفات نهائياً.
+                          بيانات المبيعات والعملاء والمصروفات، بعد حفظ نسخة
+                          استرجاع سحابية مؤكدة.
                         </p>
                       </div>
                       <div className="flex flex-col gap-3 pt-5 mt-auto border-t border-slate-100 bg-white">
@@ -5983,7 +6089,9 @@ const GeneralSettings: React.FC<Props> = ({
                   <div
                     className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4 text-right"
                     dir="rtl"
-                    onClick={() => setShowRestoreConfirm(false)}
+                    onClick={() =>
+                      !isRestoring && setShowRestoreConfirm(false)
+                    }
                   >
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -6010,12 +6118,18 @@ const GeneralSettings: React.FC<Props> = ({
                       <div className="flex flex-col gap-3 pt-5 mt-auto border-t border-slate-100 bg-white">
                         <button
                           onClick={handleRestoreBackup}
-                          className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
+                          disabled={isRestoring || isResetting}
+                          className="w-full py-4 bg-indigo-600 disabled:opacity-60 disabled:cursor-wait text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-600/20"
                         >
-                          نعم، استرجع كافة البيانات
+                          {isRestoring
+                            ? "جاري الاسترجاع والتحقق..."
+                            : "نعم، استرجع كافة البيانات"}
                         </button>
                         <button
-                          onClick={() => setShowRestoreConfirm(false)}
+                          onClick={() =>
+                            !isRestoring && setShowRestoreConfirm(false)
+                          }
+                          disabled={isRestoring}
                           className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                         >
                           تراجع
