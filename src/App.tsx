@@ -134,6 +134,7 @@ import { splitProductsForDatabase, joinProductsFromDatabase } from './lib/utils'
 import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications';
 import { hasMeaningfulData, safeMergeData } from './lib/dataGuard';
 import { useLiveFaviconStatus } from './lib/faviconStatus';
+import { restoreBootInlineAssets } from './lib/bootAssetTransport';
 
 // ── Cloud-only data policy ───────────────────────────────────────────────────
 // The browser never stores or restores an operational copy of company data.
@@ -3149,7 +3150,8 @@ const MainApp: React.FC = () => {
               } catch {}
             }
 
-            let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...fastPayload.data });
+            const restoredBootData = restoreBootInlineAssets(fastPayload);
+            let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...restoredBootData });
             const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
             authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
             cloudRootExistsRef.current = true;
