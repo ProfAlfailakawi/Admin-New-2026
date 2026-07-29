@@ -608,6 +608,11 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const [botTextsBusy, setBotTextsBusy] = useState(false);
   const [dataCheck, setDataCheck] = useState<{ loading: boolean; result: any }>({ loading: false, result: null });
   const [bridge, setBridge] = useState<any>(null);
+  const [recovery, setRecovery] = useState<any>(null);
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [repairingBridge, setRepairingBridge] = useState(false);
+  const [brainTest, setBrainTest] = useState<any>(null);
+  const [brainTestBusy, setBrainTestBusy] = useState(false);
   // The banner waits for a fault to repeat before it appears — see the polling effect.
   const [bridgeFaultConfirmed, setBridgeFaultConfirmed] = useState(false);
   const badReadings = useRef(0);
@@ -778,7 +783,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const [restartingBridge, setRestartingBridge] = useState(false);
   // One click replaces the old "SSH into the VM" ritual: the flag rides back on the
-  // bridge's next heartbeat (≤30s) and systemd starts it fresh.
+  // bridge's next heartbeat (≤30s) and the Mac's launchd supervisor starts it fresh.
   const restartBridge = async () => {
     if (restartingBridge) return;
     setRestartingBridge(true);
@@ -832,6 +837,82 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       showNotice('error', e?.message || 'تعذر فحص البيانات');
     }
   };
+
+  const loadRecoveryCenter = async (announce = false) => {
+    if (recoveryBusy) return;
+    setRecoveryBusy(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/recovery-center', { cache: 'no-store' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تشخيص الواتساب');
+      setRecovery(json);
+      setBrainTest(json.bot?.tests ? {
+        ok: json.bot.ok,
+        passed: json.bot.testsPassed,
+        total: json.bot.testsTotal,
+        checks: json.bot.tests,
+      } : null);
+      if (json.bridge) setBridge({ ...json.bridge, transport: json.transport });
+      if (announce) {
+        showNotice(
+          json.diagnosis?.severity === 'ok' ? 'success'
+            : json.diagnosis?.severity === 'critical' ? 'error' : 'info',
+          json.diagnosis?.title || 'اكتمل التشخيص',
+        );
+      }
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تشخيص الواتساب');
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
+  const autoRepairBridge = async () => {
+    if (repairingBridge) return;
+    setRepairingBridge(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/auto-repair', { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر تشغيل الإصلاح التلقائي');
+      showNotice(json.queued ? 'success' : json.action === 'relink' ? 'info' : 'success', json.note || 'تم فحص الإصلاح');
+      await loadRecoveryCenter(false);
+      // The restart flag is picked up on a heartbeat, then the supervised service
+      // returns. Refresh twice so the owner sees "قيد التنفيذ" and then the result
+      // without reloading the whole dashboard.
+      window.setTimeout(() => { void loadRecoveryCenter(false); }, 15000);
+      window.setTimeout(() => { void loadRecoveryCenter(false); }, 45000);
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر تشغيل الإصلاح التلقائي');
+    } finally {
+      setRepairingBridge(false);
+    }
+  };
+
+  const runBotBrainSelfTest = async () => {
+    if (brainTestBusy) return;
+    setBrainTestBusy(true);
+    try {
+      const res = await waAuthFetch('/api/whatsapp/bot-self-test', { method: 'POST' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'تعذر اختبار مخ البوت');
+      setBrainTest(json.brain);
+      showNotice(
+        json.brain?.ok ? 'success' : 'error',
+        json.brain?.ok
+          ? `مخ البوت سليم — نجح ${json.brain.passed}/${json.brain.total} ولم تُرسل رسالة لأحد`
+          : `فشل ${Number(json.brain?.total || 0) - Number(json.brain?.passed || 0)} من اختبارات مخ البوت`,
+      );
+    } catch (e: any) {
+      showNotice('error', e?.message || 'تعذر اختبار مخ البوت');
+    } finally {
+      setBrainTestBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (centerTab === 'device' && !recovery && !recoveryBusy) void loadRecoveryCenter(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [centerTab]);
 
   // The bot can queue a perfect reply and still deliver nothing if the bridge is down —
   // that failure is silent by nature, so the console has to say it out loud.
@@ -1496,7 +1577,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           { id: 'ratings', label: 'التقييمات', icon: '⭐', badge: Number(ratings?.count || 0), tone: 'slate' },
           // Everything about the bridge's health lives here, so a stuck bot is fixed
           // from one place instead of hunting across the console.
-          { id: 'device', label: 'جهاز الواتساب', icon: bridge?.connected === false ? '🔴' : '📱', badge: 0, tone: 'rose' },
+          { id: 'device', label: 'إنقاذ الواتساب', icon: bridge?.connected === false ? '🔴' : '🛟', badge: 0, tone: 'rose' },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -1768,22 +1849,76 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="font-black text-slate-900 flex items-center gap-2">📱 جهاز الواتساب</div>
-            <div className="mt-1 text-[11px] font-bold text-slate-400">حالة الجهاز · إعادة التشغيل · إعادة الربط — كل شي من هنا</div>
+            <div className="font-black text-slate-900 flex items-center gap-2">🛟 مركز إنقاذ الواتساب</div>
+            <div className="mt-1 text-[11px] font-bold text-slate-400">يعرف العطل بالضبط ويشغّل الإجراء الصحيح — بدون تعديل كود</div>
+            {recovery?.checkedAt && (
+              <div className="mt-1 text-[10px] font-bold text-slate-400">آخر تشخيص: {formatTime(recovery.checkedAt)}</div>
+            )}
           </div>
-          <span className={cn(
-            'rounded-2xl px-4 py-2 text-xs font-black border',
-            bridge?.connected ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-              : bridge?.reason === 'needs_auth' ? 'bg-amber-50 border-amber-200 text-amber-700'
-              : 'bg-rose-50 border-rose-200 text-rose-700',
-          )}>
-            {bridge?.connected ? '🟢 يعمل'
-              : bridge?.reason === 'needs_auth' ? '🔑 يحتاج ربط'
-              : bridge?.reason === 'starting' ? '🟡 يشتغل'
-              : bridge?.reason === 'queue_stuck' ? '🔴 الطابور متعثّر'
-              : bridge ? '🔴 مفصول' : '…'}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void loadRecoveryCenter(true)}
+              disabled={recoveryBusy}
+              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-50 flex items-center gap-2"
+            >
+              {recoveryBusy ? <Loader2 size={14} className="animate-spin" /> : '🔍'} تشخيص الآن
+            </button>
+            <span className={cn(
+              'rounded-2xl px-4 py-2 text-xs font-black border',
+              bridge?.connected ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : bridge?.reason === 'needs_auth' ? 'bg-amber-50 border-amber-200 text-amber-700'
+                : 'bg-rose-50 border-rose-200 text-rose-700',
+            )}>
+              {bridge?.connected ? '🟢 يعمل'
+                : bridge?.reason === 'needs_auth' ? '🔑 يحتاج ربط'
+                : bridge?.reason === 'starting' ? '🟡 يشتغل'
+                : bridge?.reason === 'queue_stuck' ? '🔴 الطابور متعثّر'
+                : bridge ? '🔴 مفصول' : '…'}
+            </span>
+          </div>
         </div>
+
+        {recovery?.diagnosis && (
+          <div className={cn(
+            'mb-4 rounded-2xl border-2 p-4',
+            recovery.diagnosis.severity === 'ok'
+              ? 'border-emerald-200 bg-emerald-50/70'
+              : recovery.diagnosis.severity === 'critical'
+                ? 'border-rose-300 bg-rose-50/80'
+                : 'border-amber-300 bg-amber-50/80',
+          )}>
+            <div className={cn(
+              'text-sm font-black',
+              recovery.diagnosis.severity === 'ok' ? 'text-emerald-800'
+                : recovery.diagnosis.severity === 'critical' ? 'text-rose-800' : 'text-amber-900',
+            )}>
+              {recovery.diagnosis.severity === 'ok' ? '✅' : recovery.diagnosis.severity === 'critical' ? '🔴' : '🟡'}
+              {' '}{recovery.diagnosis.title}
+            </div>
+            <div className="mt-1.5 text-[12px] font-bold leading-6 text-slate-600">{recovery.diagnosis.explanation}</div>
+            {Array.isArray(recovery.diagnosis.steps) && recovery.diagnosis.steps.length > 0 && (
+              <ol className="mt-2 space-y-1 text-[11px] font-bold text-slate-600">
+                {recovery.diagnosis.steps.map((step: string, index: number) => (
+                  <li key={`${index}-${step}`} className="flex items-start gap-2">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-slate-700">{index + 1}</span>
+                    <span className="leading-5">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        )}
+
+        {recovery?.control?.restartPending && (
+          <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-[11px] font-black text-sky-800">
+            ⏳ طلب الإصلاح محفوظ وينتظر الجهاز
+            {recovery.control.restartRequestedMinutesAgo !== null
+              ? ` منذ ${recovery.control.restartRequestedMinutesAgo} دقيقة`
+              : ''}.
+            {' '}عند أول نبضة يستلمه الجهاز ويعيد تشغيل نفسه.
+          </div>
+        )}
 
         {/* The pairing code, drawn from block characters the bridge sent. It never
             passes through an external QR service — a WhatsApp session key stays ours. */}
@@ -1810,11 +1945,40 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+        {Array.isArray(recovery?.checks) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2 mb-4">
+            {recovery.checks.map((check: any) => (
+              <div key={check.id} className={cn(
+                'rounded-2xl border p-3',
+                check.status === 'ok' ? 'border-emerald-100 bg-emerald-50/60'
+                  : check.status === 'critical' ? 'border-rose-200 bg-rose-50/60'
+                  : check.status === 'action' ? 'border-amber-200 bg-amber-50/70'
+                  : 'border-slate-200 bg-slate-50/70',
+              )}>
+                <div className={cn(
+                  'text-[11px] font-black',
+                  check.status === 'ok' ? 'text-emerald-800'
+                    : check.status === 'critical' ? 'text-rose-800'
+                    : check.status === 'action' ? 'text-amber-800' : 'text-slate-700',
+                )}>
+                  {check.status === 'ok' ? '✅' : check.status === 'critical' ? '🔴' : check.status === 'action' ? '🔑' : '🟡'}
+                  {' '}{check.label}
+                </div>
+                <div className="mt-1 text-[10px] font-bold leading-5 text-slate-500">{check.detail}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mb-4">
           {[
             { label: 'آخر نبضة', value: bridge ? `${bridge.minutesSinceSeen} د` : '—' },
+            { label: 'آخر سحب ناجح', value: bridge?.lastPollOkAt ? formatTime(bridge.lastPollOkAt) : '—' },
             { label: 'الرقم', value: bridge?.account || '—' },
             { label: 'فشل الطابور', value: String(bridge?.pollFailures ?? 0) },
+            { label: 'بانتظار الإرسال', value: String(recovery?.queue?.pending ?? '—') },
+            { label: 'عالق بالإرسال', value: String(recovery?.queue?.stuckProcessing ?? '—') },
+            { label: 'اختبار المخ', value: recovery?.bot ? `${recovery.bot.testsPassed}/${recovery.bot.testsTotal}` : '—' },
             { label: 'الإصلاح الذاتي', value: 'مفعّل' },
           ].map((k) => (
             <div key={k.label} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3 text-center">
@@ -1825,6 +1989,15 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={autoRepairBridge}
+            disabled={repairingBridge}
+            title="يشخّص ثم يطلب إعادة تشغيل آمنة فقط إذا كان العطل يحتاجها"
+            className="rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {repairingBridge ? <Loader2 size={14} className="animate-spin" /> : '🛟'} إصلاح تلقائي
+          </button>
           <button
             type="button"
             onClick={restartBridge}
@@ -1843,10 +2016,49 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           >
             {relinkingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔑'} إعادة ربط (QR جديد)
           </button>
+          <button
+            type="button"
+            onClick={runBotBrainSelfTest}
+            disabled={brainTestBusy}
+            title="يشغّل المنيو والترحيب والمساعدة داخليًا، من دون مراسلة أي زبون"
+            className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-2.5 text-xs font-black text-violet-800 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-2"
+          >
+            {brainTestBusy ? <Loader2 size={14} className="animate-spin" /> : '🧠'} اختبار مخ البوت
+          </button>
         </div>
 
+        {brainTest && Array.isArray(brainTest.checks) && (
+          <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
+            <div className="text-[11px] font-black text-violet-900">
+              🧠 نتيجة مخ البوت: {brainTest.ok ? `سليم — ${brainTest.passed}/${brainTest.total}` : `يحتاج انتباه — ${brainTest.passed}/${brainTest.total}`}
+            </div>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+              {brainTest.checks.map((check: any) => (
+                <div key={check.id} className="rounded-xl border border-white bg-white/80 p-2.5">
+                  <div className={cn('text-[11px] font-black', check.ok ? 'text-emerald-700' : 'text-rose-700')}>
+                    {check.ok ? '✅' : '🔴'} {check.label}
+                  </div>
+                  <div className="mt-1 text-[10px] font-bold leading-5 text-slate-500">
+                    {check.ok ? check.preview : check.error || 'لم ينتج ردًا'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 text-[10px] font-bold text-violet-600">اختبار داخلي فقط — لم تُرسل أي رسالة ولم تتغير أي محادثة.</div>
+          </div>
+        )}
+
+        {recovery?.queue?.latestFailure?.label && (
+          <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/50 p-3 text-[11px] font-bold leading-6 text-amber-800">
+            آخر سبب فشل محفوظ: <span className="font-black">{recovery.queue.latestFailure.label}</span>
+            {recovery.queue.latestFailure.detail ? <span className="block text-[10px] text-amber-700">{recovery.queue.latestFailure.detail}</span> : null}
+          </div>
+        )}
+
         <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/40 p-3 text-[11px] font-bold text-slate-500 leading-6">
-          الجهاز يصلّح نفسه تلقائيًا لو تعلّق، ويوصلك إشعار لو احتاج ربطًا. أغلب الأعطال تُحل بدون تدخلك.
+          الخدمة تصلّح نفسها تلقائيًا إذا تعلّقت، و«إصلاح تلقائي» يطلب إعادة تشغيل آمنة من هنا.
+          إذا كان الماك مطفأ أو بلا إنترنت فلا توجد لوحة ويب تستطيع تشغيل جهاز مطفأ؛ بمجرد تشغيله وعودة الإنترنت تبدأ الخدمة تلقائيًا.
+          لا تستخدم «QR جديد» إلا عندما يقول التشخيص إن الجلسة تحتاج ربطًا.
         </div>
       </section>
       )}
