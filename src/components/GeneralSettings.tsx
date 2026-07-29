@@ -111,6 +111,11 @@ const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   "ktk_expected_admin_reset_generation_id";
 const CLOUD_RECOVERY_SHARD_KEY = "__adminRecoverySnapshot";
 const CLOUD_RECOVERY_FORMAT_VERSION = 1;
+const PUSH_NOTIFICATION_RECIPIENT_EMAILS = new Set([
+  "volcanokw@gmail.com",
+  "mfq241188@gmail.com",
+  "omaralawadhi67@gmail.com",
+]);
 
 const stableRecoveryStringify = (value: any): string => {
   if (Array.isArray(value)) {
@@ -2039,11 +2044,18 @@ const GeneralSettings: React.FC<Props> = ({
     const token = localStorage.getItem("last_push_token") || "";
     const enabledAt = localStorage.getItem("push_enabled_at") || "";
     const refreshedAt = localStorage.getItem("push_last_silent_refresh") || "";
+    const currentUserEmail = String(auth?.currentUser?.email || "").trim().toLowerCase();
     const base = buildPushDeviceSnapshot(
       {
         id: "current-browser",
         label: "Current browser",
         token,
+        userId: auth?.currentUser?.uid || "",
+        userEmail: currentUserEmail,
+        userName: auth?.currentUser?.displayName || currentUserEmail,
+        userRole: AUTHORIZED_PARTNERS.includes(currentUserEmail)
+          ? "partner"
+          : "admin",
         platform: /iPhone|iPad|iPod/i.test(navigator.userAgent)
           ? "iPhone"
           : "web",
@@ -2084,7 +2096,12 @@ const GeneralSettings: React.FC<Props> = ({
     directory: Map<string, PushUserIdentity> = pushUserDirectory,
   ): Promise<PushDeviceSnapshot[]> => {
     const localDevices = readLocalPushDeviceSnapshots(logs, directory);
-    if (appMode !== "cloud" || !db) return localDevices;
+    const allowedLocalDevices = localDevices.filter((device) =>
+      PUSH_NOTIFICATION_RECIPIENT_EMAILS.has(
+        String(device.userEmail || "").trim().toLowerCase(),
+      ),
+    );
+    if (appMode !== "cloud" || !db) return allowedLocalDevices;
     try {
       const snapshot = await getDocs(collection(db, "pushTokens"));
       const serverDevices = snapshot.docs.map((pushDoc, index) =>
@@ -2096,19 +2113,30 @@ const GeneralSettings: React.FC<Props> = ({
           directory,
         ),
       );
-      return [...serverDevices, ...localDevices]
+      const approvedDevices = [...serverDevices, ...allowedLocalDevices]
+        .filter((device) =>
+          PUSH_NOTIFICATION_RECIPIENT_EMAILS.has(
+            String(device.userEmail || "").trim().toLowerCase(),
+          ),
+        )
         .filter(
           (item, index, arr) =>
             arr.findIndex((x) => x.token === item.token || x.id === item.id) ===
             index,
         )
         .sort((a, b) => getPushDeviceScore(b) - getPushDeviceScore(a));
+      const newestByRecipient = new Map<string, PushDeviceSnapshot>();
+      approvedDevices.forEach((device) => {
+        const email = String(device.userEmail || "").trim().toLowerCase();
+        if (!newestByRecipient.has(email)) newestByRecipient.set(email, device);
+      });
+      return [...newestByRecipient.values()];
     } catch (error) {
       console.warn(
         "[Push] read all devices failed, showing local snapshot only:",
         error,
       );
-      return localDevices;
+      return allowedLocalDevices;
     }
   };
 
