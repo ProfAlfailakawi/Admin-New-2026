@@ -370,19 +370,15 @@ async function sendHeartbeat(state = 'online') {
     // A re-link wipes the saved session, so the next start has nothing to resume from
     // and WhatsApp issues a fresh pairing code.
     if (payload?.relinkRequested && !shuttingDown) {
-      console.warn('🔑 وصل طلب إعادة ربط من لوحة التحكم — مسح الجلسة وطلب رمز جديد.');
-      try {
-        const authDir = path.join(sessionPath, `session-${deviceId}`);
-        fs.rmSync(authDir, { recursive: true, force: true });
-      } catch (error) {
-        console.warn('⚠️ تعذر مسح مجلد الجلسة:', error?.message || error);
-      }
-      setTimeout(() => process.exit(0), 500);
+      console.warn('🔑 وصل طلب إعادة ربط من لوحة التحكم — تجهيز جلسة جديدة بشكل آمن.');
+      // Exit 76 tells the resident runner to quarantine the old session only after
+      // Chrome has stopped. Deleting a live profile was a common source of corruption.
+      setTimeout(() => process.exit(76), 500);
       return;
     }
     if (payload?.restartRequested && !shuttingDown) {
       console.log('🔄 وصل طلب إعادة تشغيل من لوحة التحكم — إعادة تشغيل الجسر الآن.');
-      setTimeout(() => process.exit(0), 500);
+      setTimeout(() => process.exit(75), 500);
     }
   } catch (error) {
     if (!shuttingDown) console.warn('⚠️ تعذر إرسال نبضة الاتصال:', error?.message || error);
@@ -692,12 +688,12 @@ function watchdogTick() {
 
   if (!ready && startingSince && Date.now() - startingSince > SELF_HEAL_START_TIMEOUT_MS) {
     console.warn('🔁 لم يكتمل التشغيل خلال 5 دقائق — إعادة تشغيل ذاتية.');
-    setTimeout(() => process.exit(0), 500);   // service-runner/systemd starts a fresh one
+    setTimeout(() => process.exit(75), 500);   // resident runner starts a fresh one
     return;
   }
   if (pollFailures >= SELF_HEAL_POLL_FAILURES) {
     console.warn(`🔁 تعذّر قراءة الطابور ${pollFailures} مرة — إعادة تشغيل ذاتية.`);
-    setTimeout(() => process.exit(0), 500);
+    setTimeout(() => process.exit(75), 500);
   }
 }
 
@@ -751,7 +747,13 @@ client.on('authenticated', () => {
 });
 
 client.on('auth_failure', (message) => {
+  ready = false;
+  needsAuthScan = true;
   console.error('❌ فشل توثيق واتساب:', message);
+  void sendHeartbeat('needs_auth');
+  // A broken LocalAuth profile cannot heal by reopening the same files forever.
+  // Exit 76 asks the runner to quarantine it recoverably and request a fresh QR.
+  if (!shuttingDown) setTimeout(() => process.exit(76), 1500);
 });
 
 client.on('ready', async () => {
