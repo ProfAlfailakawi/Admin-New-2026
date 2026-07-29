@@ -2,12 +2,10 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
-import { installAISelfTrainingScheduler } from './lib/aiLearningCore';
 import App from './App.tsx';
 import './index.css';
 
 installLocalStorageDataGuard();
-installAISelfTrainingScheduler();
 
 // Clear previous IDB crash flag after 5 seconds of successful boot
 setTimeout(() => {
@@ -39,3 +37,18 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>
 );
+
+// Local AI self-training is optional background work. Loading it synchronously held
+// the first paint behind code that the user cannot see. Start it after the shell has
+// rendered; the timeout fallback keeps the behavior on Safari where idle callbacks
+// may be unavailable.
+const startAILearning = () => {
+  void import('./lib/aiLearningCore')
+    .then(({ installAISelfTrainingScheduler }) => installAISelfTrainingScheduler())
+    .catch(() => {});
+};
+if (typeof window.requestIdleCallback === 'function') {
+  window.requestIdleCallback(startAILearning, { timeout: 1500 });
+} else {
+  window.setTimeout(startAILearning, 700);
+}
