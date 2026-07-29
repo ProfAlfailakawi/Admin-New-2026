@@ -711,6 +711,16 @@ function startWorkers() {
   void sendHeartbeat('online');
 }
 
+function startSupervisionWorkers() {
+  clearInterval(heartbeatTimer);
+  clearInterval(watchdogTimer);
+  heartbeatTimer = setInterval(() => void sendHeartbeat(), 30000);
+  watchdogTimer = setInterval(watchdogTick, 30000);
+  // Publish "starting" immediately. Without this, a bridge waiting for its first
+  // QR/ready event is alive locally but remains invisible to the dashboard.
+  void sendHeartbeat('starting');
+}
+
 const client = new Client({
   authStrategy: new LocalAuth({
     clientId: deviceId,
@@ -740,10 +750,12 @@ client.on('qr', (qr) => {
     console.log(qrText);
     openQrInSafari(qrText);
   });
+  void sendHeartbeat('needs_auth');
 });
 
 client.on('authenticated', () => {
   console.log('🔐 تم توثيق جلسة واتساب وحفظها محلياً.');
+  void sendHeartbeat('authenticated');
 });
 
 client.on('auth_failure', (message) => {
@@ -789,6 +801,7 @@ client.on('disconnected', async (reason) => {
   clearInterval(pollTimer);
   clearInterval(heartbeatTimer);
   clearInterval(inboundPollTimer);
+  clearInterval(watchdogTimer);
   console.error('⚠️ انقطع اتصال واتساب:', reason);
   await sendHeartbeat('disconnected');
   if (!shuttingDown) {
@@ -804,6 +817,7 @@ async function shutdown(signal, exitCode = 0) {
   clearInterval(pollTimer);
   clearInterval(heartbeatTimer);
   clearInterval(inboundPollTimer);
+  clearInterval(watchdogTimer);
   console.log(`\nإيقاف آمن (${signal})...`);
   await sendHeartbeat('offline');
   await client.destroy().catch(() => {});
@@ -828,4 +842,5 @@ console.log(`السيرفر: ${baseUrl}`);
 console.log(`مجلد الجلسة: ${sessionPath}`);
 acquireSingleInstanceLock();
 startingSince = Date.now();   // watchdog starts counting toward "never became ready"
+startSupervisionWorkers();
 await client.initialize();

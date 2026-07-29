@@ -165,6 +165,27 @@ const saveCloudSnapshotMirror = (_snapshotStr: string | null | undefined) => {};
 const BOOT_PREWARM_TTL_MS = 30_000;
 const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   'ktk_expected_admin_reset_generation_id';
+
+// Older root snapshots can contain the generation marker as a JSON-encoded string
+// (for example: "\"admin-data-reset-...\""). Treat that transport artifact as
+// the same generation instead of rejecting the fast boot payload and falling back
+// to the much slower browser Firestore fan-out.
+const normalizeAdminDataGenerationId = (value: unknown): string => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('"') && raw.endsWith('"')) {
+    try {
+      const decoded = JSON.parse(raw);
+      if (
+        typeof decoded === 'string' &&
+        /^admin-data(?:-reset)?-/i.test(decoded)
+      ) {
+        return decoded;
+      }
+    } catch {}
+  }
+  return raw;
+};
 // First attempt is short: a warm instance answers in <1s, so we don't want to wait
 // long before deciding a cold start is underway. Retry attempts are patient: once
 // the instance is booting, we must give its boot-cache read room to finish.
@@ -1267,50 +1288,65 @@ const MainApp: React.FC = () => {
   const [cloudChecking, setCloudChecking] = useState(true);
   const [retryingOffline, setRetryingOffline] = useState(false);
   const cloudProbeSequenceRef = useRef(0);
+  const cloudProbePromiseRef = useRef<Promise<boolean> | null>(null);
 
   const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
-    const sequence = ++cloudProbeSequenceRef.current;
-    const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
-    if (!browserOnline) {
-      if (sequence === cloudProbeSequenceRef.current) {
-        setCloudChecking(false);
-        setIsOnline(false);
+    let request = cloudProbePromiseRef.current;
+    if (!request) {
+      const sequence = ++cloudProbeSequenceRef.current;
+      const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
+      if (!browserOnline) {
+        if (sequence === cloudProbeSequenceRef.current) {
+          setCloudChecking(false);
+          setIsOnline(false);
+        }
+        return false;
       }
-      return false;
+
+      setCloudChecking(true);
+      request = (async () => {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 5_500);
+        try {
+          const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+            headers: { 'x-ktk-cloud-probe': '1' },
+          });
+          const payload = await response.json().catch(() => null);
+          const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
+          if (sequence === cloudProbeSequenceRef.current) {
+            setIsOnline(healthy);
+            setCloudChecking(false);
+          }
+          return healthy;
+        } catch {
+          if (sequence === cloudProbeSequenceRef.current) {
+            setIsOnline(false);
+            setCloudChecking(false);
+          }
+          return false;
+        } finally {
+          window.clearTimeout(timeoutId);
+        }
+      })();
+      cloudProbePromiseRef.current = request;
+      request.finally(() => {
+        if (cloudProbePromiseRef.current === request) {
+          cloudProbePromiseRef.current = null;
+        }
+      }).catch(() => {});
     }
 
-    setCloudChecking(true);
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 5_500);
-    try {
-      const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
-        cache: 'no-store',
-        signal: controller.signal,
-        headers: { 'x-ktk-cloud-probe': '1' },
+    const healthy = await request;
+    if (showFeedback && healthy) {
+      toast.success('عاد الاتصال بالسحابة ✨', {
+        description: 'تم التحقق من Firestore، وعاد النظام للعمل والحفظ بأمان.',
+        position: 'bottom-right',
+        className: 'arabic-font',
       });
-      const payload = await response.json().catch(() => null);
-      const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
-      if (sequence === cloudProbeSequenceRef.current) {
-        setIsOnline(healthy);
-        setCloudChecking(false);
-      }
-      if (showFeedback && healthy) {
-        toast.success('عاد الاتصال بالسحابة ✨', {
-          description: 'تم التحقق من Firestore، وعاد النظام للعمل والحفظ بأمان.',
-          position: 'bottom-right',
-          className: 'arabic-font',
-        });
-      }
-      return healthy;
-    } catch {
-      if (sequence === cloudProbeSequenceRef.current) {
-        setIsOnline(false);
-        setCloudChecking(false);
-      }
-      return false;
-    } finally {
-      window.clearTimeout(timeoutId);
     }
+    return healthy;
   }, []);
 
   const handleManualRetryOffline = async () => {
@@ -3126,12 +3162,14 @@ const MainApp: React.FC = () => {
           if (fastPayload?.success && fastPayload?.data) {
             const expectedResetGenerationId = (() => {
               try {
-                return localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || '';
+                return normalizeAdminDataGenerationId(
+                  localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY),
+                );
               } catch {
                 return '';
               }
             })();
-            const fastPayloadGenerationId = String(
+            const fastPayloadGenerationId = normalizeAdminDataGenerationId(
               fastPayload.data.__adminDataGenerationId || '',
             );
 
@@ -3151,6 +3189,9 @@ const MainApp: React.FC = () => {
             }
 
             const restoredBootData = restoreBootInlineAssets(fastPayload);
+            if (fastPayloadGenerationId) {
+              restoredBootData.__adminDataGenerationId = fastPayloadGenerationId;
+            }
             let loadedState: any = joinProductsFromDatabase({ ...INITIAL_DATA, ...restoredBootData });
             const rootWrittenAt = new Date(loadedState.__adminLastAuthoritativeWriteAt || '').getTime();
             authoritativeDataWrittenAtRef.current = Number.isFinite(rootWrittenAt) ? rootWrittenAt : 0;
@@ -3284,14 +3325,20 @@ const MainApp: React.FC = () => {
 
         if (rootSnap.exists()) {
           cloudRootExistsRef.current = true;
-	          const rawRootData = rootSnap.data() as any;
+          const rawRootData = rootSnap.data() as any;
           try {
-            const expectedResetGenerationId =
-              localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY) || '';
+            const expectedResetGenerationId = normalizeAdminDataGenerationId(
+              localStorage.getItem(ADMIN_RESET_EXPECTED_GENERATION_KEY),
+            );
+            const rootGenerationId = normalizeAdminDataGenerationId(
+              rawRootData.__adminDataGenerationId,
+            );
+            if (rootGenerationId) {
+              rawRootData.__adminDataGenerationId = rootGenerationId;
+            }
             if (
               expectedResetGenerationId &&
-              String(rawRootData.__adminDataGenerationId || '') ===
-                expectedResetGenerationId
+              rootGenerationId === expectedResetGenerationId
             ) {
               localStorage.removeItem(ADMIN_RESET_EXPECTED_GENERATION_KEY);
             }

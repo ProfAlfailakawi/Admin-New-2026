@@ -94,8 +94,20 @@ function shouldRenotifyPush(alertType: string) {
     type.includes("paid") ||
     type.includes("captured") ||
     type.includes("success") ||
-    type.includes("failed")
+    type.includes("failed") ||
+    type.includes("pending_10min")
   );
+}
+
+function foregroundPushDedupeKey(notificationTag: string, alertType: string, eventId: string) {
+  const type = String(alertType || "general").toLowerCase();
+  const stage =
+    type.includes("pending") && (type.includes("10min") || type.includes("30min")) ? "pending-followup" :
+    type.includes("pending") ? "pending-initial" :
+    type.includes("failed") ? "failed" :
+    (type.includes("paid") || type.includes("captured") || type.includes("success")) ? "paid" :
+    type;
+  return `${notificationTag || eventId}:${stage}`;
 }
 
 function pushAckUrl() {
@@ -142,13 +154,13 @@ function startForegroundPushListener(messaging: Messaging) {
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
 
     const { title, body, url, eventId, alertType, notificationTag, image, icon, badge } = readPayloadText(payload);
-    const dedupeKey = `foreground_push_${eventId}`;
+    // Different server workers may carry different eventIds for the same semantic
+    // payment alert. Deduplicate by order notification tag + payment stage instead.
+    const dedupeKey = `foreground_push_${foregroundPushDedupeKey(notificationTag, alertType, eventId)}`;
     const lastShown = Number(sessionStorage.getItem(dedupeKey) || "0");
 
     const isPaymentAlert = String(alertType || "").toLowerCase().includes("payment") || String(alertType || "").toLowerCase().includes("invoice");
     if (lastShown && Date.now() - lastShown < (isPaymentAlert ? 5000 : 60 * 1000)) return;
-    sessionStorage.setItem(dedupeKey, String(Date.now()));
-    void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "received");
 
     const notificationOptions: any = {
       body,
@@ -165,6 +177,10 @@ function startForegroundPushListener(messaging: Messaging) {
     }
 
     const notification = new Notification(title, notificationOptions);
+    // Record receipt only after the browser accepted the notification. A constructor
+    // failure stays retryable and is never archived as a successful device delivery.
+    sessionStorage.setItem(dedupeKey, String(Date.now()));
+    void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "received");
 
     notification.onclick = () => {
       notification.close();

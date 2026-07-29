@@ -15,11 +15,16 @@ const serviceLog = path.join(logsDir, 'service.log');
 const maxBytes = clampNumber(process.env.WHATSAPP_LOG_MAX_BYTES, 512 * 1024, 50 * 1024 * 1024, 5 * 1024 * 1024);
 const keepFiles = clampNumber(process.env.WHATSAPP_LOG_KEEP_FILES, 1, 20, 5);
 const baseUrl = String(process.env.ALTURATH_BRIDGE_BASE_URL || '').trim().replace(/\/$/, '');
-const secret = String(process.env.WHATSAPP_BRIDGE_SECRET || '').trim();
+let secret = String(process.env.WHATSAPP_BRIDGE_SECRET || '').trim();
 const deviceId = String(process.env.WHATSAPP_BRIDGE_DEVICE_ID || 'alturath-mac-main').trim();
 const sessionPath = path.resolve(bridgeDir, String(process.env.WHATSAPP_SESSION_PATH || '.session'));
 const profileDir = path.join(sessionPath, `session-${deviceId}`);
 const dependencyMarker = path.join(bridgeDir, 'node_modules', 'whatsapp-web.js', 'package.json');
+const gcloudBin = String(process.env.GCLOUD_BIN || '/opt/homebrew/share/google-cloud-sdk/bin/gcloud').trim();
+const secretProject = String(process.env.WHATSAPP_SECRET_PROJECT || '').trim();
+const secretName = String(process.env.WHATSAPP_SECRET_NAME || '').trim();
+const secretRegion = String(process.env.WHATSAPP_SECRET_REGION || '').trim();
+const secretService = String(process.env.WHATSAPP_SECRET_SERVICE || '').trim();
 
 let stopping = false;
 let child = null;
@@ -88,6 +93,90 @@ function appendLog(file, chunk) {
 
 function serviceMessage(message) {
   appendLog(serviceLog, `[${new Date().toISOString()}] ${message}\n`);
+}
+
+function validSecret(value) {
+  const clean = String(value || '').trim();
+  return clean.length >= 64 && !/^REPLACE_|^FROM_/i.test(clean);
+}
+
+function runGcloud(args) {
+  if (!gcloudBin || !fs.existsSync(gcloudBin)) {
+    throw new Error('gcloud is not installed at the configured path');
+  }
+  const result = spawnSync(gcloudBin, args, {
+    encoding: 'utf8',
+    timeout: 25_000,
+    maxBuffer: 2 * 1024 * 1024,
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(String(result.stderr || `gcloud exited ${result.status}`).trim().slice(0, 500));
+  }
+  return String(result.stdout || '').trim();
+}
+
+// The bridge secret must never live in the website folder or in the delivery ZIP.
+// Resolve it at service start from the already-configured Cloud Run service (or
+// Secret Manager) and pass it only in the child process environment.
+function resolveBridgeSecret() {
+  if (validSecret(secret)) {
+    process.env.WHATSAPP_BRIDGE_SECRET = secret;
+    return true;
+  }
+
+  try {
+    let resolved = '';
+
+    if (secretProject && secretService && secretRegion) {
+      const raw = runGcloud([
+        'run',
+        'services',
+        'describe',
+        secretService,
+        `--project=${secretProject}`,
+        `--region=${secretRegion}`,
+        '--format=json',
+      ]);
+      const service = JSON.parse(raw);
+      const env = service?.spec?.template?.spec?.containers?.[0]?.env || [];
+      const entry = env.find((item) => item?.name === 'WHATSAPP_BRIDGE_SECRET');
+      resolved = String(entry?.value || '').trim();
+
+      const secretRef = String(entry?.valueFrom?.secretKeyRef?.name || '').trim();
+      if (!resolved && secretRef) {
+        resolved = runGcloud([
+          'secrets',
+          'versions',
+          'access',
+          'latest',
+          `--secret=${secretRef}`,
+          `--project=${secretProject}`,
+        ]);
+      }
+    } else if (secretProject && secretName) {
+      resolved = runGcloud([
+        'secrets',
+        'versions',
+        'access',
+        'latest',
+        `--secret=${secretName}`,
+        `--project=${secretProject}`,
+      ]);
+    }
+
+    if (!validSecret(resolved)) {
+      throw new Error('resolved bridge secret is missing or shorter than 64 characters');
+    }
+
+    secret = resolved;
+    process.env.WHATSAPP_BRIDGE_SECRET = resolved;
+    serviceMessage('bridge secret loaded securely from Google Cloud');
+    return true;
+  } catch (error) {
+    serviceMessage(`bridge secret unavailable; retrying safely: ${error?.message || error}`);
+    return false;
+  }
 }
 
 async function waitForInternet() {
@@ -166,6 +255,11 @@ async function runBridgeForever() {
   while (!stopping) {
     await waitForInternet();
     if (stopping) break;
+
+    if (!resolveBridgeSecret()) {
+      await sleep(30_000);
+      continue;
+    }
 
     if (!ensureDependencies()) {
       await sleep(30000);
