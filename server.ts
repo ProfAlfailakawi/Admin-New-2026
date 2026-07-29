@@ -61,8 +61,10 @@ try {
     const testSnap = await db.collection('pushTokens').limit(1).get();
     firebaseInitialized = true;
     console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
-    // Start warm-up / active real-time caching of the full appdata database
-    initBootCache().catch(console.error);
+    // Defer warm-up until the module has finished initializing. Calling it here,
+    // before `appDataCache` is initialized below, throws a temporal-dead-zone error
+    // and silently disables the fast boot cache for the entire process.
+    setImmediate(() => { void initBootCache().catch(console.error); });
   } catch (err: any) {
     console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
     if (err.message && err.message.includes("PERMISSION_DENIED")) {
@@ -2409,6 +2411,7 @@ async function waUpsertConversation(phone: string, patch: any = {}) {
     priority: patch.priority || undefined,
     unreadCount: patch.unreadCount,
     lastInboundText: patch.lastInboundText,
+    lastInboundAt: patch.lastInboundAt,
     lastOutboundText: patch.lastOutboundText,
     // When that last reply went out. Repeat-suppression needs it: without a clock it
     // compared against a reply from any point in the past.
@@ -4351,6 +4354,7 @@ async function waProcessInboundMessage({
     customerName: contactName || undefined,
     status: "open",
     lastInboundText: cleanText || `[${cleanType}]`,
+    lastInboundAt: waNowIso(),
     lastMessageText: cleanText || `[${cleanType}]`,
     lastMessageDirection: "inbound",
   });
@@ -4683,6 +4687,11 @@ async function waBridgeStatus() {
       connected: reason === "ok",
       reason,
       minutesSinceSeen,
+      lastSeenAt: waString(freshest.lastSeenAt),
+      lastPollOkAt: waString(freshest.lastPollOkAt),
+      state: waString(freshest.state || "unknown"),
+      ready: freshest.ready === undefined ? null : freshest.ready === true,
+      heartbeatFresh,
       needsAuthScan,
       pollFailures,
       // A restart cannot fix a missing QR scan; the console says so instead of
@@ -4695,10 +4704,325 @@ async function waBridgeStatus() {
       qrAgeSeconds: freshest.qrAt ? Math.max(0, Math.round((Date.now() - waDateMs(freshest.qrAt)) / 1000)) : null,
       deviceId: waString(freshest.deviceId),
       account: waMaskPhone(waString(freshest.account)),
+      clientVersion: waString(freshest.clientVersion),
     };
   } catch (error: any) {
     return { connected: false, reason: "error" as const, error: error?.message || String(error) };
   }
+}
+
+function waRecoveryMinutesSince(value: any) {
+  const ms = waDateMs(value);
+  return ms > 0 ? Math.max(0, Math.round((Date.now() - ms) / 60000)) : null;
+}
+
+function waRecoveryFailure(error: any) {
+  const raw = waString(error).trim();
+  if (!raw) return { code: "", label: "" };
+  const lower = raw.toLowerCase();
+  const label = /auth|session|registered|logout|pair|qr/.test(lower)
+    ? "جلسة واتساب منتهية أو غير مرتبطة"
+    : /network|fetch|timeout|timed out|econn|socket|internet|dns/.test(lower)
+      ? "تعذر الاتصال بخدمة واتساب أو الإنترنت"
+      : /wid|recipient|invalid.*number|not.*whatsapp/.test(lower)
+        ? "رقم المستلم غير صالح في واتساب"
+        : /rate|429|too many/.test(lower)
+          ? "واتساب أوقف الإرسال مؤقتًا بسبب كثرة الطلبات"
+          : "تعذر إرسال الرسالة بعد المحاولات";
+  return {
+    code: lower.includes("auth") || lower.includes("session") ? "session"
+      : lower.includes("timeout") ? "timeout"
+        : lower.includes("network") || lower.includes("fetch") ? "network"
+          : "send_failed",
+    // Keep enough detail to identify the library/provider fault, but never leak a
+    // customer's phone number or the message body into the diagnostic panel.
+    label,
+    detail: raw.replace(/\d{6,}/g, "••••").slice(0, 180),
+  };
+}
+
+async function waBotBrainSelfTest() {
+  const scenarios = [
+    { id: "menu", input: "منيو", label: "المنيو" },
+    { id: "greeting", input: "السلام عليكم", label: "الترحيب" },
+    { id: "help", input: "مساعدة", label: "المساعدة" },
+  ];
+  await waRefreshBotTexts(true);
+  const checks = [];
+  for (const scenario of scenarios) {
+    try {
+      const reply = await waBuildAutoReply(scenario.input, "");
+      const ok = Boolean(reply && reply !== WA_HANDOFF_MARKER);
+      checks.push({
+        id: scenario.id,
+        label: scenario.label,
+        ok,
+        replyLength: ok ? waString(reply).length : 0,
+        preview: ok ? waString(reply).replace(/\s+/g, " ").slice(0, 180) : "",
+      });
+    } catch (error: any) {
+      checks.push({
+        id: scenario.id,
+        label: scenario.label,
+        ok: false,
+        replyLength: 0,
+        preview: "",
+        error: waRecoveryFailure(error?.message || error).label || "تعذر تشغيل الاختبار",
+      });
+    }
+  }
+  return {
+    ok: checks.every((item: any) => item.ok),
+    passed: checks.filter((item: any) => item.ok).length,
+    total: checks.length,
+    checks,
+  };
+}
+
+async function waRecoveryCenterSnapshot() {
+  const checkedAt = waNowIso();
+  const transport = WHATSAPP_TRANSPORT();
+  const bridge = await waBridgeStatus();
+  if (!db || !firebaseInitialized) {
+    return {
+      checkedAt,
+      transport,
+      bridge,
+      queue: { pending: 0, processing: 0, failedRecent: 0, stuckProcessing: 0, oldestPendingMinutes: null },
+      bot: { ok: false, products: 0, productsShownInMenu: 0, activeRules: 0, totalRules: 0, testsPassed: 0, testsTotal: 3 },
+      checks: [
+        { id: "server", label: "السيرفر والبيانات", status: "critical", detail: "قاعدة البيانات غير متاحة للسيرفر" },
+        { id: "device", label: "جهاز الواتساب", status: "unknown", detail: "لا يمكن قراءة حالة الجهاز" },
+        { id: "session", label: "جلسة واتساب", status: "unknown", detail: "لا يمكن قراءة حالة الجلسة" },
+        { id: "queue", label: "طابور الإرسال", status: "unknown", detail: "لا يمكن قراءة الطابور" },
+        { id: "brain", label: "مخ البوت", status: "unknown", detail: "لا يمكن اختبار البوت" },
+      ],
+      diagnosis: {
+        code: "firestore_unavailable",
+        severity: "critical",
+        title: "السيرفر لا يصل إلى قاعدة البيانات",
+        explanation: "الخلل قبل جهاز الواتساب؛ لا يمكن قراءة المحادثات أو تجهيز الردود.",
+        action: "wait",
+        actionLabel: "أعد الفحص بعد دقيقة",
+        canAutoRepair: false,
+        steps: ["اضغط «تشخيص الآن» بعد دقيقة.", "إذا استمر الأحمر فالمشكلة بخدمة السيرفر، وليست بجلسة واتساب."],
+      },
+    };
+  }
+
+  const rulesCollection = waAutoReplyRulesCollection();
+  const [shared, activeQueueSnap, failedQueueSnap, sentQueueSnap, rulesSnap, conversationsSnap, controlSnap, brain] = await Promise.all([
+    waLoadSharedData(["products", "orders", "invoices", "customers"]),
+    db.collection("whatsappBridgeOutbox").where("status", "in", ["pending", "processing"]).limit(300).get(),
+    db.collection("whatsappBridgeOutbox").where("status", "==", "failed").limit(100).get(),
+    db.collection("whatsappBridgeOutbox").where("status", "==", "sent").limit(100).get(),
+    rulesCollection ? rulesCollection.limit(200).get() : Promise.resolve(null),
+    db.collection("whatsappConversations").orderBy("lastMessageAt", "desc").limit(200).get(),
+    db.collection("whatsappSettings").doc("bridgeControl").get(),
+    waBotBrainSelfTest(),
+  ]);
+
+  const now = Date.now();
+  const queueRows = [...activeQueueSnap.docs, ...failedQueueSnap.docs, ...sentQueueSnap.docs]
+    .map((doc: any) => ({ id: doc.id, ...(doc.data() || {}) }));
+  const pending = queueRows.filter((row: any) => row.status === "pending");
+  const processing = queueRows.filter((row: any) => row.status === "processing");
+  const failed = queueRows.filter((row: any) => row.status === "failed");
+  const stuckProcessing = processing.filter((row: any) => !waDateMs(row.leaseUntil) || waDateMs(row.leaseUntil) <= now);
+  const oldestPendingMs = [...pending, ...stuckProcessing]
+    .map((row: any) => waDateMs(row.createdAt))
+    .filter((value: number) => value > 0)
+    .sort((a: number, b: number) => a - b)[0] || 0;
+  const recentFailures = failed.filter((row: any) => {
+    const at = waDateMs(row.failedAt || row.updatedAt || row.createdAt);
+    return at > 0 && now - at <= 24 * 60 * 60 * 1000;
+  });
+  const latestFailureRow = [...failed].sort((a: any, b: any) =>
+    waDateMs(b.failedAt || b.updatedAt || b.createdAt) - waDateMs(a.failedAt || a.updatedAt || a.createdAt))[0];
+  const latestFailure = waRecoveryFailure(latestFailureRow?.lastError);
+  const lastSentAt = queueRows
+    .filter((row: any) => row.status === "sent")
+    .map((row: any) => waDateMs(row.sentAt || row.updatedAt))
+    .sort((a: number, b: number) => b - a)[0] || 0;
+
+  const products = waAsArray(shared.products);
+  const sellableProducts = products.filter((p: any) =>
+    p?.isActive !== false && p?.active !== false && p?.isOutOfStock !== true && p?.outOfStock !== true
+    && waString(p?.name || p?.productName || p?.title));
+  const ruleRows = rulesSnap?.docs?.map((doc: any) => waNormalizeAutoReplyRule(doc.data() || {}, doc.id)) || [];
+  const activeRules = ruleRows.filter((rule: any) =>
+    rule.enabled !== false && waAsArray(rule.keywords).length > 0
+    && (rule.response || rule.action === "products"));
+  const conversations = conversationsSnap.docs.map((doc: any) => doc.data() || {});
+  const lastInboundAt = conversations
+    .map((row: any) => waDateMs(row.lastInboundAt || (row.lastMessageDirection === "inbound" ? row.lastMessageAt : "")))
+    .sort((a: number, b: number) => b - a)[0] || 0;
+  const lastConversationOutboundAt = conversations
+    .map((row: any) => waDateMs(row.lastOutboundAt || (row.lastMessageDirection === "outbound" ? row.lastMessageAt : "")))
+    .sort((a: number, b: number) => b - a)[0] || 0;
+  const control = controlSnap.exists ? (controlSnap.data() || {}) : {};
+  const restartRequestedAt = waDateMs(control.restartRequestedAt);
+  const restartServedAt = waDateMs(control.servedAt);
+  const restartPending = restartRequestedAt > 0 && restartRequestedAt > restartServedAt;
+
+  const queue = {
+    pending: pending.length,
+    processing: processing.length,
+    failedRecent: recentFailures.length,
+    stuckProcessing: stuckProcessing.length,
+    oldestPendingMinutes: oldestPendingMs ? Math.max(0, Math.round((now - oldestPendingMs) / 60000)) : null,
+    lastSentMinutesAgo: lastSentAt ? Math.max(0, Math.round((now - lastSentAt) / 60000)) : null,
+    latestFailure,
+  };
+  const bot = {
+    ok: brain.ok,
+    products: products.length,
+    productsShownInMenu: sellableProducts.length,
+    activeRules: activeRules.length,
+    totalRules: ruleRows.length,
+    testsPassed: brain.passed,
+    testsTotal: brain.total,
+    lastInboundMinutesAgo: lastInboundAt ? Math.max(0, Math.round((now - lastInboundAt) / 60000)) : null,
+    lastOutboundMinutesAgo: lastConversationOutboundAt ? Math.max(0, Math.round((now - lastConversationOutboundAt) / 60000)) : null,
+    tests: brain.checks,
+  };
+
+  let diagnosis: any = {
+    code: "ok",
+    severity: "ok",
+    title: "الواتساب والبوت يعملان بصورة سليمة",
+    explanation: "الجهاز متصل، الجلسة جاهزة، الطابور طبيعي، ومخ البوت اجتاز الاختبار.",
+    action: "none",
+    actionLabel: "لا يحتاج إجراء",
+    canAutoRepair: false,
+    steps: ["لا تحتاج تسوي شيئًا.", "إذا توقف مستقبلًا افتح هذه الصفحة واضغط «تشخيص الآن»."],
+  };
+  if (transport !== "web_bridge") {
+    diagnosis = {
+      code: "wrong_transport", severity: "critical", title: "السيرفر لا يستخدم جهاز الواتساب",
+      explanation: "وضع الإرسال الحالي ليس web_bridge، لذلك الجهاز المحلي لن يستلم الردود.",
+      action: "server_config", actionLabel: "إعداد السيرفر مطلوب", canAutoRepair: false,
+      steps: ["هذا عطل إعدادات بالسيرفر وليس عطل QR.", "لا تعِد الربط؛ إعادة الربط لن تصلح وضع الإرسال."],
+    };
+  } else if (!waBridgeSecretReady()) {
+    diagnosis = {
+      code: "bridge_secret_missing", severity: "critical", title: "مفتاح الاتصال بين السيرفر والجهاز غير جاهز",
+      explanation: "السيرفر لا يستطيع وضع الردود في طابور الجهاز بصورة آمنة.",
+      action: "server_config", actionLabel: "إعداد السيرفر مطلوب", canAutoRepair: false,
+      steps: ["لا تمسح QR.", "إعادة تشغيل الجهاز وحدها لا تصلح مفتاح السيرفر."],
+    };
+  } else if (bridge.reason === "needs_auth") {
+    diagnosis = {
+      code: "needs_auth", severity: "action", title: "جلسة واتساب تحتاج ربطًا من الهاتف",
+      explanation: "الجهاز شغال لكنه غير مسجّل داخل واتساب. هذا العطل الوحيد الذي يحتاج مسح QR.",
+      action: "relink", actionLabel: "امسح رمز QR", canAutoRepair: false,
+      steps: ["افتح واتساب المطعم في الهاتف.", "الإعدادات ← الأجهزة المرتبطة ← ربط جهاز.", "امسح الرمز الظاهر في هذه الصفحة."],
+    };
+  } else if (bridge.reason === "never_seen") {
+    diagnosis = {
+      code: "never_seen", severity: "critical", title: "خدمة الجهاز لم تتصل بالسيرفر ولا مرة",
+      explanation: "إما أن خدمة الواتساب غير مثبّتة على الماك أو أن الماك/الإنترنت مغلق.",
+      action: "check_mac", actionLabel: "افحص الماك والإنترنت", canAutoRepair: true,
+      steps: ["تأكد أن الماك شغال ومتصل بالإنترنت.", "اضغط «إصلاح تلقائي» ليبقى طلب التشغيل جاهزًا عند أول اتصال.", "الخدمة المثبّتة تشتغل تلقائيًا عند عودة الماك."],
+    };
+  } else if (bridge.reason === "stale" || bridge.reason === "reported_offline") {
+    diagnosis = {
+      code: bridge.reason, severity: "critical", title: "خدمة الواتساب على الماك لا ترسل نبضات",
+      explanation: `آخر اتصال بالجهاز قبل ${bridge.minutesSinceSeen ?? "عدة"} دقيقة. مخ البوت قد يكون سليمًا لكن لا يوجد جهاز يسلّم الردود.`,
+      action: "restart", actionLabel: "إصلاح تلقائي", canAutoRepair: true,
+      steps: ["اضغط «إصلاح تلقائي».", "تأكد أن الماك شغال والإنترنت متصل.", "مراقب الماك سيعيد تشغيل الخدمة تلقائيًا."],
+    };
+  } else if (bridge.reason === "starting") {
+    diagnosis = {
+      code: "starting", severity: "warning", title: "الخدمة شغالة لكن واتساب لم يجهز بعد",
+      explanation: "وصلت النبضة من الماك، لكن مكتبة واتساب لم تعلن الجاهزية.",
+      action: "restart", actionLabel: "إصلاح تلقائي", canAutoRepair: true,
+      steps: ["انتظر دقيقة واحدة.", "إذا بقيت الحالة كما هي اضغط «إصلاح تلقائي»."],
+    };
+  } else if (
+    bridge.reason === "queue_stuck"
+    || queue.stuckProcessing > 0
+    || (queue.oldestPendingMinutes !== null && queue.oldestPendingMinutes >= 3)
+  ) {
+    diagnosis = {
+      code: "queue_stuck", severity: "critical", title: "مخ البوت يجهز الردود لكن جهاز الإرسال لا يسحبها",
+      explanation: `${queue.pending + queue.processing} رد في الطابور، أقدمها منذ ${queue.oldestPendingMinutes ?? 0} دقيقة.`,
+      action: "restart", actionLabel: "إصلاح تلقائي", canAutoRepair: true,
+      steps: ["اضغط «إصلاح تلقائي».", "لا تمسح QR ما لم تطلب الصفحة ذلك.", "الطابور محفوظ ولن تضيع الردود."],
+    };
+  } else if (!brain.ok) {
+    diagnosis = {
+      code: "brain_failed", severity: "critical", title: "الجهاز متصل لكن مخ البوت لم يجتز الاختبار",
+      explanation: `نجح ${brain.passed} من ${brain.total} اختبارات داخلية.`,
+      action: "inspect_brain", actionLabel: "افحص مخ البوت", canAutoRepair: false,
+      steps: ["اضغط «اختبار مخ البوت» لترى أي رد فشل.", "لا تعِد ربط QR؛ الجلسة ليست سبب المشكلة."],
+    };
+  } else if (sellableProducts.length === 0) {
+    diagnosis = {
+      code: "products_missing", severity: "warning", title: "البوت يعمل لكن لا يرى أصنافًا ظاهرة بالمنيو",
+      explanation: "الإرسال والجلسة سليمان؛ المشكلة في بيانات المنتجات المتاحة للبوت.",
+      action: "inspect_data", actionLabel: "افحص بيانات المنتجات", canAutoRepair: false,
+      steps: ["افتح «قواعد الرد» ثم «فحص البيانات».", "لا تعِد تشغيل الجهاز؛ الجهاز ليس سبب المشكلة."],
+    };
+  } else if (recentFailures.length > 0) {
+    diagnosis = {
+      code: "recent_send_failures", severity: "warning", title: "النظام يعمل مع وجود رسائل فشلت مؤخرًا",
+      explanation: `${recentFailures.length} رسالة فشلت خلال 24 ساعة. السبب الأقرب: ${latestFailure.label || "تعذر الإرسال"}.`,
+      action: "monitor", actionLabel: "راقب الطابور", canAutoRepair: true,
+      steps: ["اضغط «إصلاح تلقائي» لتحديث اتصال الجهاز.", "إذا بقيت الرسائل الجديدة تصل فالفشل كان عابرًا."],
+    };
+  }
+
+  const checks = [
+    {
+      id: "server",
+      label: "السيرفر والبيانات",
+      status: firebaseInitialized && waBridgeSecretReady() && transport === "web_bridge" ? "ok" : "critical",
+      detail: firebaseInitialized ? (transport === "web_bridge" ? "متصل وقادر على تجهيز الردود" : "وضع الإرسال غير صحيح") : "قاعدة البيانات غير متاحة",
+    },
+    {
+      id: "device",
+      label: "خدمة الجهاز",
+      status: bridge.heartbeatFresh ? "ok" : "critical",
+      detail: bridge.heartbeatFresh ? `آخر نبضة قبل ${bridge.minutesSinceSeen ?? 0} د` : "لا توجد نبضة حديثة من الماك",
+    },
+    {
+      id: "session",
+      label: "جلسة واتساب",
+      status: bridge.reason === "needs_auth" ? "action" : bridge.ready === true && bridge.heartbeatFresh ? "ok" : "warning",
+      detail: bridge.reason === "needs_auth" ? "تحتاج QR" : bridge.ready === true ? "مرتبطة وجاهزة" : "لم تعلن الجاهزية",
+    },
+    {
+      id: "queue",
+      label: "طابور الإرسال",
+      status: diagnosis.code === "queue_stuck" ? "critical" : recentFailures.length ? "warning" : "ok",
+      detail: queue.pending || queue.processing
+        ? `${queue.pending} بانتظار الإرسال · ${queue.processing} قيد الإرسال`
+        : "لا توجد ردود عالقة",
+    },
+    {
+      id: "brain",
+      label: "مخ البوت",
+      status: brain.ok ? (sellableProducts.length ? "ok" : "warning") : "critical",
+      detail: brain.ok ? `نجح ${brain.passed}/${brain.total} · يرى ${sellableProducts.length} صنف` : `نجح ${brain.passed}/${brain.total} فقط`,
+    },
+  ];
+
+  return {
+    checkedAt,
+    transport,
+    bridge,
+    queue,
+    bot,
+    control: {
+      restartPending,
+      restartRequestedMinutesAgo: restartPending ? waRecoveryMinutesSince(control.restartRequestedAt) : null,
+      lastRestartServedMinutesAgo: control.servedAt ? waRecoveryMinutesSince(control.servedAt) : null,
+      relinkPending: Boolean(waString(control.relinkRequestedAt)),
+    },
+    checks,
+    diagnosis,
+  };
 }
 
 // Polled by the console. Deliberately tiny and separate from /diagnostics so it can
@@ -4823,6 +5147,79 @@ app.post("/api/whatsapp/relink-bridge", async (_req, res) => {
 app.get("/api/whatsapp/bridge-status", async (_req, res) => {
   const bridge = await waBridgeStatus();
   return res.json({ success: true, bridge, transport: WHATSAPP_TRANSPORT() });
+});
+
+// One owner-facing answer to "what exactly stopped?". This is intentionally read-only:
+// it tests the same brain functions used for real replies, but never creates a
+// conversation, queues a message, or contacts a customer.
+app.get("/api/whatsapp/recovery-center", async (_req, res) => {
+  try {
+    const snapshot = await waRecoveryCenterSnapshot();
+    return res.json({ success: true, ...snapshot });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+app.post("/api/whatsapp/bot-self-test", async (_req, res) => {
+  try {
+    const brain = await waBotBrainSelfTest();
+    return res.json({
+      success: true,
+      brain,
+      note: "اختبار داخلي فقط — لم تُرسل أي رسالة ولم تتغير أي محادثة",
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
+});
+
+// Safe automatic repair: it does not wipe the WhatsApp session, edit bot rules, touch
+// payment logic, or replay old messages. It only asks the supervised bridge process
+// for a clean restart. If the Mac is offline the request remains pending and is served
+// when the service reconnects; launchd is still responsible for reviving a dead local
+// process because no website can power on an offline computer.
+app.post("/api/whatsapp/auto-repair", async (_req, res) => {
+  if (!db || !firebaseInitialized) {
+    return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
+  }
+  try {
+    const before = await waRecoveryCenterSnapshot();
+    if (before.diagnosis?.code === "needs_auth") {
+      return res.json({
+        success: true,
+        queued: false,
+        action: "relink",
+        note: "الجلسة تحتاج QR؛ الإصلاح التلقائي لا يمسح الجلسة بدلًا عنك",
+        diagnosis: before.diagnosis,
+      });
+    }
+    if (before.diagnosis?.canAutoRepair !== true) {
+      return res.json({
+        success: true,
+        queued: false,
+        action: before.diagnosis?.action || "none",
+        note: before.diagnosis?.actionLabel || "لا يحتاج إعادة تشغيل",
+        diagnosis: before.diagnosis,
+      });
+    }
+    await db.collection("whatsappSettings").doc("bridgeControl").set({
+      restartRequestedAt: waNowIso(),
+      recoveryRequestedAt: waNowIso(),
+      recoveryReason: waString(before.diagnosis?.code || "manual").slice(0, 80),
+    }, { merge: true });
+    return res.json({
+      success: true,
+      queued: true,
+      action: "restart",
+      note: before.bridge?.heartbeatFresh
+        ? "وصل طلب الإصلاح؛ الجهاز يستلمه خلال 30 ثانية ويرجع تلقائيًا"
+        : "حُفظ طلب الإصلاح؛ مشرف الماك يشغّل الخدمة تلقائيًا عند عودة الجهاز والإنترنت",
+      diagnosis: before.diagnosis,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
 });
 
 // Console-only (the /api/whatsapp gate applies): read and edit every fixed sentence
@@ -5542,7 +5939,7 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
     }
 
     // The console's "restart bridge" button sets a flag; the very next heartbeat
-    // (≤30s) carries it back, the bridge exits cleanly, and systemd revives it.
+    // (≤30s) carries it back, the bridge exits cleanly, and launchd revives it.
     // No new endpoint, no SSH — the owner fixes a stuck bridge from the dashboard.
     let restartRequested = false;
     // Wipes the stored session so WhatsApp issues a new pairing code.
