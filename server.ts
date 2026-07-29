@@ -1134,31 +1134,55 @@ async function syncSharedCompanyPaymentData(identifiers: PaymentSyncIdentifiers,
 // reported symptom: fast payments were silent, slow ones were not.
 //
 // It reuses the worker's own event id, so the existing pushEvents claim guarantees the
-// owner is notified exactly once no matter which side gets there first. Fire-and-forget
-// and fully guarded: payment syncing must never fail because of a notification.
-async function announcePaidInvoiceInstantly(identifiers: PaymentSyncIdentifiers, syncMeta: any) {
+// owner is notified exactly once no matter which side gets there first. The send is
+// awaited (but fully guarded) because Cloud Run may suspend background work immediately
+// after the webhook response; a fire-and-forget FCM request is not a delivery guarantee.
+async function announcePaidPaymentInstantly(identifiers: PaymentSyncIdentifiers, syncMeta: any) {
+  let eventRef: any = null;
+  let claimToken = "";
   try {
     if (!db || !firebaseInitialized) return;
 
-    const fromGatewayOrderId = (value: any) => {
+    const businessIdFromGatewayOrderId = (value: any) => {
       const text = String(value || "");
-      return text.startsWith("INV-") ? text.split("_")[0] : "";
+      const match = text.match(/(?:^|[^A-Z0-9])((?:INV|ORD)-\d{13}-[A-Z0-9]+)/i);
+      return match?.[1]?.toUpperCase() || "";
     };
-    const invoiceId =
-      fromGatewayOrderId(syncMeta?.gatewayOrderId) ||
-      (identifiers.targetIds || []).map(String).find((id) => id.startsWith("INV-")) ||
-      (identifiers.gatewayOrderIds || []).map(fromGatewayOrderId).find(Boolean) ||
-      "";
-    if (!invoiceId) return;
 
-    const eventId = `safe-worker-invoice-paid-${invoiceId}`;
+    const candidateIds = uniqueCleanStrings([
+      ...(identifiers.targetIds || []),
+      ...(syncMeta?.matchedIds || []),
+      syncMeta?.gatewayOrderId,
+      ...(identifiers.gatewayOrderIds || []),
+    ].flatMap((value: any) => {
+      const direct = normalizeBusinessId(value);
+      const embedded = businessIdFromGatewayOrderId(value);
+      return [direct, embedded].filter(Boolean);
+    }));
+
+    // Prefer the invoice when both the invoice and its linked order were synchronized.
+    // They represent one payment and must produce one owner alert, not two.
+    const businessId =
+      candidateIds.find((id) => String(id).startsWith("INV-")) ||
+      candidateIds.find((id) => String(id).startsWith("ORD-")) ||
+      "";
+    if (!businessId) return;
+
+    const isInvoice = businessId.startsWith("INV-");
+    const eventId = isInvoice
+      ? `safe-worker-invoice-paid-${businessId}`
+      : `safe-worker-payment-paid-${businessId}`;
+    claimToken = crypto.randomUUID();
+    eventRef = db.collection("pushEvents").doc(eventId);
+
     try {
       // create() fails when the doc already exists, which is precisely the
       // "worker already sent this" case. Same claim shape the worker writes.
-      await db.collection("pushEvents").doc(eventId).create({
+      await eventRef.create({
         eventId,
         source: "payment-confirm-instant",
         status: "claimed",
+        claimToken,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         claimedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -1169,22 +1193,57 @@ async function announcePaidInvoiceInstantly(identifiers: PaymentSyncIdentifiers,
     // Best-effort amount so the wording matches the worker's message.
     let amountText = "";
     try {
-      const snap = await db.collection("invoices").where("id", "==", invoiceId).limit(1).get();
-      const inv: any = snap.docs[0]?.data();
-      const n = Number(inv?.totalAmount ?? inv?.total ?? inv?.amount ?? 0);
+      const collectionName = isInvoice ? "invoices" : "orders";
+      const directSnap = await db.collection(collectionName).doc(businessId).get();
+      let paymentItem: any = directSnap.exists ? directSnap.data() : null;
+      if (!paymentItem) {
+        const byIdSnap = await db.collection(collectionName).where("id", "==", businessId).limit(1).get();
+        paymentItem = byIdSnap.docs[0]?.data();
+      }
+      const n = Number(paymentItem?.totalAmount ?? paymentItem?.total ?? paymentItem?.amount ?? 0);
       if (Number.isFinite(n) && n > 0) amountText = ` — القيمة ${n.toFixed(3)} د.ك`;
     } catch { /* the alert is worth sending without the amount */ }
 
-    await sendSmartAlertPushNotification({
-      title: "✅ تم دفع فاتورة",
-      body: `تم دفع الفاتورة ${invoiceId}${amountText}`,
-      alertType: "invoice_paid",
-      url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}`,
+    const result = await sendSmartAlertPushNotification({
+      title: isInvoice ? "✅ تم دفع فاتورة" : "✅ تم دفع طلب",
+      body: `${isInvoice ? "تم دفع الفاتورة" : "تم دفع الطلب"} ${businessId}${amountText}`,
+      alertType: isInvoice ? "invoice_paid" : "payment_paid",
+      url: isInvoice
+        ? `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(businessId)}`
+        : `https://admin.alturathkw.shop/?order=${encodeURIComponent(businessId)}`,
       eventId,
     });
-    console.log(`[PAYMENT_ALERT] Instant paid alert sent for ${invoiceId}.`);
+
+    if (Number(result?.successCount || 0) > 0) {
+      await eventRef.set({
+        status: "sent",
+        result: removeUndefinedDeep(result),
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+      console.log(`[PAYMENT_ALERT] Instant paid alert sent for ${businessId}.`);
+      return;
+    }
+
+    // No device accepted the message. Remove only our own claim so the recurring
+    // worker can retry after a token refresh instead of suppressing this alert forever.
+    const current = await eventRef.get();
+    if (current.exists && current.data()?.claimToken === claimToken) {
+      await eventRef.delete();
+    }
+    console.warn(`[PAYMENT_ALERT] No device accepted the paid alert for ${businessId}; released for retry.`);
   } catch (error: any) {
     console.warn("[PAYMENT_ALERT] Instant paid alert skipped:", error?.message || error);
+    if (eventRef && claimToken) {
+      try {
+        const current = await eventRef.get();
+        if (current.exists && current.data()?.claimToken === claimToken) {
+          await eventRef.delete();
+        }
+      } catch {
+        // A later alerts-worker pass can inspect/retry; payment confirmation stays safe.
+      }
+    }
   }
 }
 
@@ -1214,9 +1273,14 @@ async function syncPaymentStatusEverywhere(rawIdentifiers: PaymentSyncIdentifier
     syncSharedCompanyPaymentData(identifiers, state, syncMeta),
   ]);
   void markPaymentSessionsSynced(identifiers, state, syncMeta);
-  // Fire-and-forget, exactly like markPaymentSessionsSynced above: the payment result
-  // is already committed and must not depend on a notification succeeding.
-  if (state === "paid") void announcePaidInvoiceInstantly(identifiers, syncMeta);
+  // Await the guarded notification path so the serverless runtime cannot suspend it
+  // after returning the webhook. The helper never throws into payment synchronization.
+  if (state === "paid") {
+    await announcePaidPaymentInstantly(identifiers, {
+      ...syncMeta,
+      matchedIds: shared.matchedIds,
+    });
+  }
 
   return { identifiers, root, shared };
 }
@@ -7603,6 +7667,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
     try {
       const {
         token,
+        deviceId,
         userId,
         userEmail,
         userName,
@@ -7641,6 +7706,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const data: any = {
           token,
           tokenHash,
+          deviceId: deviceId || null,
           userId: userId || null,
           userEmail: userEmail || null,
           userName: userName || null,
@@ -7670,6 +7736,27 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         }
 
         await tokenRef.set(removeUndefinedDeep(data), { merge: true });
+
+        // A refreshed FCM registration for the same browser install supersedes the old
+        // token. Retiring it here avoids both duplicates and the risk of later selecting
+        // a stale token while excluding the healthy one.
+        if (deviceId) {
+          try {
+            const sameDevice = await db.collection("pushTokens").where("deviceId", "==", deviceId).limit(25).get();
+            const staleDocs = sameDevice.docs.filter((doc: any) => doc.id !== token);
+            if (staleDocs.length > 0) {
+              const batch = db.batch();
+              staleDocs.forEach((doc: any) => batch.set(doc.ref, {
+                active: false,
+                replacedByTokenHash: tokenHash,
+                replacedAt: admin.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true }));
+              await batch.commit();
+            }
+          } catch (cleanupError: any) {
+            console.warn("[PUSH] Could not retire older token for this device:", cleanupError?.message || cleanupError);
+          }
+        }
       }
 
       return res.json({ success: true });
@@ -7722,12 +7809,17 @@ type PushTokenRecordForArchive = {
   permission?: string;
   notificationPermission?: string;
   active?: boolean;
+  updatedAtMs?: number;
 };
 
 function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
   const data = (doc?.data && typeof doc.data === "function") ? (doc.data() || {}) : (doc || {});
   const token = String(data.token || data.pushToken || data.deviceToken || doc?.id || "").trim();
   if (!token || token.length < 50 || !/^[\x20-\x7E]+$/.test(token)) return null;
+  const updatedAtMs =
+    (typeof data.updatedAt?.toMillis === "function" ? data.updatedAt.toMillis() : 0) ||
+    Date.parse(String(data.updatedAt || data.createdAt || "")) ||
+    0;
   return {
     token,
     tokenDocId: String(doc?.id || data.id || token),
@@ -7735,7 +7827,7 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
     userName: data.userName ? String(data.userName) : (data.displayName ? String(data.displayName) : (data.employeeName ? String(data.employeeName) : (data.adminName ? String(data.adminName) : undefined))),
     userEmail: data.userEmail ? String(data.userEmail) : (data.email ? String(data.email) : (data.employeeEmail ? String(data.employeeEmail) : (data.adminEmail ? String(data.adminEmail) : undefined))),
     userRole: data.userRole ? String(data.userRole) : (data.role ? String(data.role) : (data.accountType ? String(data.accountType) : undefined)),
-    deviceId: data.deviceId ? String(data.deviceId) : (data.tokenHash ? String(data.tokenHash) : String(doc?.id || token.slice(0, 24))),
+    deviceId: data.deviceId ? String(data.deviceId) : undefined,
     deviceLabel: String(data.label || data.name || data.deviceLabel || data.platform || data.deviceType || data.browser || "Push device"),
     platform: data.platform ? String(data.platform) : undefined,
     deviceType: data.deviceType ? String(data.deviceType) : undefined,
@@ -7743,6 +7835,7 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
     permission: data.permission ? String(data.permission) : undefined,
     notificationPermission: data.notificationPermission ? String(data.notificationPermission) : undefined,
     active: data.active === undefined ? undefined : Boolean(data.active),
+    updatedAtMs,
   };
 }
 
@@ -7891,21 +7984,22 @@ async function archivePushDeliveryAttempts({
 // registrations. Two of those web tokens were the same browser re-registering (a new
 // service-worker install mints a fresh token without retiring the old one).
 //
-// Grouping by person+platform and keeping the newest kills the duplicate registration
-// while never silencing a genuinely different device: a phone and a laptop stay two
-// separate groups, so nobody loses an alert they were meant to receive. Records with no
-// owner or no timestamp are passed through untouched rather than guessed at.
+// Grouping uses the stable browser-install id saved by the client. Grouping by the broad
+// platform label ("web" / "iPhone") used to collapse two real devices into one; if the
+// chosen token was stale, the valid device was silently excluded. Legacy records without
+// a stable device id are passed through and the service-worker event-id cache suppresses
+// any same-browser duplicate safely.
 function dedupePushTokensPerDevice(records: PushTokenRecordForArchive[]) {
   const newestByDevice = new Map<string, any>();
   const passthrough: any[] = [];
 
   for (const record of records as any[]) {
     const owner = String(record?.userEmail || record?.userId || record?.userName || "").trim().toLowerCase();
-    const platform = String(record?.platform || record?.deviceType || "").trim().toLowerCase();
-    if (!owner || !platform) { passthrough.push(record); continue; }
+    const deviceId = String(record?.deviceId || "").trim().toLowerCase();
+    if (!owner || !deviceId) { passthrough.push(record); continue; }
 
-    const key = `${owner}::${platform}`;
-    const seenMs = Date.parse(String(record?.updatedAt || record?.createdAt || "")) || 0;
+    const key = `${owner}::${deviceId}`;
+    const seenMs = Number(record?.updatedAtMs || 0);
     const current = newestByDevice.get(key);
     // No timestamp on either side: keep the first and let the rest go, rather than
     // dropping the wrong one at random.
@@ -7944,8 +8038,9 @@ async function sendSmartAlertPushNotification({
   try {
     if (!firebaseInitialized || !db) {
       return {
-        success: true,
-        mocked: true,
+        success: false,
+        mocked: false,
+        retryable: true,
         error: "Firebase not initialized",
       };
     }
@@ -8082,7 +8177,7 @@ async function sendSmartAlertPushNotification({
     });
 
     return {
-      success: true,
+      success: response.successCount > 0,
       tokensCount: tokens.length,
       successCount: response.successCount,
       failureCount: response.failureCount,
@@ -8099,8 +8194,9 @@ async function sendSmartAlertPushNotification({
       console.error("[SMART ALERT PUSH ERROR]", error);
     }
     return {
-      success: true,
-      mocked: true,
+      success: false,
+      mocked: false,
+      retryable: true,
       error: "Failed to process smart alert notification",
       details: error?.message || String(error),
     };
@@ -9254,10 +9350,16 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const canSend = await alertsClaim(eventId, payload);
     if (!canSend) { results.push({ eventId, skipped: true, reason: "already-sent-or-claimed" }); return; }
     const result = await alertsSendDataOnly({ ...payload, eventId });
-    if (result.success || result.mocked) {
+    if (result.success && Number(result.successCount || 0) > 0) {
       counters.sent += 1;
+      await alertsMarkSent(eventId, result);
+    } else {
+      // A claim must not permanently suppress an alert that no device accepted.
+      await db.collection("pushEvents").doc(eventId).delete().catch((error: any) => {
+        console.warn("[ALERTS] Could not release failed push claim:", eventId, error?.message || error);
+      });
+      __alertsPushEventsCache.knownIds.delete(eventId);
     }
-    await alertsMarkSent(eventId, result);
     results.push({ eventId, result });
   }
 
