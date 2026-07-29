@@ -12,6 +12,24 @@ export const FALLBACK_VAPID_KEY =
   "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
 
 let foregroundPushListenerStarted = false;
+const PUSH_DEVICE_ID_STORAGE_KEY = "alturath_admin_push_device_id_v1";
+
+function getStablePushDeviceId() {
+  try {
+    const existing = window.localStorage.getItem(PUSH_DEVICE_ID_STORAGE_KEY);
+    if (existing) return existing;
+
+    const generated =
+      typeof globalThis.crypto?.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : `push-${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+
+    window.localStorage.setItem(PUSH_DEVICE_ID_STORAGE_KEY, generated);
+    return generated;
+  } catch {
+    return "";
+  }
+}
 
 function readPayloadText(payload: any) {
   const title =
@@ -235,6 +253,7 @@ async function saveTokenToServer(token: string, options?: {
   const currentUser = auth?.currentUser;
   const payload = {
     token,
+    deviceId: getStablePushDeviceId(),
     userId: options?.userId || currentUser?.uid || "admin",
     userEmail: options?.userEmail || currentUser?.email || "",
     userName:
