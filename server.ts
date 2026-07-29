@@ -6733,6 +6733,22 @@ app.post("/api/push/test-device", async (req, res) => {
         return res.status(400).json({ success: false, error: "Valid device token is required" });
       }
 
+      let tokenRecord: PushTokenRecordForArchive | null = null;
+      const directTokenDoc = await db.collection("pushTokens").doc(cleanToken).get();
+      if (directTokenDoc.exists) {
+        tokenRecord = normalizePushTokenRecord(directTokenDoc);
+      } else {
+        const tokenQuery = await db.collection("pushTokens").where("token", "==", cleanToken).limit(1).get();
+        tokenRecord = tokenQuery.empty ? null : normalizePushTokenRecord(tokenQuery.docs[0]);
+      }
+      if (!pushRecordIsAllowedRecipient(tokenRecord)) {
+        return res.status(403).json({
+          success: false,
+          error: "Push recipient is not approved",
+          allowedRecipients: [...ALLOWED_PUSH_RECIPIENT_EMAILS],
+        });
+      }
+
       const eventId = `admin-device-test-${Date.now()}`;
       const notificationTitle = String(title || "اختبار إشعار تجريبي من الأدمن");
       const notificationBody = String(body || "هذا إشعار اختبار فقط للتأكد من وصول التنبيه لهذا الجهاز.");
@@ -7059,20 +7075,37 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         });
       }
 
-      const eventId = `order-created-${resolvedOrderId}`;
-      let eventSnap: any;
+      const eventId = isInvoiceAlert
+        ? `safe-worker-invoice-pending-immediate-${resolvedOrderId}`
+        : `safe-worker-payment-pending-immediate-${resolvedOrderId}`;
+      const eventRef = db.collection("pushEvents").doc(eventId);
       try {
-        const eventRef = db.collection("pushEvents").doc(eventId);
-        eventSnap = await eventRef.get();
-        if (eventSnap.exists) {
+        // Atomic create: the API callback, legacy scheduler and the final alerts
+        // worker all use this same canonical id. Exactly one path wins.
+        await eventRef.create({
+          eventId,
+          source: "order-created-alert",
+          status: "claimed",
+          orderId: resolvedOrderId,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          claimedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e: any) {
+        const code = String(e?.code || e?.message || "");
+        if (code.includes("ALREADY_EXISTS") || code.includes("already exists") || code.includes("6")) {
           return res.json({
             success: true,
             skipped: true,
-            reason: "Notification already sent",
+            reason: "Notification already sent or claimed",
           });
         }
-      } catch (e: any) {
-         console.warn("Could not check pushEvents:", e.message);
+        console.warn("Could not atomically claim pushEvent:", e?.message || e);
+        return res.status(200).json({
+          success: false,
+          skipped: true,
+          retryable: true,
+          reason: "Could not claim notification safely",
+        });
       }
 
       const orderNumber =
@@ -7101,13 +7134,19 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       });
 
       try {
-        const eventRef = db.collection("pushEvents").doc(eventId);
-        await eventRef.set({
+        if (result.success && Number(result.successCount || 0) > 0) {
+          await eventRef.set({
           orderId,
           type: isInvoiceAlert ? "invoice_created_pending_payment" : "order_created_pending_payment",
+          status: "sent",
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           result,
-        });
+          }, { merge: true });
+        } else {
+          // Do not turn an FCM/network failure into a permanent "already sent" record.
+          await eventRef.delete();
+        }
       } catch (e: any) {
         console.warn("Could not log pushEvent:", e.message);
       }
@@ -7327,10 +7366,19 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       }
 
       async function markSent(eventId: string, payload: any, result: any) {
+        if (!result?.success || Number(result?.successCount || 0) <= 0) {
+          await db!.collection("pushEvents").doc(eventId).delete().catch((error: any) => {
+            console.warn("[BUSINESS_ALERTS] Could not release failed push claim:", eventId, error?.message || error);
+          });
+          __alertsPushEventsCache.knownIds.delete(eventId);
+          return;
+        }
         await db!.collection("pushEvents").doc(eventId).set({
           ...payload,
+          status: "sent",
           result,
           sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
         __alertsPushEventsCache.knownIds.add(eventId);
       }
@@ -7450,7 +7498,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         if (createdAt > pendingPaymentGraceAgo) continue;
         if (!isPendingPayment(order)) continue;
 
-        const eventId = `order-created-${(order as any).id}`;
+        const eventId = `safe-worker-payment-pending-immediate-${(order as any).id}`;
 
         if (await alreadySent(eventId)) {
           continue;
@@ -7493,7 +7541,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
         if (!isPendingPayment(order)) continue;
 
-        const eventId = `payment-pending-10min-${(order as any).id}`;
+        const eventId = `safe-worker-payment-pending-10min-${(order as any).id}`;
 
         if (await alreadySent(eventId)) {
           continue;
@@ -7727,7 +7775,9 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           isIOS,
           isSafariLike,
           isProbablyPwa,
-          active: true,
+          active: ALLOWED_PUSH_RECIPIENT_EMAILS.has(String(userEmail || "").trim().toLowerCase()) &&
+            String(notificationPermission || "").trim().toLowerCase() !== "denied",
+          recipientAuthorized: ALLOWED_PUSH_RECIPIENT_EMAILS.has(String(userEmail || "").trim().toLowerCase()),
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
@@ -7789,7 +7839,8 @@ function shouldRenotifyPush(alertType: string) {
     type.includes("paid") ||
     type.includes("captured") ||
     type.includes("success") ||
-    type.includes("failed")
+    type.includes("failed") ||
+    type.includes("pending_10min")
   );
 }
 
@@ -7811,6 +7862,19 @@ type PushTokenRecordForArchive = {
   active?: boolean;
   updatedAtMs?: number;
 };
+
+const DEFAULT_PUSH_RECIPIENT_EMAILS = [
+  "volcanokw@gmail.com",
+  "mfq241188@gmail.com",
+  "omaralawadhi67@gmail.com",
+];
+
+const ALLOWED_PUSH_RECIPIENT_EMAILS = new Set(
+  String(process.env.PUSH_ALLOWED_RECIPIENT_EMAILS || DEFAULT_PUSH_RECIPIENT_EMAILS.join(","))
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
   const data = (doc?.data && typeof doc.data === "function") ? (doc.data() || {}) : (doc || {});
@@ -7837,6 +7901,36 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
     active: data.active === undefined ? undefined : Boolean(data.active),
     updatedAtMs,
   };
+}
+
+function pushRecordIsAllowedRecipient(record?: PushTokenRecordForArchive | null) {
+  const email = String(record?.userEmail || "").trim().toLowerCase();
+  return Boolean(email && ALLOWED_PUSH_RECIPIENT_EMAILS.has(email));
+}
+
+// The business has exactly three Push recipients. Keep only the newest healthy
+// registration for each approved account so old browser/PWA registrations cannot
+// multiply the same payment alert.
+function selectAllowedPushRecipientRecords(records: PushTokenRecordForArchive[]) {
+  const newestByEmail = new Map<string, PushTokenRecordForArchive>();
+
+  for (const record of records) {
+    const email = String(record.userEmail || "").trim().toLowerCase();
+    const permission = String(record.notificationPermission || record.permission || "").trim().toLowerCase();
+    if (!ALLOWED_PUSH_RECIPIENT_EMAILS.has(email) || record.active === false || permission === "denied") continue;
+
+    const current = newestByEmail.get(email);
+    if (!current || Number(record.updatedAtMs || 0) > Number(current.updatedAtMs || 0)) {
+      newestByEmail.set(email, record);
+    }
+  }
+
+  const selected = [...newestByEmail.values()];
+  const removed = records.length - selected.length;
+  if (removed > 0) {
+    console.log(`[PUSH] Restricted delivery to ${selected.length} approved recipient(s); skipped ${removed} stale or unauthorized registration(s).`);
+  }
+  return selected;
 }
 
 function pushRecordMatchesTargetRoles(record: PushTokenRecordForArchive, targetRoles?: string[]) {
@@ -8052,8 +8146,10 @@ async function sendSmartAlertPushNotification({
     const allTokenRecords = snap.docs
       .map((doc: any) => normalizePushTokenRecord(doc))
       .filter(Boolean) as PushTokenRecordForArchive[];
-    const tokenRecords = dedupePushTokensPerDevice(
-      allTokenRecords.filter((record) => pushRecordMatchesTargetRoles(record, targetRoles)),
+    const tokenRecords = selectAllowedPushRecipientRecords(
+      dedupePushTokensPerDevice(
+        allTokenRecords.filter((record) => pushRecordMatchesTargetRoles(record, targetRoles)),
+      ),
     );
     const tokens = tokenRecords.map(record => record.token);
 
@@ -8075,10 +8171,13 @@ async function sendSmartAlertPushNotification({
     const effectiveTtlSeconds = Number.isFinite(Number(ttlSeconds))
       ? Math.max(10, Math.min(86400, Number(ttlSeconds)))
       : (
-          normalizedAlertType.includes("paid") || normalizedAlertType.includes("payment") || normalizedAlertType.includes("invoice") ? 86400 :
+          // Pending alerts must expire before the next stage. The previous broad
+          // `includes("payment")` check gave them a 24-hour TTL, so an offline phone
+          // could receive immediate/10/30-minute alerts together much later.
           normalizedAlertType.includes("pending_10min") ? 900 :
           normalizedAlertType.includes("pending_immediate") ? 900 :
           normalizedAlertType.includes("failed") ? 1800 :
+          normalizedAlertType.includes("paid") || normalizedAlertType.includes("captured") || normalizedAlertType.includes("success") ? 86400 :
           normalizedAlertType.includes("daily") || normalizedAlertType.includes("summary") ? 86400 :
           normalizedAlertType.includes("qatia") || normalizedAlertType.includes("roulette") ? 3600 :
           3600
@@ -8212,29 +8311,36 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const snap = await db.collection("pushTokens").where("active", "==", true).get();
       if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
       
-      const tokenRecords = snap.docs
+      const allTokenRecords = snap.docs
         .map((doc: any) => normalizePushTokenRecord(doc))
         .filter(Boolean) as PushTokenRecordForArchive[];
+      const tokenRecords = selectAllowedPushRecipientRecords(
+        dedupePushTokensPerDevice(allTokenRecords),
+      );
       const tokens = tokenRecords.map(record => record.token);
+      if (tokens.length === 0) {
+        return { success: false, error: "No approved active push recipients found", tokensCount: 0 };
+      }
       
       const notificationTitle = "⏳ طلب بانتظار الدفع";
       const notificationBody = `الطلب ${orderNumber || orderId} بانتظار الدفع`;
-      const newOrderEventId = `new-order-${orderId}-${Date.now()}`;
+      const newOrderEventId = `safe-worker-payment-pending-immediate-${orderId}`;
 
       const baseMessage = {
-        notification: {
-          title: notificationTitle,
-          body: notificationBody,
-        },
         data: {
           type: "smart_alert",
           alertType: "payment_pending_immediate",
           eventId: newOrderEventId,
           parentEventId: newOrderEventId,
+          notificationTag: newOrderEventId,
           url: String(url),
           click_action: String(url),
           title: notificationTitle,
           body: notificationBody,
+          icon: "/ios-icon-192-v6.png",
+          badge: "/ios-icon-192-v6.png",
+          renotify: "false",
+          requireInteraction: "true",
           orderId: String(orderId),
           orderNumber: String(orderNumber || ""),
           restaurantId: String(restaurantId || "default"),
@@ -8244,19 +8350,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           headers: {
             Urgency: "high",
             TTL: "900",
-          },
-          notification: {
-            title: notificationTitle,
-            body: notificationBody,
-            icon: "/ios-icon-192-v6.png",
-            badge: "/ios-icon-192-v6.png",
-            requireInteraction: true,
-            data: {
-              url: String(url),
-              eventId: newOrderEventId,
-              parentEventId: newOrderEventId,
-              alertType: "payment_pending_immediate",
-            },
           },
           fcmOptions: {
             link: String(url),

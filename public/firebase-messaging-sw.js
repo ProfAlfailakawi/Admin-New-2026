@@ -2,7 +2,7 @@
 
 const PUSH_DEDUPE_CACHE = "alturath-push-dedupe-v1";
 const PUSH_DEDUPE_TTL_MS = 48 * 60 * 60 * 1000;
-const PUSH_DEDUPE_TIMEOUT_MS = 5;
+const PUSH_IN_FLIGHT_KEYS = new Set();
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -27,8 +27,19 @@ async function wasPushAlreadyShown(eventId) {
       }
     }
 
+  } catch (e) {
+    // Never block notification delivery because of cache cleanup/dedupe errors.
+  }
+
+  return false;
+}
+
+async function rememberPushWasShown(eventId) {
+  if (!eventId || !self.caches) return;
+  try {
+    const cache = await caches.open(PUSH_DEDUPE_CACHE);
     await cache.put(
-      key,
+      `/__push_dedupe__/${encodeURIComponent(eventId)}`,
       new Response("1", {
         headers: {
           "cache-control": "no-store",
@@ -37,10 +48,19 @@ async function wasPushAlreadyShown(eventId) {
       })
     );
   } catch (e) {
-    // Never block notification delivery because of cache cleanup/dedupe errors.
+    // A cache failure must never turn a successful display into a failed push.
   }
+}
 
-  return false;
+function pushDedupeKey(notificationTag, alertType, eventId) {
+  const type = String(alertType || "general").toLowerCase();
+  const stage =
+    type.includes("pending") && (type.includes("10min") || type.includes("30min")) ? "pending-followup" :
+    type.includes("pending") ? "pending-initial" :
+    type.includes("failed") ? "failed" :
+    (type.includes("paid") || type.includes("captured") || type.includes("success")) ? "paid" :
+    type;
+  return `${notificationTag || eventId}:${stage}`;
 }
 
 
@@ -100,7 +120,8 @@ function shouldRenotifyPush(alertType) {
     type.includes("paid") ||
     type.includes("captured") ||
     type.includes("success") ||
-    type.includes("failed")
+    type.includes("failed") ||
+    type.includes("pending_10min")
   );
 }
 
@@ -162,6 +183,7 @@ self.addEventListener("push", (event) => {
     payload.notification?.data?.notificationTag ||
     payload.notificationTag ||
     paymentNotificationTag(alertType, url, eventId);
+  const dedupeKey = pushDedupeKey(notificationTag, alertType, eventId);
 
   const image = normalizeAssetUrl(
     payload.notification?.image ||
@@ -173,34 +195,46 @@ self.addEventListener("push", (event) => {
   const icon = normalizeAssetUrl(payload.notification?.icon || payload.data?.icon || "/ios-icon-192-v6.png", "/ios-icon-192-v6.png");
   const badge = normalizeAssetUrl(payload.notification?.badge || payload.data?.badge || "/ios-icon-192-v6.png", "/ios-icon-192-v6.png");
 
+  // Set the in-memory lock synchronously before the async cache lookup. Multiple FCM
+  // registrations can deliver the same unpaid alert to one iPhone at the same instant;
+  // without this lock both push handlers used to observe an empty cache and both drew.
+  if (PUSH_IN_FLIGHT_KEYS.has(dedupeKey)) {
+    event.waitUntil(Promise.resolve());
+    return;
+  }
+  PUSH_IN_FLIGHT_KEYS.add(dedupeKey);
+
   event.waitUntil((async () => {
-    const alreadyShown = await Promise.race([
-      wasPushAlreadyShown(eventId),
-      new Promise((resolve) => setTimeout(() => resolve(false), PUSH_DEDUPE_TIMEOUT_MS)),
-    ]);
+    try {
+      const alreadyShown = await wasPushAlreadyShown(dedupeKey);
+      if (alreadyShown) return;
 
-    if (alreadyShown) return;
+      const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
+      oldNotifications.forEach((notification) => notification.close());
 
-    const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
-    oldNotifications.forEach((notification) => notification.close());
+      const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
 
-    const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
+      const notificationOptions = {
+        body,
+        icon,
+        badge,
+        tag: notificationTag,
+        renotify: shouldRenotifyPush(alertType),
+        requireInteraction: true,
+        data: { ...notificationData, image },
+      };
 
-    const notificationOptions = {
-      body,
-      icon,
-      badge,
-      tag: notificationTag,
-      renotify: shouldRenotifyPush(alertType),
-      requireInteraction: true,
-      data: { ...notificationData, image },
-    };
+      if (image) notificationOptions.image = image;
 
-    if (image) notificationOptions.image = image;
+      await self.registration.showNotification(title, notificationOptions);
 
-    await self.registration.showNotification(title, notificationOptions);
-
-    await sendPushReceiptAck(notificationData, "received");
+      // Mark only after the operating system accepted the display. If display fails,
+      // a later FCM retry must remain eligible instead of being suppressed for 48h.
+      await rememberPushWasShown(dedupeKey);
+      await sendPushReceiptAck(notificationData, "received");
+    } finally {
+      PUSH_IN_FLIGHT_KEYS.delete(dedupeKey);
+    }
   })());
 });
 
