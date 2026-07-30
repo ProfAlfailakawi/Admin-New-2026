@@ -10110,6 +10110,12 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
   app.post("/api/push/run-alerts", alertsRequireSecret, alertsRunHandler);
   app.get("/run-alerts", alertsRequireSecret, alertsRunHandler);
   app.post("/run-alerts", alertsRequireSecret, alertsRunHandler);
+  // In-panel manual trigger: the exact same pass the Cloud Scheduler fires every 5
+  // minutes, but gated by the admin console identity (Firebase ID token allow-list)
+  // instead of the machine secret — so the owner can force a sweep from Settings
+  // without ever opening Google Console. All dedupe ledgers apply unchanged, so
+  // pressing it repeatedly can never duplicate a notification.
+  app.post("/api/push/run-alerts-admin", waRequireConsoleAuth, alertsRunHandler);
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
 
 
