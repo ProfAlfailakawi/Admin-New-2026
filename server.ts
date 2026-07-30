@@ -1126,6 +1126,28 @@ async function syncSharedCompanyPaymentData(identifiers: PaymentSyncIdentifiers,
   return result;
 }
 
+// Invoice/order NUMBERS get recycled across data-reset eras: a fresh INV-5090 collided
+// with a pushEvents claim left by an older, unrelated INV-5090 (and stuck "claimed"
+// ghosts blocked ids that were never even delivered). Suffixing every ledger event id
+// with the item's own birth moment gives each incarnation of a number a clean slate,
+// while the device-side tag/stage dedupe still guards against any double display.
+function paymentAlertEraSuffix(item: any) {
+  const raw = item?.issuedAt || item?.createdAt || item?.created_at || item?.date || null;
+  let d: Date | null = null;
+  if (raw) {
+    if (raw instanceof Date) d = raw;
+    else if (typeof raw?.toDate === "function") d = raw.toDate();
+    else if (raw?.seconds) d = new Date(Number(raw.seconds) * 1000);
+    else {
+      const parsed = new Date(raw);
+      d = Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+  if (!d) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `@${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}`;
+}
+
 // Announces a confirmed payment the moment the gateway confirms it.
 //
 // Why this exists: the alerts worker only ever looks at invoices already mirrored into
@@ -1171,9 +1193,27 @@ async function announcePaidPaymentInstantly(identifiers: PaymentSyncIdentifiers,
     if (!businessId) return;
 
     const isInvoice = businessId.startsWith("INV-");
-    const eventId = isInvoice
+
+    // The item is fetched BEFORE building the event id: the id carries the item's own
+    // birth moment (paymentAlertEraSuffix), so a recycled number can never inherit a
+    // claim — or a stuck "claimed" ghost — left by an older item with the same number.
+    let paymentItem: any = null;
+    let amountText = "";
+    try {
+      const collectionName = isInvoice ? "invoices" : "orders";
+      const directSnap = await db.collection(collectionName).doc(businessId).get();
+      paymentItem = directSnap.exists ? directSnap.data() : null;
+      if (!paymentItem) {
+        const byIdSnap = await db.collection(collectionName).where("id", "==", businessId).limit(1).get();
+        paymentItem = byIdSnap.docs[0]?.data();
+      }
+      const n = Number(paymentItem?.totalAmount ?? paymentItem?.total ?? paymentItem?.amount ?? 0);
+      if (Number.isFinite(n) && n > 0) amountText = ` — القيمة ${n.toFixed(3)} د.ك`;
+    } catch { /* the alert is worth sending without the amount */ }
+
+    const eventId = (isInvoice
       ? `safe-worker-invoice-paid-${businessId}`
-      : `safe-worker-payment-paid-${businessId}`;
+      : `safe-worker-payment-paid-${businessId}`) + paymentAlertEraSuffix(paymentItem);
     claimToken = crypto.randomUUID();
     eventRef = db.collection("pushEvents").doc(eventId);
 
@@ -1191,20 +1231,6 @@ async function announcePaidPaymentInstantly(identifiers: PaymentSyncIdentifiers,
     } catch {
       return;
     }
-
-    // Best-effort amount so the wording matches the worker's message.
-    let amountText = "";
-    try {
-      const collectionName = isInvoice ? "invoices" : "orders";
-      const directSnap = await db.collection(collectionName).doc(businessId).get();
-      let paymentItem: any = directSnap.exists ? directSnap.data() : null;
-      if (!paymentItem) {
-        const byIdSnap = await db.collection(collectionName).where("id", "==", businessId).limit(1).get();
-        paymentItem = byIdSnap.docs[0]?.data();
-      }
-      const n = Number(paymentItem?.totalAmount ?? paymentItem?.total ?? paymentItem?.amount ?? 0);
-      if (Number.isFinite(n) && n > 0) amountText = ` — القيمة ${n.toFixed(3)} د.ك`;
-    } catch { /* the alert is worth sending without the amount */ }
 
     const result = await sendSmartAlertPushNotification({
       title: isInvoice ? "✅ تم دفع فاتورة" : "✅ تم دفع طلب",
@@ -9687,7 +9713,14 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const d = alertsDateFromBusinessId(id);
       if (d) return d;
     }
-    return alertsDateValue(x?.createdAt || x?.created_at || x?.date || x?.updatedAt || x?.paymentUpdatedAt || x?.failedAt || x?.paidAt);
+    const best = alertsDateValue(x?.createdAt || x?.created_at || x?.date || x?.updatedAt || x?.paymentUpdatedAt || x?.failedAt || x?.paidAt);
+    // Tomorrow-delivery invoices carry createdAt = the DELIVERY day (a future moment),
+    // which froze the "is it 10/30 minutes old yet?" checks forever and silenced every
+    // pending/failed alert for them. Age those from the true issue moment instead.
+    if (best && best.getTime() > Date.now() + 2 * 60 * 1000) {
+      return alertsDateValue(x?.issuedAt || x?.updatedAtServer || x?.updatedAt) || new Date();
+    }
+    return best;
   }
 
   function alertsInWindow(itemOrId: any, now = new Date()) {
@@ -9987,10 +10020,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const invoiceId = alertsBusinessIdFor(inv, "INV-");
       if (!invoiceId || !alertsInWindow(inv, now)) continue;
       const st = alertsStatusFor(inv);
+      const era = paymentAlertEraSuffix(inv);
       if (failedInvoiceIds.has(invoiceId) || alertsIsFailed(st)) {
         const d = alertsBestDate(inv) || now;
         if (d > paymentFailureGraceAgo) continue;
-        await alertsSendOnce(results, `safe-worker-invoice-failed-${invoiceId}`, {
+        await alertsSendOnce(results, `safe-worker-invoice-failed-${invoiceId}${era}`, {
           title: "❌ فشلت عملية الدفع",
           body: `فشلت عملية الدفع للفاتورة ${invoiceId}${alertsAmountText(inv)}`,
           alertType: "invoice_payment_failed",
@@ -9998,11 +10032,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         }, dryRun, counters);
         continue;
       }
-      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
+      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}${era}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
       if (alertsIsPending(st)) {
         const d = alertsBestDate(inv) || now;
-        if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع", body: `الفاتورة ${invoiceId} لم يتم دفعها بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
-        if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}`, { title: "⏳ فاتورة لم تُدفع بعد 30 دقيقة", body: `الفاتورة ${invoiceId} لم تُدفع بعد 30 دقيقة${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
+        if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}${era}`, { title: "⏳ فاتورة لم تُدفع", body: `الفاتورة ${invoiceId} لم يتم دفعها بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
+        if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}${era}`, { title: "⏳ فاتورة لم تُدفع بعد 30 دقيقة", body: `الفاتورة ${invoiceId} لم تُدفع بعد 30 دقيقة${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
       }
     }
 
@@ -10011,21 +10045,22 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const orderId = alertsBusinessIdFor(order, "ORD-");
       if (!orderId || !alertsInWindow(order, now)) continue;
       const st = alertsStatusFor(order);
+      const era = paymentAlertEraSuffix(order);
       const qatia = alertsIsQatiaLike(order, st);
-      if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع بنجاح${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (qatia && alertsIsPaid(st) && !alertsIsQatiaExpired(st)) { await alertsSendOnce(results, `safe-worker-qatia-completed-${orderId}${era}`, { title: "✅ اكتملت القطية", body: `اكتملت القطية للطلب ${orderId} — تم الدفع بنجاح${alertsAmountText(order)}`, alertType: "qatia_completed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (qatia && alertsIsQatiaExpired(st)) { results.push({ eventId: `safe-worker-qatia-expired-${orderId}`, skipped: true, reason: "cancelled-order-alert-disabled" }); continue; }
       if (qatia) continue;
       if (alertsIsFailed(st)) {
         const d = alertsBestDate(order) || now;
         if (d > paymentFailureGraceAgo) continue;
-        await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue;
+        await alertsSendOnce(results, `safe-worker-payment-failed-${orderId}${era}`, { title: "❌ فشل دفع طلب", body: `فشل دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_failed", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue;
       }
-      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
+      if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-payment-paid-${orderId}${era}`, { title: "✅ تم دفع طلب", body: `تم دفع الطلب ${orderId}${alertsAmountText(order)}`, alertType: "payment_paid", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters); continue; }
       if (alertsIsCancelled(st)) { results.push({ eventId: `safe-worker-order-cancelled-admin-${orderId}`, skipped: true, reason: "cancelled-order-alert-disabled" }); continue; }
       if (alertsIsPending(st)) {
         const d = alertsBestDate(order) || now;
-        if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}`, { title: "⏳ طلب لم يدفع", body: `الطلب ${orderId} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
-        if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}`, { title: "⏳ طلب لم يُدفع بعد 30 دقيقة", body: `الطلب ${orderId} لم يُدفع بعد 30 دقيقة${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
+        if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}${era}`, { title: "⏳ طلب لم يدفع", body: `الطلب ${orderId} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
+        if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}${era}`, { title: "⏳ طلب لم يُدفع بعد 30 دقيقة", body: `الطلب ${orderId} لم يُدفع بعد 30 دقيقة${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
       }
     }
     return { meta: { lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null, sent: counters.sent, syncFailedInvoices: syncResult }, results };
