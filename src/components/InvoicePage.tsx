@@ -35,6 +35,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { playTing } from "../lib/sounds";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
+import { COMMERCIAL_REGISTRATION_NUMBER, LEGAL_TRADE_NAME_AR } from "../lib/legalIdentity";
 import {
   AppState,
   Product,
@@ -466,6 +467,8 @@ ${pLink}
 ${trackingUrl}
 ${paymentSection}
 شكراً لثقتكم
+الاسم التجاري: ${LEGAL_TRADE_NAME_AR}
+رقم السجل التجاري: ${COMMERCIAL_REGISTRATION_NUMBER}
 Alturath.kw`;
 
       let digits = phone.replace(/[^0-9]/g, "");

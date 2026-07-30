@@ -59,6 +59,7 @@ import {
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
+import { COMMERCIAL_REGISTRATION_NUMBER, LEGAL_TRADE_NAME_AR } from "../lib/legalIdentity";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import ConfirmModal from "./ui/ConfirmModal";
@@ -983,6 +984,8 @@ ${paymentLink}
 ${trackingUrl}
 ${paymentSection}
 شكراً لثقتكم
+الاسم التجاري: ${LEGAL_TRADE_NAME_AR}
+رقم السجل التجاري: ${COMMERCIAL_REGISTRATION_NUMBER}
 Alturath.kw`;
 
       let finalMessage = message;
