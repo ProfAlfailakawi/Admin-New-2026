@@ -992,8 +992,8 @@ const CloudConnectionGate: React.FC<{
   onRetry?: () => void;
 }> = ({ name, phase, onRetry }) => {
   const isOffline = phase === 'offline';
-  const title = isOffline ? 'تم إيقاف النظام مؤقتاً' : 'جاري التحقق من السحابة…';
-  const statusLabel = isOffline ? 'الاتصال متوقف' : phase === 'auth' ? 'تثبيت الجلسة' : 'بوابة السحابة';
+  const title = isOffline ? 'الاتصال متوقف مؤقتاً' : 'جاري التحقق من الاتصال…';
+  const statusLabel = isOffline ? 'غير متصل' : phase === 'auth' ? 'جاري التحقق' : 'جاري الاتصال';
   const orbitItems = isOffline
     ? [ShieldAlert, RefreshCw, Database]
     : [BadgeCheck, Zap, Database];
@@ -1129,7 +1129,7 @@ const CloudConnectionGate: React.FC<{
 
           {isOffline ? (
             <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-300">
-              فُقد الاتصال بالإنترنت أو Firestore. تم حجب النظام بالكامل لحماية البيانات، ولا يمكن إدخال أو تعديل أي معلومة حتى يعود الاتصال ويتم التحقق منه.
+              تعذر الاتصال مؤقتاً. تم إيقاف التعديل لحماية البيانات حتى يعود الاتصال.
             </p>
           ) : (
             <div className="mx-auto mt-6 flex w-full max-w-[330px] items-center justify-center gap-2" aria-label="cloud-connection-loader">
@@ -1144,7 +1144,7 @@ const CloudConnectionGate: React.FC<{
             </div>
           )}
 
-          <div className="mt-5 text-xs font-black text-slate-500">{name || 'شركة مطبخ التراث الكويتي'}</div>
+          <div className="mt-5 text-[9px] font-light tracking-wide text-slate-500/20">{name || 'شركة مطبخ التراث الكويتي'}</div>
 
           {isOffline && (
             <button
@@ -1153,7 +1153,7 @@ const CloudConnectionGate: React.FC<{
               className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 active:scale-95"
             >
               <RefreshCw size={16} />
-              إعادة فحص الاتصال
+              إعادة المحاولة
             </button>
           )}
         </motion.div>
@@ -1340,8 +1340,8 @@ const MainApp: React.FC = () => {
 
     const healthy = await request;
     if (showFeedback && healthy) {
-      toast.success('عاد الاتصال بالسحابة ✨', {
-        description: 'تم التحقق من Firestore، وعاد النظام للعمل والحفظ بأمان.',
+      toast.success('عاد الاتصال', {
+        description: 'النظام جاهز للعمل والحفظ بأمان.',
         position: 'bottom-right',
         className: 'arabic-font',
       });
