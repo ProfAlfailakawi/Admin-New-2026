@@ -26,6 +26,10 @@
     <link rel="dns-prefetch" href="https://apis.google.com" />
     <link rel="dns-prefetch" href="https://accounts.google.com" />
 
+    <!-- The login hero logo is the LCP element: start fetching it at HTML-parse time
+         instead of waiting for React to mount and render the <img>. -->
+    <link rel="preload" as="image" href="/logo.png" fetchpriority="high" />
+
     <!-- PWA Settings -->
     <link rel="manifest" href="/manifest.json?v=6.0.0" />
     <link rel="icon" type="image/png" sizes="192x192" href="/ios-icon-192-v6.png?v=6.0.0" />
