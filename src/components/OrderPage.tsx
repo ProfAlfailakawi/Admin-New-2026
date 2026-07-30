@@ -29,6 +29,7 @@ import {
   generateNextInvoiceId,
 } from "../lib/business-logic";
 import { AppState, Order, Invoice, Product, DeliveryType } from "../types";
+import { COMMERCIAL_REGISTRATION_NUMBER, LEGAL_TRADE_NAME_AR } from "../lib/legalIdentity";
 import {
   computeAddonQuantity,
   computeAddonRevenue,
@@ -1438,6 +1439,8 @@ ${paymentLink}`
 ${trackingUrl}
 ${paymentSection}
 شكراً لثقتكم
+الاسم التجاري: ${LEGAL_TRADE_NAME_AR}
+رقم السجل التجاري: ${COMMERCIAL_REGISTRATION_NUMBER}
 Alturath.kw`;
 
     const phoneUsed =
