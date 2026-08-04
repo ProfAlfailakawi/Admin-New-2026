@@ -14,15 +14,6 @@ export interface SmartIconGuideProps {
   className?: string;
 }
 
-interface CoordsState {
-  top: number;
-  left: number;
-  arrowX: number;
-  arrowY: number;
-  effectivePosition: 'top' | 'bottom' | 'left' | 'right';
-  ready: boolean;
-}
-
 export const SmartIconGuide: React.FC<SmartIconGuideProps> = ({
   guideKey,
   title,
@@ -33,7 +24,7 @@ export const SmartIconGuide: React.FC<SmartIconGuideProps> = ({
   className,
 }) => {
   const STORAGE_KEY = `alturath_guided_${guideKey}`;
-
+  
   const [hasLearned, setHasLearned] = useState<boolean>(() => {
     try {
       if (typeof window === 'undefined') return false;
@@ -44,144 +35,106 @@ export const SmartIconGuide: React.FC<SmartIconGuideProps> = ({
   });
 
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
+  const [coords, setCoords] = useState<{
+    tooltipLeft: number;
+    tooltipTop: number;
+    arrowLeft: number;
+    placement: 'top' | 'bottom';
+  }>({
+    tooltipLeft: 0,
+    tooltipTop: 0,
+    arrowLeft: 0,
+    placement: 'top',
+  });
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  const [coords, setCoords] = useState<CoordsState>({
-    top: 0,
-    left: 0,
-    arrowX: 0,
-    arrowY: 0,
-    effectivePosition: position,
-    ready: false,
-  });
-
-  // Calculate position with viewport bounds safety (12px GUTTER) and portal positioning
   const updatePosition = () => {
     if (!containerRef.current) return;
-
-    const targetRect = containerRef.current.getBoundingClientRect();
-    if (targetRect.width === 0 && targetRect.height === 0) return;
-
-    const vw = typeof window !== 'undefined' ? window.innerWidth || document.documentElement.clientWidth : 375;
-    const vh = typeof window !== 'undefined' ? window.innerHeight || document.documentElement.clientHeight : 667;
+    const rect = containerRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
     const GUTTER = 12;
 
-    const tooltipEl = tooltipRef.current;
-    const tooltipWidth = tooltipEl ? tooltipEl.offsetWidth : 190;
-    const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 70;
+    const tooltipWidth = tooltipRef.current ? tooltipRef.current.offsetWidth : 190;
+    const tooltipHeight = tooltipRef.current ? tooltipRef.current.offsetHeight : 75;
 
-    let effectivePos = position;
+    const targetCenterX = rect.left + rect.width / 2;
 
-    // Flip vertical position if there isn't enough space
-    if (effectivePos === 'top' && targetRect.top - tooltipHeight - 10 < GUTTER) {
-      effectivePos = 'bottom';
-    } else if (effectivePos === 'bottom' && targetRect.bottom + tooltipHeight + 10 > vh - GUTTER) {
-      effectivePos = 'top';
+    // Determine placement (flip if space is constrained)
+    let finalPlacement: 'top' | 'bottom' = position === 'bottom' ? 'bottom' : 'top';
+    if (position === 'top' && rect.top - tooltipHeight - GUTTER < 0) {
+      finalPlacement = 'bottom';
+    } else if (position === 'bottom' && rect.bottom + tooltipHeight + GUTTER > viewportHeight) {
+      finalPlacement = 'top';
     }
 
-    const targetCenterX = targetRect.left + targetRect.width / 2;
-    const targetCenterY = targetRect.top + targetRect.height / 2;
-
-    let boxLeft = 0;
-    let boxTop = 0;
-    let arrowX = 0;
-    let arrowY = 0;
-
-    if (effectivePos === 'top' || effectivePos === 'bottom') {
-      const idealLeft = targetCenterX - tooltipWidth / 2;
-      boxLeft = Math.max(GUTTER, Math.min(idealLeft, vw - GUTTER - tooltipWidth));
-
-      if (effectivePos === 'top') {
-        boxTop = targetRect.top - 10 - tooltipHeight;
-      } else {
-        boxTop = targetRect.bottom + 10;
-      }
-
-      // Clamp boxTop to viewport
-      boxTop = Math.max(GUTTER, Math.min(boxTop, vh - GUTTER - tooltipHeight));
-
-      const relX = targetCenterX - boxLeft;
-      const minArrowX = 16;
-      const maxArrowX = tooltipWidth - 16;
-      arrowX = Math.max(minArrowX, Math.min(relX, maxArrowX));
+    // Top calculation
+    let top = 0;
+    if (finalPlacement === 'top') {
+      top = rect.top - tooltipHeight - 8;
     } else {
-      const idealTop = targetCenterY - tooltipHeight / 2;
-      boxTop = Math.max(GUTTER, Math.min(idealTop, vh - GUTTER - tooltipHeight));
-
-      if (effectivePos === 'left') {
-        boxLeft = targetRect.left - 10 - tooltipWidth;
-      } else {
-        boxLeft = targetRect.right + 10;
-      }
-
-      boxLeft = Math.max(GUTTER, Math.min(boxLeft, vw - GUTTER - tooltipWidth));
-
-      const relY = targetCenterY - boxTop;
-      const minArrowY = 16;
-      const maxArrowY = tooltipHeight - 16;
-      arrowY = Math.max(minArrowY, Math.min(relY, maxArrowY));
+      top = rect.bottom + 8;
     }
+
+    // Clamp top position within viewport
+    top = Math.max(GUTTER, Math.min(viewportHeight - tooltipHeight - GUTTER, top));
+
+    // Left calculation
+    let left = targetCenterX - tooltipWidth / 2;
+    const maxLeft = Math.max(GUTTER, viewportWidth - tooltipWidth - GUTTER);
+    left = Math.max(GUTTER, Math.min(maxLeft, left));
+
+    // Arrow offset relative to tooltip box left edge
+    let arrowLeft = targetCenterX - left;
+    // Keep arrow inside rounded corners padding (~16px from edges)
+    arrowLeft = Math.max(16, Math.min(tooltipWidth - 16, arrowLeft));
 
     setCoords({
-      top: boxTop,
-      left: boxLeft,
-      arrowX,
-      arrowY,
-      effectivePosition: effectivePos,
-      ready: true,
+      tooltipLeft: left,
+      tooltipTop: top,
+      arrowLeft,
+      placement: finalPlacement,
     });
   };
 
   useLayoutEffect(() => {
-    if (!showTooltip) return;
-
-    updatePosition();
-
-    // Re-run after next frame so actual DOM measurements are accurate
-    const raf = requestAnimationFrame(() => {
+    if (showTooltip) {
       updatePosition();
-    });
+    }
+  }, [showTooltip]);
+
+  useEffect(() => {
+    if (!showTooltip) return;
 
     const handleScrollOrResize = () => {
       updatePosition();
     };
 
-    window.addEventListener('resize', handleScrollOrResize, { passive: true });
-    window.addEventListener('scroll', handleScrollOrResize, { capture: true, passive: true });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', handleScrollOrResize);
-      window.removeEventListener('scroll', handleScrollOrResize, { capture: true });
-    };
-  }, [showTooltip, position]);
-
-  // Close on outside touch or click
-  useEffect(() => {
-    if (!showTooltip) return;
-
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
-      const targetNode = e.target as Node;
       if (
-        containerRef.current && !containerRef.current.contains(targetNode) &&
-        tooltipRef.current && !tooltipRef.current.contains(targetNode)
+        containerRef.current && !containerRef.current.contains(e.target as Node) &&
+        tooltipRef.current && !tooltipRef.current.contains(e.target as Node)
       ) {
         setShowTooltip(false);
       }
     };
 
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
     document.addEventListener('mousedown', handleOutsideClick);
     document.addEventListener('touchstart', handleOutsideClick);
 
     return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
       document.removeEventListener('mousedown', handleOutsideClick);
       document.removeEventListener('touchstart', handleOutsideClick);
     };
   }, [showTooltip]);
 
-  // Clean timer on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -226,84 +179,64 @@ export const SmartIconGuide: React.FC<SmartIconGuideProps> = ({
     >
       {children}
 
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {showTooltip && (
-            <motion.div
-              ref={tooltipRef}
-              initial={{ opacity: 0, scale: 0.88, y: coords.effectivePosition === 'top' ? 4 : coords.effectivePosition === 'bottom' ? -4 : 0 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-              transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-              style={{
-                position: 'fixed',
-                top: `${coords.top}px`,
-                left: `${coords.left}px`,
-                zIndex: 99999,
-                visibility: coords.ready ? 'visible' : 'hidden',
-              }}
-              className="pointer-events-none min-w-[150px] max-w-[220px] p-2.5 rounded-2xl bg-slate-900/95 text-white shadow-2xl shadow-slate-950/60 border border-amber-400/35 backdrop-blur-md dir-rtl select-none"
-              dir="rtl"
-            >
-              {/* Tooltip Content */}
-              <div className="flex items-start gap-2">
-                <div className="p-1 rounded-lg bg-amber-500/20 text-amber-300 shrink-0 mt-0.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex flex-col gap-0.5 text-right">
-                  <span className="text-[11px] font-black text-amber-200 leading-tight">
-                    {title}
-                  </span>
-                  {description && (
-                    <span className="text-[10px] font-bold text-slate-300 leading-snug">
-                      {description}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {showTooltip && (
+              <motion.div
+                ref={tooltipRef}
+                initial={{ opacity: 0, scale: 0.88, y: coords.placement === 'top' ? 4 : -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+                transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                style={{
+                  position: 'fixed',
+                  left: `${coords.tooltipLeft}px`,
+                  top: `${coords.tooltipTop}px`,
+                }}
+                className={cn(
+                  'z-[99999] pointer-events-auto min-w-[150px] max-w-[240px] p-2.5 rounded-2xl bg-slate-900/95 text-white shadow-2xl shadow-slate-950/60 border border-amber-400/30 backdrop-blur-md dir-rtl'
+                )}
+                dir="rtl"
+              >
+                {/* Tooltip Content */}
+                <div className="flex items-start gap-2">
+                  <div className="p-1 rounded-lg bg-amber-500/20 text-amber-300 shrink-0 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5 text-right">
+                    <span className="text-[11px] font-black text-amber-200 leading-tight">
+                      {title}
                     </span>
-                  )}
-                  <span className="text-[9px] font-semibold text-emerald-400 mt-1 block">
-                    💡 اضغط مرة أخرى للتنفيذ
-                  </span>
+                    {description && (
+                      <span className="text-[10px] font-bold text-slate-300 leading-snug">
+                        {description}
+                      </span>
+                    )}
+                    <span className="text-[9px] font-semibold text-emerald-400 mt-1 block">
+                      💡 اضغط مرة أخرى للتنفيذ
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Precise Arrow SVG pointing directly to target center */}
-              {(coords.effectivePosition === 'top' || coords.effectivePosition === 'bottom') && (
-                <svg
-                  width="12"
-                  height="6"
-                  viewBox="0 0 12 6"
-                  className="absolute text-slate-900/95 fill-current"
+                {/* Pointer Arrow */}
+                <div
+                  className={cn(
+                    'absolute w-0 h-0 border-x-transparent border-x-4',
+                    coords.placement === 'top'
+                      ? 'top-full border-t-slate-900 border-b-0 border-t-4'
+                      : 'bottom-full border-b-slate-900 border-t-0 border-b-4'
+                  )}
                   style={{
-                    left: `${coords.arrowX}px`,
-                    top: coords.effectivePosition === 'bottom' ? '-6px' : 'auto',
-                    bottom: coords.effectivePosition === 'top' ? '-6px' : 'auto',
-                    transform: coords.effectivePosition === 'bottom' ? 'translateX(-50%) rotate(180deg)' : 'translateX(-50%)',
+                    left: `${coords.arrowLeft}px`,
+                    transform: 'translateX(-50%)',
                   }}
-                >
-                  <path d="M0 0 L6 6 L12 0 Z" />
-                </svg>
-              )}
-
-              {(coords.effectivePosition === 'left' || coords.effectivePosition === 'right') && (
-                <svg
-                  width="6"
-                  height="12"
-                  viewBox="0 0 6 12"
-                  className="absolute text-slate-900/95 fill-current"
-                  style={{
-                    top: `${coords.arrowY}px`,
-                    left: coords.effectivePosition === 'right' ? '-6px' : 'auto',
-                    right: coords.effectivePosition === 'left' ? '-6px' : 'auto',
-                    transform: coords.effectivePosition === 'right' ? 'translateY(-50%) rotate(180deg)' : 'translateY(-50%)',
-                  }}
-                >
-                  <path d="M0 0 L6 6 L0 12 Z" />
-                </svg>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 };
