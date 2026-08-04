@@ -1530,10 +1530,16 @@ const MainApp: React.FC = () => {
     return () => clearTimeout(t);
   }, [authLoading]);
 
-  // First-time onboarding modal auto-trigger disabled per user request to prevent distraction on home page
   useEffect(() => {
-    // Disabled auto-showing onboarding open
-  }, []);
+    if (!isAuthenticated || authLoading || dataLoading) return;
+    const key = `alturath_admin_onboarding_seen_${onboardingRole}`;
+    try {
+      if (!localStorage.getItem(key)) {
+        const t = setTimeout(() => setOnboardingOpen(true), 550);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, [isAuthenticated, authLoading, dataLoading, onboardingRole]);
 
 
   // Persist sound state
