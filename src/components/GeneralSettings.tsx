@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import LogoEngine from "./ui/LogoEngine";
+import SmartIconGuide from "./ui/SmartIconGuide";
 import {
   AppState,
   AppSettings,
@@ -5955,103 +5956,111 @@ const GeneralSettings: React.FC<Props> = ({
                           hasData || isRestoring || isResetting;
 
                         return (
-                          <button
-                            onClick={() => setShowRestoreConfirm(true)}
-                            disabled={isDisabled}
-                            className={cn(
-                              "w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
-                              hasData
-                                ? "bg-slate-50 border-slate-200/60 text-slate-500 cursor-not-allowed opacity-60"
-                                : "bg-indigo-50 border-indigo-150 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]",
-                            )}
-                          >
-                            <Sparkles
-                              size={18}
-                              className={
+                          <SmartIconGuide guideKey="settings-emergency-restore" title="استرجاع طارئ سحابي لكافة المبيعات والسجلات" className="w-full">
+                            <button
+                              onClick={() => setShowRestoreConfirm(true)}
+                              disabled={isDisabled}
+                              className={cn(
+                                "w-full flex items-center justify-between p-3 border rounded-2xl group transition-all shadow-sm",
                                 hasData
-                                  ? ""
-                                  : "group-hover:rotate-12 transition-transform text-amber-500"
-                              }
-                            />
-                            <div className="text-right">
-                              <div className="text-xs font-bold font-sans">
-                                إسترجاع البيانات والملء السريع ⛑️
+                                  ? "bg-slate-50 border-slate-200/60 text-slate-500 cursor-not-allowed opacity-60"
+                                  : "bg-indigo-50 border-indigo-150 hover:bg-indigo-100 text-indigo-700 active:scale-[0.98]",
+                              )}
+                            >
+                              <Sparkles
+                                size={18}
+                                className={
+                                  hasData
+                                    ? ""
+                                    : "group-hover:rotate-12 transition-transform text-amber-500"
+                                }
+                              />
+                              <div className="text-right">
+                                <div className="text-xs font-bold font-sans">
+                                  إسترجاع البيانات والملء السريع ⛑️
+                                </div>
+                                <div className="text-[10px] opacity-80">
+                                  {hasData
+                                    ? "النظام يحتوي على بيانات فعالّة الحين"
+                                    : "استعادة المبيعات، الفواتير، والعمليات كاملة فوراً"}
+                                </div>
                               </div>
-                              <div className="text-[10px] opacity-80">
-                                {hasData
-                                  ? "النظام يحتوي على بيانات فعالّة الحين"
-                                  : "استعادة المبيعات، الفواتير، والعمليات كاملة فوراً"}
-                              </div>
-                            </div>
-                          </button>
+                            </button>
+                          </SmartIconGuide>
                         );
                       })()}
 
-                      <button
-                        onClick={handleDownload}
-                        className={cn(
-                          "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
-                          "bg-emerald-50 border-emerald-100 hover:bg-emerald-100 text-emerald-700",
-                        )}
-                      >
-                        <DownloadCloud
-                          size={18}
-                          className="transition-transform group-hover:-translate-y-1"
-                        />
-                        <div className="text-right">
-                          <div className="text-xs font-bold">
-                            تصدير نسخة احتياطية
+                      <SmartIconGuide guideKey="settings-download-backup" title="تصدير نسخة احتياطية سحابية شاملة" className="w-full">
+                        <button
+                          onClick={handleDownload}
+                          className={cn(
+                            "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
+                            "bg-emerald-50 border-emerald-100 hover:bg-emerald-100 text-emerald-700",
+                          )}
+                        >
+                          <DownloadCloud
+                            size={18}
+                            className="transition-transform group-hover:-translate-y-1"
+                          />
+                          <div className="text-right">
+                            <div className="text-xs font-bold">
+                              تصدير نسخة احتياطية
+                            </div>
+                            <div className="text-[10px] opacity-70 italic">
+                              نسخة شاملة تشمل (نبض العملاء)
+                            </div>
                           </div>
-                          <div className="text-[10px] opacity-70 italic">
-                            نسخة شاملة تشمل (نبض العملاء)
-                          </div>
-                        </div>
-                      </button>
+                        </button>
+                      </SmartIconGuide>
 
-                      <label
-                        className={cn(
-                          "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
-                          "bg-sky-50 border-sky-100 hover:bg-sky-100 text-sky-700 cursor-pointer",
-                        )}
-                      >
-                        <Upload
-                          size={18}
-                          className="transition-transform group-hover:-translate-y-1"
-                        />
-                        <div className="text-right">
-                          <div className="text-xs font-bold">
-                            استيراد نسخة سابقة
+                      <SmartIconGuide guideKey="settings-import-backup" title="استيراد وتحديث السجلات من ملف سحابي سابق" className="w-full">
+                        <label
+                          className={cn(
+                            "w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group",
+                            "bg-sky-50 border-sky-100 hover:bg-sky-100 text-sky-700 cursor-pointer",
+                          )}
+                        >
+                          <Upload
+                            size={18}
+                            className="transition-transform group-hover:-translate-y-1"
+                          />
+                          <div className="text-right">
+                            <div className="text-xs font-bold">
+                              استيراد نسخة سابقة
+                            </div>
+                            <div className="text-[10px] opacity-70">
+                              رفع (JSON, Excel) لمزامنة النظام
+                            </div>
                           </div>
-                          <div className="text-[10px] opacity-70">
-                            رفع (JSON, Excel) لمزامنة النظام
-                          </div>
-                        </div>
-                        <input
-                          type="file"
-                          accept=".json,.xlsx,.xls,.csv"
-                          className="hidden"
-                          onChange={handleImport}
-                        />
-                      </label>
+                          <input
+                            type="file"
+                            accept=".json,.xlsx,.xls,.csv"
+                            className="hidden"
+                            onChange={handleImport}
+                          />
+                        </label>
+                      </SmartIconGuide>
 
-                      <button
-                        onClick={() => setShowResetConfirm(true)}
-                        disabled={isResetting || isRestoring}
-                        className="w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
-                      >
-                        <Trash2
-                          size={18}
-                          className="transition-transform group-hover:rotate-12 text-rose-600"
-                        />
-                        <div className="text-right">
-                          <div className="text-xs font-bold font-sans">
-                            إعادة تهيئة البيانات
+                      <SmartIconGuide guideKey="settings-reset-data" title="تنظيف السجلات وإعادة تهيئة قاعدة البيانات" className="w-full">
+                        <button
+                          onClick={() => setShowResetConfirm(true)}
+                          disabled={isResetting || isRestoring}
+                          className="w-full flex items-center justify-between p-3 border rounded-2xl transition-all shadow-sm active:scale-[0.98] group bg-rose-50 border-rose-100 hover:bg-rose-100 text-rose-700"
+                        >
+                          <Trash2
+                            size={18}
+                            className="transition-transform group-hover:rotate-12 text-rose-600"
+                          />
+                          <div className="text-right">
+                            <div className="text-xs font-bold font-sans">
+                              إعادة تهيئة البيانات
+                            </div>
+                            <div className="text-[10px] opacity-70">
+                              مسح البيانات التجريبية وتنظيف السجلات للبدء من جديد
+                            </div>
                           </div>
-                          <div className="text-[10px] opacity-70">
-                            مسح البيانات التجريبية وتنظيف السجلات للبدء من جديد
-                          </div>
-                        </div>
-                      </button>
+                        </button>
+                      </SmartIconGuide>
                     </div>
                   )}
 
