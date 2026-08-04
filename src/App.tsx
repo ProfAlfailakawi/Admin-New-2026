@@ -60,6 +60,7 @@ import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
 const SystemPulseOrb = React.lazy(() => import('./components/SystemPulseOrb'));
 import LogoEngine from './components/ui/LogoEngine';
+import SmartIconGuide from './components/ui/SmartIconGuide';
 const InvoicePage = React.lazy(() => import('./components/InvoicePage'));
 const CustomerPage = React.lazy(() => import('./components/CustomerPage'));
 const ProductPage = React.lazy(() => import('./components/ProductPage'));
@@ -1529,16 +1530,10 @@ const MainApp: React.FC = () => {
     return () => clearTimeout(t);
   }, [authLoading]);
 
+  // First-time onboarding modal auto-trigger disabled per user request to prevent distraction on home page
   useEffect(() => {
-    if (!isAuthenticated || authLoading || dataLoading) return;
-    const key = `alturath_admin_onboarding_seen_${onboardingRole}`;
-    try {
-      if (!localStorage.getItem(key)) {
-        const t = setTimeout(() => setOnboardingOpen(true), 550);
-        return () => clearTimeout(t);
-      }
-    } catch {}
-  }, [isAuthenticated, authLoading, dataLoading, onboardingRole]);
+    // Disabled auto-showing onboarding open
+  }, []);
 
 
   // Persist sound state
@@ -4455,9 +4450,11 @@ const MainApp: React.FC = () => {
             
             {deferredChromeReady && (
               <React.Suspense fallback={null}>
-                <div className="hidden xs:block scale-75 origin-left">
-                  <SystemPulseOrb data={data} />
-                </div>
+                <SmartIconGuide guideKey="header-system-pulse" title="مؤشر صحة الربط السحابي والجسر" position="bottom">
+                  <div className="hidden xs:block scale-75 origin-left">
+                    <SystemPulseOrb data={data} />
+                  </div>
+                </SmartIconGuide>
               </React.Suspense>
             )}
           </div>
@@ -4497,23 +4494,25 @@ const MainApp: React.FC = () => {
                 <Plus size={16} className="sm:size-5 group-hover:rotate-90 transition-transform" />
               </button>
 
-              <button 
-                onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
-                title="مساعد التراث الذكي"
-                className={cn(
-                  "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden shrink-0",
-                  currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
-                )}
-              >
-                <Bot size={18} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
-                {currentPage === 'ai' && (
-                  <motion.div 
-                    layoutId="aiActiveHeader"
-                    className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950"
-                  />
-                )}
-                <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-ping border border-white z-20" />
-              </button>
+              <SmartIconGuide guideKey="header-ai-assistant" title="مساعد التراث الذكي للتحليل والقرارات" position="bottom">
+                <button 
+                  onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
+                  title="مساعد التراث الذكي"
+                  className={cn(
+                    "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden shrink-0",
+                    currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
+                  )}
+                >
+                  <Bot size={18} className={cn("transition-all relative z-10", currentPage === 'ai' ? "text-amber-400" : "group-hover:text-amber-500 group-hover:scale-110")} />
+                  {currentPage === 'ai' && (
+                    <motion.div 
+                      layoutId="aiActiveHeader"
+                      className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950"
+                    />
+                  )}
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-ping border border-white z-20" />
+                </button>
+              </SmartIconGuide>
 
             {/* Notifications */}
             <div className="relative shrink-0" ref={notifRef}>
