@@ -265,6 +265,19 @@ export interface AppSettings {
   gatewayFeeAmount: number; // e.g., 0.200
   companyLogo?: string;
   companyName: string;
+  // Cash anchor. The liquidity card is derived purely from the records still in the app,
+  // so it is only equal to the real bank+cash balance if those records go back to day one.
+  // Whenever older invoices have been removed while their expenses and supplier payments
+  // stayed, the difference is carried here instead of leaving the card silently wrong.
+  openingCashBalance?: number;
+  // Optional: only count money movement dated on/after this day (ISO date).
+  cashTrackingStartDate?: string;
+  // Bookkeeping for the "اكتب رصيدك الفعلي" calibration, so it can be explained and redone.
+  cashCalibration?: {
+    actualBalance: number;
+    recordedMovement: number;
+    calibratedAt: string;
+  };
   restaurantNumbers: string[];
   productCategories?: string[];
   menuCategories?: string[];

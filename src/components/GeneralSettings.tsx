@@ -60,6 +60,7 @@ import {
   normalizeAddressObject,
   normalizeArabicNumerals,
   normalizeArabic,
+  formatKuwaitiDateOnly,
 } from "../lib/utils";
 import * as XLSX from "xlsx";
 import {
@@ -89,7 +90,7 @@ import {
   AUTHORIZED_UIDS,
   DEFAULT_GLOBAL_LOGO,
 } from "../constants";
-import { recalculateStateBalances } from "../lib/business-logic";
+import { recalculateStateBalances, getCashPositionForState } from "../lib/business-logic";
 import { removeProtectedStorageItemIntentionally } from "../lib/dataGuard";
 import firebaseConfig from "../../firebase-applet-config.json";
 
@@ -556,6 +557,130 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
            </svg>
          </div>
        )}
+    </div>
+  );
+};
+
+// The liquidity card is derived only from the records still in the app. Once older
+// invoices have been removed while their expenses and supplier payments stayed, no
+// formula can recover the real balance — it has to be anchored once, here.
+const CashAnchorSettings: React.FC<{
+  data: AppState;
+  settings: AppSettings;
+  setSettings: (updater: any) => void;
+}> = ({ data, settings, setSettings }) => {
+  const cash = React.useMemo(() => getCashPositionForState(data), [data]);
+  const [actualBalance, setActualBalance] = React.useState("");
+
+  const opening = cash.openingBalance;
+  const isUsingLegacyCalibration = cash.openingBalanceSource === "legacy-calibration";
+  const calibration = (settings as any)?.cashCalibration;
+  const money = (v: number) => `${Number(v || 0).toFixed(3)} د.ك`;
+
+  const applyCalibration = () => {
+    const typed = parseFloat(normalizeArabicNumerals(String(actualBalance)).replace(/,/g, ""));
+    if (!Number.isFinite(typed)) {
+      toast.error("اكتب رقم صحيح", { description: "مثال: 303.000" });
+      return;
+    }
+    // Opening balance = what the records cannot explain. Anchoring it this way keeps every
+    // recorded movement visible in the breakdown instead of deleting history.
+    const nextOpening = Math.round((typed - cash.recordedMovement) * 1000) / 1000;
+    setSettings({
+      ...settings,
+      openingCashBalance: nextOpening,
+      cashCalibration: {
+        actualBalance: typed,
+        recordedMovement: cash.recordedMovement,
+        calibratedAt: new Date().toISOString(),
+      },
+    });
+    setActualBalance("");
+    toast.success("تمت معايرة السيولة ✨", {
+      description: `الرصيد الافتتاحي المعتمد ${nextOpening.toFixed(3)} د.ك، وبطاقة السيولة صارت تعرض ${typed.toFixed(3)} د.ك.`,
+    });
+  };
+
+  const clearCalibration = () => {
+    setSettings({ ...settings, openingCashBalance: 0, cashCalibration: undefined });
+    toast.info("تم إلغاء المعايرة", { description: "رجعت البطاقة تعرض صافي الحركة المسجلة فقط." });
+  };
+
+  return (
+    <div className="space-y-3 border border-slate-200/60 rounded-2xl p-4 bg-slate-50/60" dir="rtl">
+      <div className="text-right">
+        <label className="text-sm font-bold text-slate-800 block">
+          الرصيد الافتتاحي للسيولة
+        </label>
+        <p className="text-[11px] text-slate-500 font-bold leading-5 mt-1">
+          بطاقة «رصيد السيولة بالبنك والخزينة» تُحسب من سجلات البرنامج فقط. إذا كانت هناك مصروفات أو
+          سدادات موردين مسجلة عن فترة حُذفت فواتيرها، فالرقم ينقصه إيراد تلك الفترة. اكتب رصيدك الفعلي
+          الآن مرة واحدة، ويضبط البرنامج نقطة البداية ويتتبع كل شي بعدها بدقة.
+        </p>
+      </div>
+
+      {cash.anchorNeeded && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-800 leading-5 text-right">
+          يوجد <span dir="ltr">{money(cash.orphanOutflows)}</span> مصروفات وسدادات مسجلة قبل أقدم
+          فاتورة باقية في النظام. بدون رصيد افتتاحي ستبقى بطاقة السيولة أقل من الواقع بهذا المقدار تقريباً.
+        </div>
+      )}
+
+      <div className="bg-white border border-slate-200/60 rounded-xl p-3 space-y-1.5 text-[11px] font-bold text-slate-600">
+        <div className="flex justify-between gap-3">
+          <span>صافي الحركة المسجلة في البرنامج</span>
+          <span dir="ltr" className={cash.recordedMovement < 0 ? "text-rose-600" : "text-emerald-600"}>
+            {money(cash.recordedMovement)}
+          </span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span>الرصيد الافتتاحي المعتمد حالياً</span>
+          <span dir="ltr" className="text-slate-800">{money(opening)}</span>
+        </div>
+        <div className="flex justify-between gap-3 border-t border-slate-100 pt-1.5 text-slate-900 font-black">
+          <span>الظاهر في بطاقة السيولة</span>
+          <span dir="ltr">{money(cash.balance)}</span>
+        </div>
+      </div>
+
+      {isUsingLegacyCalibration && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] font-bold text-emerald-800 leading-5 text-right">
+          تم اعتماد خط الأساس المؤكد للحساب القديم تلقائياً: فرق السجلات التاريخية
+          <span dir="ltr" className="mx-1">{money(opening)}</span>
+          ليعود الرصيد الحالي إلى
+          <span dir="ltr" className="mx-1">{money(cash.balance)}</span>
+          من دون حذف أي فاتورة أو مصروف أو سداد مورد. يمكنك كتابة الرصيد الفعلي أدناه في أي وقت لإعادة المعايرة.
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="text"
+          inputMode="decimal"
+          value={actualBalance}
+          onChange={(e) => setActualBalance(e.target.value)}
+          placeholder="رصيدك الفعلي الآن بالبنك والخزينة (مثال: 303.000)"
+          className="flex-1 p-2.5 border border-slate-200/60 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all text-right font-bold"
+        />
+        <button
+          onClick={applyCalibration}
+          className="px-5 py-2.5 bg-slate-900 text-white font-bold rounded-lg active:scale-95 transition-all whitespace-nowrap"
+        >
+          اضبط السيولة
+        </button>
+      </div>
+
+      {calibration && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold text-slate-500">
+          <span>
+            آخر معايرة: {formatKuwaitiDateOnly(calibration.calibratedAt)} على أساس رصيد فعلي{" "}
+            <span dir="ltr">{money(calibration.actualBalance)}</span>
+          </span>
+          <button onClick={clearCalibration} className="text-rose-500 hover:text-rose-600 underline">
+            إلغاء المعايرة
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -4023,6 +4148,12 @@ const GeneralSettings: React.FC<Props> = ({
                     </div>
                   </div>
                 </div>
+
+                <CashAnchorSettings
+                  data={data}
+                  settings={settings}
+                  setSettings={setSettings}
+                />
 
                 <div className="space-y-4">
                   <label className="text-sm font-medium text-slate-700 block">

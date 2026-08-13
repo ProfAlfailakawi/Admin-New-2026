@@ -1,6 +1,6 @@
 import { AppState } from '../types';
 import { isPaidStatus } from './status-utils';
-import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection } from './invoice-calculations';
+import { computeAddonCost, computeAddonRevenue, computeAddonQuantity, computeInvoiceItemBaseCost, getInvoiceItemAddons, safeParsePrice, addonHasPositiveSelection, computeInvoiceSubtotal, computeInvoiceGatewayFee } from './invoice-calculations';
 import { getUnifiedInvoices } from './utils';
 
 
@@ -578,6 +578,144 @@ export function recalculateStateBalances(state: AppState): AppState {
   recalculateCache.set(state, newState);
   recalculatedMarker.add(newState);
   return newState;
+}
+
+/*
+ * ── مركز السيولة (Cash position) ──────────────────────────────────────────────
+ *
+ * بطاقة «رصيد السيولة بالبنك والخزينة» تُشتق بالكامل من السجلات الموجودة داخل
+ * البرنامج. لذلك هي تساوي رصيدك الفعلي فقط إذا كانت السجلات ممتدة من أول يوم.
+ * إذا حُذفت فواتير قديمة وبقيت مصروفاتها وسدادات مورديها، يصير طرف المنصرف كامل
+ * وطرف الإيراد ناقص، فيطلع الرصيد سالباً بشكل وهمي.
+ *
+ * الحل: رصيد افتتاحي معتمد يثبّت نقطة البداية. وهذه الدالة هي المصدر الوحيد
+ * لحساب السيولة، تستخدمها لوحة التحكم وشاشة الإعدادات معاً حتى لا يتكرر الرقم
+ * بصيغتين مختلفتين.
+ */
+export interface CashPosition {
+  openingBalance: number;
+  openingBalanceSource: 'configured' | 'legacy-calibration';
+  foodSales: number;
+  deliveryFees: number;
+  discounts: number;
+  netRevenue: number;
+  expenses: number;
+  supplierPayments: number;
+  gatewayFees: number;
+  recordedMovement: number;
+  balance: number;
+  orphanOutflows: number;
+  anchorNeeded: boolean;
+  paidInvoices: any[];
+}
+
+// One-time opening point for the existing company ledger. The owner confirmed that the
+// real bank + cash balance was calibrated at 303.800 KWD while the surviving records
+// produced -3928.500 KWD. Their 4232.300 KWD difference is historical money that cannot be
+// reconstructed after the older revenue rows were removed. Keeping it as an opening
+// balance preserves every current invoice/payment and lets all future movement remain
+// fully data-driven. New/demo ledgers explicitly store openingCashBalance: 0, while an
+// administrator can replace or disable this baseline from General Settings at any time.
+const LEGACY_OPENING_CASH_BALANCE = 4232.3;
+
+export function getCashPositionForState(state: AppState): CashPosition {
+  const data: any = state || {};
+  const settings: any = data.settings || {};
+  const rawOpeningBalance = settings.openingCashBalance;
+  // `0` is an intentional value (for a new ledger or after pressing "clear"). Only a
+  // genuinely absent legacy value receives the confirmed one-time calibration.
+  const hasConfiguredOpeningBalance =
+    rawOpeningBalance !== undefined &&
+    rawOpeningBalance !== null &&
+    rawOpeningBalance !== '' &&
+    Number.isFinite(Number(rawOpeningBalance));
+  const openingBalance = hasConfiguredOpeningBalance
+    ? Number(rawOpeningBalance)
+    : LEGACY_OPENING_CASH_BALANCE;
+  const openingBalanceSource: CashPosition['openingBalanceSource'] =
+    hasConfiguredOpeningBalance ? 'configured' : 'legacy-calibration';
+
+  const cashStartTime = (() => {
+    if (!settings.cashTrackingStartDate) return null;
+    const t = new Date(settings.cashTrackingStartDate).getTime();
+    return Number.isFinite(t) ? t : null;
+  })();
+  // Undated rows are kept rather than dropped — losing a real payment is worse than
+  // counting one that sits slightly outside the window.
+  const isOnOrAfterStart = (value: any) => {
+    if (cashStartTime === null) return true;
+    const t = new Date(value).getTime();
+    return !Number.isFinite(t) || t >= cashStartTime;
+  };
+
+  const cancelledInvoiceIds = new Set(
+    (data.orders || [])
+      .filter((o: any) => o?.status === 'cancelled' && o?.isConvertedToInvoice && o?.linkedInvoiceId)
+      .map((o: any) => o.linkedInvoiceId)
+  );
+
+  const paidInvoices = getUnifiedInvoices(data).filter((inv: any) => {
+    if (!inv || inv.isDeleted || cancelledInvoiceIds.has(inv.id)) return false;
+    if (!isOnOrAfterStart(inv.date)) return false;
+    const isPaid = isPaidStatus(inv.paymentStatus);
+    const isLegacyPaid =
+      (inv.paymentStatus === undefined || inv.paymentStatus === null || inv.paymentStatus === '') &&
+      (inv.status === 'completed' || inv.status === 'delivered');
+    return (isPaid || isLegacyPaid)
+      && !String(inv.status).includes('تجميع القطية')
+      && inv.paymentStatus !== 'split_pending'
+      && inv.status !== 'split_pending';
+  });
+
+  const products = data.products || [];
+  const foodSales = paidInvoices.reduce((acc: number, inv: any) => acc + Math.max(0, computeInvoiceSubtotal(inv, products)), 0);
+  const deliveryFees = paidInvoices.reduce((acc: number, inv: any) => {
+    const fee = Number(inv?.deliveryFee ?? inv?.deliveryPrice ?? inv?.deliveryInfo?.finalPrice ?? inv?.deliveryInfo?.price ?? 0) || 0;
+    return acc + Math.max(0, fee);
+  }, 0);
+  const discounts = paidInvoices.reduce((acc: number, inv: any) => acc + Number(inv.discount || 0), 0);
+  const gatewayFees = paidInvoices.reduce((acc: number, inv: any) => acc + computeInvoiceGatewayFee(inv), 0);
+  const netRevenue = foodSales + deliveryFees - discounts;
+
+  const expenses = (data.expenses || []).reduce(
+    (acc: number, e: any) => acc + (isOnOrAfterStart(e?.date) ? Math.abs(Number(e?.amount || 0)) : 0), 0);
+  const supplierPayments = (data.supplierTransfers || []).reduce(
+    (acc: number, t: any) => acc + (isOnOrAfterStart(t?.date) ? Math.abs(Number(t?.amount || 0)) : 0), 0);
+
+  const recordedMovement = netRevenue - expenses - supplierPayments - gatewayFees;
+
+  // Outflows dated before the oldest surviving invoice belong to a period whose sales are
+  // no longer in the app: their revenue side is missing, so the card cannot be right until
+  // an opening balance covers them.
+  const oldestRevenueTime = paidInvoices.reduce((min: number, inv: any) => {
+    const t = new Date(inv?.date).getTime();
+    return Number.isFinite(t) && t < min ? t : min;
+  }, Number.POSITIVE_INFINITY);
+
+  const orphanOutflows = Number.isFinite(oldestRevenueTime)
+    ? [...(data.expenses || []), ...(data.supplierTransfers || [])].reduce((acc: number, row: any) => {
+        if (!isOnOrAfterStart(row?.date)) return acc;
+        const t = new Date(row?.date).getTime();
+        return Number.isFinite(t) && t < oldestRevenueTime ? acc + Math.abs(Number(row?.amount || 0)) : acc;
+      }, 0)
+    : 0;
+
+  return {
+    openingBalance,
+    openingBalanceSource,
+    foodSales,
+    deliveryFees,
+    discounts,
+    netRevenue,
+    expenses,
+    supplierPayments,
+    gatewayFees,
+    recordedMovement,
+    balance: roundKwd(openingBalance + recordedMovement),
+    orphanOutflows: roundKwd(orphanOutflows),
+    anchorNeeded: openingBalance === 0 && orphanOutflows > 0,
+    paidInvoices,
+  };
 }
 
 /**
