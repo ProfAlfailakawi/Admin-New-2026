@@ -208,11 +208,207 @@ export function getSupplierLedgerForState(
   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
+/*
+ * ── محرك تسوية المورد (Supplier settlement engine) ──────────────────────────
+ *
+ * المشكلة الجذرية التي كان يعاني منها الحساب القديم:
+ *   الرصيد = max(0, مجموع كل الفواتير عبر التاريخ − مجموع كل السدادات عبر التاريخ)
+ *
+ * أي فائض تاريخي (دفعة افتتاحية، سداد مجمّع، أو سداد لفواتير حُذفت أو أُرشفت
+ * لاحقاً) كان يبقى حيّاً إلى الأبد ويبتلع صامتاً كل فاتورة جديدة: المورد يطالب
+ * بالدفع بينما البرنامج يعرض 0.000 د.ك ولا تظهر له أي حركة.
+ *
+ * الحل: كل دفعة تُسوّي الفواتير التي كانت موجودة فعلاً وقت تسجيلها (الأقدم أولاً).
+ * الدفعة لا تستطيع أبداً سداد فاتورة صدرت بعدها، والفائض يُعرض بشكل صريح
+ * كـ "رصيد فائض غير مطابق" بدل أن يخفي المستحقات.
+ */
+
+// نافذة سماح: أحياناً يُسجَّل السداد قبل إدخال الفاتورة بيوم أو يومين.
+export const SUPPLIER_PAYMENT_GRACE_DAYS = 2;
+const SUPPLIER_PAYMENT_GRACE_MS = SUPPLIER_PAYMENT_GRACE_DAYS * 24 * 60 * 60 * 1000;
+const SETTLEMENT_EPSILON = 0.0005;
+
+const settlementTime = (value: any): number => {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+export interface SupplierSettlementInvoice {
+  id: string;
+  refId: string;
+  date: any;
+  time: number;
+  due: number;
+  supplyDue: number;
+  deliveryDue: number;
+  paid: number;
+  paidToSupply: number;
+  paidToDelivery: number;
+  remaining: number;
+  isPaid: boolean;
+  isPartiallyPaid: boolean;
+  entry: any;
+}
+
+export interface SupplierSettlement {
+  ledger: any[];
+  invoices: SupplierSettlementInvoice[];
+  settlementByEntryId: Map<string, SupplierSettlementInvoice>;
+  totalDue: number;
+  totalPaid: number;
+  appliedPaid: number;
+  unappliedCredit: number;
+  outstanding: number;
+  supplyDue: number;
+  deliveryDue: number;
+  paidToSupply: number;
+  paidToDelivery: number;
+  remainingSupply: number;
+  remainingDelivery: number;
+  totalInvoices: number;
+  paidInvoices: number;
+  partiallyPaidInvoices: number;
+  pendingInvoices: number;
+  unpaidInvoices: number;
+  paidPercentage: number;
+}
+
+/**
+ * Centrally matches a supplier's payments to the invoices that existed when each
+ * payment was made, so a historical surplus can never hide a newer invoice.
+ */
+export function getSupplierSettlementForState(
+  supId: string,
+  state: AppState,
+  productMap?: Map<string, any>,
+  supplierMap?: Map<string, any>,
+  invoicesBySupplierMap?: Map<string, any[]>,
+  supplierProductsMap?: Map<string, Set<string>>,
+  transfersBySupplierMap?: Map<string, any[]>
+): SupplierSettlement {
+  const ledger = getSupplierLedgerForState(
+    supId,
+    state,
+    productMap,
+    supplierMap,
+    invoicesBySupplierMap,
+    supplierProductsMap,
+    transfersBySupplierMap
+  );
+
+  const invoices: SupplierSettlementInvoice[] = ledger
+    .filter((t: any) => t.type === 'invoice')
+    .map((t: any) => {
+      const due = Math.max(0, roundKwd(Number(t.amount || 0)));
+      return {
+        id: String(t.id || ''),
+        refId: String(t.refId || ''),
+        date: t.date,
+        time: settlementTime(t.date),
+        due,
+        supplyDue: Math.max(0, roundKwd(Number(t.supplyAmount || 0))),
+        deliveryDue: Math.max(0, roundKwd(Number(t.deliveryAmount || 0))),
+        paid: 0,
+        paidToSupply: 0,
+        paidToDelivery: 0,
+        remaining: due,
+        isPaid: false,
+        isPartiallyPaid: false,
+        entry: t,
+      };
+    })
+    .filter((inv) => inv.due > SETTLEMENT_EPSILON)
+    .sort((a, b) => a.time - b.time || String(a.refId).localeCompare(String(b.refId), 'en', { numeric: true }));
+
+  const payments = ledger
+    .filter((t: any) => t.type === 'transfer')
+    .map((t: any) => ({
+      time: settlementTime(t.date),
+      amount: Math.max(0, roundKwd(Math.abs(Number(t.amount || 0)))),
+      applied: 0,
+    }))
+    .filter((p) => p.amount > SETTLEMENT_EPSILON)
+    .sort((a, b) => a.time - b.time);
+
+  // Invoices are sorted oldest-first and always filled oldest-first, so everything
+  // before `firstOpen` is fully settled and never needs to be visited again.
+  let firstOpen = 0;
+  payments.forEach((payment) => {
+    let left = payment.amount;
+    const cutoff = payment.time + SUPPLIER_PAYMENT_GRACE_MS;
+
+    while (firstOpen < invoices.length && invoices[firstOpen].remaining <= SETTLEMENT_EPSILON) firstOpen++;
+
+    for (let i = firstOpen; i < invoices.length; i++) {
+      if (left <= SETTLEMENT_EPSILON) break;
+      const inv = invoices[i];
+      // A payment can only settle invoices that already existed when it was made.
+      if (inv.time > cutoff) break;
+      if (inv.remaining <= SETTLEMENT_EPSILON) continue;
+
+      const applied = Math.min(left, inv.remaining);
+      const toSupply = Math.min(applied, Math.max(0, roundKwd(inv.supplyDue - inv.paidToSupply)));
+
+      inv.paid = roundKwd(inv.paid + applied);
+      inv.paidToSupply = roundKwd(inv.paidToSupply + toSupply);
+      inv.paidToDelivery = roundKwd(inv.paidToDelivery + (applied - toSupply));
+      inv.remaining = roundKwd(inv.remaining - applied);
+
+      left = roundKwd(left - applied);
+      payment.applied = roundKwd(payment.applied + applied);
+    }
+  });
+
+  invoices.forEach((inv) => {
+    inv.isPaid = inv.remaining <= SETTLEMENT_EPSILON;
+    inv.isPartiallyPaid = !inv.isPaid && inv.paid > SETTLEMENT_EPSILON;
+  });
+
+  const sum = (list: any[], pick: (x: any) => number) => roundKwd(list.reduce((acc, x) => acc + Number(pick(x) || 0), 0));
+
+  const totalDue = sum(invoices, (i) => i.due);
+  const totalPaid = sum(payments, (p) => p.amount);
+  const appliedPaid = sum(payments, (p) => p.applied);
+  const outstanding = sum(invoices, (i) => Math.max(0, i.remaining));
+  const supplyDue = sum(invoices, (i) => i.supplyDue);
+  const deliveryDue = sum(invoices, (i) => i.deliveryDue);
+  const paidToSupply = sum(invoices, (i) => i.paidToSupply);
+  const paidToDelivery = sum(invoices, (i) => i.paidToDelivery);
+
+  const totalInvoices = invoices.length;
+  const paidInvoices = invoices.filter((i) => i.isPaid).length;
+  const partiallyPaidInvoices = invoices.filter((i) => i.isPartiallyPaid).length;
+  const pendingInvoices = Math.max(0, totalInvoices - paidInvoices);
+
+  return {
+    ledger,
+    invoices,
+    settlementByEntryId: new Map(invoices.map((i) => [String(i.id), i])),
+    totalDue,
+    totalPaid,
+    appliedPaid,
+    unappliedCredit: Math.max(0, roundKwd(totalPaid - appliedPaid)),
+    outstanding,
+    supplyDue,
+    deliveryDue,
+    paidToSupply,
+    paidToDelivery,
+    remainingSupply: Math.max(0, roundKwd(supplyDue - paidToSupply)),
+    remainingDelivery: Math.max(0, roundKwd(deliveryDue - paidToDelivery)),
+    totalInvoices,
+    paidInvoices,
+    partiallyPaidInvoices,
+    pendingInvoices,
+    unpaidInvoices: Math.max(0, pendingInvoices - partiallyPaidInvoices),
+    paidPercentage: totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 100) : 0,
+  };
+}
+
 /**
  * Centrally calculates the net outstanding/due balance for a supplier.
  */
 export function getSupplierLiveBalanceForState(
-  supId: string, 
+  supId: string,
   state: AppState,
   productMap?: Map<string, any>,
   supplierMap?: Map<string, any>,
@@ -220,18 +416,15 @@ export function getSupplierLiveBalanceForState(
   supplierProductsMap?: Map<string, Set<string>>,
   transfersBySupplierMap?: Map<string, any[]>
 ): number {
-  const ledger = getSupplierLedgerForState(
-    supId, 
-    state, 
-    productMap, 
-    supplierMap, 
-    invoicesBySupplierMap, 
-    supplierProductsMap, 
+  return getSupplierSettlementForState(
+    supId,
+    state,
+    productMap,
+    supplierMap,
+    invoicesBySupplierMap,
+    supplierProductsMap,
     transfersBySupplierMap
-  );
-  const due = ledger.filter(t => t.type === 'invoice').reduce((acc, t) => acc + Number(t.amount || 0), 0);
-  const paid = Math.abs(ledger.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amount || 0), 0));
-  return Math.max(0, roundKwd(due - paid));
+  ).outstanding;
 }
 
 const recalculateCache = new WeakMap<any, any>();

@@ -64,7 +64,7 @@ import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import ConfirmModal from "./ui/ConfirmModal";
 import { toast } from "sonner";
-import { recalculateStateBalances, getSupplierLedgerForState } from "../lib/business-logic";
+import { recalculateStateBalances, getSupplierSettlementForState } from "../lib/business-logic";
 import {
   isPaidStatus,
   isPendingStatus,
@@ -137,18 +137,6 @@ const getSupplierDeliverySettlementAmountForReport = (inv: any, supplierId: stri
     return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? Math.round(value * 1000) / 1000 : 0;
   }
   return 0;
-};
-
-const allocateSupplierPaidAmount = (supplyDue: number, deliveryDue: number, paid: number) => {
-  const safePaid = Math.max(0, Number(paid || 0));
-  const paidToSupply = Math.min(safePaid, Math.max(0, Number(supplyDue || 0)));
-  const paidToDelivery = Math.min(Math.max(safePaid - paidToSupply, 0), Math.max(0, Number(deliveryDue || 0)));
-  return {
-    paidToSupply,
-    paidToDelivery,
-    remainingSupply: Math.max(0, Number(supplyDue || 0) - paidToSupply),
-    remainingDelivery: Math.max(0, Number(deliveryDue || 0) - paidToDelivery),
-  };
 };
 
 
@@ -504,21 +492,35 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         return String(b.id || "").localeCompare(String(a.id || ""), "en", { numeric: true });
       });
 
+    // Each invoice reports the payment actually matched against it by the central
+    // settlement engine, instead of subtracting the supplier's lifetime payments from
+    // the invoices of the selected period (which hid every unpaid invoice behind an
+    // old surplus).
     const supplierFinancialRows = React.useMemo(() => {
       const activeInvoiceIds = new Set(activeInvoices.map((inv: any) => String(inv.id)));
       return (data?.suppliers || []).map((supplier: any) => {
-        const invoiceLedger = getSupplierLedgerForState(supplier.id, data)
-          .filter((t: any) => t.type === 'invoice' && activeInvoiceIds.has(String(t.refId)));
-        const supplyDue = invoiceLedger.reduce((acc: number, t: any) => acc + Number(t.supplyAmount || 0), 0);
-        const deliveryDue = invoiceLedger.reduce((acc: number, t: any) => acc + Number(t.deliveryAmount || 0), 0);
-        const addonsDue = invoiceLedger.reduce((acc: number, t: any) => acc + Number(t.addonsSupplyAmount || 0), 0);
-        const paid = (data?.supplierTransfers || [])
-          .filter((t: any) => String(t.supplierId) === String(supplier.id))
-          .reduce((acc: number, t: any) => acc + Number(t.amount || 0), 0);
-        const allocation = allocateSupplierPaidAmount(supplyDue, deliveryDue, paid);
-        const totalDue = supplyDue + deliveryDue;
-        const balance = Math.max(0, totalDue - paid);
-        return { supplier, supplyDue, deliveryDue, addonsDue, totalDue, paid, balance, ...allocation };
+        const settlement = getSupplierSettlementForState(supplier.id, data);
+        const rows = settlement.invoices.filter((inv: any) => activeInvoiceIds.has(String(inv.refId)));
+        const sum = (pick: (row: any) => number) => rows.reduce((acc: number, row: any) => acc + Number(pick(row) || 0), 0);
+        const supplyDue = sum((row) => row.supplyDue);
+        const deliveryDue = sum((row) => row.deliveryDue);
+        const addonsDue = rows.reduce((acc: number, row: any) => acc + Number(row.entry?.addonsSupplyAmount || 0), 0);
+        const paidToSupply = sum((row) => row.paidToSupply);
+        const paidToDelivery = sum((row) => row.paidToDelivery);
+        return {
+          supplier,
+          supplyDue,
+          deliveryDue,
+          addonsDue,
+          totalDue: supplyDue + deliveryDue,
+          paid: sum((row) => row.paid),
+          balance: sum((row) => Math.max(0, row.remaining)),
+          unappliedCredit: settlement.unappliedCredit,
+          paidToSupply,
+          paidToDelivery,
+          remainingSupply: Math.max(0, supplyDue - paidToSupply),
+          remainingDelivery: Math.max(0, deliveryDue - paidToDelivery),
+        };
       }).filter((row: any) => row.totalDue > 0 || row.paid > 0 || row.balance > 0)
         .sort((a: any, b: any) => b.balance - a.balance || b.totalDue - a.totalDue);
     }, [data, activeInvoices]);

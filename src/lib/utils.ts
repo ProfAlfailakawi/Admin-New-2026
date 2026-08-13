@@ -565,6 +565,19 @@ export function joinProductsFromDatabase(data: any): any {
 
 const unifiedInvoicesCache = new WeakMap<any, any[]>();
 
+// Website order ids carry their creation time (ORD-<epochMs>-XXXX). A dateless order used to
+// fall back to "now", which makes an old order look brand new — that shifts it out of reports
+// and (worse) makes it look newer than the payment that already settled it with its supplier.
+const ORDER_ID_TIME_MIN = Date.UTC(2020, 0, 1);
+const ORDER_ID_TIME_MAX = Date.UTC(2100, 0, 1);
+export const orderIdTimestampISO = (id: any): string => {
+  const match = String(id || '').match(/^ORD-(\d{10,16})/);
+  if (!match) return '';
+  const ms = Number(match[1]);
+  if (!Number.isFinite(ms) || ms < ORDER_ID_TIME_MIN || ms > ORDER_ID_TIME_MAX) return '';
+  return new Date(ms).toISOString();
+};
+
 export function getUnifiedInvoices(data: any): any[] {
   if (!data) return [];
   if (unifiedInvoicesCache.has(data)) {
@@ -621,7 +634,7 @@ export function getUnifiedInvoices(data: any): any[] {
       discount: o.discount || 0,
       gatewayFee: 0,
       paymentMethod: o.paymentMethod || 'KNet',
-      date: o.date || o.createdAt || new Date().toISOString()
+      date: o.date || o.createdAt || orderIdTimestampISO(o.id) || new Date().toISOString()
     };
   });
 
