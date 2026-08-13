@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
-import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
+import { getSupplierSettlementForState } from '../lib/business-logic';
 import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
 
 interface SupplierPageProps {
@@ -91,164 +91,39 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   }, [showLedgerSupplierId]);
 
 
- const getInvoiceDeliverySettlement = (inv: any, supId: string) => { return getInvoiceDeliverySettlementForSupplier(inv, supId, data); };
-  const getInvoiceDeliverySettlement_old = (inv: any, supId: string) => { return 0; };
-  const _unused_deleted_1 = (inv?: any, supId?: any) => {
-   const info = inv?.deliveryInfo || {};
-   const target = info.settlementTarget || inv?.deliverySettlementTarget;
-   const valueCandidates = [info.cost, inv?.deliveryCost, info.finalPrice, inv?.deliveryFee];
-  const value = Number(valueCandidates.find((candidate) => Number(candidate || 0) > 0) || 0) || 0;
-   if (value <= 0) return 0;
-   const supplier = (data?.suppliers || []).find(s => String(s.id) === String(supId));
-   if (!supplier) return 0;
-   const isDeliveryCompany = (supplier as any).supplierType === 'delivery';
-   const isFoodSupplierDelivering = !isDeliveryCompany && (supplier as any).deliverySettlement === 'supplier';
-   if (!isDeliveryCompany && !isFoodSupplierDelivering) return 0;
-   const invoiceHasSupplierProduct = (inv?.items || []).some((item: any) => {
-     const product = (data?.products || []).find((p: any) => String(p.id) === String(item.productId));
-     return String(product?.supplierId || '') === String(supId);
-   });
-   const explicitSupplierId = String(info.settlementSupplierId || inv?.deliverySettlementSupplierId || '');
-   const supplierName = String(supplier?.name || '').trim();
-   const explicitName = String(info.settlementSupplierName || info.company || inv?.deliveryCompany || '').trim();
-   const matchesSupplier = explicitSupplierId === String(supId)
-     || (!!supplierName && explicitName === supplierName);
-   const hasNoExplicitSettlement = !target && !explicitSupplierId && !explicitName;
-   if (isDeliveryCompany) {
-     if (target && target !== 'delivery_company') return 0;
-     return matchesSupplier ? value : 0;
-   }
-   if (isFoodSupplierDelivering) {
-     if (target && target !== 'supplier') return 0;
-     return (matchesSupplier || (hasNoExplicitSettlement && invoiceHasSupplierProduct)) ? value : 0;
-   }
-   return 0;
- };
-
  const getSupplierProducts = (supId: string) => (data?.products || []).filter(p => p.supplierId === supId);
 
- const getSupplierLedger = (supId: string) => { return getSupplierLedgerForState(supId, data); };
-  const getSupplierLedger_old = (supId: string) => { return []; };
-  const _unused_deleted_2 = (supId?: any) => {
-   const transactions: any[] = [];
-   const supplierProductIds = new Set(
-     (data?.products || [])
-       .filter(p => p.supplierId === supId)
-       .map(p => p.id)
-   );
-
-   // 1. Invoices
-   (data?.invoices || []).filter(inv => !inv.isDeleted).forEach(inv => {
-     const itemsForThisSupplier = (inv.items || []).filter(item => {
-       const product = (data?.products || []).find(p => p.id === item.productId);
-       return product && product.supplierId === supId && supplierProductIds.has(item.productId);
-     }).map(item => {
-       const product = (data?.products || []).find(p => p.id === item.productId);
-       const cost = item.costAtTime || product?.cost || 0;
-       const price = item.priceAtTime || product?.price || 0;
-       return {
-         productId: item.productId,
-         name: product?.name || (item as any).name || (item as any).productName || 'منتج غير معروف',
-         quantity: item.quantity || 1,
-         cost,
-         price,
-         totalCost: cost * (item.quantity || 1),
-         totalPrice: price * (item.quantity || 1)
-       };
-     });
-
-     const supplierCost = itemsForThisSupplier.reduce((acc, item) => acc + item.totalCost, 0);
-     const supplierRevenue = itemsForThisSupplier.reduce((acc, item) => acc + item.totalPrice, 0);
-     const supplierDelivery = getInvoiceDeliverySettlement(inv, supId);
-     const supplierDue = Math.round((supplierCost + supplierDelivery) * 1000) / 1000;
-
-     if (supplierDue > 0) {
-       transactions.push({
-         id: `inv-${inv.id}`,
-         date: inv.date,
-         type: 'invoice',
-         amount: supplierDue,
-         supplyAmount: supplierCost,
-         deliveryAmount: supplierDelivery,
-         revenue: supplierRevenue,
-         refId: inv.id,
-         label: supplierCost > 0 ? `فاتورة توريد #${inv.id}` : `فاتورة توصيل #${inv.id}`,
-         items: itemsForThisSupplier
-       });
-     }
+ // Each supplier is settled once per data change. The page reads the balance, the
+ // invoice counters, the ledger and the sort comparator from this single result, so
+ // every number on the screen comes from the same allocation of payments to invoices.
+ const supplierSettlements = React.useMemo(() => {
+   const map = new Map<string, ReturnType<typeof getSupplierSettlementForState>>();
+   (data?.suppliers || []).forEach(s => {
+     map.set(String(s.id), getSupplierSettlementForState(s.id, data));
    });
+   return map;
+ }, [data]);
 
-   // 2. Transfers
-   (data?.supplierTransfers || []).filter(t => t.supplierId === supId).forEach(t => {
-     transactions.push({
-       id: `tr-${t.id}`,
-       date: t.date,
-       type: 'transfer',
-       amount: -t.amount,
-       refId: t.id,
-       label: t.notes || 'تحويل مالي (سداد)',
-       method: t.method
-     });
-   });
-
-   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+ const getSettlement = (supId: string) => {
+   const cached = supplierSettlements.get(String(supId));
+   return cached || getSupplierSettlementForState(supId, data);
  };
 
  const getSupplierInvoiceStats = (supId: string) => {
- const supplierInvoices = getSupplierLedger(supId)
- .filter((item: any) => item.type === 'invoice')
- .map((item: any) => ({
- id: item.refId,
- date: item.date,
- supplierCost: Math.round(Number(item.amount || 0) * 1000) / 1000
- }))
- .filter((inv: any) => inv.supplierCost > 0)
- .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
- let supplierPaidAmount = (data?.supplierTransfers || [])
- .filter(t => t.supplierId === supId)
- .reduce((total, t) => total + Math.max(0, Number(t.amount || 0)), 0);
-
- let paidInvoices = 0;
- let partiallyPaidInvoices = 0;
-
- supplierInvoices.forEach((inv: any) => {
- if (supplierPaidAmount >= inv.supplierCost - 0.001) {
- paidInvoices += 1;
- supplierPaidAmount -= inv.supplierCost;
- } else if (supplierPaidAmount > 0) {
- partiallyPaidInvoices += 1;
- supplierPaidAmount = 0;
- }
- });
-
- const totalInvoices = supplierInvoices.length;
- const pendingInvoices = Math.max(0, totalInvoices - paidInvoices);
- const unpaidInvoices = Math.max(0, pendingInvoices - partiallyPaidInvoices);
- const paidPercentage = totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 100) : 0;
-
+ const settlement = getSettlement(supId);
  return {
- totalInvoices,
- paidInvoices,
- pendingInvoices,
- unpaidInvoices,
- partiallyPaidInvoices,
- paidPercentage
+ totalInvoices: settlement.totalInvoices,
+ paidInvoices: settlement.paidInvoices,
+ pendingInvoices: settlement.pendingInvoices,
+ unpaidInvoices: settlement.unpaidInvoices,
+ partiallyPaidInvoices: settlement.partiallyPaidInvoices,
+ paidPercentage: settlement.paidPercentage
  };
  };
 
  const normalizedSearch = normalizeArabic(search);
 
- const getSupplierLiveBalance = (supId: string) => {
-   const ledger = getSupplierLedger(supId);
-   const due = ledger
-     .filter((item: any) => item.type === 'invoice')
-     .reduce((acc: number, item: any) => acc + Math.max(0, Number(item.amount || 0)), 0);
-   const paid = ledger
-     .filter((item: any) => item.type === 'transfer')
-     .reduce((acc: number, item: any) => acc + Math.max(0, Math.abs(Number(item.amount || 0))), 0);
-   return Math.max(0, Math.round((due - paid) * 1000) / 1000);
- };
+ const getSupplierLiveBalance = (supId: string) => getSettlement(supId).outstanding;
 
  const filteredSuppliers = (data?.suppliers || [])
  .filter(s => normalizeArabic(s.name || '').includes(normalizedSearch) || (s.phone || '').includes(search))
@@ -443,11 +318,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
  {filteredSuppliers.map(supplier => {
  const supplierProducts = getSupplierProducts(supplier.id);
+ const supplierSettlement = getSettlement(supplier.id);
  const invoiceStats = getSupplierInvoiceStats(supplier.id);
  const isDeliveryOnlySupplier = (supplier as any).supplierType === 'delivery';
  const isSupplierDelivering = !isDeliveryOnlySupplier && (supplier as any).deliverySettlement === 'supplier';
- const supplierLedger = getSupplierLedger(supplier.id);
- const supplierLiveBalance = getSupplierLiveBalance(supplier.id);
+ const supplierLedger = supplierSettlement.ledger;
+ const supplierLiveBalance = supplierSettlement.outstanding;
  const supplierDeliveryDue = supplierLedger.filter((l: any) => l.type === 'invoice').reduce((acc: number, l: any) => acc + Number(l.deliveryAmount || 0), 0);
  const showDeliveryAction = isDeliveryOnlySupplier || isSupplierDelivering || supplierDeliveryDue > 0;
  const priceIndicator = getSupplierPriceIndicator(supplier, { productCount: supplierProducts.length, invoiceCount: invoiceStats.totalInvoices });
@@ -584,6 +460,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  توجد {invoiceStats.partiallyPaidInvoices} فاتورة عليها سداد جزئي للمورد ضمن غير المسددة.
  </div>
  )}
+ </div>
+ )}
+
+ {supplierSettlement.unappliedCredit > 0 && (
+ <div className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2 text-right leading-5">
+ رصيد سداد فائض غير مطابق: <span dir="ltr">{supplierSettlement.unappliedCredit.toFixed(3)}</span> د.ك — سدادات لا تقابلها فواتير مسجلة بنفس تاريخها، ولا تُخصم من المستحق الجديد.
  </div>
  )}
 
@@ -815,18 +697,17 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   >
   {(() => {
   const supplier = (data?.suppliers || []).find(s => s.id === showLedgerSupplierId);
-  const ledger = getSupplierLedger(showLedgerSupplierId);
-  const totalSupplyDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.supplyAmount || 0), 0);
+  const settlement = getSettlement(showLedgerSupplierId);
+  const ledger = settlement.ledger;
+  const totalSupplyDue = settlement.supplyDue;
   const totalAddonsDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number((l as any).addonsSupplyAmount || 0), 0);
   const totalProductsDue = Math.max(0, totalSupplyDue - totalAddonsDue);
-  const totalDeliveryDue = ledger.filter(l => l.type === 'invoice').reduce((acc, l) => acc + Number(l.deliveryAmount || 0), 0);
-  const totalInvoiced = totalSupplyDue + totalDeliveryDue;
-  const totalPaid = Math.abs(ledger.filter(l => l.type === 'transfer').reduce((acc, l) => acc + l.amount, 0));
-  const paidToSupply = Math.min(totalPaid, totalSupplyDue);
-  const paidToDelivery = Math.min(Math.max(totalPaid - totalSupplyDue, 0), totalDeliveryDue);
-  const remainingSupply = Math.max(0, totalSupplyDue - paidToSupply);
-  const remainingDelivery = Math.max(0, totalDeliveryDue - paidToDelivery);
-  const currentBalance = getSupplierLiveBalance(showLedgerSupplierId);
+  const totalDeliveryDue = settlement.deliveryDue;
+  const totalInvoiced = settlement.totalDue;
+  const totalPaid = settlement.totalPaid;
+  const unappliedCredit = settlement.unappliedCredit;
+  const remainingDelivery = settlement.remainingDelivery;
+  const currentBalance = settlement.outstanding;
   const isDeliveryOnlySupplier = (supplier as any)?.supplierType === 'delivery';
   const showSupplySummary = !isDeliveryOnlySupplier && totalSupplyDue > 0;
   const showAddonsSummary = !isDeliveryOnlySupplier && totalAddonsDue > 0;
@@ -891,6 +772,16 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   <div className="text-base font-black text-center relative z-10">{currentBalance.toFixed(3)}</div>
   </div>
   </div>
+
+  {unappliedCredit > 0 && (
+  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-right">
+  <div className="text-[11px] font-black text-amber-700 mb-1">رصيد سداد فائض غير مطابق: {unappliedCredit.toFixed(3)} د.ك</div>
+  <p className="text-[10px] font-bold text-amber-600 leading-5">
+  هذا المبلغ سدّدته للمورد ولا تقابله فواتير مسجلة في نفس تاريخه (غالباً فواتير قديمة تم حذفها أو أرشفتها، أو دفعة افتتاحية).
+  يظهر هنا بشكل صريح ولا يُخصم تلقائياً من الفواتير الجديدة، حتى لا تختفي مستحقات المورد الحالية.
+  </p>
+  </div>
+  )}
   </div>
 
   <div className="flex-1 overflow-y-auto custom-scrollbar p-6 min-h-0 bg-slate-50/20">
@@ -934,6 +825,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   </div>
   <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
   <div className="mt-1 flex flex-wrap justify-end gap-1">
+  {(() => {
+    if (item.type !== 'invoice') return null;
+    const paidState = settlement.settlementByEntryId.get(String(item.id));
+    if (!paidState) return null;
+    if (paidState.isPaid) return <div className="text-[10px] font-black text-emerald-600 bg-emerald-50 rounded-xl px-2 py-1 inline-block">مسددة بالكامل</div>;
+    if (paidState.isPartiallyPaid) return <div className="text-[10px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">سداد جزئي · متبقي {paidState.remaining.toFixed(3)} د.ك</div>;
+    return <div className="text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-1 inline-block">غير مسددة · متبقي {paidState.remaining.toFixed(3)} د.ك</div>;
+  })()}
   {item.type === 'invoice' && Number((item as any).addonsSupplyAmount || 0) > 0 && (
     <div className="text-[10px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">يشمل إضافات {Number((item as any).addonsSupplyAmount || 0).toFixed(3)} د.ك</div>
   )}
