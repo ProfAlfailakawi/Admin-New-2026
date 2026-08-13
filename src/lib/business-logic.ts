@@ -511,19 +511,25 @@ export function recalculateStateBalances(state: AppState): AppState {
     }
   });
 
-  // 1. Synchronize Supplier Balances using the central calculation engine
-  newState.suppliers = (newState.suppliers || []).map(s => ({
-    ...s,
-    balance: getSupplierLiveBalanceForState(
-      s.id, 
-      newState, 
-      productMap, 
-      supplierMap, 
-      invoicesBySupplierMap, 
-      supplierProductsMap, 
+  // 1. Synchronize supplier balances using the central settlement engine.
+  //    `balance` and `status` are stored on the supplier only as a cache for the
+  //    dashboard, notifications and the AI engine — this is their ONLY writer, so
+  //    they can never drift away from the settlement the Suppliers page shows.
+  newState.suppliers = (newState.suppliers || []).map(s => {
+    const settlement = getSupplierSettlementForState(
+      s.id,
+      newState,
+      productMap,
+      supplierMap,
+      invoicesBySupplierMap,
+      supplierProductsMap,
       transfersBySupplierMap
-    )
-  }));
+    );
+    const balance = settlement.outstanding;
+    const status: 'paid' | 'pending' | 'partially_paid' =
+      balance <= 0 ? 'paid' : (settlement.appliedPaid > 0 ? 'partially_paid' : 'pending');
+    return { ...s, balance, status };
+  });
 
   // 2. Recalculate Customer Stats (O(C + M) - string date comparison instead of Slow Date objects)
   const customerStats: Record<string, { totalSpent: number, totalOrders: number, lastOrderDate: string }> = {};

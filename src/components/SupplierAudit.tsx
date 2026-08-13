@@ -8,7 +8,7 @@ import { MagneticButton } from './ui/MagneticButton';
 import { toast } from 'sonner';
 
 import { playMetallicSettlementChime } from '../lib/sonic';
-import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getSupplierSettlementForState, getInvoiceDeliverySettlementForSupplier } from '../lib/business-logic';
+import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getSupplierSettlementForState, getInvoiceDeliverySettlementForSupplier, recalculateStateBalances } from '../lib/business-logic';
 import { computeAddonCost, computeAddonRevenue, computeInvoiceCost, computeInvoiceItemBaseCost, computeInvoiceProfit, computeInvoiceTotal, getInvoiceItemAddons } from '../lib/invoice-calculations';
 
 interface SupplierAuditProps {
@@ -239,47 +239,50 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      return;
    }
  }
+ // Balances are never patched by hand here. The transfers list is the only thing we
+ // mutate; recalculateStateBalances re-derives every supplier balance and status from
+ // the settlement engine, so an edited/backdated payment can never leave a stale number
+ // behind on the dashboard or in the AI engine.
  if (transferForm.id) {
  // Edit existing
  setData(prev => {
  const oldTransfer = prev.supplierTransfers.find(t => t.id === transferForm.id);
  if (!oldTransfer) return prev;
- const diff = Math.round((transferForm.amount - oldTransfer.amount) * 1000) / 1000;
 
- return {
+ return recalculateStateBalances({
  ...prev,
- supplierTransfers: prev.supplierTransfers.map(t => 
- t.id === transferForm.id 
+ supplierTransfers: prev.supplierTransfers.map(t =>
+ t.id === transferForm.id
  ? { ...t, amount: transferForm.amount, method: transferForm.method, notes: transferForm.notes, date: transferForm.date }
  : t
-),
- suppliers: prev.suppliers.map(s => 
- s.id === transferForm.supplierId
- ? { ...s, balance: Math.max(0, Math.round(((s.balance || 0) - diff) * 1000) / 1000) }
- : s
 )
- }
+ });
  });
  } else {
  // Add new
  const id = Math.random().toString(36).substr(2, 9);
- const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
  const amount = Math.round(transferForm.amount * 1000) / 1000;
- const sourceBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? 0;
- const newRemaining = Math.max(0, Math.round((sourceBalance - amount) * 1000) / 1000);
 
- setData(prev => ({
+ setData(prev => {
+ const nextState = recalculateStateBalances({
  ...prev,
  supplierTransfers: [
- { ...transferForm, id, amount, remainingAmount: newRemaining },
+ { ...transferForm, id, amount, remainingAmount: 0 },
  ...prev.supplierTransfers
- ],
- suppliers: prev.suppliers.map(s => 
- s.id === transferForm.supplierId 
- ? { ...s, balance: Math.max(0, newRemaining), status: newRemaining <= 0 ? 'paid' : 'partially_paid' } 
- : s
+ ]
+ });
+
+ // Snapshot what is still owed AFTER this payment, straight from the recalculated balance.
+ const remainingAmount = Math.max(0, Number(
+ (nextState.suppliers || []).find(s => s.id === transferForm.supplierId)?.balance || 0
+ ));
+ return {
+ ...nextState,
+ supplierTransfers: (nextState.supplierTransfers || []).map(t =>
+ t.id === id ? { ...t, remainingAmount } : t
 )
- }));
+ };
+ });
  }
 
  setShowAddModal(false);
@@ -296,14 +299,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  };
 
  const handleDeleteTransfer = (transfer: SupplierTransfer) => {
- setData(prev => ({
+ // Adding the deleted amount straight back to the balance was wrong whenever the payment
+ // had not actually been matched to an invoice. Re-deriving from the engine restores
+ // exactly the dues this payment was covering — no more, no less.
+ setData(prev => recalculateStateBalances({
  ...prev,
- supplierTransfers: prev.supplierTransfers.filter(t => t.id !== transfer.id),
- suppliers: prev.suppliers.map(s => 
- s.id === transfer.supplierId 
- ? { ...s, balance: Math.round(((s.balance || 0) + transfer.amount) * 1000) / 1000 } 
- : s
-)
+ supplierTransfers: prev.supplierTransfers.filter(t => t.id !== transfer.id)
  }));
  toast.info("تم حذف التحويل", { 
  description: `تم إلغاء عملية السداد وإعادة المبلغ (${transfer.amount.toFixed(3)} د.ك) لرصيد المورد.`,

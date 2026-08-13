@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import ConfirmModal from './ui/ConfirmModal';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
-import { getSupplierSettlementForState } from '../lib/business-logic';
+import { getSupplierSettlementForState, recalculateStateBalances } from '../lib/business-logic';
 import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
 
 interface SupplierPageProps {
@@ -146,9 +146,6 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  return;
  }
  
- // Convert to number explicitly, ensure balance is a number
- const balance = Number(supplierForm.balance || 0);
-
  // Strict validation: 8 digits, English numbers only
  const phoneRegex = /^[0-9]{8}$/;
  if (!phoneRegex.test(supplierForm.phone)) {
@@ -162,19 +159,24 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  return;
  }
  
+ // `balance`/`status` are never written from this form — recalculateStateBalances owns
+ // them. Editing supplierType/deliverySettlement changes which invoices owe this supplier
+ // their delivery, so the balance has to be re-derived right after the edit.
+ const { balance: _ignoredFormBalance, status: _ignoredFormStatus, ...supplierFields } = supplierForm;
+
  if (editingId) {
- setData(prev => ({
+ setData(prev => recalculateStateBalances({
  ...prev,
- suppliers: (prev?.suppliers || []).map(s => 
- s.id === editingId ? { ...s, ...supplierForm, balance } : s
+ suppliers: (prev?.suppliers || []).map(s =>
+ s.id === editingId ? { ...s, ...supplierFields } : s
 )
  }));
  toast.success("تم التحديث ✨", { description: `تم تعديل بيانات المورد ${supplierForm.name} بنجاح.` });
  } else {
  const id = Math.random().toString(36).substr(2, 9);
- setData(prev => ({
+ setData(prev => recalculateStateBalances({
  ...prev,
- suppliers: [...(prev?.suppliers || []), { ...supplierForm, id, balance, status: 'paid' }]
+ suppliers: [...(prev?.suppliers || []), { ...supplierFields, id, balance: 0, status: 'paid' as const }]
  }));
  toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة المورد ${supplierForm.name} لقائمة الموردين المعتمدين.` });
  }
