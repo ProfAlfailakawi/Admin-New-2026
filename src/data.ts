@@ -65,6 +65,9 @@ export const INITIAL_DATA: AppState = {
   productCategories: ['الولائم', 'اللحوم', 'الدجاج', 'البحري', 'المشويات', 'المقبلات', 'المشروبات'],
   settings: {
     gatewayFeeAmount: 0.200,
+    // New/reset ledgers start at zero. Only the existing legacy ledger (where this field
+    // is absent) receives its confirmed historical cash calibration.
+    openingCashBalance: 0,
     companyName: 'شركة مطبخ التراث الكويتي',
     companyLogo: '',
     restaurantNumbers: [],
@@ -268,6 +271,7 @@ export const GET_DEMO_DATA = (): AppState => {
         ],
         settings: {
             gatewayFeeAmount: 0.250,
+            openingCashBalance: 0,
             companyName: 'شركة مطبخ التراث الكويتي',
             companyLogo: '',
             restaurantNumbers: ['99911122', '22233344'],
@@ -477,6 +481,7 @@ export const GENERATE_PERFORMANCE_SIMULATION_DATA = (): AppState => {
         ],
         settings: {
             gatewayFeeAmount: 0.250,
+            openingCashBalance: 0,
             companyName: 'مطبخ التراث الكويتي الذكي (محاكاة الأداء الأقصى)',
             companyLogo: '',
             restaurantNumbers: ['99911122'],

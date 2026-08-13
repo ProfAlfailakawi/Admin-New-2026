@@ -1,5 +1,6 @@
 // invalidated cache 2026-05-07 14:18
 import { getUnifiedInvoices, formatKuwaitiDate, formatKuwaitiTimeOnly } from '../lib/utils';
+import { getCashPositionForState } from '../lib/business-logic';
 import { 
     computeInvoiceTotal, computeInvoiceSubtotal, 
     computeInvoiceCost, 
@@ -1508,6 +1509,10 @@ const [isPending, startTransition] = useTransition();
       allTimeExpenses,
       allTimeSupplierPayments,
       allTimeGatewayFees,
+      openingCashBalance,
+      recordedCashMovement,
+      orphanOutflows,
+      cashAnchorNeeded,
     } = useMemo(() => {
       const invoices = activeInvoices.filter((inv) => {
         const isPaid = isPaidStatus(inv.paymentStatus);
@@ -1645,76 +1650,21 @@ const [isPending, startTransition] = useTransition();
         allSupplierPayments -
         gatewayFees;
 
-      // Cumulative (All-Time) calculations
-      const cancelledOrderInvoiceIds = new Set(
-        (data?.orders || [])
-          .filter(
-            (o) =>
-              o.status === "cancelled" &&
-              o.isConvertedToInvoice &&
-              o.linkedInvoiceId,
-          )
-          .map((o) => o.linkedInvoiceId),
-      );
-      
-      const allTimeActiveInvs = unifiedInvoices.filter(
-        (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
-      );
-
-      const allTimePaidInvoices = allTimeActiveInvs.filter((inv) => {
-        const isPaid = isPaidStatus(inv.paymentStatus);
-        // Only count as paid if explicitly paid status, or if legacy order without paymentStatus field that is marked as completed
-        const isLegacyPaid = (inv.paymentStatus === undefined || inv.paymentStatus === null || inv.paymentStatus === '') && (inv.status === 'completed' || inv.status === 'delivered');
-        
-        return (isPaid || isLegacyPaid) && 
-          !String(inv.status).includes('تجميع القطية') && 
-          inv.paymentStatus !== 'split_pending' && 
-          inv.status !== 'split_pending';
-      });
-
-      const allTimeFoodSales = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + Math.max(0, computeInvoiceSubtotal(inv, data?.products || [])),
-        0,
-      );
-
-      const allTimeCollectedDeliveryFees = allTimePaidInvoices.reduce((acc, inv) => {
-        const fee = Number(
-          (inv as any)?.deliveryFee ??
-          (inv as any)?.deliveryPrice ??
-          (inv as any)?.deliveryInfo?.finalPrice ??
-          (inv as any)?.deliveryInfo?.price ??
-          0,
-        ) || 0;
-        return acc + Math.max(0, fee);
-      }, 0);
-
-      const allTimeDiscounts = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + Number(inv.discount || 0),
-        0,
-      );
-
-      const allTimeNetRevenue = allTimeFoodSales + allTimeCollectedDeliveryFees - allTimeDiscounts;
-
-      const allTimeExpenses = (data?.expenses || []).reduce(
-        (acc, exp) => acc + Math.abs(exp.amount || 0),
-        0,
-      ) || 0;
-
-      const allTimeSupplierPayments = (data?.supplierTransfers || []).reduce(
-        (acc, t) => acc + Math.abs(t.amount || 0),
-        0,
-      ) || 0;
-
-      const allTimeGatewayFees = allTimePaidInvoices.reduce(
-        (acc, inv) => acc + computeInvoiceGatewayFee(inv),
-        0,
-      );
-
-      const cumulativeBankBalance =
-        allTimeNetRevenue -
-        allTimeExpenses -
-        allTimeSupplierPayments -
-        allTimeGatewayFees;
+      // Cumulative (All-Time) cash position — computed by the single shared engine in
+      // business-logic so the dashboard and the settings screen can never disagree.
+      const cashPosition = getCashPositionForState(data);
+      const openingCashBalance = cashPosition.openingBalance;
+      const allTimeFoodSales = cashPosition.foodSales;
+      const allTimeCollectedDeliveryFees = cashPosition.deliveryFees;
+      const allTimeDiscounts = cashPosition.discounts;
+      const allTimeNetRevenue = cashPosition.netRevenue;
+      const allTimeExpenses = cashPosition.expenses;
+      const allTimeSupplierPayments = cashPosition.supplierPayments;
+      const allTimeGatewayFees = cashPosition.gatewayFees;
+      const recordedCashMovement = cashPosition.recordedMovement;
+      const cumulativeBankBalance = cashPosition.balance;
+      const orphanOutflows = cashPosition.orphanOutflows;
+      const cashAnchorNeeded = cashPosition.anchorNeeded;
 
       return {
         totalSalesVal: sales,
@@ -1738,6 +1688,10 @@ const [isPending, startTransition] = useTransition();
         expectedBankBalance,
         allSupplierPayments,
         cumulativeBankBalance,
+        openingCashBalance,
+        recordedCashMovement,
+        orphanOutflows,
+        cashAnchorNeeded,
         totalDiscountsVal,
         allTimeFoodSales,
         allTimeCollectedDeliveryFees,
@@ -4325,6 +4279,13 @@ const [isPending, startTransition] = useTransition();
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 font-bold text-slate-600">
+                                  {openingCashBalance !== 0 && (
+                                  <tr className="hover:bg-slate-100/30">
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">+ الرصيد الافتتاحي المعتمد</td>
+                                    <td className="py-2.5 px-2 text-center text-slate-400 whitespace-nowrap" dir="ltr">—</td>
+                                    <td className="py-2.5 pl-2 text-left text-indigo-700 whitespace-nowrap" dir="ltr">{openingCashBalance.toFixed(3)} د.ك</td>
+                                  </tr>
+                                  )}
                                   <tr className="hover:bg-slate-100/30">
                                     <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">+ مبيعات المنتجات (الصافية)</td>
                                     <td className="py-2.5 px-2 text-center text-indigo-600 whitespace-nowrap" dir="ltr">{foodSalesVal?.toFixed(3)} د.ك</td>
@@ -4367,8 +4328,18 @@ const [isPending, startTransition] = useTransition();
                                 </tbody>
                               </table>
                             </div>
+                            {cashAnchorNeeded && (
+                              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-right">
+                                <div className="text-[11px] font-black text-amber-800 mb-1">
+                                  الرقم أعلاه غير مطابق لحسابك الفعلي — ينقصه رصيد افتتاحي
+                                </div>
+                                <p className="text-[10px] font-bold text-amber-700 leading-5">
+                                  يوجد <span dir="ltr">{orphanOutflows.toFixed(3)}</span> د.ك مصروفات وسدادات مسجلة قبل أقدم فاتورة باقية في النظام، أي أن مبيعات تلك الفترة لم تعد موجودة بينما بقيت مصاريفها. اذهب إلى الإعدادات ← «الرصيد الافتتاحي للسيولة» واكتب رصيدك الفعلي الحالي مرة واحدة، ويصير الرقم مطابقاً لحسابك ويتتبعه بدقة بعدها.
+                                </p>
+                              </div>
+                            )}
                             <p className="mt-4 text-[10px] text-slate-400 font-bold leading-5 text-right">
-                              💡 الرصيد التراكمي الإجمالي يعبر عن السيولة الفعلية المستمرة للشركة بجميع الأوقات، بينما تُظهر أرقام الفترة أثر الفلتر الزمني المختار فحسب. تساهم خصومات الكوبونات والعمولات في تقديم حساب دقيق للرصيد الفعلي.
+                              💡 الرصيد التراكمي = الرصيد الافتتاحي المعتمد + صافي الحركة المسجلة في البرنامج، بينما تُظهر أرقام الفترة أثر الفلتر الزمني المختار فحسب. تساهم خصومات الكوبونات والعمولات في تقديم حساب دقيق للرصيد الفعلي.
                             </p>
                           </div>
                         </motion.div>
