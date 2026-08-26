@@ -82,6 +82,7 @@ import { EnableNotificationsButton } from "./EnableNotificationsButton";
 import {
   getPushSupportStatus,
   refreshPushRegistrationIfAlreadyAllowed,
+  renewPushRegistrationIfAlreadyAllowed,
 } from "../lib/pushNotifications";
 import {
   AUTHORIZED_EMAILS,
@@ -1556,11 +1557,6 @@ const GeneralSettings: React.FC<Props> = ({
     device: PushDeviceSnapshot,
     candidateDevices: PushDeviceSnapshot[] = [],
   ) => {
-    const testDevices = getBestPushTestDevice(device, candidateDevices);
-    if (!testDevices.length) {
-      toast.error("لا يوجد توكن حديث صالح للاختبار لهذا الحساب");
-      return;
-    }
     const getPushTestFailureMessage = (rawError?: any, rawMessage?: any) => {
       const raw = String(rawError || rawMessage || "Unknown error");
       const lower = raw.toLowerCase();
@@ -1570,6 +1566,8 @@ const GeneralSettings: React.FC<Props> = ({
       if (
         lower.includes("device unregistered") ||
         lower.includes("registration-token-not-registered") ||
+        lower.includes("invalid-registration-token") ||
+        lower.includes("requested entity was not found") ||
         lower.includes("notregistered") ||
         lower.includes("not registered")
       ) {
@@ -1582,6 +1580,8 @@ const GeneralSettings: React.FC<Props> = ({
       return (
         lower.includes("device unregistered") ||
         lower.includes("registration-token-not-registered") ||
+        lower.includes("invalid-registration-token") ||
+        lower.includes("requested entity was not found") ||
         lower.includes("notregistered") ||
         lower.includes("not registered")
       );
@@ -1589,10 +1589,16 @@ const GeneralSettings: React.FC<Props> = ({
     setSendingPushTestId(device.id);
     setPushTestResults((prev) => ({
       ...prev,
-      [device.id]: "جاري اختيار أحدث توكن نشط وإرسال اختبار...",
+      [device.id]: "جاري تحديث التسجيل واختيار أحدث توكن نشط...",
     }));
     try {
-      await refreshPushRegistrationIfAlreadyAllowed({
+      const currentEmail = String(auth?.currentUser?.email || "").trim().toLowerCase();
+      const targetEmail = String(device.userEmail || "").trim().toLowerCase();
+      const targetIsCurrentAccount = Boolean(
+        (currentEmail && targetEmail && currentEmail === targetEmail) ||
+        (auth?.currentUser?.uid && device.userId === auth.currentUser.uid),
+      );
+      const registrationOptions = {
         userId: auth?.currentUser?.uid || "admin",
         userEmail: auth?.currentUser?.email || "",
         userName: auth?.currentUser?.displayName || auth?.currentUser?.email || "",
@@ -1602,10 +1608,55 @@ const GeneralSettings: React.FC<Props> = ({
           ? "partner"
           : "admin",
         restaurantId: "kitchen_default",
-      }).catch(() => null);
+      };
+      const makeCurrentDevice = (token: string): PushDeviceSnapshot => ({
+        ...device,
+        id: `current-${token.slice(0, 24)}`,
+        label: device.label || "الجهاز الحالي",
+        token,
+        status: "online",
+        lastConnection: new Date().toISOString(),
+        lastRead: new Date().toISOString(),
+        note: "Fresh token created from the current device.",
+      });
 
+      let testDevices = getBestPushTestDevice(device, candidateDevices);
       let lastFailureMessage = "";
-      for (const testDevice of testDevices.slice(0, 3)) {
+      let renewalAttempted = false;
+
+      if (targetIsCurrentAccount) {
+        const refreshed = await refreshPushRegistrationIfAlreadyAllowed(registrationOptions).catch(() => null);
+        if (refreshed?.success && refreshed.token) {
+          testDevices = getBestPushTestDevice(
+            makeCurrentDevice(refreshed.token),
+            [device, ...candidateDevices],
+          );
+        } else if (refreshed?.error) {
+          lastFailureMessage = String(refreshed.error);
+        }
+      }
+
+      if (!testDevices.length && targetIsCurrentAccount) {
+        renewalAttempted = true;
+        const renewed = await renewPushRegistrationIfAlreadyAllowed(registrationOptions).catch(() => null);
+        if (renewed?.success && renewed.token) {
+          testDevices = [makeCurrentDevice(renewed.token)];
+        } else if (renewed?.error) {
+          lastFailureMessage = String(renewed.error);
+        }
+      }
+
+      if (!testDevices.length) {
+        const message = lastFailureMessage || "لا يوجد توكن حديث صالح للاختبار لهذا الحساب";
+        setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
+        toast.error(message);
+        return;
+      }
+
+      const testQueue = testDevices.slice(0, 3);
+      let attemptIndex = 0;
+      while (attemptIndex < testQueue.length && attemptIndex < 4) {
+        const testDevice = testQueue[attemptIndex++];
         const response = await fetch("/api/push/test-device", {
           method: "POST",
           headers: {
@@ -1624,9 +1675,9 @@ const GeneralSettings: React.FC<Props> = ({
         });
         const result = await response.json().catch(() => ({}));
         if (result?.success) {
-          const usedNewest = testDevice.id !== device.id;
+          const usedNewest = testDevice.token !== device.token;
           const message = usedNewest
-            ? "تم إرسال الاختبار على أحدث جهاز نشط بدل توكن قديم لهذا الحساب."
+            ? "تم تجديد التوكن وإرسال الاختبار إلى التسجيل الجديد لهذا الجهاز."
             : "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول.";
           setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
           toast.success("تم إرسال إشعار اختبار للجهاز");
@@ -1638,16 +1689,25 @@ const GeneralSettings: React.FC<Props> = ({
           }
           return;
         }
-        lastFailureMessage = getPushTestFailureMessage(result?.error, result?.message);
-        if (isRetiredPushTokenError(result?.error, result?.message)) {
+        lastFailureMessage = getPushTestFailureMessage(result?.code || result?.error, result?.message || result?.error);
+        if (isRetiredPushTokenError(result?.code || result?.error, result?.message || result?.error)) {
           setPushInvalidTestTokens((prev) => ({ ...prev, [testDevice.token]: true }));
+          if (targetIsCurrentAccount && !renewalAttempted) {
+            renewalAttempted = true;
+            const renewed = await renewPushRegistrationIfAlreadyAllowed(registrationOptions).catch(() => null);
+            if (renewed?.success && renewed.token && !testQueue.some((item) => item.token === renewed.token)) {
+              testQueue.push(makeCurrentDevice(renewed.token));
+            } else if (renewed?.error) {
+              lastFailureMessage = String(renewed.error);
+            }
+          }
           continue;
         }
         break;
       }
 
-      const message = testDevices.length > 1
-        ? `${lastFailureMessage} تم تجاوز أي توكن قديم معروف وتجربة أحدث خيار متاح دون حذف أو تعديل بيانات.`
+      const message = testQueue.length > 1
+        ? `${lastFailureMessage} تم تجاوز التوكنات القديمة وتجربة أحدث تسجيل متاح.`
         : lastFailureMessage;
       setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
       toast.error("فشل إرسال إشعار الاختبار", {
@@ -2251,12 +2311,9 @@ const GeneralSettings: React.FC<Props> = ({
             index,
         )
         .sort((a, b) => getPushDeviceScore(b) - getPushDeviceScore(a));
-      const newestByRecipient = new Map<string, PushDeviceSnapshot>();
-      approvedDevices.forEach((device) => {
-        const email = String(device.userEmail || "").trim().toLowerCase();
-        if (!newestByRecipient.has(email)) newestByRecipient.set(email, device);
-      });
-      return [...newestByRecipient.values()];
+      // Keep every distinct device. Collapsing by email hid healthy fallback
+      // registrations whenever the single selected token was stale or replaced.
+      return approvedDevices;
     } catch (error) {
       console.warn(
         "[Push] read all devices failed, showing local snapshot only:",

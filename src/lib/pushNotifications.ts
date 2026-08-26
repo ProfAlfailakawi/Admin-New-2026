@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
+import { deleteToken, getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
 import rawConfig from "../../firebase-applet-config.json";
 import { auth } from "../firebase";
 
@@ -13,6 +13,14 @@ export const FALLBACK_VAPID_KEY =
 
 let foregroundPushListenerStarted = false;
 const PUSH_DEVICE_ID_STORAGE_KEY = "alturath_admin_push_device_id_v1";
+
+type PushRegistrationOptions = {
+  userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userRole?: string;
+  restaurantId?: string;
+};
 
 function getStablePushDeviceId() {
   try {
@@ -259,13 +267,7 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
   return registration;
 }
 
-async function saveTokenToServer(token: string, options?: {
-  userId?: string;
-  userEmail?: string;
-  userName?: string;
-  userRole?: string;
-  restaurantId?: string;
-}) {
+async function saveTokenToServer(token: string, options?: PushRegistrationOptions) {
   const currentUser = auth?.currentUser;
   const payload = {
     token,
@@ -309,6 +311,12 @@ async function saveTokenToServer(token: string, options?: {
 
   const data = await response.json().catch(() => ({}));
 
+  // A token already rejected by FCM must be replaced, not reactivated. The server
+  // reports that state so the browser can renew its cached registration immediately.
+  if (data?.renewRequired === true) {
+    return data;
+  }
+
   if (!response.ok || data?.success !== true) {
     throw new Error(data?.error || "فشل حفظ التوكن في الخادم");
   }
@@ -316,13 +324,66 @@ async function saveTokenToServer(token: string, options?: {
   return data;
 }
 
-export async function registerPushNotifications(options?: {
-  userId?: string;
-  userEmail?: string;
-  userName?: string;
-  userRole?: string;
-  restaurantId?: string;
-}): Promise<{
+async function getMessagingToken(
+  messaging: Messaging,
+  registration: ServiceWorkerRegistration,
+  forceRenew = false,
+) {
+  if (forceRenew) {
+    await deleteToken(messaging).catch((error) => {
+      console.warn("[Push] Could not delete cached token before renewal:", error);
+    });
+  }
+
+  try {
+    return await getToken(messaging, {
+      vapidKey: FALLBACK_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+  } catch (firstError) {
+    console.warn("[Push] getToken failed, retrying:", firstError);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    return getToken(messaging, {
+      vapidKey: FALLBACK_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+  }
+}
+
+async function getAndSaveHealthyMessagingToken(
+  messaging: Messaging,
+  registration: ServiceWorkerRegistration,
+  options?: PushRegistrationOptions,
+  forceRenew = false,
+) {
+  let token = await getMessagingToken(messaging, registration, forceRenew);
+  if (!token) throw new Error("لم يتم إنشاء توكن الإشعارات");
+
+  const firstSave = await saveTokenToServer(token, options);
+  if (firstSave?.renewRequired !== true) return token;
+
+  const retiredToken = token;
+  token = await getMessagingToken(messaging, registration, true);
+  if (!token || token === retiredToken) {
+    throw new Error("تعذر استبدال توكن الإشعارات القديم بتوكن جديد");
+  }
+
+  const replacementSave = await saveTokenToServer(token, options);
+  if (replacementSave?.renewRequired === true) {
+    throw new Error("الخادم رفض توكن الإشعارات البديل");
+  }
+  return token;
+}
+
+function rememberHealthyPushToken(token: string, silent = false) {
+  const now = new Date().toISOString();
+  localStorage.setItem("push_notifications_enabled", "true");
+  localStorage.setItem("last_push_token", token);
+  localStorage.setItem("push_enabled_at", now);
+  if (silent) localStorage.setItem("push_last_silent_refresh", now);
+}
+
+export async function registerPushNotifications(options?: PushRegistrationOptions): Promise<{
   success: boolean;
   token?: string;
   error?: string;
@@ -351,36 +412,8 @@ export async function registerPushNotifications(options?: {
     startForegroundPushListener(messaging);
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
-    let token = "";
-
-    try {
-      token = await getToken(messaging, {
-        vapidKey: FALLBACK_VAPID_KEY,
-        serviceWorkerRegistration: registration,
-      });
-    } catch (firstError) {
-      console.warn("[Push] First getToken failed, retrying:", firstError);
-
-      await new Promise((resolve) => setTimeout(resolve, 120));
-
-      token = await getToken(messaging, {
-        vapidKey: FALLBACK_VAPID_KEY,
-        serviceWorkerRegistration: registration,
-      });
-    }
-
-    if (!token) {
-      return {
-        success: false,
-        error: "لم يتم إنشاء توكن الإشعارات",
-      };
-    }
-
-    await saveTokenToServer(token, options);
-
-    localStorage.setItem("push_notifications_enabled", "true");
-    localStorage.setItem("last_push_token", token);
-    localStorage.setItem("push_enabled_at", new Date().toISOString());
+    const token = await getAndSaveHealthyMessagingToken(messaging, registration, options);
+    rememberHealthyPushToken(token);
 
     return {
       success: true,
@@ -396,13 +429,10 @@ export async function registerPushNotifications(options?: {
   }
 }
 
-export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
-  userId?: string;
-  userEmail?: string;
-  userName?: string;
-  userRole?: string;
-  restaurantId?: string;
-}): Promise<{ success: boolean; token?: string; skipped?: boolean; error?: string }> {
+async function refreshAllowedPushRegistration(
+  options?: PushRegistrationOptions,
+  forceRenew = false,
+): Promise<{ success: boolean; token?: string; skipped?: boolean; error?: string }> {
   try {
     const support = await getPushSupportStatus();
 
@@ -415,35 +445,25 @@ export async function refreshPushRegistrationIfAlreadyAllowed(options?: {
     startForegroundPushListener(messaging);
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
-    let token = "";
-    try {
-      token = await getToken(messaging, {
-        vapidKey: FALLBACK_VAPID_KEY,
-        serviceWorkerRegistration: registration,
-      });
-    } catch (firstError) {
-      console.warn("[Push] Silent token refresh failed, retrying:", firstError);
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      token = await getToken(messaging, {
-        vapidKey: FALLBACK_VAPID_KEY,
-        serviceWorkerRegistration: registration,
-      });
-    }
-
-    if (!token) {
-      return { success: false, error: "لم يتم إنشاء توكن الإشعارات" };
-    }
-
-    await saveTokenToServer(token, options);
-
-    localStorage.setItem("push_notifications_enabled", "true");
-    localStorage.setItem("last_push_token", token);
-    localStorage.setItem("push_enabled_at", new Date().toISOString());
-    localStorage.setItem("push_last_silent_refresh", new Date().toISOString());
+    const token = await getAndSaveHealthyMessagingToken(
+      messaging,
+      registration,
+      options,
+      forceRenew,
+    );
+    rememberHealthyPushToken(token, true);
 
     return { success: true, token };
   } catch (error: any) {
     console.warn("[Push] Silent refresh failed:", error);
     return { success: false, error: error?.message || String(error) };
   }
+}
+
+export async function refreshPushRegistrationIfAlreadyAllowed(options?: PushRegistrationOptions) {
+  return refreshAllowedPushRegistration(options, false);
+}
+
+export async function renewPushRegistrationIfAlreadyAllowed(options?: PushRegistrationOptions) {
+  return refreshAllowedPushRegistration(options, true);
 }
