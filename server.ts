@@ -8174,6 +8174,28 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const tokenRef = db.collection("pushTokens").doc(token);
         const tokenDoc = await tokenRef.get();
 
+        const normalizedUserEmail = String(userEmail || "").trim().toLowerCase();
+        const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
+        const permissionDenied = String(notificationPermission || "").trim().toLowerCase() === "denied";
+        const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+
+        // Never revive a token that was already retired/replaced. Firebase can keep an
+        // invalid token in its browser cache; this signal makes the client delete that
+        // cached registration and mint a new token during the same refresh.
+        if (tokenDoc.exists && existingTokenData.active === false && recipientAuthorized && !permissionDenied) {
+          await tokenRef.set(removeUndefinedDeep({
+            lastRenewalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastRenewalRequestedByUserId: userId || null,
+            lastRenewalRequestedByEmail: normalizedUserEmail || null,
+          }), { merge: true });
+          return res.status(409).json({
+            success: false,
+            renewRequired: true,
+            code: "push-token-retired",
+            error: "Push token must be renewed",
+          });
+        }
+
         const data: any = {
           token,
           tokenHash,
@@ -8198,9 +8220,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           isIOS,
           isSafariLike,
           isProbablyPwa,
-          active: ALLOWED_PUSH_RECIPIENT_EMAILS.has(String(userEmail || "").trim().toLowerCase()) &&
-            String(notificationPermission || "").trim().toLowerCase() !== "denied",
-          recipientAuthorized: ALLOWED_PUSH_RECIPIENT_EMAILS.has(String(userEmail || "").trim().toLowerCase()),
+          active: recipientAuthorized && !permissionDenied,
+          recipientAuthorized,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
@@ -8331,27 +8352,27 @@ function pushRecordIsAllowedRecipient(record?: PushTokenRecordForArchive | null)
   return Boolean(email && ALLOWED_PUSH_RECIPIENT_EMAILS.has(email));
 }
 
-// The business has exactly three Push recipients. Keep only the newest healthy
-// registration for each approved account so old browser/PWA registrations cannot
-// multiply the same payment alert.
+// Keep every approved, healthy device. Device-level de-duplication happens before
+// this filter; collapsing again by email used to select one stale token and silently
+// exclude another healthy phone/browser belonging to the same account.
 function selectAllowedPushRecipientRecords(records: PushTokenRecordForArchive[]) {
-  const newestByEmail = new Map<string, PushTokenRecordForArchive>();
+  const uniqueByToken = new Map<string, PushTokenRecordForArchive>();
 
   for (const record of records) {
     const email = String(record.userEmail || "").trim().toLowerCase();
     const permission = String(record.notificationPermission || record.permission || "").trim().toLowerCase();
     if (!ALLOWED_PUSH_RECIPIENT_EMAILS.has(email) || record.active === false || permission === "denied") continue;
 
-    const current = newestByEmail.get(email);
+    const current = uniqueByToken.get(record.token);
     if (!current || Number(record.updatedAtMs || 0) > Number(current.updatedAtMs || 0)) {
-      newestByEmail.set(email, record);
+      uniqueByToken.set(record.token, record);
     }
   }
 
-  const selected = [...newestByEmail.values()];
+  const selected = [...uniqueByToken.values()];
   const removed = records.length - selected.length;
   if (removed > 0) {
-    console.log(`[PUSH] Restricted delivery to ${selected.length} approved recipient(s); skipped ${removed} stale or unauthorized registration(s).`);
+    console.log(`[PUSH] Selected ${selected.length} approved device(s); skipped ${removed} stale, duplicate or unauthorized registration(s).`);
   }
   return selected;
 }
@@ -8674,7 +8695,11 @@ async function sendSmartAlertPushNotification({
             ) {
               const failedRecord = batchRecords[idx];
               if (failedRecord?.tokenDocId) {
-                batch.update(db.collection("pushTokens").doc(failedRecord.tokenDocId), { active: false });
+                batch.update(db.collection("pushTokens").doc(failedRecord.tokenDocId), {
+                  active: false,
+                  invalidReason: errorCode,
+                  invalidatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
                 changed++;
               }
             }
@@ -8797,7 +8822,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       
       // Cleanup invalid tokens
       if (response.failureCount > 0) {
-        const failedTokens: string[] = [];
+        const failedTokens: { tokenDocId: string; errorCode: string }[] = [];
         batchResponses.forEach(({ records: batchRecords, response: batchResponse }) => {
           batchResponse.responses.forEach((resp: any, idx: number) => {
             if (!resp.success) {
@@ -8805,7 +8830,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
               if (errorCode === "messaging/registration-token-not-registered" || 
                   errorCode === "messaging/invalid-registration-token") {
                 const failedRecord = batchRecords[idx];
-                if (failedRecord?.tokenDocId) failedTokens.push(failedRecord.tokenDocId);
+                if (failedRecord?.tokenDocId) failedTokens.push({ tokenDocId: failedRecord.tokenDocId, errorCode });
               }
             }
           });
@@ -8813,8 +8838,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
         if (failedTokens.length > 0) {
           const batch = db.batch();
-          for (const tokenDocId of failedTokens) {
-            batch.update(db.collection("pushTokens").doc(tokenDocId), { active: false });
+          for (const failedToken of failedTokens) {
+            batch.update(db.collection("pushTokens").doc(failedToken.tokenDocId), {
+              active: false,
+              invalidReason: failedToken.errorCode,
+              invalidatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
           }
           void batch.commit().catch((cleanupError: any) => console.warn("[NEW ORDER PUSH CLEANUP]", cleanupError?.message || cleanupError));
         }
