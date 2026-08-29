@@ -1917,10 +1917,29 @@ async function initBootCache() {
 
       await Promise.all(shardSnaps.map(async (doc: any, index: number) => {
         const key = bootKeys[index];
-        if (doc && doc.exists) {
-          appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
-        } else {
+        // Each shard is isolated: a single failing shard (e.g. a large segmented
+        // shard like `invoices` whose manifest and part docs are momentarily out of
+        // sync right after a save — loadFullAppDataShard throws on that) must NOT abort
+        // the whole boot cache. Previously one throw rejected this Promise.all, left the
+        // cache uninitialized, and made /api/appdata/full silently serve the capped
+        // Google-Studio root mirror (~300 rows) instead of the full invoice archive.
+        if (!(doc && doc.exists)) {
           appDataCache.shards[key] = [];
+          return;
+        }
+        try {
+          appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+        } catch (shardErr: any) {
+          console.warn(`[CACHE] Boot shard '${key}' failed on first pass (${shardErr?.message || shardErr}); retrying with a fresh manifest+parts read.`);
+          try {
+            // Re-read base manifest and parts together — a transient generation mismatch
+            // between a stale in-hand manifest and freshly written parts resolves on retry.
+            appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key);
+          } catch (retryErr: any) {
+            console.error(`[CACHE] Boot shard '${key}' still unreadable after retry (${retryErr?.message || retryErr}); leaving prior value so the per-shard live listener can recover it.`);
+            // Keep any previously cached value; only default to [] if we have nothing.
+            if (appDataCache.shards[key] === undefined) appDataCache.shards[key] = [];
+          }
         }
       }));
 
@@ -1948,7 +1967,13 @@ async function initBootCache() {
               appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
               console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
             } catch (decodeError: any) {
-              console.error(`[CACHE] Failed to decode live boot shard ${key}:`, decodeError?.message || decodeError);
+              console.warn(`[CACHE] Live boot shard ${key} decode failed (${decodeError?.message || decodeError}); retrying with a fresh manifest+parts read.`);
+              try {
+                appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key);
+                console.log(`[CACHE] Live sync: Boot shard ${key} recovered on retry.`);
+              } catch (retryError: any) {
+                console.error(`[CACHE] Live boot shard ${key} still unreadable after retry:`, retryError?.message || retryError);
+              }
             }
           }
         }, (err: any) => {
@@ -6723,18 +6748,12 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
                         for (const doc of orderQ.docs) {
                             await doc.ref.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         }
-                        const eventId = `safe-worker-invoice-paid-${orderId}`;
-                        sendSmartAlertPushNotification({
-                            title: "✅ تم الدفع",
-                            body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
-                            alertType: "payment_paid",
-                            eventId,
-                            url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
-                        }).then((result) => rememberPushEvent(eventId, {
-                            source: "payment-webhook",
-                            type: "invoice_paid",
-                            invoiceId: orderId,
-                        }, result)).catch(console.error);
+                        // NOTE: The "invoice paid" push is now sent exclusively by
+                        // announcePaidPaymentInstantly() (called from syncPaymentStatusEverywhere
+                        // above), which uses an era-suffixed eventId for correct once-only dedup.
+                        // Sending again here used a NON-era eventId, so pushEvents could not collapse
+                        // the two claims and the owner received the alert twice. Keep only the DB
+                        // status update here; the notification is handled by the instant announcer.
                     } catch (e) {
                         console.error("Error updating invoice/order in handlePaymentUpdate:", e);
                     }
@@ -6771,18 +6790,10 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
                     const data = ordSnap.data();
                     if (data?.status !== 'paid' && data?.status !== 'تم الدفع بنجاح') {
                         await orderRef.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                        const eventId = `safe-worker-payment-paid-${orderId}`;
-                        sendSmartAlertPushNotification({
-                        title: "✅ تم الدفع",
-                        body: `تم دفع الطلب ${orderId}${data?.total ? ` — ${data.total} د.ك` : ""}`,
-                        alertType: "payment_paid",
-                        eventId,
-                        url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
-                      }).then((result) => rememberPushEvent(eventId, {
-                        source: "payment-webhook",
-                        type: "payment_paid",
-                        orderId,
-                      }, result)).catch(console.error);
+                        // NOTE: The "order paid" push is sent exclusively by
+                        // announcePaidPaymentInstantly() (era-suffixed eventId, once-only dedup).
+                        // The previous inline send used a non-era eventId, so pushEvents could not
+                        // dedup the two and the owner was notified twice. DB update only here.
                     }
                 }
             }
