@@ -1,6 +1,8 @@
 import express from "express";
 import path from "path";
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -1643,7 +1645,30 @@ app.use((req, res, next) => {
 
   const PORT = Number(process.env.PORT) || 3000;
 
-  app.use(cors());
+
+  // Production CORS and Security Headers
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production'
+      ? [process.env.FRONTEND_URL || 'https://admin.alturath.app', 'http://localhost:3000', 'http://localhost:8080']
+      : '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-wa-admin-auth', 'x-alerts-secret']
+  }));
+
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  }));
+
+  const apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 600,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/', apiLimiter);
+
   app.use(express.json({
     limit: "30mb",
     // Meta signs the exact bytes it sent, so the WhatsApp webhook needs the raw body
@@ -9411,6 +9436,11 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   console.log("Registering create-payment...");
   app.post("/api/create-payment", async (req, res) => {
+    // Validate Input Sizes
+    if (typeof req.body.amount !== "number" || typeof req.body.customerName !== "string" || req.body.customerName.length > 255) {
+      return res.status(400).json({ error: "Invalid payment payload" });
+    }
+
     console.log("=== CREATE PAYMENT ROUTE HIT ===");
     const { 
       amount, 
@@ -9733,7 +9763,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   // Specific 404 for API to prevent falling through to React
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
-  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
+  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "";
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
