@@ -1,0 +1,4 @@
+CI health marker
+Cleaned stray Cloud Build trigger (project gen-lang-client-0878573239).
+All repo triggers now in gen-lang-client-0200723670 and green.
+last-verified-build: 3cfbd2af-e189-4c04-ad8d-fa4747e6820a (SUCCESS)
