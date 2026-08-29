@@ -1645,14 +1645,13 @@ app.use((req, res, next) => {
 
   const PORT = Number(process.env.PORT) || 3000;
 
-
-  // Production CORS and Security Headers
+  // Strict CORS for production, allow specific origins only
   app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-      ? [process.env.FRONTEND_URL || 'https://admin.alturath.app', 'http://localhost:3000', 'http://localhost:8080']
+      ? (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : false)
       : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-wa-admin-auth', 'x-alerts-secret']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-wa-admin-auth', 'x-admin-secret']
   }));
 
   app.use(helmet({
@@ -1660,15 +1659,15 @@ app.use((req, res, next) => {
     crossOriginEmbedderPolicy: false
   }));
 
+  // Global rate limit
   const apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 600,
+    windowMs: 5 * 60 * 1000,
+    max: 1500, // Sufficiently high not to block webhooks but enough to prevent extreme abuse
     standardHeaders: true,
     legacyHeaders: false,
   });
 
   app.use('/api/', apiLimiter);
-
   app.use(express.json({
     limit: "30mb",
     // Meta signs the exact bytes it sent, so the WhatsApp webhook needs the raw body
@@ -9436,9 +9435,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   console.log("Registering create-payment...");
   app.post("/api/create-payment", async (req, res) => {
-    // Validate Input Sizes
-    if (typeof req.body.amount !== "number" || typeof req.body.customerName !== "string" || req.body.customerName.length > 255) {
-      return res.status(400).json({ error: "Invalid payment payload" });
+    // Validate Input Amount and Types
+    const amountNum = Number(req.body.amount);
+    if (isNaN(amountNum) || amountNum <= 0 || typeof req.body.customerName !== "string" || req.body.customerName.length > 255) {
+      return res.status(400).json({ error: "Invalid payment payload or amount" });
     }
 
     console.log("=== CREATE PAYMENT ROUTE HIT ===");
@@ -9763,12 +9763,15 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   // Specific 404 for API to prevent falling through to React
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
-  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "";
+  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
-  function alertsRequireSecret(req: any, res: any, next: any) {
+    function alertsRequireSecret(req: any, res: any, next: any) {
+    if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === "") {
+        return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured on the server" });
+    }
     const secret = req.headers["x-admin-secret"] || req.query.secret;
     if (String(secret) !== String(ALERTS_ADMIN_TEST_SECRET)) {
       return res.status(403).json({ success: false, error: "Forbidden" });
