@@ -1,2 +1,0 @@
-  activeTab === 'invoices' ? "bg-white t   <AnimatePresence mode="wait">
- timeFilter === f ?"bg-white text-slate-900 shadow-sm" :"text-slate-500 hover:text-slate-600"
