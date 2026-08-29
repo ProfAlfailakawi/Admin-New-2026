@@ -82,6 +82,7 @@ const PromoCodePage = React.lazy(() => import('./components/PromoCodePage').then
 const WhatIfSimulator = React.lazy(() => import('./components/WhatIfSimulator').then(m => ({ default: m.WhatIfSimulator })));
 const RealProfitGuard = React.lazy(() => import('./components/RealProfitGuard'));
 const WhatsAppSupportInbox = React.lazy(() => import('./components/WhatsAppSupportInbox'));
+const CEOCopilot = React.lazy(() => import('./components/CEOCopilot').then(m => ({ default: m.CEOCopilot })));
 
 const CommandBar = React.lazy(() => import('./components/CommandBar'));
 const ProactiveAlerts = React.lazy(() => import('./components/ProactiveAlerts'));
@@ -633,6 +634,15 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
       tone: 'rose',
       value: `حماية الأرباح`,
       hint: 'كشف النزيف والفرص'
+    },
+    {
+      id: 'ceo-copilot',
+      label: 'CEO Copilot — القائد التنفيذي',
+      subtitle: 'يربط الأرقام المقفلة ويرتّب القرار والمخاطر والفرص',
+      icon: <Bot size={18} />,
+      tone: 'indigo',
+      value: `القائد التنفيذي`,
+      hint: 'Gemini يفسّر والأرقام مقفلة'
     }
   ];
 
@@ -1025,6 +1035,7 @@ const getAdminPageMeta = (page: string) => {
     'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'معرض أدوات للقرارات التنفيذية بدون لمس منطق التراث الذكي.', tag: 'Smart Lab Gallery' },
     'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
     'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
+    'ceo-copilot': { title: 'CEO Copilot', subtitle: 'أرقام مقفلة من منطق النظام، وGemini يفسّر ويرتّب القرار والمخاطر والفرص.', tag: 'Numbers Locked · Gemini Explains' },
     orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'Operations Board' },
     customers: { title: 'لوحة العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
     products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'Product Score' },
@@ -3537,6 +3548,7 @@ const MainApp: React.FC = () => {
         return <Dashboard data={data} onUpdateData={setData} appMode={appMode} onNavigate={(page) => setCurrentPage(page)} setDeepLinkData={setDeepLinkData} defaultTab="rewards" scrollTarget={deepLinkData.scrollTarget} scrollTargetTimestamp={deepLinkData._t} onActiveTabChange={setDashboardTab} />;
       case 'growth-simulator': return <WhatIfSimulator data={data} onUpdateData={setData} />;
       case 'profit-guard': return <RealProfitGuard data={data} />;
+      case 'ceo-copilot': return <CEOCopilot data={data} onNavigate={(page) => setCurrentPage(page)} />;
       case 'reports': return (
         <ReportsPage
           data={data}

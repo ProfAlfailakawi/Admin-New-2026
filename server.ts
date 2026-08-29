@@ -8,7 +8,7 @@ import fsSync from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 import 'dotenv/config';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import LZString from "lz-string";
 import { packBootInlineAssets } from "./src/lib/bootAssetTransport.ts";
 
@@ -10482,6 +10482,328 @@ ${ownerMemory}
     } catch (e: any) {
       console.warn("[Assistant] API Error, falling back to local simulation:", e);
       return res.json(runFallback());
+    }
+  });
+
+  // ==========================================================================
+  // CEO Copilot — Gemini يفسّر ويرتّب فقط. كل رقم مالي مصدره snapshot المبني من
+  // business logic في العميل. النموذج لا يُنتج ولا يعدّل أي رقم: هنا يختار IDs
+  // فقط (Structured Outputs)، والسيرفر يتحقق أن كل ID موجود فعلاً في snapshot.
+  // ==========================================================================
+  const ceoCopilotApiKey = () =>
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    process.env.VITE_GEMINI_API_KEY;
+
+  const ceoCopilotClient = () =>
+    new GoogleGenAI({
+      apiKey: ceoCopilotApiKey(),
+      httpOptions: { headers: { "User-Agent": "alturath-admin-server" } },
+    });
+
+  const ceoSafeJson = (value: any, maxLength = 9000) => {
+    try {
+      const text = JSON.stringify(value ?? {}, null, 2);
+      return text.length > maxLength ? `${text.slice(0, maxLength)}\n...تم الاختصار` : text;
+    } catch {
+      return "{}";
+    }
+  };
+
+  // (1) ترتيب القرارات + تفسير الشذوذ — النموذج يختار IDs فقط.
+  app.post("/api/ai/ceo-copilot/explain", express.json({ limit: "4mb" }), async (req, res) => {
+    const snapshot = req.body?.snapshot;
+    if (!snapshot || typeof snapshot !== "object") {
+      return res.status(400).json({ error: "Missing snapshot" });
+    }
+    const metricIds: string[] = Array.isArray(snapshot.metrics) ? snapshot.metrics.map((m: any) => String(m?.id)).filter(Boolean) : [];
+    const decisionIds: string[] = Array.isArray(snapshot.decisions) ? snapshot.decisions.map((d: any) => String(d?.id)).filter(Boolean) : [];
+    const anomalyIds: string[] = Array.isArray(snapshot.anomalies) ? snapshot.anomalies.map((a: any) => String(a?.id)).filter(Boolean) : [];
+
+    // الحارس المركزي: أي ID لا يوجد في snapshot يُرمى، فيستحيل على النموذج اختراع رقم.
+    const validateNarrative = (raw: any) => {
+      const list = (v: any) => (Array.isArray(v) ? v.map(String) : []);
+      const inSet = (arr: string[], allowed: string[]) => arr.filter((id) => allowed.includes(id));
+      return {
+        summary: String(raw?.summary || "").slice(0, 500),
+        executiveOrder: String(raw?.executiveOrder || "").slice(0, 400),
+        priorityDecisionIds: inSet(list(raw?.priorityDecisionIds), decisionIds).slice(0, 5),
+        anomalyExplanationIds: inSet(list(raw?.anomalyExplanationIds), anomalyIds).slice(0, 5),
+        opportunityMetricIds: inSet(list(raw?.opportunityMetricIds), metricIds).slice(0, 6),
+        riskMetricIds: inSet(list(raw?.riskMetricIds), metricIds).slice(0, 6),
+        numberPolicy: "validated_against_snapshot",
+      };
+    };
+
+    if (!ceoCopilotApiKey()) {
+      return res.json({ narrative: null, mode: "local" });
+    }
+
+    try {
+      const ai = ceoCopilotClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        config: {
+          temperature: 0.3,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              summary: { type: Type.STRING },
+              executiveOrder: { type: Type.STRING },
+              priorityDecisionIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+              anomalyExplanationIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+              opportunityMetricIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+              riskMetricIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ["summary", "executiveOrder", "priorityDecisionIds", "opportunityMetricIds", "riskMetricIds"],
+          },
+          systemInstruction:
+            "أنت CEO Copilot لمطعم/متجر كويتي. مهمتك ترتيب القرارات وتفسير المخاطر والفرص من snapshot جاهز.\n" +
+            "قاعدة صارمة: ممنوع تمامًا أن تكتب أو تخترع أي رقم مالي. أنت تختار معرّفات (IDs) موجودة في القوائم أدناه فقط.\n" +
+            "summary و executiveOrder نص عربي قصير بلهجة بيضاء راقية، بدون أي رقم جديد، بدون أسماء شخصية.",
+        },
+        contents: [{
+          role: "user",
+          parts: [{
+            text:
+              "المعرّفات المسموح اختيارها فقط:\n" +
+              `القرارات (decisionIds): ${JSON.stringify(decisionIds)}\n` +
+              `الشذوذ (anomalyIds): ${JSON.stringify(anomalyIds)}\n` +
+              `المقاييس (metricIds): ${JSON.stringify(metricIds)}\n\n` +
+              "الـsnapshot الكامل للسياق (للفهم فقط، لا تنسخ أرقامه في نص جديد):\n" +
+              ceoSafeJson(snapshot) +
+              "\n\nرتّب أهم القرارات، وحدّد أبرز الفرص والمخاطر، واكتب أمرًا تنفيذيًا واحدًا واضحًا لليوم.",
+          }],
+        }],
+      });
+
+      let parsed: any = null;
+      try { parsed = JSON.parse(response.text || "{}"); } catch { parsed = null; }
+      return res.json({ narrative: validateNarrative(parsed), mode: "gemini" });
+    } catch (e: any) {
+      console.warn("[CEO Copilot] explain fallback:", e?.message || e);
+      return res.json({ narrative: null, mode: "local" });
+    }
+  });
+
+  // (2) مسودة واتساب — نص فقط، اعتماد بشري إجباري، لا إرسال أبدًا.
+  app.post("/api/ai/ceo-copilot/whatsapp-draft", express.json({ limit: "1mb" }), async (req, res) => {
+    const ctx = req.body?.context || {};
+    const customerName = String(ctx.customerName || "عميلنا العزيز").slice(0, 80);
+    const reason = String(ctx.reason || "").slice(0, 300);
+    const facts = Array.isArray(ctx.facts) ? ctx.facts.map((f: any) => String(f).slice(0, 120)).slice(0, 6) : [];
+
+    const fallback = () => ({
+      draft: `حياك الله ${customerName}، صار لنا فترة ما شفنا طلبك. جهزنا لك اقتراح يناسب ذوقك، وإذا تحب نرتب طلبك اليوم نراجعه لك قبل التأكيد.`,
+      approvalState: "needs_human_approval",
+      mode: "local",
+    });
+
+    if (!ceoCopilotApiKey()) return res.json(fallback());
+    try {
+      const ai = ceoCopilotClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-lite",
+        config: {
+          temperature: 0.6,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: { draft: { type: Type.STRING } },
+            required: ["draft"],
+          },
+          systemInstruction:
+            "اكتب مسودة رسالة واتساب قصيرة ودّية باللهجة الكويتية البيضاء الراقية لصاحب عمل يخاطب عميله.\n" +
+            "ممنوع اختراع أرقام أو خصومات محددة أو مواعيد. لا أسماء شخصية للمالك. الرسالة مسودة تُعتمد بشريًا قبل الإرسال.",
+        },
+        contents: [{
+          role: "user",
+          parts: [{
+            text: `اسم العميل: ${customerName}\nسبب التواصل: ${reason}\nحقائق من النظام (لا تضف غيرها): ${JSON.stringify(facts)}\n\nاكتب مسودة رسالة واحدة مهذبة تدعوه للعودة/المتابعة بدون وعود رقمية.`,
+          }],
+        }],
+      });
+      let parsed: any = null;
+      try { parsed = JSON.parse(response.text || "{}"); } catch { parsed = null; }
+      const draft = String(parsed?.draft || "").trim();
+      if (!draft) return res.json(fallback());
+      return res.json({ draft: draft.slice(0, 600), approvalState: "needs_human_approval", mode: "gemini" });
+    } catch (e: any) {
+      console.warn("[CEO Copilot] whatsapp-draft fallback:", e?.message || e);
+      return res.json(fallback());
+    }
+  });
+
+  // (3) ذكاء المورد/المستند — File Search خفيف: يحلّل نص مستند مُلصق ويشرح الفجوات.
+  //     الأرقام تُعاد كما وردت من العميل فقط، والنموذج يكتب التفسير والإجراء.
+  app.post("/api/ai/ceo-copilot/supplier-intel", express.json({ limit: "3mb" }), async (req, res) => {
+    const supplier = req.body?.supplier || {};
+    const supplierName = String(supplier.name || "المورد").slice(0, 100);
+    const due = Number(supplier.due || 0);
+    const invoices = Number(supplier.invoices || 0);
+    const missingRefs = Array.isArray(supplier.missingRefs) ? supplier.missingRefs.map((r: any) => String(r).slice(0, 40)).slice(0, 8) : [];
+    const documentText = String(req.body?.documentText || "").slice(0, 12000);
+
+    const fallback = () => ({
+      findings: missingRefs.length
+        ? [`${missingRefs.length} فاتورة/مرجع بدون مستند توريد مؤكد.`]
+        : ["لا توجد فجوات مستندية ظاهرة من السجل الحالي."],
+      explanation: missingRefs.length
+        ? "يوجد مستحق مفتوح يحتاج ربط برقم فاتورة أو مستند توريد قبل السداد النهائي."
+        : "المستحق محسوب من محرك التسوية المركزي، ويحتاج فقط جدولة دفع.",
+      action: missingRefs.length
+        ? "اطلب من المورد مستند التوريد المطابق لكل مرجع ناقص قبل صرف أي دفعة."
+        : "رتّب جدولة السداد حسب أولوية المستحق دون تسجيل دفعات احتياطية.",
+      mode: "local",
+    });
+
+    if (!ceoCopilotApiKey()) return res.json(fallback());
+    try {
+      const ai = ceoCopilotClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        config: {
+          temperature: 0.25,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              findings: { type: Type.ARRAY, items: { type: Type.STRING } },
+              explanation: { type: Type.STRING },
+              action: { type: Type.STRING },
+            },
+            required: ["findings", "explanation", "action"],
+          },
+          systemInstruction:
+            "أنت مدقّق موردين. حلّل الفجوات المستندية واشرحها بلغة عربية عملية.\n" +
+            "الأرقام المالية (المستحق/عدد الفواتير) تُذكر كما وردت فقط، ممنوع تعديلها أو اختراع أرقام أخرى.\n" +
+            "إن وُجد نص مستند، استخرج منه المراجع/التواريخ/المبالغ المذكورة فيه فقط دون تخمين.",
+        },
+        contents: [{
+          role: "user",
+          parts: [{
+            text:
+              `المورد: ${supplierName}\nالمستحق المسجّل: ${due} د.ك\nفواتير مفتوحة: ${invoices}\nمراجع ناقصة: ${JSON.stringify(missingRefs)}\n\n` +
+              (documentText ? `نص مستند التوريد الملصق (المصدر الوحيد لأي رقم إضافي):\n${documentText}\n\n` : "لا يوجد نص مستند ملصق.\n\n") +
+              "أعطِ findings موجزة، ثم explanation، ثم action واحد واضح.",
+          }],
+        }],
+      });
+      let parsed: any = null;
+      try { parsed = JSON.parse(response.text || "{}"); } catch { parsed = null; }
+      if (!parsed || !Array.isArray(parsed.findings)) return res.json(fallback());
+      return res.json({
+        findings: parsed.findings.map((f: any) => String(f).slice(0, 200)).slice(0, 8),
+        explanation: String(parsed.explanation || "").slice(0, 400),
+        action: String(parsed.action || "").slice(0, 300),
+        mode: "gemini",
+      });
+    } catch (e: any) {
+      console.warn("[CEO Copilot] supplier-intel fallback:", e?.message || e);
+      return res.json(fallback());
+    }
+  });
+
+  // (4) Content campaign pipeline → payload جاهز لـFlow (فكرة→copy→storyboard→prompts).
+  //     الأرقام تُعاد من مدخلات العميل فقط، والنموذج يكتب النص الإبداعي.
+  app.post("/api/ai/ceo-copilot/campaign-flow", express.json({ limit: "1mb" }), async (req, res) => {
+    const product = req.body?.product || {};
+    const productName = String(product.name || "المنتج الأعلى طلبًا").slice(0, 100);
+    const goal = String(req.body?.goal || "زيادة الطلب").slice(0, 120);
+
+    const fallback = () => ({
+      idea: `حملة تسليط الضوء على ${productName} لتحقيق هدف: ${goal}.`,
+      copy: {
+        hook: `${productName} — طلبك اليوم بنكهة التراث الأصيل`,
+        body: `جربنا نجمع لك أفضل تجربة حول ${productName}. الجودة نفسها اللي تعرفها، والخدمة أسرع.`,
+        cta: "اطلب الحين",
+      },
+      storyboard: [
+        { scene: 1, visual: `لقطة قريبة لـ${productName} مع بخار/تفاصيل شهية`, text: "الافتتاحية: إبراز المنتج" },
+        { scene: 2, visual: "لقطة تجهيز سريعة داخل المطبخ", text: "الثقة: جودة وسرعة" },
+        { scene: 3, visual: "عميل سعيد يستلم الطلب", text: "الخاتمة + دعوة للطلب" },
+      ],
+      imagePrompts: [
+        `Authentic Kuwaiti ${productName}, studio food photography, warm light, high detail`,
+        `${productName} plating close-up, appetizing, shallow depth of field`,
+      ],
+      flowTrigger: "ceo_copilot.campaign.ready_for_flow",
+      approvalState: "needs_human_approval",
+      mode: "local",
+    });
+
+    if (!ceoCopilotApiKey()) return res.json(fallback());
+    try {
+      const ai = ceoCopilotClient();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        config: {
+          temperature: 0.7,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              idea: { type: Type.STRING },
+              copy: {
+                type: Type.OBJECT,
+                properties: {
+                  hook: { type: Type.STRING },
+                  body: { type: Type.STRING },
+                  cta: { type: Type.STRING },
+                },
+                required: ["hook", "body", "cta"],
+              },
+              storyboard: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    scene: { type: Type.NUMBER },
+                    visual: { type: Type.STRING },
+                    text: { type: Type.STRING },
+                  },
+                  required: ["scene", "visual", "text"],
+                },
+              },
+              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ["idea", "copy", "storyboard", "imagePrompts"],
+          },
+          systemInstruction:
+            "أنت مخرج حملات محتوى. حوّل المنتج والهدف إلى حملة جاهزة لأداة Flow.\n" +
+            "اكتب فكرة، ثم copy (hook/body/cta) عربي كويتي راقٍ، ثم storyboard من 3 مشاهد، ثم imagePrompts إنجليزية للتوليد.\n" +
+            "ممنوع اختراع أرقام مبيعات أو أسعار. النص إبداعي فقط.",
+        },
+        contents: [{
+          role: "user",
+          parts: [{ text: `المنتج: ${productName}\nالهدف: ${goal}\n\nأنتج payload الحملة كاملًا وجاهزًا للتسليم إلى Flow.` }],
+        }],
+      });
+      let parsed: any = null;
+      try { parsed = JSON.parse(response.text || "{}"); } catch { parsed = null; }
+      if (!parsed || !parsed.copy) return res.json(fallback());
+      return res.json({
+        idea: String(parsed.idea || "").slice(0, 300),
+        copy: {
+          hook: String(parsed.copy?.hook || "").slice(0, 160),
+          body: String(parsed.copy?.body || "").slice(0, 500),
+          cta: String(parsed.copy?.cta || "اطلب الحين").slice(0, 40),
+        },
+        storyboard: Array.isArray(parsed.storyboard) ? parsed.storyboard.slice(0, 6).map((s: any, i: number) => ({
+          scene: Number(s?.scene || i + 1),
+          visual: String(s?.visual || "").slice(0, 220),
+          text: String(s?.text || "").slice(0, 160),
+        })) : [],
+        imagePrompts: Array.isArray(parsed.imagePrompts) ? parsed.imagePrompts.map((p: any) => String(p).slice(0, 240)).slice(0, 6) : [],
+        flowTrigger: "ceo_copilot.campaign.ready_for_flow",
+        approvalState: "needs_human_approval",
+        mode: "gemini",
+      });
+    } catch (e: any) {
+      console.warn("[CEO Copilot] campaign-flow fallback:", e?.message || e);
+      return res.json(fallback());
     }
   });
 
