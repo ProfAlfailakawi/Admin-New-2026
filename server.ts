@@ -6748,12 +6748,22 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
                         for (const doc of orderQ.docs) {
                             await doc.ref.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
                         }
-                        // NOTE: The "invoice paid" push is now sent exclusively by
-                        // announcePaidPaymentInstantly() (called from syncPaymentStatusEverywhere
-                        // above), which uses an era-suffixed eventId for correct once-only dedup.
-                        // Sending again here used a NON-era eventId, so pushEvents could not collapse
-                        // the two claims and the owner received the alert twice. Keep only the DB
-                        // status update here; the notification is handled by the instant announcer.
+                        // Fallback only: reached when the sync above did NOT already mark the
+                        // invoice paid, which is exactly when announcePaidPaymentInstantly stayed
+                        // silent. (The duplicate alerts reported on 2026-08-29 came from the Order
+                        // server's own direct-push path, not from here.)
+                        const eventId = `safe-worker-invoice-paid-${orderId}`;
+                        sendSmartAlertPushNotification({
+                            title: "✅ تم الدفع",
+                            body: `تم دفع الفاتورة ${orderId}${data?.totalAmount ? ` — ${data.totalAmount} د.ك` : ""}`,
+                            alertType: "payment_paid",
+                            eventId,
+                            url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(orderId)}`,
+                        }).then((result) => rememberPushEvent(eventId, {
+                            source: "payment-webhook",
+                            type: "invoice_paid",
+                            invoiceId: orderId,
+                        }, result)).catch(console.error);
                     } catch (e) {
                         console.error("Error updating invoice/order in handlePaymentUpdate:", e);
                     }
@@ -6790,10 +6800,19 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
                     const data = ordSnap.data();
                     if (data?.status !== 'paid' && data?.status !== 'تم الدفع بنجاح') {
                         await orderRef.update({ status: 'تم الدفع بنجاح', paymentStatus: 'paid', paymentMethod: 'KNet', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-                        // NOTE: The "order paid" push is sent exclusively by
-                        // announcePaidPaymentInstantly() (era-suffixed eventId, once-only dedup).
-                        // The previous inline send used a non-era eventId, so pushEvents could not
-                        // dedup the two and the owner was notified twice. DB update only here.
+                        // Fallback only — see the invoice branch above.
+                        const eventId = `safe-worker-payment-paid-${orderId}`;
+                        sendSmartAlertPushNotification({
+                        title: "✅ تم الدفع",
+                        body: `تم دفع الطلب ${orderId}${data?.total ? ` — ${data.total} د.ك` : ""}`,
+                        alertType: "payment_paid",
+                        eventId,
+                        url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}`,
+                      }).then((result) => rememberPushEvent(eventId, {
+                        source: "payment-webhook",
+                        type: "payment_paid",
+                        orderId,
+                      }, result)).catch(console.error);
                     }
                 }
             }
