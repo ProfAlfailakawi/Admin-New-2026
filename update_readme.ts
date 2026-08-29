@@ -1,4 +1,6 @@
-# Alturath Admin System
+import fs from 'fs';
+
+const readmeContent = `# Alturath Admin System
 
 This is the operational and admin panel for Alturath, built using React, Vite, TailwindCSS, Express, and Firebase.
 
@@ -56,3 +58,6 @@ A GitHub Actions CI workflow is configured to run tests and typechecks automatic
 -   **Rollback Procedure:** Always ensure a fallback image or previous stable branch is available. In case of deployment failure, revert to the last known good commit and redeploy immediately.
 -   **Database:** Firestore operations should be backed up regularly. Ensure Firebase rules restrict unauthorized modifications.
 -   **Service Availability:** If push notifications or payments fail, review the logs from the webhook routes to identify API gateway changes or missing environment variables.
+`;
+
+fs.writeFileSync('README.md', readmeContent);
