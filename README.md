@@ -52,6 +52,14 @@ A GitHub Actions CI workflow is configured to run tests and typechecks automatic
 
 2.  **Never deploy automatically.** Ensure manual approval and a solid rollback plan before deploying to production.
 
+
+## Remaining Production Risks (Audit Notes)
+
+The following items were out of scope for the current hardening pass but represent actual architectural or technical risks that should be addressed in the future:
+- **Server-Authoritative Pricing:** Currently `/api/create-payment` reads the requested amount directly from the client. Pricing must ideally be fetched natively from Firestore and verified.
+- **Idempotency & Webhook Verification:** The webhook relies on checking whether the invoice in Firestore is already `paid` rather than strictly recording process intent. Webhooks also currently lack hash validation against the provider's signature.
+- **Race Conditions:** Without a strict local state machine or robust lock/batch utilization across rapid sequential webhook requests, invoice status updates can overwrite local memory states or emit transient UI ghost updates.
+
 ## Recovery Plan & Rollback
 
 -   **Rollback Procedure:** Always ensure a fallback image or previous stable branch is available. In case of deployment failure, revert to the last known good commit and redeploy immediately.
