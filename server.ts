@@ -1,3 +1,4 @@
+import { createAlertsRequireSecret } from './src/lib/auth-helpers.ts';
 import express from "express";
 import path from "path";
 import cors from 'cors';
@@ -9768,16 +9769,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
-      export function alertsRequireSecret(req: any, res: any, next: any) {
-    if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === "") {
-        return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured on the server" });
-    }
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(ALERTS_ADMIN_TEST_SECRET)) {
-      return res.status(403).json({ success: false, error: "Forbidden" });
-    }
-    next();
-  }
+      const alertsRequireSecret = createAlertsRequireSecret(ALERTS_ADMIN_TEST_SECRET);
 
   function alertsIdsFor(x: any) {
     return [x?.id, x?.invoiceId, x?.invoiceNo, x?.orderId, x?.orderNo, x?.number, x?.tracked_order, x?.requested_order_id]
