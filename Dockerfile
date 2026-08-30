@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # Use a non-root user for security
-# RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
@@ -16,9 +16,9 @@ COPY . .
 RUN npm run build
 
 # Change ownership of the app files to the non-root user
-# RUN chown -R appuser:appgroup /app
+RUN chown -R appuser:appgroup /app
 
-# USER appuser
+USER appuser
 
 ENV NODE_ENV=production
 ENV PORT=8080
