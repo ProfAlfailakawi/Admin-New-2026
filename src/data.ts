@@ -519,5 +519,3 @@ export const GENERATE_PERFORMANCE_SIMULATION_DATA = (): AppState => {
         nameMatchMemory: {}
     };
 };
-
-export const articleCats = {};
