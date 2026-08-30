@@ -9763,15 +9763,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   // Specific 404 for API to prevent falling through to React
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
-  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
+  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "";
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
-    export function alertsRequireSecret(req: any, res: any, next: any) {
-    if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === '') {
-        return res.status(500).json({ success: false, error: 'ADMIN_TEST_SECRET is not configured on the server' });
-    }
+      export function alertsRequireSecret(req: any, res: any, next: any) {
     if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === "") {
         return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured on the server" });
     }
