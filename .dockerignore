@@ -6,3 +6,5 @@ firebase-admin-service-account.json
 *.log
 dist
 .DS_Store
+src/tests
+.github

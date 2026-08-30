@@ -368,7 +368,7 @@ type PaymentSyncIdentifiers = {
 const PAYMENT_PAID_STATUS_TEXT = "تم الدفع بنجاح";
 const PAYMENT_FAILED_STATUS_TEXT = "فشلت عملية الدفع";
 
-function safeDecodeText(value: any) {
+export function safeDecodeText(value: any) {
   const raw = String(value || "").replace(/\+/g, " ").trim();
   if (!raw) return "";
   try {
@@ -427,7 +427,7 @@ function collectGatewayStrings(value: any, out: string[] = [], depth = 0, seen =
   return out;
 }
 
-function collectGatewayKeyValues(value: any, wantedKeys: Set<string>, out: string[] = [], depth = 0, seen = new Set<any>(), parentKey = "") {
+export function collectGatewayKeyValues(value: any, wantedKeys: Set<string>, out: string[] = [], depth = 0, seen = new Set<any>(), parentKey = "") {
   if (depth > 8 || value === null || value === undefined) return out;
   const parsed = normalizeGatewayPayload(value);
   if (typeof parsed !== "object") return out;
@@ -497,7 +497,7 @@ function normalizePaymentIdentifier(value: any) {
   return text;
 }
 
-function normalizePaymentStatusText(value: any) {
+export function normalizePaymentStatusText(value: any) {
   return safeDecodeText(value)
     .replace(/[\-_]+/g, " ")
     .replace(/\s+/g, " ")
@@ -505,7 +505,7 @@ function normalizePaymentStatusText(value: any) {
     .toUpperCase();
 }
 
-function classifyGatewayPaymentState(params: any): PaymentSyncState | "unknown" {
+export function classifyGatewayPaymentState(params: any): PaymentSyncState | "unknown" {
   const statusKeys = new Set([
     "result",
     "status",
@@ -9768,7 +9768,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
-    function alertsRequireSecret(req: any, res: any, next: any) {
+    export function alertsRequireSecret(req: any, res: any, next: any) {
+    if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === '') {
+        return res.status(500).json({ success: false, error: 'ADMIN_TEST_SECRET is not configured on the server' });
+    }
     if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === "") {
         return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured on the server" });
     }
