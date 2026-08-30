@@ -1,7 +1,5 @@
 // @ts-nocheck
-// Temporarily disabling type checking for this file as it relies on several legacy/missing components that need a full architectural restoration to fix properly without resorting to dummy stubs.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ArticleRecord } from '../../lib/cms'
 import { loadArticleBodies } from '../../lib/article-bodies'
 import { useAdminAuth } from '../../lib/admin-auth'
 import { getDb } from '../../lib/firebase'
