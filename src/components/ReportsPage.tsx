@@ -564,6 +564,18 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       const firstDeliveryCompany = eligible.find((s: any) => isDeliveryCompanyEntity(s));
       return firstDeliveryCompany ? String(firstDeliveryCompany.id || '') : '';
     };
+    // كم دُفع فعلياً لجهة التوصيل مقابل هذه الفاتورة (من خلال محرك التسويات مع الموردين/شركات التوصيل).
+    // نستخدمها لمنع تعديل جهة/طريقة التوصيل بعد أن تمت تسوية مستحق التوصيل حتى لا تختل الحسابات.
+    const getInvoiceDeliveryPaidAmount = (invoice: any) => {
+      const invoiceId = String(invoice?.id || '');
+      if (!invoiceId) return 0;
+      return (data?.suppliers || []).reduce((total: number, supplier: any) => {
+        const settlement = getSupplierSettlementForState(supplier.id, data);
+        const row = (settlement.invoices || []).find((r: any) => String(r.refId) === invoiceId);
+        return total + Number(row?.paidToDelivery || 0);
+      }, 0);
+    };
+
     const openDeliveryManager = (invoice: Invoice) => {
       setDeliveryManagerInvoice(invoice);
       setDeliveryManagerType(((invoice as any).deliveryType || 'company') as ReportsDeliveryType);
@@ -571,11 +583,22 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
     };
     const saveDeliveryManager = () => {
       if (!deliveryManagerInvoice) return;
+      // حماية الحسابات: إذا تم دفع مستحق التوصيل لجهة التوصيل من الموردين، لا نسمح بالتعديل.
+      if (getInvoiceDeliveryPaidAmount(deliveryManagerInvoice) > 0) {
+        toast.error('لا يمكن تعديل إدارة التوصيل', {
+          description: 'تم دفع مستحق التوصيل لجهة التوصيل من الموردين لهذه الفاتورة. التعديل مقفول حتى لا تختل الحسابات.',
+        });
+        setDeliveryManagerInvoice(null);
+        return;
+      }
       const selectedSupplier = (data?.suppliers || []).find((s: any) => String(s.id) === String(deliveryManagerSupplierId));
       const settlementTarget = selectedSupplier
         ? (isDeliveryCompanyEntity(selectedSupplier) ? 'delivery_company' : 'supplier')
         : ((deliveryManagerInvoice as any).deliveryInfo?.settlementTarget || (deliveryManagerInvoice as any).deliverySettlementTarget || 'delivery_company');
       const settlementName = selectedSupplier?.name || (deliveryManagerInvoice as any).deliveryInfo?.company || '';
+      // ختم وقت التحديث حتى تفوز النسخة المعدّلة على النسخة القديمة القادمة من مرآة
+      // مجموعة "invoices" أثناء الدمج، وإلا سيظهر التعديل ثم يُلغى عند إعادة الفتح.
+      const editStamp = new Date().toISOString();
       setData((prev) => {
         const apply = (inv: any) => {
           const currentInfo = inv.deliveryInfo || {};
@@ -591,6 +614,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
             },
             deliverySettlementTarget: settlementTarget,
             deliverySettlementSupplierId: deliveryManagerSupplierId,
+            updatedAt: editStamp,
+            updatedAtServer: editStamp,
           };
         };
         return {
@@ -601,6 +626,28 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
           ) ? apply(order) : order),
         } as any;
       });
+      // مزامنة مرآة السجل المعروضة محلياً فوراً حتى لا تُلغي التعديل عند إعادة الفتح.
+      setLiveLedgerInvoices((prevRows) =>
+        (prevRows || []).map((row: any) =>
+          String(row.id) === String(deliveryManagerInvoice.id)
+            ? {
+                ...row,
+                deliveryType: deliveryManagerType,
+                deliveryInfo: {
+                  ...(row.deliveryInfo || {}),
+                  company: settlementName,
+                  settlementTarget,
+                  settlementSupplierId: deliveryManagerSupplierId,
+                  settlementSupplierName: settlementName,
+                },
+                deliverySettlementTarget: settlementTarget,
+                deliverySettlementSupplierId: deliveryManagerSupplierId,
+                updatedAt: editStamp,
+                updatedAtServer: editStamp,
+              }
+            : row,
+        ),
+      );
       toast.success('تم تحديث إدارة التوصيل', { description: 'تم تعديل طريقة التوصيل وجهتها داخليًا فقط دون تغيير إجمالي الفاتورة المدفوع.' });
       setDeliveryManagerInvoice(null);
     };
@@ -691,6 +738,15 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
 
 
     const handleManageDelivery = (invoice: Invoice) => {
+      // إذا تمت تسوية مستحق التوصيل مع الموردين، نقفل التعديل حفاظاً على دقة الحسابات.
+      if (getInvoiceDeliveryPaidAmount(invoice) > 0) {
+        import("sonner").then((m) =>
+          m.toast.error(
+            "تم دفع مستحق التوصيل لجهة التوصيل من الموردين، لا يمكن تعديل إدارة التوصيل لهذه الفاتورة حتى لا تختل الحسابات. 🔒",
+          ),
+        );
+        return;
+      }
       openDeliveryManager(invoice);
     };
 
