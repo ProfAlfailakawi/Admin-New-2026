@@ -9772,6 +9772,9 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === '') {
         return res.status(500).json({ success: false, error: 'ADMIN_TEST_SECRET is not configured on the server' });
     }
+    if (!ALERTS_ADMIN_TEST_SECRET || ALERTS_ADMIN_TEST_SECRET === "") {
+        return res.status(500).json({ success: false, error: "ADMIN_TEST_SECRET is not configured on the server" });
+    }
     const secret = req.headers["x-admin-secret"] || req.query.secret;
     if (String(secret) !== String(ALERTS_ADMIN_TEST_SECRET)) {
       return res.status(403).json({ success: false, error: "Forbidden" });
