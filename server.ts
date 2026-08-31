@@ -1,6 +1,9 @@
+import { createAlertsRequireSecret } from './src/lib/auth-helpers.ts';
 import express from "express";
 import path from "path";
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -366,7 +369,7 @@ type PaymentSyncIdentifiers = {
 const PAYMENT_PAID_STATUS_TEXT = "تم الدفع بنجاح";
 const PAYMENT_FAILED_STATUS_TEXT = "فشلت عملية الدفع";
 
-function safeDecodeText(value: any) {
+export function safeDecodeText(value: any) {
   const raw = String(value || "").replace(/\+/g, " ").trim();
   if (!raw) return "";
   try {
@@ -425,7 +428,7 @@ function collectGatewayStrings(value: any, out: string[] = [], depth = 0, seen =
   return out;
 }
 
-function collectGatewayKeyValues(value: any, wantedKeys: Set<string>, out: string[] = [], depth = 0, seen = new Set<any>(), parentKey = "") {
+export function collectGatewayKeyValues(value: any, wantedKeys: Set<string>, out: string[] = [], depth = 0, seen = new Set<any>(), parentKey = "") {
   if (depth > 8 || value === null || value === undefined) return out;
   const parsed = normalizeGatewayPayload(value);
   if (typeof parsed !== "object") return out;
@@ -495,7 +498,7 @@ function normalizePaymentIdentifier(value: any) {
   return text;
 }
 
-function normalizePaymentStatusText(value: any) {
+export function normalizePaymentStatusText(value: any) {
   return safeDecodeText(value)
     .replace(/[\-_]+/g, " ")
     .replace(/\s+/g, " ")
@@ -503,7 +506,7 @@ function normalizePaymentStatusText(value: any) {
     .toUpperCase();
 }
 
-function classifyGatewayPaymentState(params: any): PaymentSyncState | "unknown" {
+export function classifyGatewayPaymentState(params: any): PaymentSyncState | "unknown" {
   const statusKeys = new Set([
     "result",
     "status",
@@ -1643,7 +1646,29 @@ app.use((req, res, next) => {
 
   const PORT = Number(process.env.PORT) || 3000;
 
-  app.use(cors());
+  // Strict CORS for production, allow specific origins only
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production'
+      ? (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : false)
+      : '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-wa-admin-auth', 'x-admin-secret']
+  }));
+
+  app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  }));
+
+  // Global rate limit
+  const apiLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 1500, // Sufficiently high not to block webhooks but enough to prevent extreme abuse
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/', apiLimiter);
   app.use(express.json({
     limit: "30mb",
     // Meta signs the exact bytes it sent, so the WhatsApp webhook needs the raw body
@@ -9411,6 +9436,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   console.log("Registering create-payment...");
   app.post("/api/create-payment", async (req, res) => {
+    // Validate Input Amount and Types
+    const amountNum = Number(req.body.amount);
+    if (isNaN(amountNum) || amountNum <= 0 || typeof req.body.customerName !== "string" || req.body.customerName.length > 255) {
+      return res.status(400).json({ error: "Invalid payment payload or amount" });
+    }
+
     console.log("=== CREATE PAYMENT ROUTE HIT ===");
     const { 
       amount, 
@@ -9733,18 +9764,12 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
   // Specific 404 for API to prevent falling through to React
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_START
-  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "123456";
+  const ALERTS_ADMIN_TEST_SECRET = process.env.ADMIN_TEST_SECRET || "";
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
 
-  function alertsRequireSecret(req: any, res: any, next: any) {
-    const secret = req.headers["x-admin-secret"] || req.query.secret;
-    if (String(secret) !== String(ALERTS_ADMIN_TEST_SECRET)) {
-      return res.status(403).json({ success: false, error: "Forbidden" });
-    }
-    next();
-  }
+      const alertsRequireSecret = createAlertsRequireSecret(ALERTS_ADMIN_TEST_SECRET);
 
   function alertsIdsFor(x: any) {
     return [x?.id, x?.invoiceId, x?.invoiceNo, x?.orderId, x?.orderNo, x?.number, x?.tracked_order, x?.requested_order_id]

@@ -4182,7 +4182,7 @@ const MainApp: React.FC = () => {
   const showInstagramFloatingTool = showExecutiveFloatingTools || partnerOnDashboard;
 
   // Second Tool (Radar/Search): Admin/local -> only on pulse. Partner -> hide completely.
-  const showSecondFloatingTools = (floatingToolRole === 'admin' || floatingToolRole === 'local') && showExecutiveFloatingTools;
+  const showSecondFloatingTools = (floatingToolRole === 'admin' || (floatingToolRole as any) === 'local') && showExecutiveFloatingTools;
 
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
