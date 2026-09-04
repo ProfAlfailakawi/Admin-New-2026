@@ -203,7 +203,7 @@ const TestimonialsManager: React.FC<Props> = ({ testimonials, onAdd, onUpdate, o
  initial={{ opacity: 0, scale: 0.9, y: 30 }}
  animate={{ opacity: 1, scale: 1, y: 0 }}
  exit={{ opacity: 0, scale: 0.9, y: 30 }}
- className="bg-white rounded-3xl md:rounded-2xl w-full max-w-lg shadow-xl p-3 md:p-3 border border-slate-100 text-right overflow-hidden relative"
+ className="bg-white rounded-3xl md:rounded-2xl w-full max-w-lg max-h-[90dvh] overflow-y-auto shadow-xl p-3 md:p-3 border border-slate-100 text-right relative"
  onClick={e => e.stopPropagation()}
  >
  <div className="absolute top-0 right-0 left-0 h-32 bg-gradient-to-br from-emerald-500/10 to-transparent -z-10" />

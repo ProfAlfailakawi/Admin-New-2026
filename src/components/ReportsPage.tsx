@@ -1945,7 +1945,7 @@ Alturath.kw`;
                     initial={{ opacity: 0, scale: 0.96, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96, y: 20 }}
-                    className="w-full max-w-2xl bg-white rounded-[2rem] shadow-sm border border-slate-200 border border-slate-100 overflow-hidden"
+                    className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto bg-white rounded-[2rem] shadow-sm border border-slate-200 border border-slate-100"
                   >
                     <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
                       <button

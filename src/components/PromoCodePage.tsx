@@ -412,7 +412,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
   return (
    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[1001] flex items-center justify-center p-3" dir="rtl">
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0" onClick={() => setActivationCourtCoupon(null)} />
-    <motion.div initial={{ scale: 0.94, opacity: 0, y: 18 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0, y: 18 }} className="relative w-full max-w-2xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+    <motion.div initial={{ scale: 0.94, opacity: 0, y: 18 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0, y: 18 }} className="relative w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-5 text-white text-right">
       <button onClick={() => setActivationCourtCoupon(null)} className="absolute left-5 top-5 rounded-full bg-white/10 p-2 text-white/70 hover:text-white"><X size={18} /></button>
       <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-100 mb-3"><Scale size={13} /> مراجعة قبل التفعيل</div>

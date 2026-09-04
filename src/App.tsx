@@ -3929,7 +3929,7 @@ const MainApp: React.FC = () => {
     if (!quotaError) return null;
     return (
       <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full max-h-[90dvh] overflow-y-auto border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
               <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-3xl">⚠️</span>
               </div>
