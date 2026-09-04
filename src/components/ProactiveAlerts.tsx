@@ -11,9 +11,10 @@ interface ProactiveAlertsProps {
  userRole?: string | null;
  currentPage?: string;
  isNotificationRead?: (notification: Notification) => boolean;
+ isMenuOpen?: boolean;
 }
 
-const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, onMarkAllAsRead, userRole, currentPage = 'dashboard', isNotificationRead }) => {
+const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMarkAsRead, onMarkAllAsRead, userRole, currentPage = 'dashboard', isNotificationRead, isMenuOpen = false }) => {
  const activeAlerts = notifications.filter(n => {
   const isRead = isNotificationRead ? isNotificationRead(n) : n.read;
   return !isRead && n.insightType && !n.title.includes('درع الربح');
@@ -40,7 +41,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  {/* Floating Intelligence Hub Icon */}
  <div className="fixed bottom-44 right-6 lg:bottom-40 lg:right-10 z-[100]" dir="rtl">
  <AnimatePresence>
- {activeAlerts.length > 0 && (
+ {activeAlerts.length > 0 && !isMenuOpen && (
  <motion.div
  initial={{ scale: 0, opacity: 0 }}
  animate={{ scale: 1, opacity: 1 }}

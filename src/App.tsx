@@ -4711,7 +4711,8 @@ const MainApp: React.FC = () => {
           )}
           {deferredChromeReady && showSecondFloatingTools && (
             <React.Suspense fallback={null}>
-              <ProactiveAlerts 
+              <ProactiveAlerts
+                isMenuOpen={sidebarOpen}
                 userRole={userRole}
                 currentPage={currentPage}
                 notifications={(data.notifications || []).filter(n => !n.title?.includes('درع') && !n.title?.includes('مجبوس دجاج'))} 
