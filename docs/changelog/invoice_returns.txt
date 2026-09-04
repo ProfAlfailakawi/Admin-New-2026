@@ -1,0 +1,84 @@
+86  if (!phone) {
+88  return '#';
+94  return `- ${p?.name || 'منتج غير معروف'} (${item.quantity || 1} × ${Number(price).toFixed(3)})`;
+100  return acc + (price * (item.quantity || 1));
+110  return `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+114  if (editingInvoiceId) {
+116  if (inv) {
+120  if (inv.deliveryInfo) {
+123  if (matchedZone) {
+140  if (cust && cust.area) {
+142  if (matchedZone) {
+149  if (!guessedZoneId) {
+151  if (matchedByFee) {
+182  if (inv.address && typeof inv.address === 'object') {
+213  if (zone) {
+217  if (deliveryType === 'company') {
+239  if (isPartner) {
+245  if (isManualDelivery) {
+246  if (deliveryType === 'free') {
+258  if (zone) {
+262  if (deliveryType === 'company') {
+281  if (deliveryType !== 'free' && deliveryType !== 'company' && deliveryType !== 'special') {
+287  if (selectedCustomerId) {
+289  if (customer) {
+293  if (!addressText) {
+296  if (addressObject && typeof addressObject === 'object') {
+298  if (addrStr) setAddressText(addrStr);
+301  if (matchedZone) {
+316  if (p.isActive !== false) {
+318  if (!uniqueProductsMap.has(normName) || p.cost < uniqueProductsMap.get(normName)!.cost) {
+324  return Array.from(uniqueProductsMap.values()).filter(p => {
+326  return (normalizeArabic(p.name || '').includes(normalizedQuery)) && 
+333  if (!product) return;
+337  return { 
+351  if (!existing) return prev;
+353  if (existing.quantity > 1) {
+354  return { 
+361  return newCart;
+369  if (!existing) return prev;
+370  return {
+383  if (!existing) return prev;
+384  return {
+398  return newCart;
+405  if (best.cost < product.cost) {
+406  return { cost: best.cost, supplier: data.suppliers.find(s => s.id === best.supplierId)?.name };
+408  return null;
+412  if (!promoCodeInput.trim()) {
+420  if (code) {
+426  if (now < start || now > end) {
+434  if (usageLimit > 0 && (code.usedCount || 0) >= usageLimit) {
+445  if (dType === 'percentage') {
+462  return { 
+485  if (cartItems.length === 0) return null;
+493  if (hasLossItem) return { text:"تحذير: يوجد منتج في العربة يباع بأقل من تكلفته", type: 'danger' };
+496  if (deliveryType === 'special') return { text:"هذا الطلب خارج حساب المطعم (توصيل خاص)", type: 'special' };
+499  if (currentTotalProfit <= 0) return { text:"هذا الطلب بدون ربح فعلي (تعادل أو خسارة)", type: 'danger' };
+502  if (foodProfit > 0 && currentTotalProfit < foodProfit * 0.4) {
+503  return { text:"التوصيل والرسوم ألغت جزءاً كبيراً من الربح", type: 'warning' };
+508  if (margin < 12) return { text:"الطلب ربحه منخفض جداً", type: 'warning' };
+510  return null;
+519  if (!selectedCustomerId || cartItems.length === 0) return;
+531  if (finalInvoiceAmount > 0) {
+550  if (response.ok && paymentData.data?.link) {
+552  if (paymentData.data) {
+565  if (!selectedZoneId && !isManualDelivery) {
+617  if (editingInvoiceId) {
+625  if (appliedPromoCode && !editingInvoiceId) {
+638  return resultState;
+642  if (!editingInvoiceId) {
+657  if (newInvoice) {
+659  if (waLink && waLink !== '#') {
+664  if (onFinished) {
+670  if (!lastInvoice) return;
+675  return acc + (price * (item.quantity || 1));
+680  if (!printWindow) return;
+685  return `
+1071  return (
+1108  return (
+1226  if (isPaid) return;
+1244  return normalizeArabic(c.name || '').includes(normalizedQuery) || (c.phone || '').includes(customerSearch);
+1263  return normalizeArabic(c.name || '').includes(normalizedQuery) || (c.phone || '').includes(customerSearch);
+1349  if (isPaid) return;
+1353  if (deliveryType === 'company' || deliveryType === 'special' || deliveryType === 'free') {
+1407  if (!e.target.value.trim() || (appliedPromoCode && e.target.value.toUpperCase() !== appliedPromoCode.code)) {

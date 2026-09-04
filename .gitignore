@@ -18,3 +18,18 @@ assets/
 functions/.env
 functions/.env.*
 .firebase/
+
+# Build outputs
+build/
+*.tsbuildinfo
+
+# Editor/tool backups and one-off patch snapshots
+*.bak
+*.bak-*
+*.broken
+*.orig
+*.old
+*~
+
+# macOS Finder duplicate downloads, e.g. "index 2.html"
+* [0-9].html
