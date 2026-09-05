@@ -609,14 +609,12 @@ export interface CashPosition {
   paidInvoices: any[];
 }
 
-// One-time opening point for the existing company ledger. The owner confirmed that the
-// real bank + cash balance was calibrated at 303.800 KWD while the surviving records
-// produced -3928.500 KWD. Their 4232.300 KWD difference is historical money that cannot be
-// reconstructed after the older revenue rows were removed. Keeping it as an opening
-// balance preserves every current invoice/payment and lets all future movement remain
-// fully data-driven. New/demo ledgers explicitly store openingCashBalance: 0, while an
-// administrator can replace or disable this baseline from General Settings at any time.
-const LEGACY_OPENING_CASH_BALANCE = 4232.3;
+// One-time opening point for the existing company ledger. The owner confirmed from the
+// bank SMS after a 3.750 KWD transfer that the available account balance is 331.300 KWD.
+// The surviving app records currently contribute about 326.600 KWD, so the legacy
+// fallback only needs the remaining 4.700 KWD instead of the old over-calibration that
+// made the dashboard show roughly 4,558.900 KWD.
+const LEGACY_OPENING_CASH_BALANCE = 4.7;
 
 export function getCashPositionForState(state: AppState): CashPosition {
   const data: any = state || {};
