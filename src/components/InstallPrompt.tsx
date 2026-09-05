@@ -91,7 +91,7 @@ export default function InstallPrompt() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] z-[90] md:hidden"
+            className="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] z-[10000] md:hidden"
             onClick={handleDismiss}
           />
           <motion.div
@@ -99,7 +99,7 @@ export default function InstallPrompt() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 1 }}
-            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] z-[100] bg-white rounded-t-[32px] md:rounded-3xl p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
+            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] z-[10001] bg-white rounded-t-[32px] md:rounded-3xl p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
             dir="rtl"
           >
             {/* Elegant drag handle for mobile */}
