@@ -12,12 +12,13 @@
   ],
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "npm run verify:pwa && vite build",
     "start": "npx tsx server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:pwa": "PWA_GUARD_SPLASH_IN_ROOT=ok node scripts/verify-pwa.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.52.0",
