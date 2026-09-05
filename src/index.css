@@ -6270,3 +6270,19 @@ html body .login-brand-stage h1 {
   overscroll-behavior-x: contain;
 }
 .whatsapp-tabs-scroll::-webkit-scrollbar { display: none; }
+
+/*
+ * While the install sheet is up, secondary floating furniture gets out of the way.
+ * The sheet already sits above everything, but a 10% scrim leaves the buttons behind it
+ * perfectly legible, so the corner still reads as clutter at the exact moment we are
+ * asking for a decision. Hide them outright, and restore them when the sheet closes.
+ */
+body[data-install-sheet='open'] [data-floating='secondary'] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+}
+
+[data-floating='secondary'] {
+  transition: opacity 220ms ease, transform 220ms ease;
+}

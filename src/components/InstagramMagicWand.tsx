@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { LAYER } from '../lib/floatingLayers';
 import { Sparkles, X, RefreshCw, Copy, Check, Instagram, Trophy, CalendarDays, MessageCircle, Flame, Clock, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -71,7 +72,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
   return (
     <>
       {/* الزر العائم — كمبيوتر */}
-      <div className="fixed left-0 bottom-12 z-[60] hidden md:flex flex-col items-center">
+      <div className="fixed left-0 bottom-12 hidden md:flex flex-col items-center" style={{ zIndex: LAYER.launcher }} data-floating="secondary">
         <motion.button
           whileHover={{ scale: 1.1, x: 5 }}
           whileTap={{ scale: 0.9 }}
@@ -86,7 +87,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
       </div>
 
       {/* الزر العائم — موبايل */}
-      <div className="fixed bottom-40 left-6 z-[60] md:hidden">
+      <div className="fixed bottom-40 left-6 md:hidden" style={{ zIndex: LAYER.launcher }} data-floating="secondary">
         <motion.button
           whileTap={{ scale: 0.8 }}
           onClick={openPanel}
@@ -104,14 +105,16 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-slate-950/60 z-[100]"
+              className="fixed inset-0 bg-slate-950/60"
+              style={{ zIndex: LAYER.panel }}
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-slate-50 shadow-xl z-[110] overflow-hidden flex flex-col"
+              className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-slate-50 shadow-xl overflow-hidden flex flex-col"
+              style={{ zIndex: LAYER.panel + 1 }}
               dir="rtl"
             >
               {/* الترويسة — نفس هوية التطبيق */}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LAYER } from '../lib/floatingLayers';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, TrendingUp, Bell, ArrowLeft, CheckCircle2, Zap, Database, X, Sparkles } from 'lucide-react';
 import { Notification } from '../types';
@@ -39,7 +40,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  return (
  <>
  {/* Floating Intelligence Hub Icon */}
- <div className="fixed bottom-44 right-6 lg:bottom-40 lg:right-10 z-[100]" dir="rtl">
+ <div className="fixed bottom-44 right-6 lg:bottom-40 lg:right-10" style={{ zIndex: LAYER.bar }} data-floating="secondary" dir="rtl">
  <AnimatePresence>
  {activeAlerts.length > 0 && !isMenuOpen && (
  <motion.div
@@ -90,14 +91,16 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
  onClick={() => setShowHub(false)}
- className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[101]"
+ className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm"
+ style={{ zIndex: LAYER.panel }}
  />
  <motion.div 
  initial={{ x: 400, opacity: 0 }}
  animate={{ x: 0, opacity: 1 }}
  exit={{ x: 400, opacity: 0 }}
  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
- className="fixed top-0 bottom-0 right-0 w-full max-w-sm bg-white shadow-[0_0_100px_rgba(0,0,0,0.3)] z-[102] flex flex-col"
+ className="fixed top-0 bottom-0 right-0 w-full max-w-sm bg-white shadow-[0_0_100px_rgba(0,0,0,0.3)] flex flex-col"
+ style={{ zIndex: LAYER.panel + 1 }}
  dir="rtl"
  >
  <div className="p-3 md:p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">

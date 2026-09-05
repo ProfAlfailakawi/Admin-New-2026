@@ -3,10 +3,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { LAYER, setInstallSheetOpen } from '../lib/floatingLayers';
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+
+  // Tell the rest of the app to stand down while the sheet is up: the floating buttons in
+  // the same corner stay legible through the light scrim otherwise, and the moment we ask
+  // for a decision is the worst moment to crowd it. Cleared on unmount so a hot reload or
+  // a route change can never leave the flag stuck and the buttons permanently hidden.
+  useEffect(() => {
+    setInstallSheetOpen(showPrompt);
+    return () => setInstallSheetOpen(false);
+  }, [showPrompt]);
 
   useEffect(() => {
     // 1. Prevent showing if already installed (standalone mode)
@@ -91,7 +101,8 @@ export default function InstallPrompt() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] z-[10000] md:hidden"
+            className="fixed inset-0 bg-slate-900/10 backdrop-blur-[1px] md:hidden"
+            style={{ zIndex: LAYER.scrim }}
             onClick={handleDismiss}
           />
           <motion.div
@@ -99,7 +110,8 @@ export default function InstallPrompt() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 1 }}
-            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] z-[10001] bg-white rounded-t-[32px] md:rounded-3xl p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
+            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-white rounded-t-[32px] md:rounded-3xl p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
+            style={{ zIndex: LAYER.sheet }}
             dir="rtl"
           >
             {/* Elegant drag handle for mobile */}

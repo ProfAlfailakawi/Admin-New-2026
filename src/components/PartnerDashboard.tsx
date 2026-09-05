@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
+import { LAYER } from '../lib/floatingLayers';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
  TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
@@ -560,7 +561,7 @@ const {
 
         {/* Soft-Laser Micro-Thread Filter (Ultra-slim, luxury minimalist design, perfect for mobile layout) */}
         {!activeWidget && (
-          <div className="fixed bottom-6 left-0 right-0 z-[100] px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono">
+          <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono" style={{ zIndex: LAYER.bar }} data-floating="secondary">
             {(() => {
               const options = [
                 { id: "day", label: "1" },
@@ -612,7 +613,7 @@ const {
         )}
 
         {!activeWidget && (
-          <div className="fixed bottom-[3.9rem] left-0 right-0 z-[101] px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform">
+          <div className="fixed bottom-[3.9rem] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform" style={{ zIndex: LAYER.bar + 1 }} data-floating="secondary">
             <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-slate-200/65 bg-white/88 px-1.5 py-1.5 shadow-[0_10px_26px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
               <button
                 type="button"
