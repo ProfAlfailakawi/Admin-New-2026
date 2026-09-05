@@ -76,6 +76,7 @@ const DiwaniyaTournaments = React.lazy(() => import('./components/DiwaniyaTourna
 const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'));
 const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
+import { LAYER } from './lib/floatingLayers';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
 const LoyaltyProgramPage = React.lazy(() => import('./components/LoyaltyProgramPage').then(m => ({ default: m.LoyaltyProgramPage })));
@@ -4789,7 +4790,9 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.86, x: 10 }}
             onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed right-2.5 bottom-24 sm:right-6 sm:bottom-12 z-[9999] h-20 w-8 sm:h-14 sm:w-14 rounded-full bg-white/72 sm:bg-white/90 text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.14)] sm:shadow-[0_14px_40px_rgba(15,23,42,0.16)] border border-white/70 backdrop-blur-xl flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(15,23,42,0.22)] active:scale-95 group overflow-hidden sm:overflow-visible"
+            data-floating="secondary"
+            style={{ zIndex: LAYER.assist }}
+            className="fixed right-2.5 bottom-24 sm:right-6 sm:bottom-12 h-20 w-8 sm:h-14 sm:w-14 rounded-full bg-white/72 sm:bg-white/90 text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.14)] sm:shadow-[0_14px_40px_rgba(15,23,42,0.16)] border border-white/70 backdrop-blur-xl flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(15,23,42,0.22)] active:scale-95 group overflow-hidden sm:overflow-visible"
             title={`الرجوع للأعلى - تم تصفح ${Math.round(scrollProgress)}٪`}
             aria-label={`الرجوع للأعلى - تم تصفح ${Math.round(scrollProgress)}٪`}
           >

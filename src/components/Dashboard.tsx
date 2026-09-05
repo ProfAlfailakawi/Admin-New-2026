@@ -1,5 +1,6 @@
 // invalidated cache 2026-05-07 14:18
 import { getUnifiedInvoices, formatKuwaitiDate, formatKuwaitiTimeOnly } from '../lib/utils';
+import { LAYER } from '../lib/floatingLayers';
 import { getCashPositionForState } from '../lib/business-logic';
 import { 
     computeInvoiceTotal, computeInvoiceSubtotal, 
@@ -6398,7 +6399,7 @@ const [isPending, startTransition] = useTransition();
 
          {/* Soft-Laser Micro-Thread Filter (Ultra-slim, luxury minimalist design, perfect for mobile layout) */}
          {(activeTab === "pulse" || activeTab === "financials" || activeTab === "advanced" || activeTab === "growth" || activeTab === "intelligence") && (
-           <div className="fixed bottom-6 left-0 right-0 z-[100] px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono">
+           <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono" style={{ zIndex: LAYER.bar }} data-floating="secondary">
              {(() => {
                const options = [
                  { id: "day", label: "1" },
