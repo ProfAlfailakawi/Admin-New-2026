@@ -562,9 +562,9 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
   );
 };
 
-// The liquidity card is derived only from the records still in the app. Once older
-// invoices have been removed while their expenses and supplier payments stayed, no
-// formula can recover the real balance — it has to be anchored once, here.
+// The liquidity card is derived from app records plus one bank/cash calibration. The
+// calibration stores only the unexplained difference, so future movement still changes
+// the balance from sales, supplier payments, expenses and gateway fees.
 const CashAnchorSettings: React.FC<{
   data: AppState;
   settings: AppSettings;
@@ -581,11 +581,11 @@ const CashAnchorSettings: React.FC<{
   const applyCalibration = () => {
     const typed = parseFloat(normalizeArabicNumerals(String(actualBalance)).replace(/,/g, ""));
     if (!Number.isFinite(typed)) {
-      toast.error("اكتب رقم صحيح", { description: "مثال: 303.000" });
+      toast.error("اكتب رقم صحيح", { description: "مثال: 300.000" });
       return;
     }
-    // Opening balance = what the records cannot explain. Anchoring it this way keeps every
-    // recorded movement visible in the breakdown instead of deleting history.
+    // Store only what the records cannot explain. This makes the typed bank/cash balance
+    // the current balance now, while every later recorded movement keeps changing it.
     const nextOpening = Math.round((typed - cash.recordedMovement) * 1000) / 1000;
     setSettings({
       ...settings,
@@ -598,7 +598,7 @@ const CashAnchorSettings: React.FC<{
     });
     setActualBalance("");
     toast.success("تمت معايرة السيولة ✨", {
-      description: `الرصيد الافتتاحي المعتمد ${nextOpening.toFixed(3)} د.ك، وبطاقة السيولة صارت تعرض ${typed.toFixed(3)} د.ك.`,
+      description: `فرق المعايرة المحفوظ ${nextOpening.toFixed(3)} د.ك، وبطاقة السيولة صارت تعرض ${typed.toFixed(3)} د.ك وتتحرك مع العمليات القادمة.`,
     });
   };
 
@@ -611,19 +611,19 @@ const CashAnchorSettings: React.FC<{
     <div className="space-y-3 border border-slate-200/60 rounded-2xl p-4 bg-slate-50/60" dir="rtl">
       <div className="text-right">
         <label className="text-sm font-bold text-slate-800 block">
-          الرصيد الافتتاحي للسيولة
+          معايرة رصيد البنك والسيولة
         </label>
         <p className="text-[11px] text-slate-500 font-bold leading-5 mt-1">
           بطاقة «رصيد السيولة بالبنك والخزينة» تُحسب من سجلات البرنامج فقط. إذا كانت هناك مصروفات أو
-          سدادات موردين مسجلة عن فترة حُذفت فواتيرها، فالرقم ينقصه إيراد تلك الفترة. اكتب رصيدك الفعلي
-          الآن مرة واحدة، ويضبط البرنامج نقطة البداية ويتتبع كل شي بعدها بدقة.
+          سدادات موردين مسجلة عن فترة حُذفت فواتيرها، فالرقم ينقصه إيراد تلك الفترة. اكتب رصيد البنك
+          والخزينة الفعلي الآن، ويحفظ البرنامج فرق المعايرة فقط ثم يزيد وينقص تلقائياً مع البيع والسداد والمصروفات.
         </p>
       </div>
 
       {cash.anchorNeeded && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] font-bold text-amber-800 leading-5 text-right">
           يوجد <span dir="ltr">{money(cash.orphanOutflows)}</span> مصروفات وسدادات مسجلة قبل أقدم
-          فاتورة باقية في النظام. بدون رصيد افتتاحي ستبقى بطاقة السيولة أقل من الواقع بهذا المقدار تقريباً.
+          فاتورة باقية في النظام. بدون معايرة رصيد البنك ستبقى بطاقة السيولة أقل من الواقع بهذا المقدار تقريباً.
         </div>
       )}
 
@@ -635,7 +635,7 @@ const CashAnchorSettings: React.FC<{
           </span>
         </div>
         <div className="flex justify-between gap-3">
-          <span>الرصيد الافتتاحي المعتمد حالياً</span>
+          <span>فرق معايرة البنك المحفوظ حالياً</span>
           <span dir="ltr" className="text-slate-800">{money(opening)}</span>
         </div>
         <div className="flex justify-between gap-3 border-t border-slate-100 pt-1.5 text-slate-900 font-black">
@@ -646,11 +646,11 @@ const CashAnchorSettings: React.FC<{
 
       {isUsingLegacyCalibration && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] font-bold text-emerald-800 leading-5 text-right">
-          تم اعتماد خط الأساس المؤكد للحساب القديم تلقائياً: فرق السجلات التاريخية
+          لا يوجد رقم بنك محفوظ حالياً. بطاقة السيولة تعرض صافي الحركة المسجلة فقط:
           <span dir="ltr" className="mx-1">{money(opening)}</span>
-          ليعود الرصيد الحالي إلى
+          ويظهر الرصيد الحالي
           <span dir="ltr" className="mx-1">{money(cash.balance)}</span>
-          من دون حذف أي فاتورة أو مصروف أو سداد مورد. يمكنك كتابة الرصيد الفعلي أدناه في أي وقت لإعادة المعايرة.
+          يمكنك كتابة رصيد البنك والخزينة الفعلي أدناه في أي وقت لحفظ فرق المعايرة من دون حذف أي فاتورة أو مصروف أو سداد مورد.
         </div>
       )}
 
@@ -660,7 +660,7 @@ const CashAnchorSettings: React.FC<{
           inputMode="decimal"
           value={actualBalance}
           onChange={(e) => setActualBalance(e.target.value)}
-          placeholder="رصيدك الفعلي الآن بالبنك والخزينة (مثال: 303.000)"
+          placeholder="رصيد البنك والخزينة الآن (مثال: 300.000)"
           className="flex-1 p-2.5 border border-slate-200/60 rounded-lg focus:ring-2 focus:ring-secondary/20 focus:border-secondary outline-none transition-all text-right font-bold"
         />
         <button

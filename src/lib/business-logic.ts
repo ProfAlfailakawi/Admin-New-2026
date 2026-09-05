@@ -588,7 +588,7 @@ export function recalculateStateBalances(state: AppState): AppState {
  * إذا حُذفت فواتير قديمة وبقيت مصروفاتها وسدادات مورديها، يصير طرف المنصرف كامل
  * وطرف الإيراد ناقص، فيطلع الرصيد سالباً بشكل وهمي.
  *
- * الحل: رصيد افتتاحي معتمد يثبّت نقطة البداية. وهذه الدالة هي المصدر الوحيد
+ * الحل: معايرة رصيد البنك تثبّت فرق السجلات فقط. وهذه الدالة هي المصدر الوحيد
  * لحساب السيولة، تستخدمها لوحة التحكم وشاشة الإعدادات معاً حتى لا يتكرر الرقم
  * بصيغتين مختلفتين.
  */
@@ -609,12 +609,10 @@ export interface CashPosition {
   paidInvoices: any[];
 }
 
-// One-time opening point for the existing company ledger. The owner confirmed from the
-// bank SMS after a 3.750 KWD transfer that the available account balance is 331.300 KWD.
-// The surviving app records currently contribute about 326.600 KWD, so the legacy
-// fallback only needs the remaining 4.700 KWD instead of the old over-calibration that
-// made the dashboard show roughly 4,558.900 KWD.
-const LEGACY_OPENING_CASH_BALANCE = 4.7;
+// No bank balance is hardcoded. If the owner enters the current bank/cash amount in
+// settings, the app stores only the adjustment the records cannot explain, then future
+// sales, supplier payments, expenses and gateway fees keep moving the balance.
+const LEGACY_OPENING_CASH_BALANCE = 0;
 
 export function getCashPositionForState(state: AppState): CashPosition {
   const data: any = state || {};

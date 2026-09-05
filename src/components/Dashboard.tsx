@@ -4281,7 +4281,7 @@ const [isPending, startTransition] = useTransition();
                                 <tbody className="divide-y divide-slate-100 font-bold text-slate-600">
                                   {openingCashBalance !== 0 && (
                                   <tr className="hover:bg-slate-100/30">
-                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">+ الرصيد الافتتاحي المعتمد</td>
+                                    <td className="py-2.5 pr-2 text-right text-slate-800 min-w-[120px]">+ فرق معايرة رصيد البنك</td>
                                     <td className="py-2.5 px-2 text-center text-slate-400 whitespace-nowrap" dir="ltr">—</td>
                                     <td className="py-2.5 pl-2 text-left text-indigo-700 whitespace-nowrap" dir="ltr">{openingCashBalance.toFixed(3)} د.ك</td>
                                   </tr>
@@ -4331,15 +4331,15 @@ const [isPending, startTransition] = useTransition();
                             {cashAnchorNeeded && (
                               <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-3 text-right">
                                 <div className="text-[11px] font-black text-amber-800 mb-1">
-                                  الرقم أعلاه غير مطابق لحسابك الفعلي — ينقصه رصيد افتتاحي
+                                  الرقم أعلاه غير مطابق لحسابك الفعلي — يحتاج معايرة رصيد البنك
                                 </div>
                                 <p className="text-[10px] font-bold text-amber-700 leading-5">
-                                  يوجد <span dir="ltr">{orphanOutflows.toFixed(3)}</span> د.ك مصروفات وسدادات مسجلة قبل أقدم فاتورة باقية في النظام، أي أن مبيعات تلك الفترة لم تعد موجودة بينما بقيت مصاريفها. اذهب إلى الإعدادات ← «الرصيد الافتتاحي للسيولة» واكتب رصيدك الفعلي الحالي مرة واحدة، ويصير الرقم مطابقاً لحسابك ويتتبعه بدقة بعدها.
+                                  يوجد <span dir="ltr">{orphanOutflows.toFixed(3)}</span> د.ك مصروفات وسدادات مسجلة قبل أقدم فاتورة باقية في النظام، أي أن مبيعات تلك الفترة لم تعد موجودة بينما بقيت مصاريفها. اذهب إلى الإعدادات ← «معايرة رصيد البنك والسيولة» واكتب رصيد البنك والخزينة الحالي، وسيحفظ البرنامج الفرق فقط ثم يتتبعه مع العمليات القادمة.
                                 </p>
                               </div>
                             )}
                             <p className="mt-4 text-[10px] text-slate-400 font-bold leading-5 text-right">
-                              💡 الرصيد التراكمي = الرصيد الافتتاحي المعتمد + صافي الحركة المسجلة في البرنامج، بينما تُظهر أرقام الفترة أثر الفلتر الزمني المختار فحسب. تساهم خصومات الكوبونات والعمولات في تقديم حساب دقيق للرصيد الفعلي.
+                              💡 الرصيد الحالي = فرق معايرة رصيد البنك + مبيعات المنتجات + رسوم التوصيل - الخصومات - المصروفات - دفعات الموردين - عمولات بوابات الدفع. أرقام الفترة تعرض أثر الفلتر فقط، أما التراكمي فيتحرك مع كل عملية جديدة.
                             </p>
                           </div>
                         </motion.div>
