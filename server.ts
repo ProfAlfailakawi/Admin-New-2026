@@ -1644,7 +1644,7 @@ app.use((req, res, next) => {
   next();
 });
 
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Strict CORS for production, allow specific origins only
   app.use(cors({
@@ -12243,7 +12243,7 @@ ${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` 
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);
