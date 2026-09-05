@@ -7,6 +7,20 @@ import './index.css';
 
 installLocalStorageDataGuard();
 
+// Register the offline app-shell service worker unconditionally on load so the
+// console works offline and installs as a real PWA. This is separate from
+// firebase-messaging-sw.js, which is registered lazily only when the user opts
+// into push notifications.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .catch((err) => {
+        console.warn('Offline service worker registration failed:', err);
+      });
+  });
+}
+
 // Clear previous IDB crash flag after 5 seconds of successful boot
 setTimeout(() => {
   sessionStorage.removeItem('idb_crash_reloaded');

@@ -54,7 +54,7 @@ import {
   Clock,
   Command
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { heritageMotion } from './lib/heritageMotion';
 import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -4963,6 +4963,9 @@ const ZEN_QUOTES = [
 
 const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ show, logo, name }) => {
   const [quote, setQuote] = useState(ZEN_QUOTES[0]);
+  // Respect the OS "reduce motion" setting: skip enter/looping animations and
+  // render the splash straight in its final resting state.
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const index = Math.floor(Math.random() * ZEN_QUOTES.length);
@@ -4980,7 +4983,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
       {show && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.01, transition: { duration: 0.7, ease: 'easeInOut' } }}
+          exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.01, transition: { duration: reduceMotion ? 0 : 0.7, ease: 'easeInOut' } }}
           className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#080d12] px-5"
           dir="rtl"
         >
@@ -4991,9 +4994,9 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
           <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:44px_44px]" />
 
           <motion.div
-            initial={{ y: 22, opacity: 0, scale: 0.98 }}
+            initial={reduceMotion ? false : { y: 22, opacity: 0, scale: 0.98 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduceMotion ? 0 : 0.72, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full max-w-[720px] overflow-hidden rounded-[2.2rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_100px_rgba(0,0,0,.42)] backdrop-blur-2xl md:p-8"
           >
             <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
@@ -5001,24 +5004,24 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
             <div className="absolute -left-12 bottom-8 h-32 w-32 rounded-full bg-emerald-300/10 blur-3xl" />
 
             <motion.div
-              initial={{ scale: 0.86, opacity: 0, rotate: -3 }}
+              initial={reduceMotion ? false : { scale: 0.86, opacity: 0, rotate: -3 }}
               animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: 0.78, delay: 0.08, ease: 'easeOut' }}
+              transition={{ duration: reduceMotion ? 0 : 0.78, delay: reduceMotion ? 0 : 0.08, ease: 'easeOut' }}
               className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_55px_rgba(245,184,74,.22)] md:h-32 md:w-32"
             >
               <div className="absolute inset-[-10px] rounded-[2.4rem] border border-amber-200/10" />
               <motion.span
                 className="absolute inset-[-16px] rounded-[2.6rem] border border-emerald-300/25"
-                animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.05, 0.35] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                animate={reduceMotion ? { scale: 1, opacity: 0.35 } : { scale: [1, 1.08, 1], opacity: [0.35, 0.05, 0.35] }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
               />
               <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
             </motion.div>
 
             <motion.div
-              initial={{ y: 16, opacity: 0 }}
+              initial={reduceMotion ? false : { y: 16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.62, delay: 0.22, ease: 'easeOut' }}
+              transition={{ duration: reduceMotion ? 0 : 0.62, delay: reduceMotion ? 0 : 0.22, ease: 'easeOut' }}
               className="space-y-3"
             >
               <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-100/15 bg-amber-100/10 px-4 py-2 text-[11px] font-black text-amber-100 shadow-inner shadow-white/5">
@@ -5034,17 +5037,17 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.46 }}
+              transition={{ duration: reduceMotion ? 0 : 0.55, delay: reduceMotion ? 0 : 0.46 }}
               className="mt-7 grid grid-cols-3 gap-2 md:gap-3"
             >
               {pulseCards.map((card, index) => (
                 <motion.div
                   key={card.label}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.54 + index * 0.08 }}
+                  transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : 0.54 + index * 0.08 }}
                   className="rounded-2xl border border-white/10 bg-white/[0.075] px-2 py-3 text-center shadow-inner shadow-white/5"
                 >
                   <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-100">
@@ -5059,9 +5062,9 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
             <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
-                initial={{ width: '12%' }}
-                animate={{ width: ['12%', '58%', '92%'] }}
-                transition={{ duration: 1.2, ease: 'easeInOut' }}
+                initial={reduceMotion ? false : { width: '12%' }}
+                animate={reduceMotion ? { width: '92%' } : { width: ['12%', '58%', '92%'] }}
+                transition={reduceMotion ? { duration: 0 } : { duration: 1.2, ease: 'easeInOut' }}
               />
             </div>
           </motion.div>
