@@ -1644,7 +1644,7 @@ app.use((req, res, next) => {
   next();
 });
 
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   // Strict CORS for production, allow specific origins only
   app.use(cors({
