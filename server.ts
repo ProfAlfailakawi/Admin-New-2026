@@ -988,7 +988,7 @@ async function syncRootPaymentCollections(identifiers: PaymentSyncIdentifiers, s
       if (outcome.updated) result.updated += 1;
       else result.skipped += 1;
     } catch (error: any) {
-      console.warn(`[PAYMENT_SYNC] Could not update ${key}:`, error?.message || error);
+      console.warn("[PAYMENT_SYNC] Could not update %s:", key, error?.message || error);
     }
   };
 
@@ -3067,7 +3067,7 @@ async function waFindRootDocByBusinessId(id: string): Promise<WhatsAppLookupResu
         return { kind: collectionName === "invoices" ? "invoice" : "order", id, data: { id: snap.id, ...(snap.data() || {}) }, source: `${collectionName}/${id}` };
       }
     } catch (error: any) {
-      console.warn(`[WHATSAPP] Root doc lookup failed ${collectionName}/${id}:`, error?.message || error);
+      console.warn("[WHATSAPP] Root doc lookup failed %s/%s:", collectionName, id, error?.message || error);
     }
   }
 
@@ -6123,7 +6123,7 @@ app.post("/api/whatsapp/conversations/:phone/request-rating", async (req, res) =
 
     let name = "";
     try { name = waString((await waCustomerByPhone(phone))?.name).trim(); } catch { /* name is optional */ }
-    const text = waBotText("rating_request", { name: name || "" }).replace(/\s{2,}/g, " ").replace(" ❤️", " ❤️");
+    const text = waBotText("rating_request", { name: name || "" }).replace(/\s{2,}/g, " ");
 
     const result = await waSendText(phone, text, {
       idempotencyKey: `rating-req:${phone}:${Math.floor(Date.now() / 3600000)}`,
@@ -9155,7 +9155,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
         const snap = await db.collection(collectionName).doc(docId).get();
         if (snap.exists) inspectItem({ id: snap.id, ...(snap.data() || {}) });
       } catch (error: any) {
-        console.warn(`[PAYMENT_RECONCILE] Could not read ${collectionName}/${docId}:`, error?.message || error);
+        console.warn("[PAYMENT_RECONCILE] Could not read %s/%s:", collectionName, docId, error?.message || error);
       }
     };
 
@@ -9510,7 +9510,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       
       const safeAmount = Number(Number(amount).toFixed(3));
       const rawEmail = String(customerEmail || '').trim();
-      const safeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) && !/example\.com$/i.test(rawEmail)
+      const safeEmail = rawEmail.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) && !/example\.com$/i.test(rawEmail)
         ? rawEmail
         : `customer-${cleanMobile || orderId}@alturathkw.shop`;
 
