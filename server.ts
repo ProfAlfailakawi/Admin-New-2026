@@ -5164,6 +5164,25 @@ async function invoiceAlertRows(limit = 40) {
   });
 }
 
+/*
+ * نقطة خفيفة تعرض بصمة البناء الحالية على الخادم.
+ * هي الحقيقة الوحيدة التي يقارنها العميل بثابت الحزمة (__BUILD_ID__)، وتُكتب في
+ * dist/build-id.json عند البناء (scripts/build-stamp.mjs). في التطوير تسقط إلى 'dev'.
+ */
+let cachedBuildId = "";
+const currentBuildId = () => {
+  if (cachedBuildId) return cachedBuildId;
+  try {
+    cachedBuildId = String(JSON.parse(fsSync.readFileSync(path.join(process.cwd(), "dist", "build-id.json"), "utf8")).build || "");
+  } catch { cachedBuildId = ""; }
+  if (!cachedBuildId) cachedBuildId = process.env.BUILD_ID || "dev";
+  return cachedBuildId;
+};
+app.get("/api/version", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.json({ build: currentBuildId() });
+});
+
 app.get("/api/push/invoice-alerts", waRequireConsoleAuth, async (req, res) => {
   try {
     const limit = Math.min(100, Math.max(5, Number(req.query.limit) || 40));
@@ -12261,7 +12280,7 @@ ${tasteProfile ? `ذاكرة الذوق: ${String(tasteProfile).slice(0, 700)}` 
     app.use(express.static(distPath, {
       index: false,
       setHeaders: (res, path) => {
-        if (path.endsWith('.html')) {
+        if (path.endsWith('.html') || path.endsWith('service-worker.js') || path.endsWith('sw.js') || path.endsWith('build-id.json')) {
           res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
           res.setHeader('Pragma', 'no-cache');
           res.setHeader('Expires', '0');
