@@ -1,12 +1,15 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+// @ts-ignore -- إضافة بلا أنواع: تحقن بصمة البناء وتطبعها في dist/build-id.json وعامل الخدمة
+import { buildStamp } from './scripts/build-stamp.mjs';
 
 export default defineConfig({
   base: '/',
   plugins: [
     react(), 
     tailwindcss(),
+    buildStamp({ serviceWorkers: ['service-worker.js'] }),
   ],
   define: {
     // Gemini API keys must stay server-side. Do not inject GEMINI_API_KEY into the frontend bundle.

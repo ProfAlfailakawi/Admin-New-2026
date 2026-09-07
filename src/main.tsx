@@ -4,8 +4,12 @@ import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
 import App from './App.tsx';
 import './index.css';
+import { installAppUpdate } from './lib/app-update';
 
 installLocalStorageDataGuard();
+
+// التحديث الذاتي الصامت: بصمة الإصدار، منارتها، ثم التحديث والتصعيد عند اللزوم.
+installAppUpdate();
 
 // Register the offline app-shell service worker unconditionally on load so the
 // console works offline and installs as a real PWA. This is separate from
