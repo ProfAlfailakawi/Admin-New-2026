@@ -76,6 +76,7 @@ const DiwaniyaTournaments = React.lazy(() => import('./components/DiwaniyaTourna
 const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'));
 const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
+import LoginIntro, { armLoginIntro } from './components/LoginIntro';
 import { LAYER } from './lib/floatingLayers';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -4045,6 +4046,7 @@ const MainApp: React.FC = () => {
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           onLogin={() => {
+            armLoginIntro();
             hasLoadedDataRef.current = false;
             setDataLoading(true);
             setData(INITIAL_DATA);
@@ -4188,7 +4190,8 @@ const MainApp: React.FC = () => {
   return (
     <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
       <AmbientBackground />
-      
+      <LoginIntro />
+
       {renderAuthError()}
       {renderQuotaError()}
       <DataRefreshNotice show={Boolean(dataLoading && isAuthenticated)} mode={appMode} />
