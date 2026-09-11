@@ -140,6 +140,7 @@ const SmartOffersCalculator = React.lazy(() =>
 );
 import { FutureForecast } from "./FutureForecast";
 import { CommandBrief } from "./CommandBrief";
+import AdminMicroLoader from "./ui/AdminMicroLoader";
 import { ProfitGuardFeature, SupplierNegotiatorFeature, BusinessHealthFeature, SmartOffersCalculatorFeature } from "./DashboardFeatures";
 const BusinessHealthIndex = React.lazy(() =>
   import("./BusinessHealthIndex").then((m) => ({
@@ -2598,6 +2599,7 @@ const [isPending, startTransition] = useTransition();
                   <button
                     key={tab.id}
                     title={tab.description}
+                    data-login-target={tab.id === 'ops-suppliers-products' ? 'kitchen' : undefined}
                     onClick={() => startTransition(() => {
                       setActiveTab(firstTab);
                     })}
@@ -2764,7 +2766,8 @@ const [isPending, startTransition] = useTransition();
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                   <React.Suspense
                     fallback={
-                      <div className="h-96 flex items-center justify-center font-bold text-slate-500">
+                      <div className="h-96 flex flex-col items-center justify-center gap-4 font-bold text-slate-500">
+                        <AdminMicroLoader size={40} label="نحمّل الطلبات" />
                         نحمّل الطلبات...
                       </div>
                     }
@@ -4147,7 +4150,7 @@ const [isPending, startTransition] = useTransition();
                       className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center">
+                        <div data-login-target="payment" className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center">
                           <TrendingUp size={20} />
                         </div>
                         <div className="text-right">
@@ -4359,7 +4362,7 @@ const [isPending, startTransition] = useTransition();
                       className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-slate-100/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white">
+                        <div data-login-target="delivery" className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white">
                           <Truck size={20} />
                         </div>
                         <div className="text-right">
@@ -4444,7 +4447,7 @@ const [isPending, startTransition] = useTransition();
                       dir="rtl"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white">
+                        <div data-login-target="customers" className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-white">
                           <Users size={20} />
                         </div>
                         <div className="text-right">
@@ -5312,7 +5315,7 @@ const [isPending, startTransition] = useTransition();
                         )}
                       >
                         <div className="flex justify-between items-center mb-6 flex-row-reverse">
-                          <h3 className="font-bold text-xl text-[#4a3f35] flex items-center gap-2">
+                          <h3 data-login-target="orders" className="font-bold text-xl text-[#4a3f35] flex items-center gap-2">
                             نشاط الطلبات الأحدث
                             <span className="flex items-center gap-2 bg-amber-500/10 text-amber-600 px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
