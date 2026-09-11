@@ -77,6 +77,7 @@ const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'
 const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
 import LoginIntro, { armLoginIntro } from './components/LoginIntro';
+import AdminMicroLoader from './components/ui/AdminMicroLoader';
 import { LAYER } from './lib/floatingLayers';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -986,6 +987,66 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
 );
 
 const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
+
+/**
+ * AdminBootShell — boot without a dark full-screen loader.
+ *
+ * While auth is being verified or cloud data is syncing, the user sees a
+ * light APP-SHELL skeleton (sidebar strip + header + dashboard cards) with
+ * only the small branded assembly loader (44px) in the dashboard region and
+ * an honest status line — never a black screen, never fake progress, and
+ * never a state that could be read as "login failed". If syncing takes
+ * long, a calm reassurance line appears (no percentages).
+ */
+const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setSlow(true), 7000);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const statusText = phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…' : 'جاري مزامنة بيانات الإدارة…';
+
+  return (
+    <div className="fixed inset-0 z-[99997] flex h-[100dvh] w-full overflow-hidden bg-slate-50 arabic-font" dir="rtl" aria-busy="true">
+      {/* Sidebar skeleton (desktop only, matches shell layout) */}
+      <div className="hidden lg:flex w-64 shrink-0 flex-col gap-3 border-l border-slate-200/70 bg-slate-950 p-5">
+        <div className="h-10 w-10 rounded-2xl bg-white/10" />
+        <div className="mt-6 space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-9 rounded-xl bg-white/[0.06]" />
+          ))}
+        </div>
+      </div>
+
+      {/* Main region skeleton */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="h-16 border-b border-slate-200/70 bg-white/90 flex items-center justify-between px-4 md:px-6">
+          <div className="h-8 w-40 rounded-full bg-slate-100" />
+          <div className="h-9 w-9 rounded-full bg-slate-100" />
+        </div>
+        <div className="flex-1 overflow-hidden p-4 md:p-6 space-y-4">
+          <div className="h-24 rounded-3xl border border-slate-200/70 bg-white/80" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-28 rounded-3xl border border-slate-200/70 bg-white/80" />
+            ))}
+          </div>
+          {/* The only animated element: branded 44px assembly loader + honest status */}
+          <div className="flex flex-col items-center justify-center gap-4 pt-10" role="status" aria-live="polite">
+            <AdminMicroLoader size={44} appearDelay={250} label={statusText} />
+            <p className="text-sm font-bold text-slate-500">{statusText}</p>
+            {slow && (
+              <p className="text-xs font-bold text-slate-400 max-w-xs text-center leading-6">
+                المزامنة تأخذ وقتاً أطول من المعتاد. دخولك سليم والاتصال شغال — لا حاجة لإعادة تسجيل الدخول.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 
 const CloudConnectionGate: React.FC<{
@@ -3858,7 +3919,7 @@ const MainApp: React.FC = () => {
   
   if (normalizedPath === '/track') {
     return (
-      <React.Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center arabic-font text-emerald-600"><Loader2 size={32} className="animate-spin" /></div>}>
+      <React.Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center arabic-font"><AdminMicroLoader size={40} label="نحمّل صفحة التتبع" /></div>}>
         <TrackPage />
       </React.Suspense>
     );
@@ -3890,14 +3951,21 @@ const MainApp: React.FC = () => {
   }
 
   if (authLoading) {
+    // Boot is never a dark full-screen loader: while online we show the app
+    // shell skeleton with a small branded loader; the full gate stays only
+    // for the offline error state (existing, authoritative behavior).
     return (
       <>
-        <CloudConnectionGate
-          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
-          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-          phase={cloudChecking ? 'sync' : (isOnline ? 'auth' : 'offline')}
-          onRetry={handleManualRetryOffline}
-        />
+        {isOnline ? (
+          <AdminBootShell phase="auth" />
+        ) : (
+          <CloudConnectionGate
+            logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+            name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+            phase="offline"
+            onRetry={handleManualRetryOffline}
+          />
+        )}
         <Toaster richColors position="bottom-right" closeButton />
       </>
     );
@@ -4008,16 +4076,23 @@ const MainApp: React.FC = () => {
   const shouldHoldCloudEntry = isAuthenticated && (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
   if (shouldHoldCloudEntry) {
+    // Online data sync: light app-shell skeleton + 44px branded loader in the
+    // dashboard region (no black screen; the user never thinks login failed).
+    // Offline stays on the authoritative full gate with its retry action.
     return (
       <>
         {renderAuthError()}
         {renderQuotaError()}
-        <CloudConnectionGate
-          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
-          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-          phase={cloudChecking ? 'sync' : (!isOnline ? 'offline' : 'sync')}
-          onRetry={handleManualRetryOffline}
-        />
+        {isOnline ? (
+          <AdminBootShell phase="sync" />
+        ) : (
+          <CloudConnectionGate
+            logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
+            name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
+            phase="offline"
+            onRetry={handleManualRetryOffline}
+          />
+        )}
         <Toaster richColors position="bottom-right" closeButton />
       </>
     );
@@ -4757,7 +4832,7 @@ const MainApp: React.FC = () => {
               }}
               className="w-full min-h-full relative z-10 px-4 md:px-6"
             >
-              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><Loader2 className="animate-spin text-amber-500 w-12 h-12" /><p className="text-slate-500 text-sm font-bold animate-pulse">نحمّل...</p></div>}>
+              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><AdminMicroLoader size={44} label="نحمّل الصفحة" /><p className="text-slate-500 text-sm font-bold">نحمّل...</p></div>}>
                  <PageErrorBoundary>
                    {userRole === 'partner' ? renderAppContent() : (
                     <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>
