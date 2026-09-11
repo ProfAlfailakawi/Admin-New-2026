@@ -1833,7 +1833,7 @@ Alturath.kw`;
                         return (
                           <div key={idx} className="flex flex-col gap-1">
                             <div className="text-[10px] font-medium text-slate-600 flex justify-between items-center">
-                              <span className="truncate">
+                              <span className="truncate min-w-0">
                                 {p?.name || "منتج"}
                               </span>
                               <span className="text-indigo-600 font-bold shrink-0">
