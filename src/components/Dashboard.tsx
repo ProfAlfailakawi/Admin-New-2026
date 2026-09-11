@@ -3253,7 +3253,7 @@ const [isPending, startTransition] = useTransition();
             )}
 
             {isIntelligenceGroup && (
-                <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 xl:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-hidden" dir="rtl">
+                <div className="space-y-6 md:space-y-8 max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 xl:px-8 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full pb-20 overflow-x-clip" dir="rtl">
                   
                   {/* Dashboard - المختبر الذكي Intro - Re-styled for premium feel */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 pt-4 md:pt-6 border-b border-slate-200 pb-5 md:pb-7 min-w-0">

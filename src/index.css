@@ -20,14 +20,15 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
-    overflow-x: hidden;
+    /* overflow-x: clip يقصّ الفائض الأفقي دون إنشاء حاوية تمرير، فتبقى القوائم اللاصقة (position: sticky) ثابتة على الجوال. */
+    overflow-x: hidden; overflow-x: clip;
   }
   
   body {
     @apply bg-slate-50 text-slate-800 antialiased selection:bg-primary/20;
     font-family: var(--font-sans);
     letter-spacing: -0.01em;
-    overflow-x: hidden;
+    overflow-x: hidden; overflow-x: clip;
     width: 100%;
     /* Fix for iOS Safari height issues */
     min-height: -webkit-fill-available;
@@ -2660,7 +2661,7 @@ button:has(.invoice-product-price-hint){overflow:visible!important;isolation:iso
    keeps it in the dashboard flow, and makes the opened panel compact and readable. */
 html, body, #root {
   max-width: 100% !important;
-  overflow-x: hidden !important;
+  overflow-x: hidden !important; overflow-x: clip !important;
 }
 
 .admin-heritage-shell,
@@ -4564,7 +4565,7 @@ html body .login-brand-stage h1 {
 
 /* Ahmad mobile review pass: precise UI-only polish for iPhone widths */
 @media (max-width: 640px){
-  html, body, #root { overflow-x: hidden; }
+  html, body, #root { overflow-x: hidden; overflow-x: clip; }
 
   /* Keep currency and numbers together across dashboard / radar cards */
   .geo-heatmap-component .tabular-nums,
