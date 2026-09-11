@@ -77,7 +77,7 @@ const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'
 const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
 import LoginIntro, { armLoginIntro } from './components/LoginIntro';
-import AdminMicroLoader from './components/ui/AdminMicroLoader';
+import AdminMicroLoader, { useDelayedVisible } from './components/ui/AdminMicroLoader';
 import { LAYER } from './lib/floatingLayers';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
