@@ -653,7 +653,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                </div>
            ) : (
                <div className="py-6 md:py-12 flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-emerald-500 border-t-transparent flex items-center justify-center rounded-full animate-spin mb-4" />
+                  <AdminMicroLoader size={48} label="نتأكد من عملية الدفع" className="mb-4" />
                   <p className="font-bold text-slate-500">نتأكد من عملية الدفع...</p>
                </div>
            )}
@@ -1000,15 +1000,35 @@ const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
  */
 const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
   const [slow, setSlow] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // Delayed-appearance gate for the loader + status line (same 250ms rule as
+  // AdminMicroLoader): a fast boot shows only the quiet skeleton, no flash.
+  const showStatus = useDelayedVisible(250);
   useEffect(() => {
     const t = window.setTimeout(() => setSlow(true), 7000);
     return () => window.clearTimeout(t);
   }, []);
 
+  // Quick fade on exit: when the shell unmounts (app is ready) leave a static
+  // ghost of it fading out for ~220ms instead of an abrupt pop.
+  useEffect(() => {
+    const el = rootRef.current;
+    return () => {
+      if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const ghost = el.cloneNode(true) as HTMLElement;
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.style.pointerEvents = 'none';
+      ghost.style.transition = 'opacity 220ms ease-out';
+      document.body.appendChild(ghost);
+      requestAnimationFrame(() => { ghost.style.opacity = '0'; });
+      window.setTimeout(() => ghost.remove(), 320);
+    };
+  }, []);
+
   const statusText = phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…' : 'جاري مزامنة بيانات الإدارة…';
 
   return (
-    <div className="fixed inset-0 z-[99997] flex h-[100dvh] w-full overflow-hidden bg-slate-50 arabic-font" dir="rtl" aria-busy="true">
+    <div ref={rootRef} className="fixed inset-0 z-[99997] flex h-[100dvh] w-full overflow-hidden bg-slate-50 arabic-font" dir="rtl" aria-busy="true">
       {/* Sidebar skeleton (desktop only, matches shell layout) */}
       <div className="hidden lg:flex w-64 shrink-0 flex-col gap-3 border-l border-slate-200/70 bg-slate-950 p-5">
         <div className="h-10 w-10 rounded-2xl bg-white/10" />
@@ -1032,17 +1052,26 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
               <div key={i} className="h-28 rounded-3xl border border-slate-200/70 bg-white/80" />
             ))}
           </div>
-          {/* The only animated element: branded 44px assembly loader + honest status */}
-          <div className="flex flex-col items-center justify-center gap-4 pt-10" role="status" aria-live="polite">
-            <AdminMicroLoader size={44} appearDelay={250} label={statusText} />
-            <p className="text-sm font-bold text-slate-500">{statusText}</p>
-            {slow && (
-              <p className="text-xs font-bold text-slate-400 max-w-xs text-center leading-6">
-                المزامنة تأخذ وقتاً أطول من المعتاد. دخولك سليم والاتصال شغال — لا حاجة لإعادة تسجيل الدخول.
-              </p>
-            )}
-          </div>
         </div>
+      </div>
+
+      {/* Branded loader + honest status, centered in the viewport (over the
+          skeleton). Gated behind ~250ms so fast boots show nothing, then a
+          quick fade-in; exit fades via the unmount ghost above. */}
+      <div
+        className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 px-6 transition-opacity duration-200 ${showStatus ? 'opacity-100' : 'opacity-0'}`}
+        role="status"
+        aria-live="polite"
+      >
+        <AdminMicroLoader size={44} appearDelay={250} label={statusText} />
+        {showStatus && (
+          <p className="text-sm font-bold text-slate-500 text-center">{statusText}</p>
+        )}
+        {slow && (
+          <p className="text-xs font-bold text-slate-400 max-w-xs text-center leading-6">
+            المزامنة تأخذ وقتاً أطول من المعتاد. دخولك سليم والاتصال شغال — لا حاجة لإعادة تسجيل الدخول.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import { motion } from 'motion/react';
 import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Save, Search, Send, Sparkles, Trash2, UserRound, X, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -1798,7 +1799,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         </div>
         {botTextsBusy && !botTexts.length ? (
-          <div className="p-10 flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div>
+          <div className="p-10 flex items-center justify-center"><AdminMicroLoader size={32} label="جاري التحميل" /></div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {botTexts.map((t) => {
@@ -2076,7 +2077,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         </div>
 
         {ratingsBusy && !ratings ? (
-          <div className="p-10 flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div>
+          <div className="p-10 flex items-center justify-center"><AdminMicroLoader size={32} label="جاري التحميل" /></div>
         ) : !ratings || ratings.count === 0 ? (
           <div className="p-10 text-center text-slate-400 font-bold border border-dashed rounded-2xl">
             ما فيه تقييمات بعد. افتح محادثة واضغط «⭐ اطلب تقييم» بعد ما يوصل الطلب.
@@ -2152,7 +2153,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {loading ? <div className="h-full flex items-center justify-center text-slate-400"><Loader2 className="animate-spin" /></div> : filtered.length ? filtered.map((c) => {
+            {loading ? <div className="h-full flex items-center justify-center"><AdminMicroLoader size={32} label="جاري تحميل المحادثات" /></div> : filtered.length ? filtered.map((c) => {
               const actionState = getConversationActionState(c);
               const temperature = getCustomerTemperature(c);
               const active = selectedPhone === (c.phone || c.id);
