@@ -5589,10 +5589,7 @@ const [isPending, startTransition] = useTransition();
                       <div className="absolute inset-0 bg-rose-500/5 pointer-events-none" />
                       {isLoyaltyAnalyzing && (
                         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-4">
-                          <RefreshCw
-                            className="animate-spin text-rose-500"
-                            size={32}
-                          />
+                          <AdminMicroLoader size={32} label="نحلل العميل" />
                           <span className="font-bold text-sm text-rose-900">
                             نحلل العميل...
                           </span>

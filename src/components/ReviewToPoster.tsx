@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import { Clapperboard, Loader2, Star, Quote, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
@@ -180,7 +181,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
 
         {loading && (
           <div className="text-center p-6 w-full flex flex-col items-center z-20">
-            <Loader2 className="text-purple-400 w-12 h-12 mb-4 animate-spin" />
+            <AdminMicroLoader size={44} label="نحلل التعليق ونصمم البوستر" className="mb-4" />
             <p className="font-bold text-white">نحلل التعليق ونصمم البوستر...</p>
           </div>
         )}

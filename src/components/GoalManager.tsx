@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import { Target, TrendingUp, Users, ChevronLeft, RefreshCw } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
@@ -89,7 +90,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  </p>
  <div className="bg-slate-950/50 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 relative overflow-hidden">
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:20px_20px] opacity-[0.03] pointer-events-none" />
- <RefreshCw className="text-indigo-500 mb-4 animate-spin-slow relative z-10" size={32} />
+ <AdminMicroLoader size={32} label="قراءة البيانات" className="mb-4 relative z-10" />
  <p className="text-slate-300 font-bold text-xs md:text-sm text-right relative z-10">التراث الذكي يقوم بقراءة البيانات الآن لاقتراح أهداف ذكية تناسب متجرك...</p>
  </div>
  </div>

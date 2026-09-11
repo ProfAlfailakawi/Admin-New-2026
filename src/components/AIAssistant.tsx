@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import { 
  Bot, 
  Send, 
@@ -839,7 +840,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
       {isLoading && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="ai-chat-row is-assistant">
           <div className="ai-chat-avatar"><Bot size={15} /></div>
-          <div className="ai-chat-bubble ai-loading-bubble"><Loader2 size={14} className="animate-spin" /> نحلل بيانات التراث...</div>
+          <div className="ai-chat-bubble ai-loading-bubble"><AdminMicroLoader size={16} appearDelay={0} label="نحلل بيانات التراث" /> نحلل بيانات التراث...</div>
         </motion.div>
       )}
       <div ref={messagesEndRef} className="h-4" />

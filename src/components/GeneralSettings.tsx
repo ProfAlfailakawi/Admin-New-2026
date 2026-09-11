@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -5042,7 +5043,7 @@ const GeneralSettings: React.FC<Props> = ({
 
                               <div className="mt-3">
                                 {invoiceAlertsBusy && !invoiceAlerts ? (
-                                  <div className="py-8 flex justify-center"><Loader2 size={18} className="animate-spin text-indigo-400" /></div>
+                                  <div className="py-8 flex justify-center"><AdminMicroLoader size={24} label="جاري التحميل" /></div>
                                 ) : !invoiceAlerts?.length ? (
                                   <div className="py-8 flex justify-center text-slate-300"><Archive size={20} /></div>
                                 ) : (

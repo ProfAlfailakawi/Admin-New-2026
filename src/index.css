@@ -6289,7 +6289,10 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
 
 /* ============================================================
    AdminMicroLoader — five pieces assemble once into a mini
-   dashboard, then a very calm idle pulse. transform+opacity only.
+   dashboard, then a calm idle pulse. transform+opacity only.
+   Animations are gated on .aml-visible so the assembly plays
+   when the loader actually appears (after the ~250ms delay),
+   not while it is still hidden.
    ============================================================ */
 .aml-root {
   position: relative;
@@ -6306,30 +6309,41 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
   position: absolute;
   inset: 0;
   display: block;
-  animation: aml-idle 2.6s cubic-bezier(0.45, 0, 0.55, 1) 1s infinite;
+}
+.aml-root.aml-visible .aml-stage {
+  animation: aml-idle 2.6s cubic-bezier(0.45, 0, 0.55, 1) 1.1s infinite;
 }
 .aml-frame {
   position: absolute;
   inset: 4%;
-  border: 1.5px solid rgba(245, 158, 11, 0.55);
+  border: 1.5px solid rgba(100, 116, 139, 0.4);
   border-radius: 22%;
   opacity: 0;
   transform: scale(0.86);
-  animation: aml-frame-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.34s forwards;
+}
+.aml-root.aml-visible .aml-frame {
+  animation: aml-frame-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
 }
 .aml-piece {
   position: absolute;
   border-radius: 18%;
   opacity: 0;
-  animation: aml-piece-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.aml-root.aml-visible .aml-piece {
+  animation: aml-piece-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 /* layout of the mini dashboard (percent of box):
-   p1 header bar, p2 sidebar, p3+p4 KPI tiles, p5 wide chart tile */
-.aml-p1 { left: 14%; top: 14%; width: 72%; height: 14%; background: #f59e0b; --aml-x: -90%;  --aml-y: -160%; }
-.aml-p2 { right: 14%; top: 34%; width: 16%; height: 52%; background: #64748b; --aml-x: 220%;  --aml-y: 40%;  animation-delay: 0.05s; }
-.aml-p3 { left: 14%; top: 34%; width: 24%; height: 22%; background: #10b981; --aml-x: -170%; --aml-y: 120%;  animation-delay: 0.1s; }
-.aml-p4 { left: 44%; top: 34%; width: 24%; height: 22%; background: #6366f1; --aml-x: 60%;   --aml-y: -180%; animation-delay: 0.15s; }
-.aml-p5 { left: 14%; top: 62%; width: 54%; height: 24%; background: #f43f5e; --aml-x: -40%;  --aml-y: 190%;  animation-delay: 0.2s; }
+   p1 header bar, p2 sidebar, p3+p4 KPI tiles, p5 wide chart tile.
+   Muted brand tones: slate structure, calm emerald + soft amber accents. */
+.aml-p1 { left: 14%; top: 14%; width: 72%; height: 14%; background: #94a3b8; --aml-x: -90%;  --aml-y: -160%; }
+.aml-p2 { right: 14%; top: 34%; width: 16%; height: 52%; background: #475569; --aml-x: 220%;  --aml-y: 40%; }
+.aml-p3 { left: 14%; top: 34%; width: 24%; height: 22%; background: #059669; --aml-x: -170%; --aml-y: 120%; }
+.aml-p4 { left: 44%; top: 34%; width: 24%; height: 22%; background: #d4a24e; --aml-x: 60%;   --aml-y: -180%; }
+.aml-p5 { left: 14%; top: 62%; width: 54%; height: 24%; background: #9db8ae; --aml-x: -40%;  --aml-y: 190%; }
+.aml-root.aml-visible .aml-p2 { animation-delay: 0.07s; }
+.aml-root.aml-visible .aml-p3 { animation-delay: 0.14s; }
+.aml-root.aml-visible .aml-p4 { animation-delay: 0.21s; }
+.aml-root.aml-visible .aml-p5 { animation-delay: 0.28s; }
 @keyframes aml-piece-in {
   0%   { opacity: 0; transform: translate(var(--aml-x), var(--aml-y)) scale(0.6); }
   60%  { opacity: 1; transform: translate(0, 0) scale(1.06); }
@@ -6345,12 +6359,14 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
   50%      { opacity: 0.72; transform: scale(0.985); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .aml-piece, .aml-frame {
+  .aml-piece, .aml-frame,
+  .aml-root.aml-visible .aml-piece,
+  .aml-root.aml-visible .aml-frame {
     animation: none;
     opacity: 1;
     transform: none;
   }
-  .aml-stage {
+  .aml-root.aml-visible .aml-stage {
     animation: aml-idle 3.2s ease-in-out 0.5s infinite;
   }
 }

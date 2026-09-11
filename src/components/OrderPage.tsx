@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import {
   ClipboardList,
   Search,
@@ -1627,7 +1628,7 @@ Alturath.kw`;
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 md:py-32">
-            <Loader2 className="animate-spin text-indigo-600 w-12 h-12 md:w-16 md:h-16 mb-6" />
+            <AdminMicroLoader size={48} label="جاري مزامنة الطلبات الفورية" className="mb-6" />
             <p className="text-slate-500 font-bold text-xl animate-pulse">
               جاري مزامنة الطلبات الفورية...
             </p>

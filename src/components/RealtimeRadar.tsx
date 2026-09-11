@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AdminMicroLoader from './ui/AdminMicroLoader';
 import { Zap, Loader2, Image as ImageIcon, Flame, Check, Copy, Layout } from 'lucide-react';
 import { toast } from 'sonner';
 import { applyLogoBranding } from '../lib/brandingUtils';
@@ -205,7 +206,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
 
         {loading && (
           <div className="flex flex-col items-center justify-center py-10 bg-slate-50 rounded-2xl">
-            <Loader2 className="w-10 h-10 animate-spin text-rose-500 mb-4" />
+            <AdminMicroLoader size={40} label="نحلل التريند ونجهز المحتوى" className="mb-4" />
             <p className="text-slate-500 font-bold">نحلل التريند ونجهز المحتوى المناسب...</p>
           </div>
         )}
@@ -233,7 +234,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
          )}
          {loading && !resultImage && (
             <div className="w-full h-full flex items-center justify-center absolute inset-0 bg-white/50 backdrop-blur-sm z-10">
-               <Loader2 className="w-10 h-10 animate-spin text-rose-500" />
+               <AdminMicroLoader size={40} label="نجهز صورة التريند" />
             </div>
          )}
          {resultImage && (
