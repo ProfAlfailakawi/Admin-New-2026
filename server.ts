@@ -6422,7 +6422,20 @@ app.get("/api/warmup", (_req, res) => {
   });
 });
 
-app.get("/api/appdata/full", async (_req, res) => {
+// SECURITY: the full appdata payload contains every order, invoice and customer
+// record (names, phones, addresses). It must never be served to an anonymous
+// caller. Pre-auth prefetches (index.html head prefetch / splash warmup) still
+// get their cold-start benefit: an unauthenticated hit kicks the boot-cache warm
+// in the background before returning 401, so the authenticated retry is instant.
+async function appDataRequireConsoleAuth(req: any, res: any, next: any) {
+  if (await waIsConsoleAuthed(req)) return next();
+  if (!appDataCache.bootInitialized && firebaseInitialized && db) {
+    initBootCache().catch(() => {});
+  }
+  return res.status(401).json({ success: false, error: "Unauthorized: sign in as admin", warmed: true });
+}
+
+app.get("/api/appdata/full", appDataRequireConsoleAuth, async (_req, res) => {
   const startedAt = Date.now();
   try {
     if (!db || !firebaseInitialized) {
@@ -10277,6 +10290,12 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
 - للجمع والترحاب والسعادة: "اليمعة"، "الزوارة"، "الديوانية والربع"، "الأهل والضيوف"، "يبيّض الوجه" (للشيء الشريف المشرف)، "ينترس العين"، "يبرد الجبد" (للأكل اللذيذ الحامض أو الحلو أو المروي)، "يرد الروح"، "عساكم على القوة"، "مثواكم العافية والصحة والهناء".
 - للتوجيه السريع: "ضبط"، "ضبط غداك"، "اطلب الحين".
 `;
+
+  // SECURITY: every /api/ai/* endpoint invokes a paid LLM with business data (and
+  // pulse-archive writes to Firestore). Require an authorized admin/partner session
+  // so anonymous callers cannot run up model costs or write archives. The AI logic
+  // itself is unchanged — this only gates who may call it.
+  app.use("/api/ai", waRequireConsoleAuth);
 
   app.post("/api/ai/quick-messages", express.json({ limit: "2mb" }), async (req, res) => {
     const { category, forceRefresh } = req.body || {};

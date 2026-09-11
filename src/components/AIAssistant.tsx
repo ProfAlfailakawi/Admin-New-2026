@@ -26,6 +26,18 @@ import { buildAITrainingContext, recordAITrainingSignal, runAISelfTrainingCycle 
 import { cn } from '../lib/utils';
 import Markdown from 'react-markdown';
 import { toast } from 'sonner';
+import { auth } from '../firebase';
+
+// /api/ai/* requires the signed-in admin's Firebase ID token server-side.
+async function aiAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch {}
+  return headers;
+}
+
 
 interface AIAssistantProps {
  data: AppState;
@@ -650,7 +662,7 @@ const AIAssistant: React.FC<AIAssistantProps> = React.memo(({ data, currentPage 
 	
 	 const assistantResponse = await fetch('/api/ai/assistant', {
  method: 'POST',
- headers: { 'Content-Type': 'application/json' },
+ headers: await aiAuthHeaders(),
  body: JSON.stringify({
 	 message: cleanMessage,
 	 systemPrompt: `أنت عقل تنفيذي كويتي خاص بمطعم/مشروع المستخدم داخل لوحة الأدمن، مو مساعد عام.
