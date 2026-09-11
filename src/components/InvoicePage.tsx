@@ -1456,7 +1456,7 @@ Alturath.kw`;
     };
 
     return (
-      <div className="invoice-new-page invoice-mobile-flow p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 bg-slate-50 min-h-screen overflow-x-hidden">
+      <div className="invoice-new-page invoice-mobile-flow p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 bg-slate-50 min-h-screen overflow-x-clip">
         {/* Product Selection (Visible on Desktop only) */}
         <div className="hidden lg:block lg:col-span-2 space-y-4 lg:space-y-6 order-1 invoice-mobile-products">
           {renderProductsCatalog(false)}
