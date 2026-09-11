@@ -16,8 +16,19 @@ import {
   Workflow,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { auth } from '../firebase';
 import type { AppState } from '../types';
 import { buildCEOCopilotSnapshot, coerceCopilotNarrative, getMetricText, type CopilotSnapshot } from '../lib/ceo-copilot';
+
+// /api/ai/* requires the signed-in admin's Firebase ID token server-side.
+async function aiAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch {}
+  return headers;
+}
 import { cn } from '../lib/utils';
 
 type CEOCopilotProps = {
@@ -65,7 +76,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
     try {
       const res = await fetch('/api/ai/ceo-copilot/whatsapp-draft', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiAuthHeaders(),
         body: JSON.stringify({ context: { customerName: draft.customerName, reason: draft.reason, facts: [draft.source] } }),
       });
       const payload = await res.json().catch(() => null);
@@ -85,7 +96,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
     try {
       const res = await fetch('/api/ai/ceo-copilot/campaign-flow', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiAuthHeaders(),
         body: JSON.stringify({ product: { name: topName }, goal: 'زيادة الطلب' }),
       });
       const payload = await res.json().catch(() => null);
@@ -104,7 +115,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
     try {
       const res = await fetch('/api/ai/ceo-copilot/supplier-intel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiAuthHeaders(),
         body: JSON.stringify({ supplier: { name: item.supplierName, due: item.due, invoices: item.invoices, missingRefs: item.missingRefs } }),
       });
       const payload = await res.json().catch(() => null);
@@ -133,7 +144,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
     try {
       const res = await fetch('/api/ai/ceo-copilot/explain', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await aiAuthHeaders(),
         body: JSON.stringify({ snapshot }),
       });
       const payload = await res.json().catch(() => null);

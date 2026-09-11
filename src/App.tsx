@@ -200,6 +200,19 @@ const BOOT_PREWARM_BACKOFF_MS = 600;
 let __bootPrewarmPromise: Promise<any> | null = null;
 let __bootPrewarmFiredAt = 0;
 
+// The appdata endpoint now requires an admin session (it carries all customer PII).
+// Attach the Firebase ID token when a user is signed in; without one the server
+// replies 401 (while still warming its boot cache) and the resilient retry loop
+// picks the payload up on a later attempt once auth has restored.
+async function bootAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function fetchBootPayloadOnce(timeoutMs: number): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -207,6 +220,7 @@ async function fetchBootPayloadOnce(timeoutMs: number): Promise<any> {
     const res = await fetch('/api/appdata/full?profile=boot', {
       cache: 'no-store',
       signal: controller.signal,
+      headers: await bootAuthHeaders(),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
@@ -3259,7 +3273,7 @@ const MainApp: React.FC = () => {
             if (deferredKeys.length > 0) {
               window.setTimeout(async () => {
                 try {
-                  const fullRes = await fetch('/api/appdata/full?profile=full', { cache: 'no-store' });
+                  const fullRes = await fetch('/api/appdata/full?profile=full', { cache: 'no-store', headers: await bootAuthHeaders() });
                   if (!fullRes.ok) return;
                   const fullPayload = await fullRes.json();
                   if (!fullPayload?.success || !fullPayload?.data) return;
@@ -5088,6 +5102,9 @@ const App: React.FC = () => {
    useEffect(() => {
      // Warm up the server cache silently while the user reads the splash screen.
      // This eliminates the Cloud Run cold-start delay before they even click login.
+     // Warm-up only: the endpoint now requires auth, but an anonymous hit still
+     // triggers the server's boot-cache warm before it replies 401, so the
+     // cold-start benefit is preserved without exposing data.
      fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
      const timer = setTimeout(() => {
        setShowSplash(false);

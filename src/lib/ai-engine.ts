@@ -3,6 +3,18 @@ import { AppState, Customer, Invoice, Product, Supplier, AICampaign, RealProfitI
 import { isPaidStatus } from './status-utils';
 import { GoogleGenAI } from "@google/genai";
 import { recordAITrainingSignal, runAISelfTrainingCycle, buildAITrainingContext, rankWithLearning } from './aiLearningCore';
+import { auth } from '../firebase';
+
+// /api/ai/* now requires an authorized admin session server-side, so every AI
+// call carries the signed-in user's Firebase ID token.
+async function aiAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const token = await auth.currentUser?.getIdToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  } catch {}
+  return headers;
+}
 
 export type PriorityResult = 'high' | 'medium' | 'low';
 export type InsightType = 'risk' | 'opportunity' | 'action';
@@ -199,7 +211,7 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
   try {
     const response = await fetch('/api/ai/quick-messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await aiAuthHeaders(),
       body: JSON.stringify({ category, forceRefresh })
     });
     
@@ -776,7 +788,7 @@ export async function generateMarketingCampaign(data: AppState, customPrompt?: s
 
       const res = await fetch("/api/ai/marketing-campaign", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await aiAuthHeaders(),
           body: JSON.stringify({
               invoicesCount: invoices.length,
               bestProduct,
@@ -1817,7 +1829,7 @@ export async function generatePulseArchiveAnalysis(allComments: string[]): Promi
     try {
         const res = await fetch("/api/ai/pulse-archive", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: await aiAuthHeaders(),
             body: JSON.stringify({ allComments })
         });
         
