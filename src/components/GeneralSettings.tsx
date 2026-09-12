@@ -117,6 +117,8 @@ const CLOUD_RECOVERY_SHARD_KEY = "__adminRecoverySnapshot";
 const CLOUD_RECOVERY_FORMAT_VERSION = 1;
 const PUSH_NOTIFICATION_RECIPIENT_EMAILS = new Set([
   "volcanokw@gmail.com",
+  "dr.ahmad.alfailakawi@gmail.com",
+  "alfailakawidrahmad@gmail.com",
   "mfq241188@gmail.com",
   "omaralawadhi67@gmail.com",
 ]);
@@ -4345,6 +4347,17 @@ const GeneralSettings: React.FC<Props> = ({
                   ) : (
                     <EnableNotificationsButton
                       userId={auth?.currentUser?.uid || "local_user"}
+                      userEmail={auth?.currentUser?.email || ""}
+                      userName={
+                        auth?.currentUser?.displayName ||
+                        auth?.currentUser?.email ||
+                        ""
+                      }
+                      userRole={AUTHORIZED_PARTNERS.includes(
+                        String(auth?.currentUser?.email || "").toLowerCase(),
+                      )
+                        ? "partner"
+                        : "admin"}
                       restaurantId="kitchen_default"
                     />
                   )}

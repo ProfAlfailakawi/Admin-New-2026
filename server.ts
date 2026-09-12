@@ -8261,15 +8261,23 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const tokenRef = db.collection("pushTokens").doc(token);
         const tokenDoc = await tokenRef.get();
 
-        const normalizedUserEmail = String(userEmail || "").trim().toLowerCase();
+        const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+        const incomingUserEmail = String(userEmail || "").trim().toLowerCase();
+        const storedUserEmail = String(existingTokenData.userEmail || existingTokenData.email || "").trim().toLowerCase();
+        const normalizedUserEmail = incomingUserEmail || storedUserEmail;
         const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
         const permissionDenied = String(notificationPermission || "").trim().toLowerCase() === "denied";
-        const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+        const wasRejectedByFcm = Boolean(
+          existingTokenData.invalidReason ||
+          existingTokenData.invalidatedAt ||
+          existingTokenData.replacedByTokenHash ||
+          existingTokenData.replacedAt
+        );
 
-        // Never revive a token that was already retired/replaced. Firebase can keep an
-        // invalid token in its browser cache; this signal makes the client delete that
-        // cached registration and mint a new token during the same refresh.
-        if (tokenDoc.exists && existingTokenData.active === false && recipientAuthorized && !permissionDenied) {
+        // Never revive a token that was rejected by FCM or superseded by a newer token.
+        // Tokens that were only inactive because the recipient allow-list was too narrow
+        // are allowed to come back once the account is approved.
+        if (tokenDoc.exists && existingTokenData.active === false && wasRejectedByFcm && recipientAuthorized && !permissionDenied) {
           await tokenRef.set(removeUndefinedDeep({
             lastRenewalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
             lastRenewalRequestedByUserId: userId || null,
@@ -8287,10 +8295,10 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           token,
           tokenHash,
           deviceId: deviceId || null,
-          userId: userId || null,
-          userEmail: userEmail || null,
-          userName: userName || null,
-          userRole: userRole || null,
+          userId: userId || existingTokenData.userId || null,
+          userEmail: normalizedUserEmail || null,
+          userName: userName || existingTokenData.userName || existingTokenData.displayName || null,
+          userRole: userRole || existingTokenData.userRole || existingTokenData.role || null,
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
           userAgent: ua,
@@ -8396,6 +8404,8 @@ type PushTokenRecordForArchive = {
 
 const DEFAULT_PUSH_RECIPIENT_EMAILS = [
   "volcanokw@gmail.com",
+  "dr.ahmad.alfailakawi@gmail.com",
+  "alfailakawidrahmad@gmail.com",
   "mfq241188@gmail.com",
   "omaralawadhi67@gmail.com",
 ];

@@ -4,6 +4,9 @@ import { registerPushNotifications, getPushSupportStatus, refreshPushRegistratio
 
 export function EnableNotificationsButton(props?: {
   userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userRole?: string;
   restaurantId?: string;
 }) {
   const [enabled, setEnabled] = useState(false);
@@ -24,6 +27,9 @@ export function EnableNotificationsButton(props?: {
       if (alreadyAllowed) {
         refreshPushRegistrationIfAlreadyAllowed({
           userId: props?.userId || "admin",
+          userEmail: props?.userEmail || "",
+          userName: props?.userName || "",
+          userRole: props?.userRole || "",
           restaurantId: props?.restaurantId || "default",
         }).then((result) => {
           if (!mounted) return;
@@ -44,6 +50,9 @@ export function EnableNotificationsButton(props?: {
     try {
       const result = await registerPushNotifications({
         userId: props?.userId || "admin",
+        userEmail: props?.userEmail || "",
+        userName: props?.userName || "",
+        userRole: props?.userRole || "",
         restaurantId: props?.restaurantId || "default",
       });
 
