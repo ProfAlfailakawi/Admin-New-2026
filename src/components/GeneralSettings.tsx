@@ -1540,7 +1540,7 @@ const GeneralSettings: React.FC<Props> = ({
     primaryDevice: PushDeviceSnapshot,
     candidateDevices: PushDeviceSnapshot[] = [],
   ) => {
-    const uniqueDevices = [primaryDevice, ...candidateDevices].filter(
+    const uniqueDevices = [primaryDevice].filter(
       (item, index, arr) =>
         item?.token &&
         item.token !== "Not available" &&
@@ -1604,8 +1604,9 @@ const GeneralSettings: React.FC<Props> = ({
       const currentEmail = String(auth?.currentUser?.email || "").trim().toLowerCase();
       const targetEmail = String(device.userEmail || "").trim().toLowerCase();
       const targetIsCurrentAccount = Boolean(
-        (currentEmail && targetEmail && currentEmail === targetEmail) ||
-        (auth?.currentUser?.uid && device.userId === auth.currentUser.uid),
+        device.token === localStorage.getItem("last_push_token") &&
+        ((currentEmail && targetEmail && currentEmail === targetEmail) ||
+        (auth?.currentUser?.uid && device.userId === auth.currentUser.uid)),
       );
       const registrationOptions = {
         userId: auth?.currentUser?.uid || "admin",
@@ -1623,6 +1624,9 @@ const GeneralSettings: React.FC<Props> = ({
         id: `current-${token.slice(0, 24)}`,
         label: device.label || "الجهاز الحالي",
         token,
+        active: true,
+        recipientAuthorized: true,
+        invalidReason: undefined,
         status: "online",
         lastConnection: new Date().toISOString(),
         lastRead: new Date().toISOString(),
