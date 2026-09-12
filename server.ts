@@ -7258,6 +7258,14 @@ app.post("/api/push/test-device", async (req, res) => {
           allowedRecipients: [...ALLOWED_PUSH_RECIPIENT_EMAILS],
         });
       }
+      const tokenPermission = String(tokenRecord?.notificationPermission || tokenRecord?.permission || "").trim().toLowerCase();
+      if (tokenRecord?.active === false || tokenPermission === "denied" || tokenRecord?.invalidReason) {
+        return res.status(409).json({
+          success: false,
+          error: "Push token is inactive or invalid; re-enable notifications from that device",
+          code: tokenRecord?.invalidReason || (tokenPermission === "denied" ? "permission-denied" : "inactive-token"),
+        });
+      }
 
       const eventId = `admin-device-test-${Date.now()}`;
       const notificationTitle = String(title || "اختبار إشعار تجريبي من الأدمن");
@@ -7266,10 +7274,6 @@ app.post("/api/push/test-device", async (req, res) => {
 
       const message = {
         token: cleanToken,
-        notification: {
-          title: notificationTitle,
-          body: notificationBody,
-        },
         data: {
           type: "admin_device_test",
           alertType: "admin_device_test",
@@ -7287,22 +7291,6 @@ app.post("/api/push/test-device", async (req, res) => {
           headers: {
             Urgency: "high",
             TTL: "120",
-          },
-          notification: {
-            title: notificationTitle,
-            body: notificationBody,
-            icon: "/ios-icon-192-v6.png",
-            badge: "/ios-icon-192-v6.png",
-            tag: eventId,
-            renotify: true,
-            requireInteraction: true,
-            data: {
-              url: targetUrl,
-              eventId,
-              parentEventId: eventId,
-              notificationTag: eventId,
-              alertType: "admin_device_test",
-            },
           },
           fcmOptions: {
             link: targetUrl,
@@ -8399,6 +8387,7 @@ type PushTokenRecordForArchive = {
   permission?: string;
   notificationPermission?: string;
   active?: boolean;
+  invalidReason?: string;
   updatedAtMs?: number;
 };
 
@@ -8440,6 +8429,7 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
     permission: data.permission ? String(data.permission) : undefined,
     notificationPermission: data.notificationPermission ? String(data.notificationPermission) : undefined,
     active: data.active === undefined ? undefined : Boolean(data.active),
+    invalidReason: data.invalidReason ? String(data.invalidReason) : undefined,
     updatedAtMs,
   };
 }

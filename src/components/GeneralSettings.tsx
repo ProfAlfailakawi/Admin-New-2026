@@ -156,6 +156,9 @@ type PushDeviceSnapshot = {
   id: string;
   label: string;
   token: string;
+  active?: boolean;
+  recipientAuthorized?: boolean;
+  invalidReason?: string;
   platform?: string;
   deviceType?: string;
   browser?: string;
@@ -1541,6 +1544,9 @@ const GeneralSettings: React.FC<Props> = ({
       (item, index, arr) =>
         item?.token &&
         item.token !== "Not available" &&
+        item.active !== false &&
+        item.recipientAuthorized !== false &&
+        !item.invalidReason &&
         arr.findIndex((device) => device.token === item.token) === index,
     );
     return uniqueDevices
@@ -2200,6 +2206,9 @@ const GeneralSettings: React.FC<Props> = ({
       ),
       label,
       token: token || "Not available",
+      active: item?.active,
+      recipientAuthorized: item?.recipientAuthorized,
+      invalidReason: item?.invalidReason ? String(item.invalidReason) : undefined,
       platform: platformText,
       deviceType: deviceTypeText,
       browser: browserText,
@@ -2216,11 +2225,17 @@ const GeneralSettings: React.FC<Props> = ({
       status,
       note: !token
         ? "No Push token recorded for this phone."
-        : status === "abandoned"
-          ? "Abandoned device: no fresh reading for more than 45 days."
-          : status === "cold"
-            ? "Cold device: no fresh reading for more than 14 days."
-            : "Fresh reading within the normal window.",
+        : item?.active === false
+          ? "Inactive token: re-enable notifications from this device before testing."
+          : item?.recipientAuthorized === false
+            ? "Recipient is not approved for Push delivery."
+            : item?.invalidReason
+              ? `Invalid token: ${String(item.invalidReason)}.`
+              : status === "abandoned"
+                ? "Abandoned device: no fresh reading for more than 45 days."
+                : status === "cold"
+                  ? "Cold device: no fresh reading for more than 14 days."
+                  : "Fresh reading within the normal window.",
       recentNotifications: getRecentPushNotifications(item, logs),
     };
   };
