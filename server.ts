@@ -7260,6 +7260,13 @@ app.post("/api/push/test-device", async (req, res) => {
       }
       const tokenPermission = String(tokenRecord?.notificationPermission || tokenRecord?.permission || "").trim().toLowerCase();
       if (tokenRecord?.active === false || tokenPermission === "denied" || tokenRecord?.invalidReason) {
+        console.warn("[PUSH TEST DEVICE BLOCKED]", {
+          email: tokenRecord?.userEmail || null,
+          active: tokenRecord?.active,
+          permission: tokenPermission || null,
+          invalidReason: tokenRecord?.invalidReason || null,
+          tokenDocId: tokenRecord?.tokenDocId ? String(tokenRecord.tokenDocId).slice(0, 16) : null,
+        });
         return res.status(409).json({
           success: false,
           error: "Push token is inactive or invalid; re-enable notifications from that device",
@@ -7284,6 +7291,10 @@ app.post("/api/push/test-device", async (req, res) => {
           click_action: targetUrl,
           title: notificationTitle,
           body: notificationBody,
+          icon: "/ios-icon-192-v6.png",
+          badge: "/ios-icon-192-v6.png",
+          renotify: "true",
+          requireInteraction: "true",
           userId: String(userId || ""),
           deviceLabel: String(deviceLabel || ""),
         },
@@ -7299,6 +7310,14 @@ app.post("/api/push/test-device", async (req, res) => {
       };
 
       const responseId = await admin.messaging().send(message as any);
+      console.log("[PUSH TEST DEVICE SENT]", {
+        email: tokenRecord?.userEmail || null,
+        active: tokenRecord?.active,
+        permission: tokenPermission || null,
+        platform: tokenRecord?.platform || tokenRecord?.deviceType || null,
+        tokenDocId: tokenRecord?.tokenDocId ? String(tokenRecord.tokenDocId).slice(0, 16) : null,
+        responseId,
+      });
 
       try {
         await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
