@@ -84,6 +84,7 @@ import {
   getPushSupportStatus,
   refreshPushRegistrationIfAlreadyAllowed,
   renewPushRegistrationIfAlreadyAllowed,
+  getStablePushDeviceId,
 } from "../lib/pushNotifications";
 import {
   AUTHORIZED_EMAILS,
@@ -154,6 +155,7 @@ const sha256Hex = async (value: string): Promise<string> => {
 
 type PushDeviceSnapshot = {
   id: string;
+  deviceId?: string;
   label: string;
   token: string;
   active?: boolean;
@@ -1540,7 +1542,10 @@ const GeneralSettings: React.FC<Props> = ({
     primaryDevice: PushDeviceSnapshot,
     candidateDevices: PushDeviceSnapshot[] = [],
   ) => {
-    const uniqueDevices = [primaryDevice].filter(
+    const uniqueDevices = [primaryDevice, ...candidateDevices.filter((item) =>
+      primaryDevice.deviceId && item.deviceId === primaryDevice.deviceId &&
+      item.userId === primaryDevice.userId,
+    )].filter(
       (item, index, arr) =>
         item?.token &&
         item.token !== "Not available" &&
@@ -1604,7 +1609,8 @@ const GeneralSettings: React.FC<Props> = ({
       const currentEmail = String(auth?.currentUser?.email || "").trim().toLowerCase();
       const targetEmail = String(device.userEmail || "").trim().toLowerCase();
       const targetIsCurrentAccount = Boolean(
-        device.token === localStorage.getItem("last_push_token") &&
+        (device.token === localStorage.getItem("last_push_token") ||
+          Boolean(device.deviceId && device.deviceId === getStablePushDeviceId())) &&
         ((currentEmail && targetEmail && currentEmail === targetEmail) ||
         (auth?.currentUser?.uid && device.userId === auth.currentUser.uid)),
       );
@@ -2210,6 +2216,7 @@ const GeneralSettings: React.FC<Props> = ({
       ),
       label,
       token: token || "Not available",
+      deviceId: item?.deviceId ? String(item.deviceId) : undefined,
       active: item?.active,
       recipientAuthorized: item?.recipientAuthorized,
       invalidReason: item?.invalidReason ? String(item.invalidReason) : undefined,

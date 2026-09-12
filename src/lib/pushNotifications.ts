@@ -22,7 +22,7 @@ type PushRegistrationOptions = {
   restaurantId?: string;
 };
 
-function getStablePushDeviceId() {
+export function getStablePushDeviceId() {
   try {
     const existing = window.localStorage.getItem(PUSH_DEVICE_ID_STORAGE_KEY);
     if (existing) return existing;
