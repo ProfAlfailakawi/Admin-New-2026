@@ -88,12 +88,15 @@ async function sendPushReceiptAck(data, status) {
   };
 
   try {
-    await fetch(pushAckUrl(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true,
-    });
+    await Promise.race([
+      fetch(pushAckUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }),
+      new Promise((resolve) => setTimeout(resolve, 1200)),
+    ]);
   } catch (e) {
     // Delivery must never fail because receipt logging failed.
   }
