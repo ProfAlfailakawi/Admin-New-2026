@@ -1673,9 +1673,6 @@ const MainApp: React.FC = () => {
 
       refreshPushRegistrationIfAlreadyAllowed({
         userId: user.uid || 'admin',
-        userEmail: user.email || '',
-        userName: user.displayName || user.email || '',
-        userRole: userRole || '',
         restaurantId: userRole === 'partner' ? 'partner' : 'kitchen_default',
       });
     };

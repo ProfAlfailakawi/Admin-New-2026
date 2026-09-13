@@ -129,7 +129,7 @@ export const seedClientDatabase = async (data: any) => {
     await addOperation(() => batch.set(zoneRef, {
       id: zoneId,
       name: zone.name.trim(),
-      deliveryFee: zone.finalPrice ?? (zone.cost + (zone.profit || 0)),
+      deliveryFee: zone.finalPrice ?? (zone.cost + (zone.profit || 0)) ?? 0,
       isActive: zone.isActive !== false
     }));
   }
@@ -143,3 +143,4 @@ export const seedClientDatabase = async (data: any) => {
     throw error;
   }
 };
+

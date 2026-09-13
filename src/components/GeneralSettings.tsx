@@ -84,7 +84,6 @@ import {
   getPushSupportStatus,
   refreshPushRegistrationIfAlreadyAllowed,
   renewPushRegistrationIfAlreadyAllowed,
-  getStablePushDeviceId,
 } from "../lib/pushNotifications";
 import {
   AUTHORIZED_EMAILS,
@@ -118,8 +117,6 @@ const CLOUD_RECOVERY_SHARD_KEY = "__adminRecoverySnapshot";
 const CLOUD_RECOVERY_FORMAT_VERSION = 1;
 const PUSH_NOTIFICATION_RECIPIENT_EMAILS = new Set([
   "volcanokw@gmail.com",
-  "dr.ahmad.alfailakawi@gmail.com",
-  "alfailakawidrahmad@gmail.com",
   "mfq241188@gmail.com",
   "omaralawadhi67@gmail.com",
 ]);
@@ -155,12 +152,8 @@ const sha256Hex = async (value: string): Promise<string> => {
 
 type PushDeviceSnapshot = {
   id: string;
-  deviceId?: string;
   label: string;
   token: string;
-  active?: boolean;
-  recipientAuthorized?: boolean;
-  invalidReason?: string;
   platform?: string;
   deviceType?: string;
   browser?: string;
@@ -1542,16 +1535,10 @@ const GeneralSettings: React.FC<Props> = ({
     primaryDevice: PushDeviceSnapshot,
     candidateDevices: PushDeviceSnapshot[] = [],
   ) => {
-    const uniqueDevices = [primaryDevice, ...candidateDevices.filter((item) =>
-      primaryDevice.deviceId && item.deviceId === primaryDevice.deviceId &&
-      item.userId === primaryDevice.userId,
-    )].filter(
+    const uniqueDevices = [primaryDevice, ...candidateDevices].filter(
       (item, index, arr) =>
         item?.token &&
         item.token !== "Not available" &&
-        item.active !== false &&
-        item.recipientAuthorized !== false &&
-        !item.invalidReason &&
         arr.findIndex((device) => device.token === item.token) === index,
     );
     return uniqueDevices
@@ -1609,10 +1596,8 @@ const GeneralSettings: React.FC<Props> = ({
       const currentEmail = String(auth?.currentUser?.email || "").trim().toLowerCase();
       const targetEmail = String(device.userEmail || "").trim().toLowerCase();
       const targetIsCurrentAccount = Boolean(
-        (device.token === localStorage.getItem("last_push_token") ||
-          Boolean(device.deviceId && device.deviceId === getStablePushDeviceId())) &&
-        ((currentEmail && targetEmail && currentEmail === targetEmail) ||
-        (auth?.currentUser?.uid && device.userId === auth.currentUser.uid)),
+        (currentEmail && targetEmail && currentEmail === targetEmail) ||
+        (auth?.currentUser?.uid && device.userId === auth.currentUser.uid),
       );
       const registrationOptions = {
         userId: auth?.currentUser?.uid || "admin",
@@ -1630,9 +1615,6 @@ const GeneralSettings: React.FC<Props> = ({
         id: `current-${token.slice(0, 24)}`,
         label: device.label || "الجهاز الحالي",
         token,
-        active: true,
-        recipientAuthorized: true,
-        invalidReason: undefined,
         status: "online",
         lastConnection: new Date().toISOString(),
         lastRead: new Date().toISOString(),
@@ -1696,10 +1678,10 @@ const GeneralSettings: React.FC<Props> = ({
         if (result?.success) {
           const usedNewest = testDevice.token !== device.token;
           const message = usedNewest
-            ? "تم إرسال الاختبار إلى تسجيل آخر لنفس الجهاز. وصول الإشعار لم يتأكد بعد."
+            ? "تم تجديد التوكن وإرسال الاختبار إلى التسجيل الجديد لهذا الجهاز."
             : "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول.";
           setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
-          toast.info("قبل الخادم إرسال الاختبار؛ لم يتأكد وصوله للجهاز بعد");
+          toast.success("تم إرسال إشعار اختبار للجهاز");
           await refreshPushDashboardReadings().catch(() => null);
           if (typeof window !== "undefined") {
             window.setTimeout(() => {
@@ -2216,10 +2198,6 @@ const GeneralSettings: React.FC<Props> = ({
       ),
       label,
       token: token || "Not available",
-      deviceId: item?.deviceId ? String(item.deviceId) : undefined,
-      active: item?.active,
-      recipientAuthorized: item?.recipientAuthorized,
-      invalidReason: item?.invalidReason ? String(item.invalidReason) : undefined,
       platform: platformText,
       deviceType: deviceTypeText,
       browser: browserText,
@@ -2236,17 +2214,11 @@ const GeneralSettings: React.FC<Props> = ({
       status,
       note: !token
         ? "No Push token recorded for this phone."
-        : item?.active === false
-          ? "Inactive token: re-enable notifications from this device before testing."
-          : item?.recipientAuthorized === false
-            ? "Recipient is not approved for Push delivery."
-            : item?.invalidReason
-              ? `Invalid token: ${String(item.invalidReason)}.`
-              : status === "abandoned"
-                ? "Abandoned device: no fresh reading for more than 45 days."
-                : status === "cold"
-                  ? "Cold device: no fresh reading for more than 14 days."
-                  : "Fresh reading within the normal window.",
+        : status === "abandoned"
+          ? "Abandoned device: no fresh reading for more than 45 days."
+          : status === "cold"
+            ? "Cold device: no fresh reading for more than 14 days."
+            : "Fresh reading within the normal window.",
       recentNotifications: getRecentPushNotifications(item, logs),
     };
   };
@@ -4373,17 +4345,6 @@ const GeneralSettings: React.FC<Props> = ({
                   ) : (
                     <EnableNotificationsButton
                       userId={auth?.currentUser?.uid || "local_user"}
-                      userEmail={auth?.currentUser?.email || ""}
-                      userName={
-                        auth?.currentUser?.displayName ||
-                        auth?.currentUser?.email ||
-                        ""
-                      }
-                      userRole={AUTHORIZED_PARTNERS.includes(
-                        String(auth?.currentUser?.email || "").toLowerCase(),
-                      )
-                        ? "partner"
-                        : "admin"}
                       restaurantId="kitchen_default"
                     />
                   )}
