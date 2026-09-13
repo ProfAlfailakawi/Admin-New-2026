@@ -131,24 +131,21 @@ async function sendForegroundPushReceiptAck(data: { eventId?: string; notificati
   if (!eventId || typeof window === "undefined") return;
 
   try {
-    await Promise.race([
-      fetch(pushAckUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: String(eventId),
-          parentEventId: String(eventId),
-          notificationTag: data.notificationTag || "",
-          alertType: data.alertType || "general",
-          status,
-          url: data.url || "/",
-          clientTimestamp: new Date().toISOString(),
-          source: "foreground-push-listener",
-        }),
-        keepalive: true,
+    await fetch(pushAckUrl(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventId: String(eventId),
+        parentEventId: String(eventId),
+        notificationTag: data.notificationTag || "",
+        alertType: data.alertType || "general",
+        status,
+        url: data.url || "/",
+        clientTimestamp: new Date().toISOString(),
+        source: "foreground-push-listener",
       }),
-      new Promise((resolve) => setTimeout(resolve, 1200)),
-    ]);
+      keepalive: true,
+    });
   } catch {
     // Receipt logging must never block notification delivery.
   }
@@ -283,21 +280,11 @@ async function saveTokenToServer(token: string, options?: PushRegistrationOption
     restaurantId: options?.restaurantId || "default",
     platform: /iPhone|iPad|iPod/i.test(navigator.userAgent) ? "iPhone" : "web",
     userAgent: navigator.userAgent || null,
-    vendor: navigator.vendor || null,
-    language: navigator.language || null,
     standalone:
       window.matchMedia?.("(display-mode: standalone)")?.matches ||
       (navigator as any).standalone === true ||
       false,
     notificationPermission: Notification.permission,
-    serviceWorkerController: Boolean(navigator.serviceWorker?.controller),
-    currentUrl: window.location.href,
-    screen: {
-      width: window.screen?.width || null,
-      height: window.screen?.height || null,
-      availWidth: window.screen?.availWidth || null,
-      availHeight: window.screen?.availHeight || null,
-    },
     savedAtClient: new Date().toISOString(),
   };
 

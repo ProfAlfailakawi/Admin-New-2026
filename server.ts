@@ -8233,13 +8233,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         restaurantId,
         platform,
         userAgent,
-        vendor,
-        language,
         standalone,
         notificationPermission,
-        serviceWorkerController,
-        currentUrl,
-        screen,
         savedAtClient
       } = req.body;
 
@@ -8294,13 +8289,8 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
           userAgent: ua,
-          vendor: vendor || null,
-          language: language || null,
           standalone,
           notificationPermission,
-          serviceWorkerController,
-          currentUrl,
-          screen,
           savedAtClient,
           deviceType,
           isIPhone,
