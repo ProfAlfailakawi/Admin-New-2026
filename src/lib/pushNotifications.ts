@@ -330,9 +330,22 @@ async function getMessagingToken(
   forceRenew = false,
 ) {
   if (forceRenew) {
-    await deleteToken(messaging).catch((error) => {
-      console.warn("[Push] Could not delete cached token before renewal:", error);
+    // Bind Firebase to this registration before deletion; otherwise it may use
+    // its default worker scope instead of the application's root worker.
+    const previousToken = await getToken(messaging, {
+      vapidKey: FALLBACK_VAPID_KEY,
+      serviceWorkerRegistration: registration,
     });
+    const deleted = await deleteToken(messaging);
+    if (!deleted) throw new Error("تعذر حذف اشتراك الإشعارات القديم");
+    const replacement = await getToken(messaging, {
+      vapidKey: FALLBACK_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+    if (!replacement || replacement === previousToken) {
+      throw new Error("لم يتم إنشاء اشتراك جديد للإشعارات؛ لم يكتمل الإصلاح");
+    }
+    return replacement;
   }
 
   try {

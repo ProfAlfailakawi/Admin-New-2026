@@ -1696,10 +1696,10 @@ const GeneralSettings: React.FC<Props> = ({
         if (result?.success) {
           const usedNewest = testDevice.token !== device.token;
           const message = usedNewest
-            ? "تم تجديد التوكن وإرسال الاختبار إلى التسجيل الجديد لهذا الجهاز."
+            ? "تم إرسال الاختبار إلى تسجيل آخر لنفس الجهاز. وصول الإشعار لم يتأكد بعد."
             : "تم إرسال الاختبار. راقب آخر الإشعارات: إذا ظهر وصل للجهاز أو انفتح فهذا تأكيد الوصول.";
           setPushTestResults((prev) => ({ ...prev, [device.id]: message }));
-          toast.success("تم إرسال إشعار اختبار للجهاز");
+          toast.info("قبل الخادم إرسال الاختبار؛ لم يتأكد وصوله للجهاز بعد");
           await refreshPushDashboardReadings().catch(() => null);
           if (typeof window !== "undefined") {
             window.setTimeout(() => {
