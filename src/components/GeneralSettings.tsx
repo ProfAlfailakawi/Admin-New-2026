@@ -86,6 +86,7 @@ import {
   renewPushRegistrationIfAlreadyAllowed,
   getStablePushDeviceId,
 } from "../lib/pushNotifications";
+import { DEFAULT_PUSH_RECIPIENT_EMAILS } from "../lib/pushRecipients";
 import {
   AUTHORIZED_EMAILS,
   AUTHORIZED_PARTNERS,
@@ -116,13 +117,9 @@ const ADMIN_RESET_EXPECTED_GENERATION_KEY =
   "ktk_expected_admin_reset_generation_id";
 const CLOUD_RECOVERY_SHARD_KEY = "__adminRecoverySnapshot";
 const CLOUD_RECOVERY_FORMAT_VERSION = 1;
-const PUSH_NOTIFICATION_RECIPIENT_EMAILS = new Set([
-  "volcanokw@gmail.com",
-  "dr.ahmad.alfailakawi@gmail.com",
-  "alfailakawidrahmad@gmail.com",
-  "mfq241188@gmail.com",
-  "omaralawadhi67@gmail.com",
-]);
+// Imported, never re-declared. A hand-copied duplicate of this list drifted from the
+// server's during a refactor and silently cut two approved accounts off from delivery.
+const PUSH_NOTIFICATION_RECIPIENT_EMAILS = new Set<string>(DEFAULT_PUSH_RECIPIENT_EMAILS);
 
 const stableRecoveryStringify = (value: any): string => {
   if (Array.isArray(value)) {

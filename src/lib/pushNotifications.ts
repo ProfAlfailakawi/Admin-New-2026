@@ -321,6 +321,13 @@ async function saveTokenToServer(token: string, options?: PushRegistrationOption
     throw new Error(data?.error || "فشل حفظ التوكن في الخادم");
   }
 
+  // The server stores a token it cannot deliver to (unapproved recipient, denied
+  // permission) and says so explicitly. Treat that as a failure here: reporting success
+  // for a token that can never receive a push is what kept an earlier outage invisible.
+  if (data?.deliverable === false) {
+    throw new Error(data?.warning || "لا يمكن توصيل الإشعارات إلى هذا الحساب على هذا الجهاز");
+  }
+
   return data;
 }
 
