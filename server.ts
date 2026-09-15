@@ -7258,6 +7258,21 @@ app.post("/api/push/test-device", async (req, res) => {
           allowedRecipients: [...ALLOWED_PUSH_RECIPIENT_EMAILS],
         });
       }
+      const tokenPermission = String(tokenRecord?.notificationPermission || tokenRecord?.permission || "").trim().toLowerCase();
+      if (tokenRecord?.active === false || tokenPermission === "denied" || tokenRecord?.invalidReason) {
+        console.warn("[PUSH TEST DEVICE BLOCKED]", {
+          email: tokenRecord?.userEmail || null,
+          active: tokenRecord?.active,
+          permission: tokenPermission || null,
+          invalidReason: tokenRecord?.invalidReason || null,
+          tokenDocId: tokenRecord?.tokenDocId ? String(tokenRecord.tokenDocId).slice(0, 16) : null,
+        });
+        return res.status(409).json({
+          success: false,
+          error: "Push token is inactive or invalid; re-enable notifications from that device",
+          code: tokenRecord?.invalidReason || (tokenPermission === "denied" ? "permission-denied" : "inactive-token"),
+        });
+      }
 
       const eventId = `admin-device-test-${Date.now()}`;
       const notificationTitle = String(title || "اختبار إشعار تجريبي من الأدمن");
@@ -7266,10 +7281,6 @@ app.post("/api/push/test-device", async (req, res) => {
 
       const message = {
         token: cleanToken,
-        notification: {
-          title: notificationTitle,
-          body: notificationBody,
-        },
         data: {
           type: "admin_device_test",
           alertType: "admin_device_test",
@@ -7280,6 +7291,10 @@ app.post("/api/push/test-device", async (req, res) => {
           click_action: targetUrl,
           title: notificationTitle,
           body: notificationBody,
+          icon: "/ios-icon-192-v6.png",
+          badge: "/ios-icon-192-v6.png",
+          renotify: "true",
+          requireInteraction: "true",
           userId: String(userId || ""),
           deviceLabel: String(deviceLabel || ""),
         },
@@ -7288,22 +7303,6 @@ app.post("/api/push/test-device", async (req, res) => {
             Urgency: "high",
             TTL: "120",
           },
-          notification: {
-            title: notificationTitle,
-            body: notificationBody,
-            icon: "/ios-icon-192-v6.png",
-            badge: "/ios-icon-192-v6.png",
-            tag: eventId,
-            renotify: true,
-            requireInteraction: true,
-            data: {
-              url: targetUrl,
-              eventId,
-              parentEventId: eventId,
-              notificationTag: eventId,
-              alertType: "admin_device_test",
-            },
-          },
           fcmOptions: {
             link: targetUrl,
           },
@@ -7311,6 +7310,14 @@ app.post("/api/push/test-device", async (req, res) => {
       };
 
       const responseId = await admin.messaging().send(message as any);
+      console.log("[PUSH TEST DEVICE SENT]", {
+        email: tokenRecord?.userEmail || null,
+        active: tokenRecord?.active,
+        permission: tokenPermission || null,
+        platform: tokenRecord?.platform || tokenRecord?.deviceType || null,
+        tokenDocId: tokenRecord?.tokenDocId ? String(tokenRecord.tokenDocId).slice(0, 16) : null,
+        responseId,
+      });
 
       try {
         await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
@@ -8261,15 +8268,23 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const tokenRef = db.collection("pushTokens").doc(token);
         const tokenDoc = await tokenRef.get();
 
-        const normalizedUserEmail = String(userEmail || "").trim().toLowerCase();
+        const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+        const incomingUserEmail = String(userEmail || "").trim().toLowerCase();
+        const storedUserEmail = String(existingTokenData.userEmail || existingTokenData.email || "").trim().toLowerCase();
+        const normalizedUserEmail = incomingUserEmail || storedUserEmail;
         const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
         const permissionDenied = String(notificationPermission || "").trim().toLowerCase() === "denied";
-        const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+        const wasRejectedByFcm = Boolean(
+          existingTokenData.invalidReason ||
+          existingTokenData.invalidatedAt ||
+          existingTokenData.replacedByTokenHash ||
+          existingTokenData.replacedAt
+        );
 
-        // Never revive a token that was already retired/replaced. Firebase can keep an
-        // invalid token in its browser cache; this signal makes the client delete that
-        // cached registration and mint a new token during the same refresh.
-        if (tokenDoc.exists && existingTokenData.active === false && recipientAuthorized && !permissionDenied) {
+        // Never revive a token that was rejected by FCM or superseded by a newer token.
+        // Tokens that were only inactive because the recipient allow-list was too narrow
+        // are allowed to come back once the account is approved.
+        if (tokenDoc.exists && existingTokenData.active === false && wasRejectedByFcm && recipientAuthorized && !permissionDenied) {
           await tokenRef.set(removeUndefinedDeep({
             lastRenewalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
             lastRenewalRequestedByUserId: userId || null,
@@ -8287,10 +8302,10 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           token,
           tokenHash,
           deviceId: deviceId || null,
-          userId: userId || null,
-          userEmail: userEmail || null,
-          userName: userName || null,
-          userRole: userRole || null,
+          userId: userId || existingTokenData.userId || null,
+          userEmail: normalizedUserEmail || null,
+          userName: userName || existingTokenData.userName || existingTokenData.displayName || null,
+          userRole: userRole || existingTokenData.userRole || existingTokenData.role || null,
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
           userAgent: ua,
@@ -8391,11 +8406,14 @@ type PushTokenRecordForArchive = {
   permission?: string;
   notificationPermission?: string;
   active?: boolean;
+  invalidReason?: string;
   updatedAtMs?: number;
 };
 
 const DEFAULT_PUSH_RECIPIENT_EMAILS = [
   "volcanokw@gmail.com",
+  "dr.ahmad.alfailakawi@gmail.com",
+  "alfailakawidrahmad@gmail.com",
   "mfq241188@gmail.com",
   "omaralawadhi67@gmail.com",
 ];
@@ -8430,6 +8448,7 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
     permission: data.permission ? String(data.permission) : undefined,
     notificationPermission: data.notificationPermission ? String(data.notificationPermission) : undefined,
     active: data.active === undefined ? undefined : Boolean(data.active),
+    invalidReason: data.invalidReason ? String(data.invalidReason) : undefined,
     updatedAtMs,
   };
 }
