@@ -370,6 +370,48 @@ async function getMessagingToken(
   }
 }
 
+/**
+ * Does a live push subscription back this registration?
+ *
+ * A token is only deliverable while the worker that owns its subscription is still
+ * registered. Unregistering that worker (an app-shell purge, a browser-side reset)
+ * destroys the subscription, but Firebase keeps the token in IndexedDB and hands it
+ * back. FCM then accepts every send to that orphaned token and the device displays
+ * nothing — a total, silent outage with a successful-looking send.
+ *
+ * Returns true when it cannot tell, so an unreadable pushManager never forces a
+ * renewal loop.
+ */
+async function pushSubscriptionIsLive(registration: ServiceWorkerRegistration): Promise<boolean> {
+  try {
+    if (!registration.pushManager?.getSubscription) return true;
+    return Boolean(await registration.pushManager.getSubscription());
+  } catch (error) {
+    console.warn("[Push] Could not read the push subscription:", error);
+    return true;
+  }
+}
+
+/**
+ * Replaces a token whose subscription is gone. Tolerant on purpose: the cached token is
+ * already dead, so a failed delete must not stop a fresh one from being minted.
+ */
+async function mintTokenAfterLostSubscription(
+  messaging: Messaging,
+  registration: ServiceWorkerRegistration,
+) {
+  try {
+    await deleteToken(messaging);
+  } catch (error) {
+    console.warn("[Push] Orphaned token could not be deleted; minting a replacement anyway:", error);
+  }
+
+  return getToken(messaging, {
+    vapidKey: FALLBACK_VAPID_KEY,
+    serviceWorkerRegistration: registration,
+  });
+}
+
 async function getAndSaveHealthyMessagingToken(
   messaging: Messaging,
   registration: ServiceWorkerRegistration,
@@ -378,6 +420,15 @@ async function getAndSaveHealthyMessagingToken(
 ) {
   let token = await getMessagingToken(messaging, registration, forceRenew);
   if (!token) throw new Error("لم يتم إنشاء توكن الإشعارات");
+
+  // Self-heal a device whose subscription was destroyed while its token survived.
+  // forceRenew already mints a fresh token, so it needs no second check.
+  if (!forceRenew && !(await pushSubscriptionIsLive(registration))) {
+    console.warn("[Push] Token has no live subscription; renewing this device's registration.");
+    const replacement = await mintTokenAfterLostSubscription(messaging, registration);
+    if (!replacement) throw new Error("تعذر إنشاء اشتراك إشعارات جديد لهذا الجهاز");
+    token = replacement;
+  }
 
   const firstSave = await saveTokenToServer(token, options);
   if (firstSave?.renewRequired !== true) return token;
