@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Bell, BellRing, Sparkles } from "lucide-react";
-import { registerPushNotifications, getPushSupportStatus, refreshPushRegistrationIfAlreadyAllowed } from "../lib/pushNotifications";
+import { registerPushNotifications, getPushSupportStatus, refreshPushRegistrationIfAlreadyAllowed, renewPushRegistrationIfAlreadyAllowed } from "../lib/pushNotifications";
 
 export function EnableNotificationsButton(props?: {
   userId?: string;
+  userEmail?: string;
+  userName?: string;
+  userRole?: string;
   restaurantId?: string;
 }) {
   const [enabled, setEnabled] = useState(false);
@@ -24,6 +27,9 @@ export function EnableNotificationsButton(props?: {
       if (alreadyAllowed) {
         refreshPushRegistrationIfAlreadyAllowed({
           userId: props?.userId || "admin",
+          userEmail: props?.userEmail || "",
+          userName: props?.userName || "",
+          userRole: props?.userRole || "",
           restaurantId: props?.restaurantId || "default",
         }).then((result) => {
           if (!mounted) return;
@@ -37,13 +43,17 @@ export function EnableNotificationsButton(props?: {
     };
   }, [props?.userId, props?.restaurantId]);
 
-  const handleEnable = async () => {
+  const handleEnable = async (repair = false) => {
     setLoading(true);
     setMessage("");
 
     try {
-      const result = await registerPushNotifications({
+      const register = repair ? renewPushRegistrationIfAlreadyAllowed : registerPushNotifications;
+      const result = await register({
         userId: props?.userId || "admin",
+        userEmail: props?.userEmail || "",
+        userName: props?.userName || "",
+        userRole: props?.userRole || "",
         restaurantId: props?.restaurantId || "default",
       });
 
@@ -71,7 +81,7 @@ export function EnableNotificationsButton(props?: {
   };
 
   if (enabled) {
-    if (showWelcome) {
+    if (showWelcome && !message) {
       return (
         <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50 to-white px-4 py-4 text-slate-800 shadow-sm w-full max-w-md">
           <div className="absolute -top-10 -left-10 h-24 w-24 rounded-full bg-emerald-200/30 blur-2xl" />
@@ -94,6 +104,10 @@ export function EnableNotificationsButton(props?: {
       <div className="flex items-center gap-3 bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl border border-emerald-100 w-fit">
         <BellRing size={20} className="text-emerald-500 animate-pulse" />
         <span className="font-bold text-sm">الإشعارات مفعّلة بنجاح</span>
+        <button type="button" disabled={loading} onClick={() => handleEnable(true)} className="text-sm underline disabled:opacity-50">
+          {loading ? "جاري إصلاح التسجيل..." : "إصلاح تسجيل هذا الجهاز"}
+        </button>
+        {message && <span className="text-sm">{message}</span>}
       </div>
     );
   }
@@ -102,7 +116,7 @@ export function EnableNotificationsButton(props?: {
     <div className="space-y-3">
       <button
         type="button"
-        onClick={handleEnable}
+        onClick={() => handleEnable()}
         disabled={loading}
         className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-white disabled:opacity-60 font-bold hover:shadow-lg hover:shadow-slate-900/20 active:scale-95 transition-all w-fit"
       >

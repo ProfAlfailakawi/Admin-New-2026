@@ -14,6 +14,16 @@ import 'dotenv/config';
 import { GoogleGenAI, Type } from "@google/genai";
 import LZString from "lz-string";
 import { packBootInlineAssets } from "./src/lib/bootAssetTransport.ts";
+import {
+  buildAllowedRecipientEmails,
+  describePushTokenAuthorization,
+  normalizeNotificationPermission,
+  pushRecordIsAllowedRecipient as pushRecordIsAllowedRecipientFor,
+  resolvePushTokenIdentity,
+  selectAllowedPushRecipientRecords as selectAllowedPushRecipientRecordsFor,
+  shouldRequirePushTokenRenewal,
+  type PushTokenRecordForArchive,
+} from './src/lib/pushRecipients.ts';
 
 let firebaseInitialized = false;
 let db: any = null;
@@ -7258,6 +7268,21 @@ app.post("/api/push/test-device", async (req, res) => {
           allowedRecipients: [...ALLOWED_PUSH_RECIPIENT_EMAILS],
         });
       }
+      const tokenPermission = String(tokenRecord?.notificationPermission || tokenRecord?.permission || "").trim().toLowerCase();
+      if (tokenRecord?.active === false || tokenPermission === "denied" || tokenRecord?.invalidReason) {
+        console.warn("[PUSH TEST DEVICE BLOCKED]", {
+          email: tokenRecord?.userEmail || null,
+          active: tokenRecord?.active,
+          permission: tokenPermission || null,
+          invalidReason: tokenRecord?.invalidReason || null,
+          tokenDocId: tokenRecord?.tokenDocId ? String(tokenRecord.tokenDocId).slice(0, 16) : null,
+        });
+        return res.status(409).json({
+          success: false,
+          error: "Push token is inactive or invalid; re-enable notifications from that device",
+          code: tokenRecord?.invalidReason || (tokenPermission === "denied" ? "permission-denied" : "inactive-token"),
+        });
+      }
 
       const eventId = `admin-device-test-${Date.now()}`;
       const notificationTitle = String(title || "اختبار إشعار تجريبي من الأدمن");
@@ -7266,10 +7291,6 @@ app.post("/api/push/test-device", async (req, res) => {
 
       const message = {
         token: cleanToken,
-        notification: {
-          title: notificationTitle,
-          body: notificationBody,
-        },
         data: {
           type: "admin_device_test",
           alertType: "admin_device_test",
@@ -7280,6 +7301,10 @@ app.post("/api/push/test-device", async (req, res) => {
           click_action: targetUrl,
           title: notificationTitle,
           body: notificationBody,
+          icon: "/ios-icon-192-v6.png",
+          badge: "/ios-icon-192-v6.png",
+          renotify: "true",
+          requireInteraction: "true",
           userId: String(userId || ""),
           deviceLabel: String(deviceLabel || ""),
         },
@@ -7288,22 +7313,6 @@ app.post("/api/push/test-device", async (req, res) => {
             Urgency: "high",
             TTL: "120",
           },
-          notification: {
-            title: notificationTitle,
-            body: notificationBody,
-            icon: "/ios-icon-192-v6.png",
-            badge: "/ios-icon-192-v6.png",
-            tag: eventId,
-            renotify: true,
-            requireInteraction: true,
-            data: {
-              url: targetUrl,
-              eventId,
-              parentEventId: eventId,
-              notificationTag: eventId,
-              alertType: "admin_device_test",
-            },
-          },
           fcmOptions: {
             link: targetUrl,
           },
@@ -7311,6 +7320,14 @@ app.post("/api/push/test-device", async (req, res) => {
       };
 
       const responseId = await admin.messaging().send(message as any);
+      console.log("[PUSH TEST DEVICE SENT]", {
+        email: tokenRecord?.userEmail || null,
+        active: tokenRecord?.active,
+        permission: tokenPermission || null,
+        platform: tokenRecord?.platform || tokenRecord?.deviceType || null,
+        tokenDocId: tokenRecord?.tokenDocId ? String(tokenRecord.tokenDocId).slice(0, 16) : null,
+        responseId,
+      });
 
       try {
         await db.collection("pushEvents").doc(eventId).set(removeUndefinedDeep({
@@ -8261,15 +8278,25 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const tokenRef = db.collection("pushTokens").doc(token);
         const tokenDoc = await tokenRef.get();
 
-        const normalizedUserEmail = String(userEmail || "").trim().toLowerCase();
-        const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
-        const permissionDenied = String(notificationPermission || "").trim().toLowerCase() === "denied";
         const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+        const identity = resolvePushTokenIdentity({ userId, userEmail, userName, userRole }, existingTokenData);
+        const normalizedUserEmail = identity.userEmail || "";
+        const permissionDenied = normalizeNotificationPermission(notificationPermission) === "denied";
+        const authorization = describePushTokenAuthorization({
+          userEmail: normalizedUserEmail,
+          permissionDenied,
+          allowed: ALLOWED_PUSH_RECIPIENT_EMAILS,
+        });
+        const recipientAuthorized = authorization.recipientAuthorized;
 
-        // Never revive a token that was already retired/replaced. Firebase can keep an
-        // invalid token in its browser cache; this signal makes the client delete that
-        // cached registration and mint a new token during the same refresh.
-        if (tokenDoc.exists && existingTokenData.active === false && recipientAuthorized && !permissionDenied) {
+        // Never revive a token that was rejected by FCM or superseded by a newer token.
+        // Tokens that were only inactive because the recipient allow-list was too narrow
+        // are allowed to come back once the account is approved.
+        if (shouldRequirePushTokenRenewal(existingTokenData, {
+          exists: Boolean(tokenDoc.exists),
+          recipientAuthorized,
+          permissionDenied,
+        })) {
           await tokenRef.set(removeUndefinedDeep({
             lastRenewalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
             lastRenewalRequestedByUserId: userId || null,
@@ -8287,10 +8314,10 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           token,
           tokenHash,
           deviceId: deviceId || null,
-          userId: userId || null,
-          userEmail: userEmail || null,
-          userName: userName || null,
-          userRole: userRole || null,
+          userId: identity.userId,
+          userEmail: identity.userEmail,
+          userName: identity.userName,
+          userRole: identity.userRole,
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
           userAgent: ua,
@@ -8307,7 +8334,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
           isIOS,
           isSafariLike,
           isProbablyPwa,
-          active: recipientAuthorized && !permissionDenied,
+          active: authorization.active,
           recipientAuthorized,
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
@@ -8338,9 +8365,29 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
             console.warn("[PUSH] Could not retire older token for this device:", cleanupError?.message || cleanupError);
           }
         }
+
+        // Report the stored verdict instead of a bare success. A token saved with
+        // active:false can never receive a push, and answering {success:true} here is
+        // what made an earlier outage invisible: the UI kept showing "notifications
+        // enabled" for accounts that had been dropped from the allow-list.
+        if (!authorization.active) {
+          console.warn("[PUSH SAVE-TOKEN NOT DELIVERABLE]", {
+            email: normalizedUserEmail || null,
+            code: authorization.code,
+            tokenHash: tokenHash.slice(0, 16),
+          });
+          return res.json({
+            success: true,
+            active: false,
+            deliverable: false,
+            recipientAuthorized,
+            code: authorization.code,
+            warning: authorization.message,
+          });
+        }
       }
 
-      return res.json({ success: true });
+      return res.json({ success: true, active: true, deliverable: true, recipientAuthorized: true });
     } catch (error: any) {
       if (!String(error).includes("PERMISSION_DENIED")) console.error("save-token error:", error);
       return res.status(500).json({
@@ -8376,36 +8423,7 @@ function shouldRenotifyPush(alertType: string) {
 }
 
 
-type PushTokenRecordForArchive = {
-  token: string;
-  tokenDocId: string;
-  userId?: string;
-  userName?: string;
-  userEmail?: string;
-  userRole?: string;
-  deviceId?: string;
-  deviceLabel?: string;
-  platform?: string;
-  deviceType?: string;
-  browser?: string;
-  permission?: string;
-  notificationPermission?: string;
-  active?: boolean;
-  updatedAtMs?: number;
-};
-
-const DEFAULT_PUSH_RECIPIENT_EMAILS = [
-  "volcanokw@gmail.com",
-  "mfq241188@gmail.com",
-  "omaralawadhi67@gmail.com",
-];
-
-const ALLOWED_PUSH_RECIPIENT_EMAILS = new Set(
-  String(process.env.PUSH_ALLOWED_RECIPIENT_EMAILS || DEFAULT_PUSH_RECIPIENT_EMAILS.join(","))
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean),
-);
+const ALLOWED_PUSH_RECIPIENT_EMAILS = buildAllowedRecipientEmails(process.env.PUSH_ALLOWED_RECIPIENT_EMAILS);
 
 function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
   const data = (doc?.data && typeof doc.data === "function") ? (doc.data() || {}) : (doc || {});
@@ -8430,36 +8448,19 @@ function normalizePushTokenRecord(doc: any): PushTokenRecordForArchive | null {
     permission: data.permission ? String(data.permission) : undefined,
     notificationPermission: data.notificationPermission ? String(data.notificationPermission) : undefined,
     active: data.active === undefined ? undefined : Boolean(data.active),
+    invalidReason: data.invalidReason ? String(data.invalidReason) : undefined,
     updatedAtMs,
   };
 }
 
 function pushRecordIsAllowedRecipient(record?: PushTokenRecordForArchive | null) {
-  const email = String(record?.userEmail || "").trim().toLowerCase();
-  return Boolean(email && ALLOWED_PUSH_RECIPIENT_EMAILS.has(email));
+  return pushRecordIsAllowedRecipientFor(record, ALLOWED_PUSH_RECIPIENT_EMAILS);
 }
 
-// Keep every approved, healthy device. Device-level de-duplication happens before
-// this filter; collapsing again by email used to select one stale token and silently
-// exclude another healthy phone/browser belonging to the same account.
 function selectAllowedPushRecipientRecords(records: PushTokenRecordForArchive[]) {
-  const uniqueByToken = new Map<string, PushTokenRecordForArchive>();
-
-  for (const record of records) {
-    const email = String(record.userEmail || "").trim().toLowerCase();
-    const permission = String(record.notificationPermission || record.permission || "").trim().toLowerCase();
-    if (!ALLOWED_PUSH_RECIPIENT_EMAILS.has(email) || record.active === false || permission === "denied") continue;
-
-    const current = uniqueByToken.get(record.token);
-    if (!current || Number(record.updatedAtMs || 0) > Number(current.updatedAtMs || 0)) {
-      uniqueByToken.set(record.token, record);
-    }
-  }
-
-  const selected = [...uniqueByToken.values()];
-  const removed = records.length - selected.length;
-  if (removed > 0) {
-    console.log(`[PUSH] Selected ${selected.length} approved device(s); skipped ${removed} stale, duplicate or unauthorized registration(s).`);
+  const { selected, skipped } = selectAllowedPushRecipientRecordsFor(records, ALLOWED_PUSH_RECIPIENT_EMAILS);
+  if (skipped > 0) {
+    console.log(`[PUSH] Selected ${selected.length} approved device(s); skipped ${skipped} stale, duplicate or unauthorized registration(s).`);
   }
   return selected;
 }

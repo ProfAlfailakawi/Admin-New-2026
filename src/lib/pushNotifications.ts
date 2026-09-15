@@ -22,7 +22,7 @@ type PushRegistrationOptions = {
   restaurantId?: string;
 };
 
-function getStablePushDeviceId() {
+export function getStablePushDeviceId() {
   try {
     const existing = window.localStorage.getItem(PUSH_DEVICE_ID_STORAGE_KEY);
     if (existing) return existing;
@@ -321,6 +321,13 @@ async function saveTokenToServer(token: string, options?: PushRegistrationOption
     throw new Error(data?.error || "فشل حفظ التوكن في الخادم");
   }
 
+  // The server stores a token it cannot deliver to (unapproved recipient, denied
+  // permission) and says so explicitly. Treat that as a failure here: reporting success
+  // for a token that can never receive a push is what kept an earlier outage invisible.
+  if (data?.deliverable === false) {
+    throw new Error(data?.warning || "لا يمكن توصيل الإشعارات إلى هذا الحساب على هذا الجهاز");
+  }
+
   return data;
 }
 
@@ -330,9 +337,22 @@ async function getMessagingToken(
   forceRenew = false,
 ) {
   if (forceRenew) {
-    await deleteToken(messaging).catch((error) => {
-      console.warn("[Push] Could not delete cached token before renewal:", error);
+    // Bind Firebase to this registration before deletion; otherwise it may use
+    // its default worker scope instead of the application's root worker.
+    const previousToken = await getToken(messaging, {
+      vapidKey: FALLBACK_VAPID_KEY,
+      serviceWorkerRegistration: registration,
     });
+    const deleted = await deleteToken(messaging);
+    if (!deleted) throw new Error("تعذر حذف اشتراك الإشعارات القديم");
+    const replacement = await getToken(messaging, {
+      vapidKey: FALLBACK_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+    if (!replacement || replacement === previousToken) {
+      throw new Error("لم يتم إنشاء اشتراك جديد للإشعارات؛ لم يكتمل الإصلاح");
+    }
+    return replacement;
   }
 
   try {
