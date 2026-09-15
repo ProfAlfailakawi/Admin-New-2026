@@ -24,6 +24,11 @@ import {
   shouldRequirePushTokenRenewal,
   type PushTokenRecordForArchive,
 } from './src/lib/pushRecipients.ts';
+import {
+  alertLockDocId,
+  isDuplicateAlertSend,
+  semanticAlertKey,
+} from './src/lib/pushAlertIdentity.ts';
 
 let firebaseInitialized = false;
 let db: any = null;
@@ -8399,16 +8404,7 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
   
 function smartNotificationTag(alertType: string, url: string, fallbackEventId: string) {
-  const type = String(alertType || "").toLowerCase();
-  if (!type.includes("payment") && !type.includes("invoice")) return fallbackEventId;
-
-  const text = String(url || "");
-  const invoiceMatch = text.match(/[?&]invoice=([^&#]+)/);
-  const orderMatch = text.match(/[?&]order=([^&#]+)/);
-  const id = decodeURIComponent(invoiceMatch?.[1] || orderMatch?.[1] || "");
-  if (!id) return fallbackEventId;
-
-  return `payment-final-state-${invoiceMatch ? "invoice" : "order"}-${id}`;
+  return semanticAlertKey(alertType, url, fallbackEventId);
 }
 
 function shouldRenotifyPush(alertType: string) {
@@ -8754,6 +8750,48 @@ async function sendSmartAlertPushNotification({
       },
     };
 
+    // One announcement per alert, whichever sender gets here first.
+    //
+    // Senders claim per-sender event ids that embed an "era" read from their own copy of
+    // the record; when those copies disagree about the date the claims miss each other
+    // and the same payment is announced twice. This claim is on the alert's meaning, so
+    // it holds across senders regardless of which copy each one read.
+    const alertLockRef = db.collection("pushAlertLocks").doc(alertLockDocId(normalizedNotificationTag));
+    let alertLockWasWritten = false;
+    try {
+      const lockSnap = await alertLockRef.get();
+      const lastSentAtMs = Number(lockSnap.exists ? (lockSnap.data()?.lastSentAtMs || 0) : 0);
+      if (isDuplicateAlertSend({ alertType: normalizedAlertType, lastSentAtMs, nowMs: Date.now() })) {
+        console.log("[PUSH] Duplicate alert suppressed at the source", {
+          notificationTag: normalizedNotificationTag,
+          alertType: normalizedAlertType,
+          eventId: normalizedEventId,
+          lastSentAtMs,
+        });
+        return {
+          success: true,
+          duplicateSuppressed: true,
+          successCount: 0,
+          failureCount: 0,
+          tokensCount: tokenRecords.length,
+          notificationTag: normalizedNotificationTag,
+        };
+      }
+      // Written before the send: two senders racing here must not both get through.
+      await alertLockRef.set({
+        notificationTag: normalizedNotificationTag,
+        alertType: normalizedAlertType,
+        lastEventId: normalizedEventId,
+        lastSentAtMs: Date.now(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+      alertLockWasWritten = true;
+    } catch (lockError: any) {
+      // The lock is a duplicate guard, never a delivery gate: if it cannot be read or
+      // written, send anyway. A duplicate is a nuisance; a missing payment alert is not.
+      console.warn("[PUSH] Alert lock unavailable; sending without it:", lockError?.message || lockError);
+    }
+
     const tokenBatches: PushTokenRecordForArchive[][] = [];
     for (let i = 0; i < tokenRecords.length; i += 500) tokenBatches.push(tokenRecords.slice(i, i + 500));
     const batchResponses = await Promise.all(
@@ -8768,6 +8806,14 @@ async function sendSmartAlertPushNotification({
       failureCount: batchResponses.reduce((sum, item) => sum + item.response.failureCount, 0),
       responses: batchResponses.flatMap((item) => item.response.responses),
     };
+
+    // A claim must not suppress an alert that no device accepted. Releasing it lets the
+    // next sender — or the next sweep — announce the payment instead of going silent.
+    if (alertLockWasWritten && response.successCount === 0) {
+      await alertLockRef.delete().catch((error: any) => {
+        console.warn("[PUSH] Could not release the alert lock after a failed send:", error?.message || error);
+      });
+    }
 
     if (response.failureCount > 0) {
       const batch = db.batch();
