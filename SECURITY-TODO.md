@@ -1,5 +1,64 @@
 # SECURITY-TODO — إصلاحات مؤجّلة تحتاج موافقة المالك
 
+---
+
+## جولة تدقيق أمني (2026-09-17) — Security audit pass
+
+### A) ثغرات تم إصلاحها (FIXED — safe, surgical, backwards-compatible)
+
+**A1. Stored XSS في طباعة/مشاركة الفاتورة — HIGH**
+- الملفات:
+  - `src/lib/printUtils.ts` (`generateInvoiceHTML`، تُكتب عبر `document.write` في
+    `src/components/ReportsPage.tsx:710`).
+  - `src/utils/invoiceShare.ts` (`buildInvoiceHTML`، تُكتب عبر `document.write` في
+    `src/utils/invoiceShare.ts:329`).
+- الوصف: حقول يتحكم بها العميل (اسم العميل، العنوان، اسم المنتج، اسم الإضافة،
+  ملاحظات الصنف) كانت تُدرَج مباشرةً في HTML دون أي هروب (escaping)، ثم يُكتب هذا
+  الـHTML في نافذة طباعة عبر `document.write` بنفس الأصل (same-origin) الخاص
+  بلوحة الأدمن. عميل خبيث يضع مثلاً `<img src=x onerror=...>` أو `<script>` في اسمه
+  أو ملاحظته → يُنفَّذ السكربت في سياق الأدمن عند طباعة/مشاركة الفاتورة (stored XSS).
+- الإصلاح: أُضيفت دالة `esc()` تهرّب `& < > " '` وطُبِّقت على الحقول التي يتحكم
+  بها المستخدم فقط (customerName, customerPhone, address, item name, addon name,
+  item notes). لم تُمَسّ الحقول الرقمية/القانونية/الحالة. لا يتغير أي سلوك للمدخلات
+  المشروعة (الأسماء العادية لا تحتوي على هذه الرموز). رسائل واتساب النصية لم تُمَسّ
+  (نص وليس HTML).
+
+### B) ثغرات موثّقة ومتروكة للمالك (LEFT — need owner decision)
+
+**B1. نقاط `/api/smart-studio/*` بلا مصادقة — MEDIUM (auth gap + AI cost abuse)**
+- الملف: `server.ts` (تعريفات المسارات ~`11165`–`12166`).
+- الوصف: مسارات `/api/ai/*` محميّة عبر `app.use("/api/ai", waRequireConsoleAuth)`
+  (`server.ts:10345`)، لكن مسارات `/api/smart-studio/*` (generate, generate-from-text,
+  generate-reel, reality-audit, reel-quality-audit, live-director, recommend-scene,
+  text-ideas, caption, social-simulator) **ليست محميّة** بأي مصادقة. أي شخص يعرف
+  الرابط يمكنه استدعاء توليد الصور/الفيديو بالذكاء الاصطناعي (استهلاك مكلف).
+- سبب الترك: الواجهة الأمامية (SmartContentStudio.tsx, ReviewToPoster.tsx,
+  RealtimeRadar.tsx, AdaptiveBranding.tsx) **لا ترسل حالياً ترويسة `Authorization`
+  لهذه المسارات**. إضافة الحارس على الخادم فقط ستكسر ميزة الاستوديو الذكي لكل
+  الأدمن الشرعيين. الإصلاح الصحيح يتطلب تعديلاً متزامناً على الخادم + كل مواضع
+  الـfetch في الواجهة، وهو أوسع من تغيير جراحي آمن في هذه الجولة.
+- الإصلاح الموصى به: إضافة `app.use("/api/smart-studio", waRequireConsoleAuth);`
+  (مطابقة لنمط `/api/ai`)، **مع** تعديل كل نداءات fetch في الواجهة لإرفاق
+  `Authorization: Bearer ${await auth.currentUser?.getIdToken()}`. يُنفَّذ ويُختبر
+  في بيئة اختبار قبل الإنتاج.
+
+**B2. قواعد التخزين — `products` مفتوحة لأي مستخدم مُصادَق — LOW/MEDIUM**
+- الملف: `storage.rules`.
+- الوصف: `match /products/{allPaths=**} { allow write: if request.auth != null; }`
+  تسمح لأي حساب مُصادَق (وليس أدمن فقط) بالكتابة/الرفع إلى مسار المنتجات.
+- سبب الترك: ملف `storage.rules` **لا يعرّف** أي دالة تحقّق «أدمن فقط»، وتضييق
+  القاعدة دون دالة مثبتة قد يمنع رفعاً مشروعاً. حسب تعليمات المالك: يُترك ويُوثّق.
+- الإصلاح الموصى به: تعريف دالة تتحقق من UID/إيميل الأدمن (كما في `firestore.rules`)
+  واستبدال `request.auth != null` بها، بعد التأكد أن الرفع المشروع يتم بحساب أدمن.
+
+**ملاحظة تحقّق:** نقطة `/api/admin-dashboard-data` (`server.ts:6520`) بلا حارس
+مصادقة إلزامي، **لكنها آمنة**: تحجب أرقام هواتف العملاء لغير الأدمن عبر
+`waIsConsoleAuthed` + `waRedactPhonesDeep` (`server.ts:6655`)، فلا تسرّب PII. لم
+تُعدَّل. نقاط `/api/debug/*` و`/api/push/*` الحساسة محميّة مسبقاً بـ`ADMIN_TEST_SECRET`
+(fail-closed) ولم تُمَسّ (منطق الإشعارات مستثنى بأمر المالك).
+
+---
+
 هذه القائمة تسجيلية فقط. **لم يُطبَّق أي إصلاح** على منطق الدفع أو القواعد
 أو نقاط الـAPI أو المصادقة في هذه الجولة. جولة التنظيف اقتصرت على حذف الملفات
 الميتة والمكرّرة والبيانات الشخصية من شجرة العمل. البنود أدناه تحتاج قراراً

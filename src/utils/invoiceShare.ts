@@ -33,6 +33,16 @@ const clean = (value: any) => {
   return String(value).trim();
 };
 
+// Escape HTML metacharacters for customer-supplied fields before they are written
+// into a print/share window via document.write. Prevents stored XSS from order data.
+const esc = (value: any) =>
+  clean(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const formatKwd = (value: any) => `${toEnglishDigits(Number(value || 0).toFixed(3))} د.ك`;
 
 const getOrderAddress = (order: any) => {
@@ -180,16 +190,16 @@ const buildInvoiceHTML = (order: any, products: any[] = []) => {
   const status = getInvoiceStatus(order);
   const normalizedStatus = String(status || '').toLowerCase();
   const statusClass = normalizedStatus.includes('pending') || String(status).includes('انتظار') ? 'pending-status' : normalizedStatus.includes('paid') || String(status).includes('مدفوع') || String(status).includes('مدفوعة') || String(status).includes('تم الدفع') ? 'paid-status' : 'other-status';
-  const customerName = clean(order?.customerName || order?.name) || 'عميل';
-  const customerPhone = clean(order?.customerPhone || order?.phone);
-  const address = getOrderAddress(order) || 'غير محدد';
+  const customerName = esc(clean(order?.customerName || order?.name) || 'عميل');
+  const customerPhone = esc(clean(order?.customerPhone || order?.phone));
+  const address = esc(getOrderAddress(order) || 'غير محدد');
 
   let productsSubtotal = 0;
   let addonsSubtotal = 0;
 
   const itemsHtml = ((order as any).items || []).map((item: any, index: number) => {
     const product = products.find(p => p.id === item.productId) || item.product || {};
-    const name = clean(item.name || item.productName || product.name) || 'منتج غير معروف';
+    const name = esc(clean(item.name || item.productName || product.name) || 'منتج غير معروف');
     const qty = Number(item.quantity || 1);
     const unitPrice = Number(item.priceAtTime ?? item.price ?? product.price ?? 0);
     const productTotal = unitPrice * qty;
@@ -197,7 +207,7 @@ const buildInvoiceHTML = (order: any, products: any[] = []) => {
 
     const addons = normalizeOrderAddons(item);
     const addonsHtml = addons.map((addon: any) => {
-      const addonName = clean(addon?.name || addon?.title || addon?.label);
+      const addonName = esc(clean(addon?.name || addon?.title || addon?.label));
       const addonQty = getAddonQty(addon, qty);
       const addonTotal = getAddonTotal(addon, qty);
       if (!addonName || addonQty <= 0) return '';
@@ -214,7 +224,7 @@ const buildInvoiceHTML = (order: any, products: any[] = []) => {
         <td class="product-cell">
           <div class="product-name"><span class="item-number">${index + 1}.</span> ${name}</div>
           ${addonsHtml ? `<div class="addons-wrap">${addonsHtml}</div>` : ''}
-          ${item.itemNotes || item.note ? `<div class="item-note">${item.itemNotes || item.note}</div>` : ''}
+          ${item.itemNotes || item.note ? `<div class="item-note">${esc(item.itemNotes || item.note)}</div>` : ''}
         </td>
         <td class="center">${toEnglishDigits(qty)}</td>
         <td class="money">${formatKwd(unitPrice)}</td>

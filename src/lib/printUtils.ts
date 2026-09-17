@@ -11,6 +11,17 @@ const clean = (value: any) => {
   return String(value).trim();
 };
 
+// Escape HTML metacharacters so customer-supplied fields (name, address, item
+// notes) cannot inject markup/script when this HTML is written into a print
+// window via document.write. Prevents stored XSS from malicious order data.
+const esc = (value: any) =>
+  clean(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const formatAddress = (address: any, fallback?: string) => {
   if (!address || address === 'غير محدد') return clean(fallback) || 'غير محدد';
 
@@ -68,16 +79,16 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
   const status = (invoice as any).paymentStatus || (invoice as any).status || 'مدفوعة';
   const normalizedStatus = String(status || '').toLowerCase();
   const statusClass = normalizedStatus.includes('pending') || normalizedStatus.includes('انتظار') ? 'pending-status' : normalizedStatus.includes('paid') || String(status).includes('مدفوع') || String(status).includes('مدفوعة') ? 'paid-status' : 'other-status';
-  const customerName = clean(customer?.name || (invoice as any).customerName) || 'عميل';
-  const customerPhone = clean(customer?.phone || (invoice as any).customerPhone || (invoice as any).phone);
-  const address = formatAddress((invoice as any).address || customer?.address, (invoice as any).deliveryInfo?.zoneName);
+  const customerName = esc(clean(customer?.name || (invoice as any).customerName) || 'عميل');
+  const customerPhone = esc(clean(customer?.phone || (invoice as any).customerPhone || (invoice as any).phone));
+  const address = esc(formatAddress((invoice as any).address || customer?.address, (invoice as any).deliveryInfo?.zoneName));
 
   let productsSubtotal = 0;
   let addonsSubtotal = 0;
 
   const itemsHtml = ((invoice as any).items || []).map((item: any, index: number) => {
     const product = products.find(p => p.id === item.productId) || {};
-    const name = clean(item.name || item.productName || product.name) || 'منتج غير معروف';
+    const name = esc(clean(item.name || item.productName || product.name) || 'منتج غير معروف');
     const qty = Number(item.quantity || 1);
     const unitPrice = Number(item.priceAtTime ?? item.price ?? product.price ?? 0);
     const productTotal = unitPrice * qty;
@@ -90,7 +101,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
       : [];
 
     const addonsHtml = addons.map((addon: any) => {
-      const addonName = clean(addon?.name || addon?.title || addon?.label);
+      const addonName = esc(clean(addon?.name || addon?.title || addon?.label));
       const addonQty = getAddonQty(addon, qty);
       const addonTotal = getAddonTotal(addon, qty);
       if (!addonName || addonQty <= 0 || addonTotal <= 0) return '';
@@ -108,7 +119,7 @@ export function generateInvoiceHTML(invoice: Invoice, data: AppState): string {
         <td class="product-cell">
           <div class="product-name"><span class="item-number">${index + 1}.</span> ${name}</div>
           ${addonsHtml ? `<div class="addons-wrap">${addonsHtml}</div>` : ''}
-          ${item.itemNotes ? `<div class="item-note">${item.itemNotes}</div>` : ''}
+          ${item.itemNotes ? `<div class="item-note">${esc(item.itemNotes)}</div>` : ''}
         </td>
         <td class="center">${qty}</td>
         <td class="money">${fmt(unitPrice)}</td>
