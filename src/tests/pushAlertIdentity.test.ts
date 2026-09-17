@@ -116,3 +116,62 @@ describe('the lock document id', () => {
     expect(alertLockDocId('///')).toBe('___');
   });
 });
+
+// ---------------------------------------------------------------------------------
+// Regression, 2026-09-17: the 10-minute "not paid yet" reminders arrived beautifully,
+// and the payment confirmation that followed never did. The lock was keyed on the
+// invoice alone, and every sender stamped it — so the reminder's stamp, minutes old,
+// made the paid alert judge itself a duplicate and go silent.
+// ---------------------------------------------------------------------------------
+
+import { alertAnnouncementKey, alertStage } from '../lib/pushAlertIdentity';
+
+describe('a reminder must never silence the confirmation that follows it', () => {
+  const TAG = 'payment-final-state-invoice-INV-7001';
+
+  it('gives the unpaid reminder and the paid alert different announcement identities', () => {
+    expect(alertAnnouncementKey('invoice_pending_immediate', TAG))
+      .not.toBe(alertAnnouncementKey('invoice_paid', TAG));
+    expect(alertAnnouncementKey('payment_pending_10min', TAG))
+      .not.toBe(alertAnnouncementKey('payment_paid', TAG));
+  });
+
+  it('replays the production sequence: pending → 10min → paid, with the paid alert delivered', () => {
+    // The lock store as the server drives it: read your own stage's stamp, and stamp
+    // only when your stage has a suppression window.
+    const locks = new Map<string, number>();
+    const send = (alertType: string, nowMs: number): boolean => {
+      const key = alertAnnouncementKey(alertType, TAG);
+      const engaged = duplicateSuppressionWindowMs(alertType) > 0;
+      if (engaged && isDuplicateAlertSend({ alertType, lastSentAtMs: locks.get(key) ?? 0, nowMs })) return false;
+      if (engaged) locks.set(key, nowMs);
+      return true;
+    };
+
+    const t0 = 1_800_000_000_000;
+    expect(send('invoice_pending_immediate', t0)).toBe(true);          // reminder: delivered
+    expect(send('payment_pending_10min', t0 + 10 * 60_000)).toBe(true); // 10min: delivered
+    expect(send('invoice_paid', t0 + 14 * 60_000)).toBe(true);          // THE PAYMENT: delivered
+    expect(send('invoice_paid', t0 + 15 * 60_000)).toBe(false);         // duplicate paid: suppressed
+  });
+
+  it('a failed attempt must not silence the successful retry either', () => {
+    expect(alertAnnouncementKey('invoice_payment_failed', TAG))
+      .not.toBe(alertAnnouncementKey('invoice_paid', TAG));
+  });
+
+  it('still collapses the two senders of one paid alert onto one identity', () => {
+    // The INV-5109 duplicate stays fixed: paid, captured and success are one stage.
+    expect(alertAnnouncementKey('invoice_paid', TAG)).toBe(alertAnnouncementKey('payment_captured', TAG));
+    expect(alertAnnouncementKey('invoice_paid', TAG)).toBe(alertAnnouncementKey('payment_success', TAG));
+  });
+
+  it('classifies stages exactly as the service worker does', () => {
+    expect(alertStage('payment_pending_10min')).toBe('pending-followup');
+    expect(alertStage('payment_pending_30min')).toBe('pending-followup');
+    expect(alertStage('invoice_pending_immediate')).toBe('pending-initial');
+    expect(alertStage('invoice_payment_failed')).toBe('failed');
+    expect(alertStage('invoice_paid')).toBe('paid');
+    expect(alertStage('admin_device_test')).toBe('admin_device_test');
+  });
+});
