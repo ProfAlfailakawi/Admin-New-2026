@@ -90,6 +90,37 @@ export function isDuplicateAlertSend(context: {
   return elapsed < window;
 }
 
+/**
+ * The stage of the payment story an alert belongs to. Mirrors the service worker's own
+ * pushDedupeKey classification, so the server and the device agree on what counts as
+ * "the same announcement".
+ *
+ * This exists because the lock was first keyed on the invoice alone, and every sender
+ * stamps the lock: a "not paid yet" reminder stamped it minutes before the customer
+ * paid, and the paid alert then read that stamp as "already announced" and silenced
+ * itself. The reminders arrived beautifully; the one alert that mattered never did.
+ * An unpaid reminder and a payment confirmation are different announcements about the
+ * same invoice — they must never share a lock.
+ */
+export function alertStage(alertType: string): string {
+  const type = String(alertType || "general").toLowerCase();
+  if (type.includes("pending") && (type.includes("10min") || type.includes("30min"))) return "pending-followup";
+  if (type.includes("pending")) return "pending-initial";
+  if (type.includes("failed")) return "failed";
+  if (type.includes("paid") || type.includes("captured") || type.includes("success")) return "paid";
+  return type;
+}
+
+/**
+ * The identity of one announcement: which invoice AND which stage of its story.
+ * Keying on the invoice alone lets any stage silence any other; keying on both keeps
+ * "announce each payment once" without ever letting a reminder swallow a confirmation
+ * — or a failed attempt swallow the successful retry that follows it.
+ */
+export function alertAnnouncementKey(alertType: string, semanticKey: string): string {
+  return `${semanticKey}::${alertStage(alertType)}`;
+}
+
 /** Firestore document ids cannot contain "/" and must stay short. */
 export function alertLockDocId(semanticKey: string): string {
   return String(semanticKey || "unknown")

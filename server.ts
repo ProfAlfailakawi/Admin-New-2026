@@ -25,7 +25,9 @@ import {
   type PushTokenRecordForArchive,
 } from './src/lib/pushRecipients.ts';
 import {
+  alertAnnouncementKey,
   alertLockDocId,
+  duplicateSuppressionWindowMs,
   isDuplicateAlertSend,
   semanticAlertKey,
 } from './src/lib/pushAlertIdentity.ts';
@@ -8756,9 +8758,18 @@ async function sendSmartAlertPushNotification({
     // the record; when those copies disagree about the date the claims miss each other
     // and the same payment is announced twice. This claim is on the alert's meaning, so
     // it holds across senders regardless of which copy each one read.
-    const alertLockRef = db.collection("pushAlertLocks").doc(alertLockDocId(normalizedNotificationTag));
+    // Keyed on (invoice, stage), never the invoice alone: an unpaid reminder and a
+    // payment confirmation are different announcements about the same invoice. When the
+    // lock was keyed on the invoice alone, the 10-minute reminder stamped it and the
+    // paid alert minutes later silenced itself against that stamp.
+    const alertLockRef = db.collection("pushAlertLocks").doc(
+      alertLockDocId(alertAnnouncementKey(normalizedAlertType, normalizedNotificationTag)),
+    );
+    // Stages with no suppression window (pending reminders, manual tests) neither read
+    // nor stamp the lock: they must never be suppressed and never suppress anyone else.
+    const alertLockEngaged = duplicateSuppressionWindowMs(normalizedAlertType) > 0;
     let alertLockWasWritten = false;
-    try {
+    if (alertLockEngaged) try {
       const lockSnap = await alertLockRef.get();
       const lastSentAtMs = Number(lockSnap.exists ? (lockSnap.data()?.lastSentAtMs || 0) : 0);
       if (isDuplicateAlertSend({ alertType: normalizedAlertType, lastSentAtMs, nowMs: Date.now() })) {
@@ -8794,13 +8805,25 @@ async function sendSmartAlertPushNotification({
 
     const tokenBatches: PushTokenRecordForArchive[][] = [];
     for (let i = 0; i < tokenRecords.length; i += 500) tokenBatches.push(tokenRecords.slice(i, i + 500));
-    const batchResponses = await Promise.all(
-      tokenBatches.map(async (batchRecords) => ({
-        records: batchRecords,
-        tokens: batchRecords.map(record => record.token),
-        response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchRecords.map(record => record.token) }),
-      }))
-    );
+    let batchResponses;
+    try {
+      batchResponses = await Promise.all(
+        tokenBatches.map(async (batchRecords) => ({
+          records: batchRecords,
+          tokens: batchRecords.map(record => record.token),
+          response: await admin.messaging().sendEachForMulticast({ ...baseMessage, tokens: batchRecords.map(record => record.token) }),
+        }))
+      );
+    } catch (sendError) {
+      // Nothing was confirmed delivered; a claim left behind here would silence the
+      // retry that follows. Release it before surfacing the failure.
+      if (alertLockWasWritten) {
+        await alertLockRef.delete().catch((error: any) => {
+          console.warn("[PUSH] Could not release the alert lock after a send error:", error?.message || error);
+        });
+      }
+      throw sendError;
+    }
     const response = {
       successCount: batchResponses.reduce((sum, item) => sum + item.response.successCount, 0),
       failureCount: batchResponses.reduce((sum, item) => sum + item.response.failureCount, 0),
