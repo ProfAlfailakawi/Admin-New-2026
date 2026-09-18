@@ -138,44 +138,18 @@ async function clearApiCaches(): Promise<void> {
   } catch { /* أفضل جهد */ }
 }
 
-/**
- * عامل رسائل Firebase هو مالك اشتراك الـ Push. إلغاء تسجيله يهدم الاشتراك بينما يبقى
- * التوكن القديم محفوظًا في IndexedDB، فيقبل FCM الإرسال إلى توكن لا يملك اشتراكًا حيًّا
- * ولا يظهر على الجهاز شيء — إشعارات متوقفة بلا أي رسالة خطأ. المسح هنا لقشرة التطبيق
- * فقط؛ عامل الإشعارات لا يُمَسّ.
- */
-export function registrationOwnsPushSubscription(scriptUrls: (string | null | undefined)[]): boolean {
-  return scriptUrls.some((url) => String(url || '').includes('firebase-messaging-sw'));
-}
-
-function workerScriptUrls(registration: ServiceWorkerRegistration): (string | null)[] {
-  return [registration.active, registration.waiting, registration.installing]
-    .map((worker) => worker?.scriptURL || null);
-}
-
-/** ذاكرة إزالة تكرار الإشعارات: مسحها يعيد عرض إشعار سبق عرضه، فنُبقيها. */
-const PUSH_DEDUPE_CACHE_PREFIX = 'alturath-push-dedupe';
-
-/** الـ hard refresh نفسه، منفَّذًا نيابةً عن المستخدم: caches القشرة + إلغاء عاملها وحده. */
+/** الـ hard refresh نفسه، منفَّذًا نيابةً عن المستخدم: كل الـ caches + إلغاء العامل. */
 async function purgeShell(): Promise<void> {
   try {
     if ('caches' in window) {
       const names = await caches.keys();
-      await Promise.all(
-        names
-          .filter((name) => !name.startsWith(PUSH_DEDUPE_CACHE_PREFIX))
-          .map((name) => caches.delete(name)),
-      );
+      await Promise.all(names.map((name) => caches.delete(name)));
     }
   } catch { /* أفضل جهد */ }
   try {
     if ('serviceWorker' in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(
-        registrations
-          .filter((registration) => !registrationOwnsPushSubscription(workerScriptUrls(registration)))
-          .map((registration) => registration.unregister()),
-      );
+      await Promise.all(registrations.map((registration) => registration.unregister()));
     }
   } catch { /* أفضل جهد */ }
 }

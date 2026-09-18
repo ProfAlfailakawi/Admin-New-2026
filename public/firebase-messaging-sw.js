@@ -4,20 +4,6 @@ const PUSH_DEDUPE_CACHE = "alturath-push-dedupe-v1";
 const PUSH_DEDUPE_TTL_MS = 48 * 60 * 60 * 1000;
 const PUSH_IN_FLIGHT_KEYS = new Set();
 
-async function boundedPushOperation(operation, fallback) {
-  let timer;
-  try {
-    return await Promise.race([
-      operation,
-      new Promise((resolve) => { timer = setTimeout(() => resolve(fallback), 250); }),
-    ]);
-  } catch {
-    return fallback;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -220,8 +206,11 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil((async () => {
     try {
-      const alreadyShown = await boundedPushOperation(wasPushAlreadyShown(dedupeKey), false);
+      const alreadyShown = await wasPushAlreadyShown(dedupeKey);
       if (alreadyShown) return;
+
+      const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
+      oldNotifications.forEach((notification) => notification.close());
 
       const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
 
@@ -241,7 +230,7 @@ self.addEventListener("push", (event) => {
 
       // Mark only after the operating system accepted the display. If display fails,
       // a later FCM retry must remain eligible instead of being suppressed for 48h.
-      await boundedPushOperation(rememberPushWasShown(dedupeKey), undefined);
+      await rememberPushWasShown(dedupeKey);
       await sendPushReceiptAck(notificationData, "received");
     } finally {
       PUSH_IN_FLIGHT_KEYS.delete(dedupeKey);
