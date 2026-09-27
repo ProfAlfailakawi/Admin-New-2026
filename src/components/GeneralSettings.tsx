@@ -6009,7 +6009,7 @@ const GeneralSettings: React.FC<Props> = ({
                         />
                         <div className="text-right">
                           <div className="text-xs font-bold font-sans">
-                            تصفير النظام المحلي 🧹
+                            تصفير النظام المحلي
                           </div>
                           <div className="text-[10px] opacity-80">
                             مسح كافة البيانات وإعادة تصفير النظام بالكامل للبدء
@@ -6032,11 +6032,11 @@ const GeneralSettings: React.FC<Props> = ({
                       >
                         <Sparkles
                           size={18}
-                          className="group-hover:rotate-12 transition-transform text-amber-500 animate-pulse"
+                          className="group-hover:rotate-12 transition-transform text-amber-500"
                         />
                         <div className="text-right">
                           <div className="text-xs font-bold font-sans">
-                            تعبئة بيانات تجريبية 🧪
+                            تعبئة بيانات تجريبية
                           </div>
                           <div className="text-[10px] opacity-80">
                             ملء النظام بالبيانات الترويجية والمبيعات الكاملة
@@ -6063,7 +6063,7 @@ const GeneralSettings: React.FC<Props> = ({
                         />
                         <div className="text-right">
                           <div className="text-xs font-bold font-sans">
-                            محاكاة الأداء الأقصى (الآمنة) ⚡️
+                            محاكاة الأداء الأقصى (الآمنة)
                           </div>
                           <div className="text-[10px] opacity-80">
                             تحميل 10,000 طلب و5,000 عميل محلياً لاختبار سرعة واستجابة النظام
@@ -6108,7 +6108,7 @@ const GeneralSettings: React.FC<Props> = ({
                               />
                               <div className="text-right">
                                 <div className="text-xs font-bold font-sans">
-                                  إسترجاع البيانات والملء السريع ⛑️
+                                  إسترجاع البيانات والملء السريع
                                 </div>
                                 <div className="text-[10px] opacity-80">
                                   {hasData
@@ -6271,11 +6271,11 @@ const GeneralSettings: React.FC<Props> = ({
                         <div className="w-20 h-20 bg-indigo-50/80 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
                           <Sparkles
                             size={40}
-                            className="animate-pulse text-indigo-600"
+                            className="text-indigo-600"
                           />
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-4 font-sans text-center">
-                          استرجاع وملء البيانات الطارئ ⛑️
+                          استرجاع وملء البيانات الطارئ
                         </h3>
                         <p className="text-slate-500 font-bold mb-8 leading-relaxed text-sm text-center">
                           يا طويل العمر، هذا الإجراء بيسترجع لك نسخة شاملة من

@@ -26,6 +26,7 @@ import {
   Flame,
   Wallet,
   ReceiptText,
+  ShieldCheck,
   Sparkles,
   BarChart3,
   Truck,
@@ -3461,7 +3462,7 @@ const [isPending, startTransition] = useTransition();
                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                    <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">تأمين الخوارزمية</span>
                                  </div>
-                                 <span className="text-white text-xs font-bold">نشط 🟢</span>
+                                 <span className="text-white text-xs font-bold inline-flex items-center gap-1.5">نشط <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true" /></span>
                                </div>
                              </div>
                            </div>
@@ -3823,7 +3824,7 @@ const [isPending, startTransition] = useTransition();
                           <ShieldAlert size={32} strokeWidth={2.5} />
                         </div>
                         <div className="text-right">
-                          <h3 className="text-xl md:text-2xl font-black text-white mb-1">رادار حماية الأرباح نشط 🛡️</h3>
+                          <h3 className="text-xl md:text-2xl font-black text-white mb-1">رادار حماية الأرباح نشط <ShieldCheck size={14} className="inline-block align-[-2px]" aria-hidden="true" /></h3>
                           <p className="text-slate-400 text-sm font-bold">
                             رصدنا {profitInsights.filter(i => i.riskLevel === 'high').length} منتجات تعاني من "نزيف مالي" صامت. اضغط للمراجعة الفورية.
                           </p>
@@ -4054,7 +4055,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                             )}
                             <p className="mt-4 text-[10px] text-slate-400 font-bold leading-5 text-right">
-                              💡 الرصيد الحالي = فرق معايرة رصيد البنك + مبيعات المنتجات + رسوم التوصيل - الخصومات - المصروفات - دفعات الموردين - عمولات بوابات الدفع. أرقام الفترة تعرض أثر الفلتر فقط، أما التراكمي فيتحرك مع كل عملية جديدة.
+                              <Lightbulb size={14} className="inline-block align-[-2px]" aria-hidden="true" /> الرصيد الحالي = فرق معايرة رصيد البنك + مبيعات المنتجات + رسوم التوصيل - الخصومات - المصروفات - دفعات الموردين - عمولات بوابات الدفع. أرقام الفترة تعرض أثر الفلتر فقط، أما التراكمي فيتحرك مع كل عملية جديدة.
                             </p>
                           </div>
                         </motion.div>
@@ -4516,7 +4517,7 @@ const [isPending, startTransition] = useTransition();
                             <div className="bg-slate-50 p-3 md:p-4 rounded-3xl border border-slate-200/60 mt-6 flex flex-col w-full ">
                               <div>
                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">
-                                  السبب والتحليل 🔍
+                                  السبب والتحليل <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                                 </h5>
                                 <div className="text-lg font-bold text-slate-700 leading-relaxed italic border-r-4 border-indigo-500 pr-4">
                                   <p>{focusedInsight.cause}</p>
@@ -4545,7 +4546,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <div className="space-y-4">
                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">
-                                  تأثيرات حاسمة ⚡
+                                  تأثيرات حاسمة <Zap size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                                 </h5>
                                 <div className="space-y-2">
                                   {focusedInsight.detailedPoints?.map(
@@ -4632,7 +4633,7 @@ const [isPending, startTransition] = useTransition();
                             onClick={() =>
                               toast.info(
                                 "المركز الرئيسي لمعالجة البيانات الاستراتيجية",
-                                { icon: "🤖" },
+                                { icon: <Cpu size={16} /> },
                               )
                             }
                             className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center border border-indigo-400/30 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all cursor-pointer"
@@ -4870,7 +4871,7 @@ const [isPending, startTransition] = useTransition();
                           onClick={() =>
                             toast.info(
                               "التراث الذكي يقوم بتحليل الأرقام الآن لتقديم هذه التوصيات الدقيقة",
-                              { icon: "🧠" },
+                              { icon: <BrainCircuit size={16} /> },
                             )
                           }
                           className="w-12 h-12 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-400/30 cursor-pointer"
@@ -4881,7 +4882,7 @@ const [isPending, startTransition] = useTransition();
                           />
                         </button>
                         <h3 className="text-xl font-bold text-right">
-                          مقترحات التراث الذكي 🧠
+                          مقترحات التراث الذكي <BrainCircuit size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                         </h3>
                       </div>
                       <div className="space-y-3 relative z-10 text-right">
@@ -4976,7 +4977,7 @@ const [isPending, startTransition] = useTransition();
                               onClick={() =>
                                 toast.info(
                                   "التراث الذكي يتوقع زيادة في طلبات السفر قريباً بناءً على الأنماط التاريخية",
-                                  { icon: "✈️" },
+                                  { icon: <Send size={16} /> },
                                 )
                               }
                               className="hover:scale-110 active:scale-95 transition-transform"
@@ -4987,7 +4988,7 @@ const [isPending, startTransition] = useTransition();
                               />
                             </button>
                             <span className="bg-[#fcedce] text-[#b38026] text-[10px] font-bold px-3 py-1 rounded-full">
-                              نبض الكويت 🛰️
+                              نبض الكويت <Activity size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                             </span>
                           </div>
                           <h3 className="text-lg font-bold text-[#4a3f35] mt-2 mb-1 text-right">
@@ -5238,7 +5239,7 @@ const [isPending, startTransition] = useTransition();
                       onClick={() =>
                         toast.info(
                           "يتم استخلاص هؤلاء العملاء بناءً على حجم وتواتر الطلبات",
-                          { icon: "📊" },
+                          { icon: <BarChart3 size={16} /> },
                         )
                       }
                       className="hover:scale-110 active:scale-95 transition-transform"
@@ -5254,7 +5255,7 @@ const [isPending, startTransition] = useTransition();
                       <div
                         onClick={() => {
                           toast.info(`بنحوّلك لملف العميل: ${c.name}...`, {
-                            icon: "🧑‍💼",
+                            icon: <User size={16} />,
                           });
                           if (setDeepLinkData) {
                             setDeepLinkData({ search: c.name });
@@ -5434,7 +5435,7 @@ const [isPending, startTransition] = useTransition();
                             onClick={handleLoyaltyAnalyze}
                             className="bg-rose-500 hover:bg-rose-600 text-white px-5 md:px-10 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-rose-500/20 active:scale-95 transition-all"
                           >
-                            بدء تحليل الولاء 🔍
+                            <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" /> بدء تحليل الولاء
                           </button>
                         </div>
                       )}
@@ -5595,10 +5596,10 @@ const [isPending, startTransition] = useTransition();
                     <div className="bg-white rounded-2xl p-3 md:p-4 border border-[#f0e6d2] shadow-sm flex flex-col gap-3 md:p-4 md:gap-4 md:p-3">
                       <div className="flex flex-col justify-between items-center gap-4 flex-row-reverse text-center sm:text-right">
                         <h3 className="font-bold text-lg md:text-xl text-slate-800">
-                          تحليل نبض العملاء 🛰️
+                          تحليل نبض العملاء <Activity size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                         </h3>
                         <div className="text-[10px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 w-full w-full">
-                          محلل التراث الذكي مفعّل ✅
+                          محلل التراث الذكي مفعّل <CheckCircle2 size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                         </div>
                       </div>
 
@@ -5624,7 +5625,7 @@ const [isPending, startTransition] = useTransition();
                                     className="animate-spin"
                                   />
                                 ) : (
-                                  "تحليل النبض الفوري 🔍"
+                                  "تحليل النبض الفوري"
                                 )}
                               </button>
                               <button
