@@ -1,0 +1,49 @@
+/* DNA theme for Alturath admin: maps --dna-* tokens to the site palette
+   (deep green #0f3d1f single accent, cream #fbf7ee canvas) and neutralises
+   legacy global rules that would distort the kit. Loaded after index.css. */
+:root {
+  --dna-canvas: #fbf7ee;
+  --dna-surface: #ffffff;
+  --dna-surface-2: #f8f4ea;
+  --dna-ink: #14231a;
+  --dna-muted: #5f6b63;
+  --dna-line: rgba(20, 35, 26, 0.09);
+  --dna-line-2: rgba(20, 35, 26, 0.16);
+  --dna-accent: var(--color-secondary, #0f3d1f);
+  --dna-accent-soft: #e3ece5;
+  --dna-on-accent: #ffffff;
+  --dna-core: #0f3d1f;
+  --dna-on-core: #ffffff;
+}
+
+/* Cream canvas */
+body {
+  background-color: var(--dna-canvas) !important;
+}
+
+/* Legacy globals vs kit ---------------------------------------------- */
+/* global button min-height / lift / transitions */
+.dna button,
+button.dna-btn,
+button.dna-btnp,
+button.dna-ibtn,
+button.dna-segb {
+  transform: none;
+}
+.dna button:hover,
+.dna button:active {
+  transform: none !important;
+}
+/* forced icon sizes/strokes (index.css .admin-heritage-shell .lucide, svg rules) */
+.admin-heritage-shell .dna .lucide,
+.dna .lucide {
+  stroke-width: 1.6 !important;
+}
+/* [class*="empty"] wildcard (index.css) must not paint kit elements */
+.dna[class*='empty'],
+.dna [class*='empty'] {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
