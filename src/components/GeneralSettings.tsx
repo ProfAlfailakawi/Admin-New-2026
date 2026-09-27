@@ -4772,7 +4772,7 @@ const GeneralSettings: React.FC<Props> = ({
                           toast.info("فحص كأني عميل", { description: verdict });
                         };
                         return (
-                          <div className="space-y-4 rounded-[2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900">
+                          <div className="push-radar-light space-y-4 rounded-[2rem] bg-slate-950 p-3 sm:p-4 shadow-2xl border border-slate-900">
                             <div className="rounded-[1.8rem] border border-emerald-300/15 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 p-4 md:p-5 text-white shadow-xl overflow-hidden relative">
                               <div className="absolute -left-12 -top-12 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
                               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

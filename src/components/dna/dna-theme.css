@@ -101,3 +101,63 @@ button.dna-segb {
 .wa-bridge-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
 .wa-bridge-meta b { color: var(--dna-ink); font-weight: 800; }
 .bi-engine-hub .dna-hubn { gap: 4px; }
+
+/* Push radar: the outer dark "radar" shell and its panels drawn light (scoped, visual only). */
+.push-health-pro .push-radar-light.push-radar-light,
+.push-radar-light.push-radar-light {
+  background: var(--dna-surface-2) !important;
+  border: 1px solid var(--dna-line) !important;
+  box-shadow: none !important;
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is(.bg-slate-950, [class*='bg-slate-950/'], [class*='bg-slate-900'], .bg-gradient-to-br) {
+  background: var(--dna-surface) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: var(--dna-shadow) !important;
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='bg-white/5'], [class*='bg-white/10'], [class*='bg-white/14'], [class*='bg-white/15'], [class*='bg-black/']) {
+  background: var(--dna-surface-2) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: none !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='border-white/'], [class*='border-slate-700'], [class*='border-emerald-300/'], [class*='border-amber-300/']) {
+  border-color: var(--dna-line) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is(.text-white, [class~='text-white']) {
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light [class*='text-white/'] {
+  color: var(--dna-muted) !important;
+  opacity: 1 !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-emerald-100'], [class*='text-emerald-200'], [class*='text-emerald-300']) {
+  color: var(--dna-accent) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-amber-100'], [class*='text-amber-200'], [class*='text-amber-300']) {
+  color: var(--dna-warn) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-rose-100'], [class*='text-rose-300']) {
+  color: var(--dna-danger) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light [class*='blur-3xl'] {
+  display: none !important;
+}
+.push-health-pro .push-radar-light.push-radar-light input {
+  background: var(--dna-surface) !important;
+  color: var(--dna-ink) !important;
+  border-color: var(--dna-line-2) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light input::placeholder {
+  color: var(--dna-muted) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light button:is(.bg-white, [class*='bg-white/']) {
+  background: var(--dna-surface) !important;
+  color: var(--dna-ink) !important;
+  border: 1px solid var(--dna-line-2) !important;
+}
+.wa-hub-wrap { min-inline-size: 0; }
+@media (max-width: 520px) {
+  .wa-hub-wrap .dna-hubl { font-size: 11px; }
+  .wa-hub-wrap .dna-hubcap { inset-inline-start: 16px; inset-inline-end: 16px; }
+}
