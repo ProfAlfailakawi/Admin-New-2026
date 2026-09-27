@@ -1492,7 +1492,7 @@ const MainApp: React.FC = () => {
     verify();
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === 'visible') verify();
-    }, 60_000); // focus/online/visibility still verify instantly; 5s polling was the bulk of Cloud Run requests
+    }, 5_000); // keep at 5s: slowing it to 60s (Sep 24) is when push notifications stopped arriving
 
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', markOffline);
@@ -2189,7 +2189,7 @@ const MainApp: React.FC = () => {
       }
     };
 
-    const intervalId = setInterval(checkPendingPayments, 30000); // was 8s; KNet reconciliation within 30s is enough
+    const intervalId = setInterval(checkPendingPayments, 8000); // keep at 8s: see the 5s cloud probe note above
     // Also run once shortly after mount/auth.
     const timeoutId = setTimeout(checkPendingPayments, 800);
     
