@@ -1449,12 +1449,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 key: kind,
                 icon: ({ anger: <Flame />, payment: <CreditCard />, delivery: <Truck />, waiting: <Clock /> } as Record<UrgentReplyKind, React.ReactNode>)[kind],
                 tone: ({ anger: 'coral', payment: 'mint', delivery: 'sky', waiting: 'amber' } as const)[kind],
-                label: (
-                  <span style={{ display: 'grid', gap: 1, lineHeight: 1.25 }}>
-                    <span>{info.label}</span>
-                    <small style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--dna-muted)' }}>{meta}</small>
-                  </span>
-                ),
+                label: stat.maxWait > 0 ? `${info.label} · ${stat.maxWait} د` : info.label,
                 value: stat.count,
                 state: stat.count > 0 ? (kind === 'anger' ? 'attention' : 'ok') : 'off',
                 onClick: () => setFilter(kind === 'waiting' ? 'unread' : 'all'),

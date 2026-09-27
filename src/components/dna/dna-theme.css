@@ -18,7 +18,7 @@
 
 /* Cream canvas */
 body {
-  background-color: var(--dna-canvas) !important;
+  background: var(--dna-canvas) !important;
 }
 
 /* Legacy globals vs kit ---------------------------------------------- */
@@ -100,3 +100,4 @@ button.dna-segb {
 }
 .wa-bridge-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
 .wa-bridge-meta b { color: var(--dna-ink); font-weight: 800; }
+.bi-engine-hub .dna-hubn { gap: 4px; }
