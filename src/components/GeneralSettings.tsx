@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import AdminMicroLoader from './ui/AdminMicroLoader';
-import { DnaStepper } from "./dna/DnaKit";
+import { DnaIconTile, DnaStepper } from "./dna/DnaKit";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -38,6 +38,7 @@ import {
   Filter,
   ShieldCheck,
   Archive,
+  Stethoscope,
 } from "lucide-react";
 import { motion } from "motion/react";
 import LogoEngine from "./ui/LogoEngine";
@@ -338,37 +339,26 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
   return (
     <div
-      className="relative rounded-full flex items-center justify-center select-none bg-slate-950 border border-amber-300/40 text-white shadow-[0_18px_48px_-12px_rgba(0,0,0,0.9)] p-1 overflow-hidden"
+      className="push-compass relative rounded-full flex items-center justify-center select-none p-1 overflow-hidden"
       id="device-deera-compass"
       style={{ width: compassSize, height: compassSize, maxWidth: 'calc(100vw - 92px)', maxHeight: 'calc(100vw - 92px)' }}
     >
-       {/* Scanning effect */}
-       <motion.div
-         className="absolute inset-0 pointer-events-none rounded-full z-0"
-         style={{
-           background: "conic-gradient(from 0deg, rgba(245, 158, 11, 0.12) 0deg, rgba(245, 158, 11, 0) 90deg)",
-         }}
-         animate={{ rotate: 360 }}
-         transition={{ duration: 16, repeat: Infinity, ease: "linear" }}
-       />
-
        {/* Traditional compass face background SVG */}
        <svg width={compassSize - 10} height={compassSize - 10} viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-10">
          <defs>
            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-             <stop offset="0%" stopColor="#ffd700" />
-             <stop offset="50%" stopColor="#d4af37" />
-             <stop offset="100%" stopColor="#aa7c11" />
+             <stop offset="0%" stopColor="#2f6b4a" />
+             <stop offset="100%" stopColor="#0f3d1f" />
            </linearGradient>
            <radialGradient id="ringGlow" cx="50%" cy="50%" r="50%">
-             <stop offset="0%" stopColor="rgba(24, 34, 54, 0.95)" />
-             <stop offset="70%" stopColor="rgba(12, 17, 30, 0.98)" />
-             <stop offset="100%" stopColor="rgba(2, 4, 10, 1)" />
+             <stop offset="0%" stopColor="#ffffff" />
+             <stop offset="70%" stopColor="#fbf8f1" />
+             <stop offset="100%" stopColor="#f3eee2" />
            </radialGradient>
          </defs>
 
          {/* Base backing */}
-         <circle cx="160" cy="160" r="156" fill="url(#ringGlow)" stroke="url(#goldGradient)" strokeWidth="1.5" className="opacity-95" />
+         <circle cx="160" cy="160" r="156" fill="url(#ringGlow)" stroke="rgba(20, 35, 26, 0.12)" strokeWidth="1" />
          
          {/* Concentric Orbits (Matching green, yellow, red statuses with elegant translucent contrast) */}
          <circle cx="160" cy="160" r="55" fill="none" stroke="rgba(16, 185, 129, 0.25)" strokeWidth="1" strokeDasharray="3 3" />
@@ -376,8 +366,8 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
          <circle cx="160" cy="160" r="132" fill="none" stroke="rgba(239, 68, 68, 0.18)" strokeWidth="0.75" strokeDasharray="5 5" />
          
          {/* Cross axis markings */}
-         <line x1="160" y1="18" x2="160" y2="302" stroke="rgba(212, 175, 55, 0.12)" strokeWidth="0.75" />
-         <line x1="18" y1="160" x2="302" y2="160" stroke="rgba(212, 175, 55, 0.12)" strokeWidth="0.75" />
+         <line x1="160" y1="18" x2="160" y2="302" stroke="rgba(20, 35, 26, 0.07)" strokeWidth="0.75" />
+         <line x1="18" y1="160" x2="302" y2="160" stroke="rgba(20, 35, 26, 0.07)" strokeWidth="0.75" />
 
          {/* Outer dial markings with improved gold visibility */}
          {Array.from({ length: 48 }).map((_, i) => {
@@ -396,7 +386,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
                y1={y1}
                x2={x2}
                y2={y2}
-               stroke={isQuarterLabel ? "url(#goldGradient)" : "rgba(212, 175, 55, 0.35)"}
+               stroke={isQuarterLabel ? "rgba(15, 61, 31, 0.55)" : "rgba(20, 35, 26, 0.16)"}
                strokeWidth={isQuarterLabel ? "1.5" : "0.75"}
              />
            );
@@ -416,11 +406,10 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
                display: 'flex',
                alignItems: 'center',
                justifyContent: 'center',
-               color: '#d4af37',
+               color: '#5f6b63',
                fontSize: '11px',
-               fontWeight: 950,
+               fontWeight: 800,
                lineHeight: 1,
-               textShadow: '0 2px 4px rgba(0,0,0,0.9)',
                fontFamily: 'inherit',
                whiteSpace: 'nowrap',
              }}>
@@ -437,7 +426,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
              display: 'flex',
              alignItems: 'center',
              justifyContent: 'center',
-             color: 'rgba(212, 175, 55, 0.45)',
+             color: '#8a948e',
              fontSize: '10px',
              fontWeight: 900,
              letterSpacing: '0px',
@@ -475,16 +464,14 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
            >
              <div className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110">
                {/* Translucent glow ring */}
-               <motion.div
+               <div
                  className="absolute inset-0 rounded-full opacity-40"
                  style={{ border: `1.5px solid ${node.dotColor}`, backgroundColor: node.glowColor }}
-                 animate={node.type === 'golden' ? { scale: [1, 1.35, 1], opacity: [0.5, 0.2, 0.5] } : {}}
-                 transition={{ duration: 2.2 + (i % 3) * 0.4, repeat: Infinity }}
                />
                
                {/* Center core dot */}
                <div
-                 className="w-3.5 h-3.5 rounded-full border border-slate-950 shadow-md flex items-center justify-center"
+                 className="w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm flex items-center justify-center"
                  style={{ backgroundColor: node.dotColor }}
                >
                  {isActive && (
@@ -498,36 +485,36 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
 
        {/* Floating Detail Overlay inside the compass center when node hovered */}
        {hoveredCard ? (
-         <div className="absolute inset-x-6 top-[70px] bottom-[70px] mx-auto w-[210px] h-[145px] z-30 rounded-2xl bg-slate-950/95 border border-amber-400/40 p-3 shadow-[0_12px_48px_rgba(0,0,0,0.95)] shadow-amber-950/40 backdrop-blur-md flex flex-col justify-between text-right pointer-events-none">
+         <div className="push-compass-tip absolute inset-x-6 top-[70px] bottom-[70px] mx-auto w-[210px] h-[145px] z-30 rounded-2xl p-3 flex flex-col justify-between text-right pointer-events-none">
            <div>
-             <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-1.5 min-w-0">
-               <span className="text-[8px] rounded-lg bg-white/10 px-1.5 py-0.5 text-white/75 font-black shrink-0">
+             <div className="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5 min-w-0">
+               <span className="text-[8px] rounded-lg bg-slate-100 px-1.5 py-0.5 text-slate-600 font-black shrink-0">
                  {hoveredCard.identity.role === 'partner' ? 'شريك' : hoveredCard.identity.role === 'admin' ? 'مدير' : 'موظف'}
                </span>
-               <strong className="text-[11px] font-black text-amber-300 truncate mr-2">
+               <strong className="text-[11px] font-black text-slate-900 truncate mr-2">
                  {hoveredCard.identity.name || "مستخدم"}
                </strong>
              </div>
              
              <div className="space-y-1 text-[9px] font-bold">
-               <div className="flex items-center justify-between text-white/80">
-                 <span dir="ltr" className="font-semibold truncate max-w-[130px] text-white">{hoveredCard.bestDevice?.label || hoveredCard.bestDevice?.browser || "جهاز غير معروف"}</span>
-                 <span className="text-white/50">الجهاز:</span>
+               <div className="flex items-center justify-between text-slate-700">
+                 <span dir="ltr" className="font-semibold truncate max-w-[130px] text-slate-900">{hoveredCard.bestDevice?.label || hoveredCard.bestDevice?.browser || "جهاز غير معروف"}</span>
+                 <span className="text-slate-500">الجهاز:</span>
                </div>
-               <div className="flex items-center justify-between text-white/80">
-                 <span dir="ltr" className="font-semibold text-emerald-400">{hoveredCard.bestScore}%</span>
-                 <span className="text-white/50">ثقة الإشارة:</span>
+               <div className="flex items-center justify-between text-slate-700">
+                 <span dir="ltr" className="font-semibold text-emerald-700">{hoveredCard.bestScore}%</span>
+                 <span className="text-slate-500">ثقة الإشارة:</span>
                </div>
-               <div className="flex items-center justify-between text-white/80">
-                 <span className="text-amber-200 truncate max-w-[125px]">{hoveredCard.state.label}</span>
-                 <span className="text-white/50">الحالة:</span>
+               <div className="flex items-center justify-between text-slate-700">
+                 <span className="text-amber-700 truncate max-w-[125px]">{hoveredCard.state.label}</span>
+                 <span className="text-slate-500">الحالة:</span>
                </div>
              </div>
            </div>
 
-           <div className="border-t border-white/5 pt-1 text-center font-black">
-             <div className="text-[9px] font-black text-amber-200/90 flex items-center justify-center gap-1">
-               <Send size={10} className="text-amber-300" />
+           <div className="border-t border-slate-100 pt-1 text-center font-black">
+             <div className="text-[9px] font-black text-emerald-800 flex items-center justify-center gap-1">
+               <Send size={10} className="text-emerald-700" />
                اضغط للاختبار وإطلاق موجة
              </div>
            </div>
@@ -536,27 +523,16 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
          /* Center server hub and pulsing compass needle representing orientation */
          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
            {/* Center golden hub */}
-           <div className="relative w-8 h-8 rounded-full bg-slate-950 border-2 border-amber-400 flex items-center justify-center shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-             <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 animate-pulse" />
-             <div className="absolute -inset-1.5 rounded-full border border-amber-400/20 animate-ping opacity-30" />
+           <div className="push-compass-hub relative w-8 h-8 rounded-full flex items-center justify-center">
+             <div className="w-3 h-3 rounded-full" style={{ background: "#0f3d1f" }} />
            </div>
            
            {/* Real Compass needle element with gentle micro-swing animation */}
            <svg width={compassSize - 10} height={compassSize - 10} viewBox="0 0 320 320" className="absolute inset-0 m-auto pointer-events-none z-0">
-             <motion.g
-               initial={{ rotate: 15 }}
-               animate={{ rotate: [15, 38, 22, 34, 28, 30] }}
-               transition={{
-                 duration: 7,
-                 ease: "easeInOut",
-                 repeat: Infinity,
-                 repeatType: "reverse"
-               }}
-               style={{ transformOrigin: "160px 160px" }}
-             >
+             <g transform="rotate(30 160 160)">
                <polygon points="160,82 163,160 160,168 157,160" fill="url(#goldGradient)" className="opacity-90" />
-               <polygon points="160,238 163,160 160,152 157,160" fill="rgba(255,255,255,0.4)" className="opacity-50" />
-             </motion.g>
+               <polygon points="160,238 163,160 160,152 157,160" fill="rgba(20,35,26,0.18)" />
+             </g>
            </svg>
          </div>
        )}
@@ -4778,7 +4754,7 @@ const GeneralSettings: React.FC<Props> = ({
                               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
                                   <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">مركز نبض النظام</div>
-                                  <div className="mt-1 flex items-center gap-3"><span className={cn("relative flex h-4 w-4 shrink-0", systemPulseScore >= 75 ? "text-emerald-300" : "text-amber-300")}><span className="absolute inline-flex h-full w-full rounded-full bg-current opacity-35 animate-ping" /><span className="relative inline-flex h-4 w-4 rounded-full bg-current" /></span><div className="text-3xl font-black">النظام حي بنسبة {systemPulseScore}%</div></div>
+                                  <div className="mt-1 flex items-center gap-3"><span className={cn("relative flex h-4 w-4 shrink-0", systemPulseScore >= 75 ? "text-emerald-300" : "text-amber-300")}><span className="relative inline-flex h-4 w-4 rounded-full bg-current" /></span><div className="text-3xl font-black">النظام حي بنسبة {systemPulseScore}%</div></div>
                                   <p className="mt-2 text-xs font-bold text-white/55">كل المسارات الأساسية تعمل بهدوء، وآخر قراءة جهاز: {latestDeviceReadLabel}.</p>
                                 </div>
                                 <button type="button" onClick={runCustomerLikePushCheck} className="rounded-2xl bg-emerald-300 text-slate-950 px-4 py-3 text-xs font-black hover:bg-emerald-200 transition flex items-center justify-center gap-2">
@@ -4827,27 +4803,14 @@ const GeneralSettings: React.FC<Props> = ({
                                   </div>
                                   <button type="button" onClick={() => openPushNotificationLog(latestNotification)} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
                                 </div>
-                                {/* 2-up until there is real room for 4. Forcing four
-                                    columns inside this narrow side column squeezed each
-                                    one to ~45px, which broke Arabic labels mid-word
-                                    ("وصل للسيرفر" rendered one letter per line). */}
-                                <div className="grid grid-cols-2 xl:grid-cols-4 gap-1.5">
-                                  {[
-                                    ['تم إنشاؤه', true],
-                                    ['وصل للسيرفر', Boolean(latestNotification?.success || latestNotification)],
-                                    ['وصل للجهاز', Boolean(latestNotification?.receivedByDevice || latestNotification?.receivedAt || latestNotification?.openedByEmployee || latestNotification?.clickedAt)],
-                                    ['تم فتحه', Boolean(latestNotification?.openedByEmployee || latestNotification?.clickedAt)],
-                                  ].map(([label, active], idx) => (
-                                    <div key={String(label)} className="relative rounded-2xl bg-black/15 border border-white/10 p-2 text-center min-h-[70px] flex flex-col items-center justify-center gap-2">
-                                      <span className={cn('relative h-3 w-3 rounded-full', active ? 'bg-emerald-300' : 'bg-white/20')}>
-                                        {active && <span className="absolute inset-0 rounded-full bg-emerald-300/70 animate-ping" />}
-                                      </span>
-                                      {/* Wrap between words, never inside one. */}
-                                      <span className="text-[9px] font-black text-white/65 text-center leading-4 [word-break:keep-all]">{label}</span>
-                                      {idx < 3 && <span className="hidden xl:block absolute -left-2 top-1/2 h-px w-4 bg-white/15" />}
-                                    </div>
-                                  ))}
-                                </div>
+                                <PushDeliveryPath
+                                  steps={[
+                                    { key: 'sent', label: 'تم إنشاؤه', done: true },
+                                    { key: 'fcm', label: 'وصل للسيرفر', done: Boolean(latestNotification?.success || latestNotification) },
+                                    { key: 'device', label: 'وصل للجهاز', done: Boolean(latestNotification?.receivedByDevice || latestNotification?.receivedAt || latestNotification?.openedByEmployee || latestNotification?.clickedAt) },
+                                    { key: 'open', label: 'تم فتحه', done: Boolean(latestNotification?.openedByEmployee || latestNotification?.clickedAt) },
+                                  ]}
+                                />
                                 <div className="mt-3 rounded-2xl bg-black/15 border border-white/10 px-3 py-2 text-[11px] font-bold text-white/70 leading-5 space-y-1.5">
                                   <p>{latestNotificationSentence}</p>
                                   <p className="text-white/45">
@@ -4873,9 +4836,14 @@ const GeneralSettings: React.FC<Props> = ({
                                   </button>
                                 )}
                               </div>
-                              <div className={cn("rounded-[1.8rem] border p-4 text-white", latestCriticalIssue || oldTokenCount > 0 ? "border-amber-300/20 bg-amber-400/10" : "border-emerald-300/20 bg-emerald-400/10")}>
-                                <div className="text-[10px] font-black text-white/45">طبيب الإشعارات</div>
-                                <h4 className="mt-1 text-sm font-black">{latestCriticalIssue || oldTokenCount > 0 ? 'تم رصد علة بسيطة' : 'لا توجد أعطال حرجة'}</h4>
+                              <div className="push-radar-doctor rounded-[1.8rem] border p-4 text-white">
+                                <div className="flex items-center gap-3">
+                                  <DnaIconTile icon={<Stethoscope />} tone={latestCriticalIssue || oldTokenCount > 0 ? "warn" : "mint"} size="sm" />
+                                  <div className="min-w-0">
+                                    <div className="text-[10px] font-black text-white/45">طبيب الإشعارات</div>
+                                    <h4 className="mt-1 text-sm font-black">{latestCriticalIssue || oldTokenCount > 0 ? 'تم رصد علة بسيطة' : 'لا توجد أعطال حرجة'}</h4>
+                                  </div>
+                                </div>
                                 <p className="mt-2 text-[11px] font-bold text-white/65 leading-6">
                                   {latestCriticalIssue
                                     ? 'هذا الجهاز لم يعد يستقبل الإشعارات؛ يبدو أن التوكن استُبدل من الجهاز نفسه. الحل: اختبر أحدث جهاز بدل هذا.'
