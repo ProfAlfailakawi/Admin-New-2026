@@ -1293,7 +1293,7 @@ Alturath.kw`;
                 )}
 
                 <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                  <table className="w-full text-right min-w-[900px]" dir="rtl">
+                  <table className="mobile-card-table w-full text-right min-w-[900px]" dir="rtl">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
                         <th className="p-3 md:p-3">رقم الفاتورة</th>

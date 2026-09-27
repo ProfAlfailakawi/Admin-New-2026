@@ -416,7 +416,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </div>
 
  <div className="overflow-x-auto rounded-2xl border border-slate-100">
- <table className="w-full text-right min-w-[1000px]" dir="rtl">
+ <table className="mobile-card-table w-full text-right min-w-[1000px]" dir="rtl">
  <thead>
  <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
  <th className="p-3 md:p-3">تاريخ الحركة</th>
@@ -446,19 +446,19 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  shakingId === transaction.id &&"bg-red-50/50"
 )}
  >
- <td className="p-3 md:p-3">
+ <td data-mobile-label="تاريخ الحركة" className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-bold text-slate-600">
  <Calendar size={14} className="text-slate-500" />
  {formatKuwaitiDateOnly(transaction.date)}
  </div>
  </td>
- <td className="p-3 md:p-3">
+ <td data-mobile-label="اسم المورد / نوع الحركة" className="p-3 md:p-3">
  <div className="flex flex-col">
  <div className="font-bold text-slate-900">{s?.name || 'مورد محذوف'}</div>
  <div className="text-[10px] font-bold text-slate-500">{transaction.displayType}</div>
  </div>
  </td>
- <td className="p-3 md:p-3 font-black text-slate-700">
+ <td data-mobile-label="مبلغ التوريد (د.ك)" className="p-3 md:p-3 font-black text-slate-700">
  {isInvoice ? (
    <div className="space-y-1">
      <div>{Number(transaction.supplyAmount || 0).toFixed(3)}</div>
@@ -470,13 +470,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    </div>
  ) : '—'}
  </td>
- <td className="p-3 md:p-3 font-black text-blue-600">
+ <td data-mobile-label="التوصيل (د.ك)" className="p-3 md:p-3 font-black text-blue-600">
  {isInvoice ? Number(transaction.deliveryAmount || 0).toFixed(3) : '—'}
  </td>
- <td className={cn("p-3 md:p-3 font-bold", isInvoice ?"text-red-500" :"text-emerald-600")}>
+ <td data-mobile-label="المبلغ (د.ك)" className={cn("p-3 md:p-3 font-bold", isInvoice ?"text-red-500" :"text-emerald-600")}>
  {isInvoice ? '+' : '-'}{Number(transaction.rawAmount || 0).toFixed(3)} د.ك
  </td>
- <td className="p-3 md:p-3">
+ <td data-mobile-label="طريقة الدفع" className="p-3 md:p-3">
  <span className={cn(
 "px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
  isInvoice ?"bg-red-50 text-red-500" :"bg-emerald-50 text-emerald-500"
@@ -484,13 +484,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : transaction.method}
  </span>
  </td>
- <td className="p-3 md:p-3 text-slate-500 text-xs font-bold">
+ <td data-mobile-label="آخر حركة" className="p-3 md:p-3 text-slate-500 text-xs font-bold">
  {getLastMovement(transaction.supplierId)}
  </td>
- <td className="p-3 md:p-3 text-slate-500 text-xs font-medium">
+ <td data-mobile-label="ملاحظات الحساب" className="p-3 md:p-3 text-slate-500 text-xs font-medium">
  {transaction.notes || '—'}
  </td>
- <td className="p-3 md:p-3">
+ <td data-mobile-label="إجراءات" className="p-3 md:p-3">
  <div className="flex items-center gap-2">
  {isInvoice && (
  <>

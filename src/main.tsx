@@ -5,8 +5,11 @@ import { installLocalStorageDataGuard } from './lib/dataGuard';
 import App from './App.tsx';
 import './index.css';
 import { installAppUpdate } from './lib/app-update';
+import { installMobileTableCards } from './lib/mobileTableCards';
 
 installLocalStorageDataGuard();
+// Phone layout: label wide-table cells so they can render as stacked cards (CSS-only on mobile).
+installMobileTableCards();
 
 // التحديث الذاتي الصامت: بصمة الإصدار، منارتها، ثم التحديث والتصعيد عند اللزوم.
 installAppUpdate();

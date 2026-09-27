@@ -467,7 +467,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    {/* Table */}
    <div className="bg-white rounded-[2rem] border border-slate-200/60 shadow-xl overflow-hidden">
     <div className="overflow-x-auto">
-    <table className="w-full text-right min-w-[800px]" dir="rtl">
+    <table className="mobile-card-table w-full text-right min-w-[800px]" dir="rtl">
      <thead>
       <tr className="bg-slate-50/80 backdrop-blur-md border-b border-slate-200 text-slate-500 text-xs uppercase font-black tracking-widest sticky top-0 z-20">
        <th className="p-6">العميل</th>

@@ -215,7 +215,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  <h3 className="font-bold text-lg text-slate-800">سجل الكوبونات</h3>
  </div>
  <div className="overflow-x-auto">
- <table className="w-full text-right min-w-[700px]">
+ <table className="mobile-card-table w-full text-right min-w-[700px]">
  <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase">
  <tr>
  <th className="p-3 pr-8 text-right">الكود</th>

@@ -159,7 +159,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </div>
 
  <div className="overflow-x-auto rounded-3xl border border-slate-100">
- <table className="w-full text-right min-w-[800px]" dir="rtl">
+ <table className="mobile-card-table w-full text-right min-w-[800px]" dir="rtl">
  <thead>
  <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
  <th className="p-3 md:p-3">التاريخ</th>
