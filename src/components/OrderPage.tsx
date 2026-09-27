@@ -23,6 +23,8 @@ import {
   RefreshCw,
   Users,
   Dices,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h, formatTimeInput, validateAndCleanTime, getArabicWeekdayAndDate } from '../lib/utils';
@@ -416,7 +418,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
     }
     if (isFailedStatus(status)) return "فشل في عملية الدفع";
     if (String(status).includes("تجميع القطية") || status === "split_pending")
-      return "قيد تجميع القطية 🔄";
+      return "قيد تجميع القطية";
     if (isPendingStatus(status) || isFailedStatus(status))
       return "بانتظار الدفع";
     return status;
@@ -1491,22 +1493,9 @@ Alturath.kw`;
           >
             {filterStatus === "pending" ? (
               <>
-                <motion.div
-                  animate={{
-                    scale: [1, 1.05, 1],
-                    opacity: [0.6, 1, 0.6],
-                    filter: ["blur(0px)", "blur(4px)", "blur(0px)"],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="w-32 h-32 bg-emerald-100 rounded-full flex items-center justify-center mb-8 relative"
-                >
-                  <div className="absolute inset-0 bg-emerald-300 rounded-full blur-2xl opacity-50" />
-                  <p className="text-5xl relative z-10">✨</p>
-                </motion.div>
+                <div className="w-32 h-32 bg-emerald-50 rounded-full flex items-center justify-center mb-8 relative">
+                  <Sparkles className="relative z-10 w-12 h-12 text-emerald-700" strokeWidth={1.6} aria-hidden="true" />
+                </div>
                 <h3 className="text-emerald-600 font-bold text-3xl mb-4 tracking-tight">
                   إنجاز مبهر!
                 </h3>
@@ -1592,7 +1581,7 @@ Alturath.kw`;
                             hasUnselectedSuppliers(order) &&
                             !order.isConvertedToInvoice &&
                             (order as any).paymentStatus !== "paid" && (
-                              <span className="mr-1">⚠️</span>
+                              <AlertTriangle size={12} className="mr-1 inline-block align-[-2px]" aria-hidden="true" />
                             )}
                         </div>
                       </div>
@@ -1903,8 +1892,8 @@ Alturath.kw`;
                         ) &&
                         (selectedOrder as any).splitParticipants.length > 0 && (
                           <div className="mb-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
-                            <div className="absolute -right-2 -top-2 md:-right-4 md:-top-4 opacity-10 pointer-events-none text-8xl md:text-9xl">
-                              🎲
+                            <div className="absolute -right-2 -top-2 md:-right-4 md:-top-4 opacity-10 pointer-events-none text-purple-900" aria-hidden="true">
+                              <Dices className="w-20 h-20 md:w-28 md:h-28" strokeWidth={1.2} />
                             </div>
                             <h4 className="text-xs md:text-sm font-bold uppercase text-purple-900 mb-3 md:mb-4 flex items-center gap-2">
                               <Dices className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />{" "}
@@ -2006,19 +1995,10 @@ Alturath.kw`;
                                             <div className="flex items-center gap-1.5">
                                               {productName}
                                               {needsSelection && (
-                                                <motion.span
-                                                  animate={{
-                                                    scale: [1, 1.1, 1],
-                                                    rotate: [0, -2, 2, 0],
-                                                  }}
-                                                  transition={{
-                                                    duration: 0.5,
-                                                    repeat: Infinity,
-                                                  }}
-                                                  className="text-[7px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30"
-                                                >
-                                                  تحديد مورد مطلوب ⚠️
-                                                </motion.span>
+                                                <span className="inline-flex items-center gap-1 text-[7px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white">
+                                                  تحديد مورد مطلوب
+                                                  <AlertTriangle size={11} aria-hidden="true" />
+                                                </span>
                                               )}
                                             </div>
                                             {product?.supplierId && !needsSelection && (
@@ -2668,7 +2648,7 @@ Alturath.kw`;
                             className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 text-white shadow-lg hover:bg-indigo-700"
                           >
                             <MessageSquare size={16} />
-                            إرسال فاتورة جديدة 💬
+                            إرسال فاتورة جديدة
                           </button>
                           {false && (
                             <MagneticButton
@@ -2704,8 +2684,8 @@ Alturath.kw`;
                             >
                               <Wallet size={16} className="md:w-[18px]" />
                               {isMarkedAsPaid
-                                ? "تم الدفع وتأكيد الحجز ✅"
-                                : "تأكيد استلام المبلغ 💰"}
+                                ? "تم الدفع وتأكيد الحجز"
+                                : "تأكيد استلام المبلغ"}
                             </MagneticButton>
                           )}
 
@@ -2735,7 +2715,7 @@ Alturath.kw`;
                             <XCircle size={16} className="md:w-[18px]" />
                             {isConfirmingCancel
                               ? "هل أنت متأكد من الإلغاء؟"
-                              : "إلغاء الطلب نهائياً ❌"}
+                              : "إلغاء الطلب نهائياً"}
                           </button>
                         </div>
                       )}
