@@ -23,7 +23,10 @@ const labelTable = (table: HTMLTableElement) => {
         // Cells hidden inline (legacy placeholder columns) have no header of their own.
         if ((cell as HTMLElement).style?.display === 'none') return;
         const span = Math.max(1, cell.colSpan || 1);
-        const label = span === 1 ? labels[col] || '' : '';
+        // An explicit data-mobile-label wins over the header-by-index mapping (for tables
+        // whose <thead> has fewer cells than each row).
+        const explicit = cell.getAttribute('data-mobile-label');
+        const label = explicit ?? (span === 1 ? labels[col] || '' : '');
         if (label) {
           if (cell.getAttribute('data-label') !== label) cell.setAttribute('data-label', label);
         } else if (cell.hasAttribute('data-label')) {
