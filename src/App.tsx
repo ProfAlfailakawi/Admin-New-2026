@@ -4638,7 +4638,7 @@ const MainApp: React.FC = () => {
                       className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-950"
                     />
                   )}
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-ping border border-white z-20" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full border border-white z-20" />
                 </button>
               </SmartIconGuide>
 
