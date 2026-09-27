@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { DnaSegmented } from "./dna/DnaKit";
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import {
   ClipboardList,
@@ -113,96 +114,6 @@ interface OrderPageProps {
   setDeepLinkData?: (data: any) => void;
   isPartner?: boolean;
 }
-
-const InsightCard = ({
-  label,
-  value,
-  icon: Icon,
-  color,
-  onClick,
-}: {
-  label: string;
-  value: any;
-  icon: any;
-  color: string;
-  onClick?: () => void;
-}) => {
-  const isFailedCard = label === "فشل في عملية الدفع" && value > 0;
-  const isPendingCard = label === "بانتظار الدفع" && value > 0;
-  const isSplitPendingCard = label === "قيد تجميع القطية" && value > 0;
-  const needsPulse = isFailedCard || isPendingCard || isSplitPendingCard;
-  const glowColorClass = isFailedCard
-    ? "bg-amber-500"
-    : isPendingCard
-      ? "bg-violet-500"
-      : isSplitPendingCard
-        ? "bg-purple-500"
-        : "";
-  const bgGlowColorClass = isFailedCard
-    ? "bg-amber-500/10"
-    : isPendingCard
-      ? "bg-violet-500/10"
-      : isSplitPendingCard
-        ? "bg-purple-500/10"
-        : "";
-
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden",
-        onClick
-          ? "cursor-pointer hover:shadow-md transition-all active:scale-95"
-          : "",
-      )}
-    >
-      {needsPulse && (
-        <motion.div
-          animate={{ opacity: [0.05, 0.15, 0.05] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className={cn(
-            "absolute inset-0 pointer-events-none",
-            bgGlowColorClass,
-          )}
-        />
-      )}
-      <div
-        className={cn(
-          "p-2.5 rounded-xl bg-slate-50 relative z-10",
-          color.replace("text-", "bg-").replace("-500", "-500/10"),
-        )}
-      >
-        <Icon size={20} className={color} />
-        {needsPulse && (
-          <motion.div
-            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className={cn(
-              "absolute inset-0 rounded-xl filter blur-sm",
-              glowColorClass,
-            )}
-          />
-        )}
-      </div>
-      <div className="relative z-10">
-        <div className="text-[10px] font-bold text-slate-500 uppercase leading-none mb-1">
-          {label}
-        </div>
-        <div className="text-lg font-bold text-slate-900 leading-none flex items-center gap-2">
-          {value}
-          {needsPulse && (
-            <span
-              className={cn(
-                "flex h-2 w-2 rounded-full animate-pulse",
-                glowColorClass,
-              )}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 import {
   isPaidStatus,
@@ -1498,114 +1409,50 @@ Alturath.kw`;
       className="p-3 md:p-4 lg:p-3 md:p-3 space-y-6 animate-in fade-in duration-500"
       dir="rtl"
     >
-      {/* Quick Insights Bar */}
-      <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-3 md:gap-4 pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:pb-0 hide-scrollbar">
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="إجمالي الطلبات"
-            value={orders.length}
-            icon={ClipboardList}
-            color="text-slate-500"
-            onClick={() => setFilterStatus("all")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="طلبات اليوم"
-            value={
-              data.orders.filter((o) => {
-                let d = new Date();
-                const oAsAny = o as any;
-                if (oAsAny.createdAt && oAsAny.createdAt.seconds)
-                  d = new Date(oAsAny.createdAt.seconds * 1000);
-                else if (oAsAny.createdAt) d = new Date(oAsAny.createdAt);
-                else if (o.date) d = new Date(o.date);
-                else return false;
+      {/* Quick Insights Bar — one filter bar driving the same filter state */}
+      {(() => {
+        const isToday = (o: any) => {
+          let d = new Date();
+          const oAsAny = o as any;
+          if (oAsAny.createdAt && oAsAny.createdAt.seconds)
+            d = new Date(oAsAny.createdAt.seconds * 1000);
+          else if (oAsAny.createdAt) d = new Date(oAsAny.createdAt);
+          else if (o.date) d = new Date(o.date);
+          else return false;
 
-                if (isNaN(d.getTime())) return false;
-                const today = new Date();
-                return (
-                  d.getDate() === today.getDate() &&
-                  d.getMonth() === today.getMonth() &&
-                  d.getFullYear() === today.getFullYear()
-                );
-              }).length
-            }
-            icon={Calendar}
-            color="text-indigo-500"
-            onClick={() => setFilterStatus("today")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="قيد تجميع القطية"
-            value={
-              data.orders.filter(
-                (o) =>
-                  String(o.status).includes("تجميع القطية") ||
-                  o.status === "split_pending",
-              ).length
-            }
-            icon={RefreshCw}
-            color="text-purple-500"
-            onClick={() => setFilterStatus("split_pending")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="بانتظار الدفع"
-            value={
-              data.orders.filter(
-                (o) =>
-                  (isPendingStatus(o.status as string) ||
-                    isFailedStatus(o.status as string)) &&
-                  !(
-                    String(o.status).includes("تجميع القطية") ||
-                    o.status === "split_pending"
-                  ),
-              ).length
-            }
-            icon={Clock}
-            color="text-violet-500"
-            onClick={() => setFilterStatus("pending")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="فشل في الدفع"
-            value={
-              data.orders.filter((o) => isFailedStatus(o.status as string))
-                .length
-            }
-            icon={AlertCircle}
-            color="text-amber-500"
-            onClick={() => setFilterStatus("failed")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="جاري التوصيل"
-            value={
-              data.orders.filter((o) => isPaidStatus(o.status as string)).length
-            }
-            icon={CheckCircle2}
-            color="text-emerald-500"
-            onClick={() => setFilterStatus("paid")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="ملغي"
-            value={
-              data.orders.filter((o) => isCancelledStatus(o.status as string))
-                .length
-            }
-            icon={XCircle}
-            color="text-rose-500"
-            onClick={() => setFilterStatus("cancelled")}
-          />
-        </div>
-      </div>
+          if (isNaN(d.getTime())) return false;
+          const today = new Date();
+          return (
+            d.getDate() === today.getDate() &&
+            d.getMonth() === today.getMonth() &&
+            d.getFullYear() === today.getFullYear()
+          );
+        };
+        const isSplit = (o: any) =>
+          String(o.status).includes("تجميع القطية") ||
+          o.status === "split_pending";
+        const seg = (label: string, full: string) => (
+          <span title={full} aria-label={full}>{label}</span>
+        );
+        return (
+          <div className="orders-filter-bar dna" style={{ overflowX: "auto", paddingBottom: 2 }}>
+            <DnaSegmented
+              ariaLabel="تصفية الطلبات"
+              value={filterStatus}
+              onChange={(v) => setFilterStatus(v)}
+              options={[
+                { value: "all", label: seg("الكل", "إجمالي الطلبات"), icon: <ClipboardList />, count: orders.length },
+                { value: "today", label: seg("اليوم", "طلبات اليوم"), icon: <Calendar />, count: data.orders.filter(isToday).length },
+                { value: "split_pending", label: seg("القطية", "قيد تجميع القطية"), icon: <RefreshCw />, count: data.orders.filter(isSplit).length },
+                { value: "pending", label: seg("بانتظار الدفع", "بانتظار الدفع"), icon: <Clock />, count: data.orders.filter((o) => (isPendingStatus(o.status as string) || isFailedStatus(o.status as string)) && !isSplit(o)).length },
+                { value: "failed", label: seg("فشل", "فشل في الدفع"), icon: <AlertCircle />, count: data.orders.filter((o) => isFailedStatus(o.status as string)).length },
+                { value: "paid", label: seg("مدفوع", "جاري التوصيل"), icon: <CheckCircle2 />, count: data.orders.filter((o) => isPaidStatus(o.status as string)).length },
+                { value: "cancelled", label: seg("ملغي", "ملغي"), icon: <XCircle />, count: data.orders.filter((o) => isCancelledStatus(o.status as string)).length },
+              ]}
+            />
+          </div>
+        );
+      })()}
 
       {/* Main Container */}
       <div className="bg-white rounded-2xl p-3 md:p-4 lg:p-3 md:p-3 shadow-lg border border-slate-100">
