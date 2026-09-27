@@ -16,8 +16,10 @@
   --dna-on-core: #ffffff;
 }
 
-/* Cream canvas */
-body {
+/* Cream canvas: the page and the admin shell that covers it (index.css paints the
+   shell slate with !important; this file loads later, same specificity). */
+body,
+.admin-heritage-shell {
   background: var(--dna-canvas) !important;
 }
 
