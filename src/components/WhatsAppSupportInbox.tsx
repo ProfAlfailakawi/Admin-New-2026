@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import { motion } from 'motion/react';
-import { AlertCircle, Bot, CheckCircle2, Clock, Headphones, Loader2, MessageCircle, Pencil, Plus, RefreshCw, Save, Search, Send, Sparkles, Trash2, UserRound, X, Zap } from 'lucide-react';
+import { AlertCircle, Bot, CheckCircle2, CircleAlert, Clock, CreditCard, FileText, Flame, Headphones, LifeBuoy, ListOrdered, Loader2, MessageCircle, Pencil, Plus, RadioTower, RefreshCw, Save, Search, Send, Smartphone, Sparkles, Star, Trash2, Truck, UserRound, X, Zap } from 'lucide-react';
+import { DnaHubMap, DnaLive, DnaStatusHeader, DnaStepper, type DnaStep } from './dna/DnaKit';
 import { cn } from '../lib/utils';
 import type { AppState, Customer, Product } from '../types';
 import { isPaidStatus } from '../lib/status-utils';
@@ -1125,6 +1126,33 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     };
   }, [operationLane, topSmartDecision, counts.support, counts.unread]);
 
+  // Bridge health drawn as one path: device -> bridge -> queue -> bot (presentation only).
+  const bridgeHealthSteps: DnaStep[] = (() => {
+    const reason = bridge?.reason;
+    const seenText = bridge ? `آخر نبضة قبل ${bridge.minutesSinceSeen} دقيقة` : 'لا توجد بيانات';
+    const pending = recovery?.queue?.pending;
+    const stuck = Number(recovery?.queue?.stuckProcessing || 0);
+    const bot = recovery?.bot;
+    const deviceState: DnaStep['state'] = !bridge ? 'pending'
+      : reason === 'never_seen' || reason === 'needs_auth' ? 'blocked'
+      : 'done';
+    const bridgeState: DnaStep['state'] = !bridge ? 'pending'
+      : bridge.connected ? 'done'
+      : reason === 'starting' ? 'current'
+      : 'blocked';
+    const queueState: DnaStep['state'] = !bridge ? 'pending'
+      : reason === 'queue_stuck' || stuck > 0 ? 'blocked'
+      : bridge.connected ? 'done' : 'pending';
+    const botState: DnaStep['state'] = !bot ? 'pending'
+      : Number(bot.testsPassed) >= Number(bot.testsTotal) ? 'done' : 'returned';
+    return [
+      { key: 'device', label: 'الجهاز', state: deviceState, icon: <Smartphone />, title: reason === 'needs_auth' ? 'يحتاج مسح رمز QR' : reason === 'never_seen' ? 'ما وصلت أي نبضة' : seenText },
+      { key: 'bridge', label: 'الجسر', state: bridgeState, icon: <RadioTower />, title: seenText, badge: bridge && !bridge.connected ? `${bridge.minutesSinceSeen}د` : undefined },
+      { key: 'queue', label: 'الطابور', state: queueState, icon: <ListOrdered />, title: `بانتظار الإرسال ${pending ?? '—'} · عالق ${recovery?.queue?.stuckProcessing ?? '—'} · فشل ${bridge?.pollFailures ?? 0}`, badge: pending ? pending : undefined },
+      { key: 'bot', label: 'البوت', state: botState, icon: <Bot />, title: bot ? `اختبار المخ ${bot.testsPassed}/${bot.testsTotal}` : 'اختبار المخ —', badge: bot ? `${bot.testsPassed}/${bot.testsTotal}` : undefined },
+    ];
+  })();
+
   const availableQuickReplies = useMemo(() => {
     const merged = [...managedQuickReplies, ...quickReplies];
     const seen = new Set<string>();
@@ -1401,170 +1429,137 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   return (
     <div dir="rtl" className="min-h-[calc(100vh-120px)] text-slate-900">
-      <div className="mb-4 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div />
-        <div className="grid grid-cols-3 gap-3 min-w-[320px]">
-          <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-4"><div className="text-xs text-slate-400">المحادثات</div><div className="text-2xl font-black">{counts.all}</div></div>
-          <div className="rounded-3xl bg-amber-50 border border-amber-100 shadow-sm p-4"><div className="text-xs text-amber-600">تحتاج دعم</div><div className="text-2xl font-black text-amber-700">{counts.support}</div></div>
-          <div className="rounded-3xl bg-rose-50 border border-rose-100 shadow-sm p-4"><div className="text-xs text-rose-600">غير مقروء</div><div className="text-2xl font-black text-rose-700">{counts.unread}</div></div>
-        </div>
-      </div>
-
       {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
-      {topSmartDecision && (
-        <section className="mb-4 rounded-[1.7rem] border border-slate-900 bg-slate-950 text-white p-4 shadow-xl overflow-hidden relative">
-          <div className="absolute -left-16 -top-16 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="text-right">
-              <div className="text-[10px] font-black text-emerald-300 mb-1">قرار واتساب الآن</div>
-              <h2 className="text-xl font-black">{topSmartDecision.customer}</h2>
-              <p className="text-xs font-bold text-white/60 mt-1">{topSmartDecision.reason}</p>
-              <p className="mt-3 rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-sm font-bold leading-7 text-white/85">{topSmartDecision.reply}</p>
-            </div>
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
-              <button type="button" onClick={() => applyUrgentReply(topSmartDecision.item)} className="rounded-2xl bg-emerald-400 text-slate-950 px-4 py-3 text-xs font-black hover:bg-emerald-300 transition">
-                جهّز الرد
-              </button>
-              <button type="button" onClick={() => { setSelectedPhone(topSmartDecision.item.conversation.phone); setFilter('needs_support'); }} className="rounded-2xl bg-white/10 border border-white/10 px-4 py-3 text-xs font-black hover:bg-white/15 transition">
-                افتح المحادثة
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
-      <section className={cn(
-        'mb-4 rounded-[1.7rem] border p-4 shadow-sm overflow-hidden relative',
-        whatsappCommandPulse.tone === 'danger' ? 'border-rose-100 bg-rose-50 text-rose-950' :
-        whatsappCommandPulse.tone === 'active' ? 'border-amber-100 bg-amber-50 text-amber-950' :
-        'border-emerald-100 bg-emerald-50 text-emerald-950'
-      )}>
-        <div className="absolute -left-10 -bottom-12 h-28 w-28 rounded-full bg-white/70 blur-2xl" />
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_2fr] gap-4 items-center">
-          <div>
-                        <h2 className="mt-1 text-2xl font-black">{whatsappCommandPulse.health}</h2>
-            <p className="mt-2 text-xs font-bold leading-6 opacity-75">{whatsappCommandPulse.move}</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
-              <span className="block text-[10px] font-black opacity-55">عاجل</span>
-              <strong className="mt-1 block text-xl font-black">{whatsappCommandPulse.urgentTotal}</strong>
-            </div>
-            <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
-              <span className="block text-[10px] font-black opacity-55">أعلى انتظار</span>
-              <strong className="mt-1 block text-xl font-black">{whatsappCommandPulse.maxWait} د</strong>
-            </div>
-            <div className="rounded-2xl bg-white/75 border border-white px-3 py-3">
-              <span className="block text-[10px] font-black opacity-55">المسار الساخن</span>
-              <strong className="mt-1 block text-xl font-black">{whatsappCommandPulse.laneLabel}</strong>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm whatsapp-urgent-board whatsapp-ops-board">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="font-black text-slate-900 flex items-center gap-2"><Zap size={18} className="text-amber-500" /> غرفة عمليات واتساب</div>
-          <div className="text-[11px] font-bold text-slate-400">مراقبة حية حسب الغضب والدفع والتوصيل والانتظار</div>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-          {(['anger', 'payment', 'delivery', 'waiting'] as UrgentReplyKind[]).map((kind) => {
-            const info = urgentReplyInfo[kind];
-            const stat = operationLane[kind];
-            const active = stat.count > 0;
-            return (
-              <button key={kind} type="button" onClick={() => setFilter(kind === 'waiting' ? 'unread' : 'all')} className={cn('whatsapp-ops-lane', active && 'is-live', `is-${kind}`)}>
-                <span className="ops-live-dot" />
-                <span className="ops-label">{info.label}</span>
-                <strong>{stat.count}</strong>
-                <small>{stat.maxWait > 0 ? `${stat.maxWait} د انتظار` : 'هادئ الآن'}</small>
-              </button>
-            );
-          })}
-        </div>
-        {urgentReplies.length > 0 && (
-          <div className="mt-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="font-black text-slate-900 flex items-center gap-2"><Zap size={18} className="text-amber-500" /> الردود العاجلة</div>
-            <div className="text-[11px] font-bold text-slate-400">{urgentReplies.length} حالة مرتبة حسب الانتظار والدفع والغضب والتوصيل</div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-            {urgentReplies.map((item: any) => {
-              const c = item.conversation;
-              const info = urgentReplyInfo[item.kind as UrgentReplyKind];
-              return (
-                <button key={`${item.kind}-${c.phone || c.id}`} onClick={() => applyUrgentReply(item)} className="text-right rounded-2xl border border-slate-100 bg-slate-50 hover:bg-white p-3 transition shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-black text-slate-900 truncate">{c.customerName || c.phone}</div>
-                      <div className="text-[11px] font-bold text-slate-400 truncate">{c.phone}</div>
-                    </div>
-                    <span className={cn('shrink-0 rounded-full border px-2 py-1 text-[10px] font-black', info.className)}>{info.label}</span>
-                  </div>
-                  <div className="mt-2 line-clamp-2 text-xs font-bold leading-5 text-slate-500">{c.lastInboundText || c.lastMessageText || 'محادثة تحتاج متابعة'}</div>
-                  <div className="mt-3 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-black text-slate-400">{item.waitingMinutes > 0 ? `ينتظر ${item.waitingMinutes} د` : 'الآن'}</span>
-                    <span className="rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-black text-white">رد جاهز</span>
-                  </div>
-                </button>
-              );
+      <div className="dna wa-command-deck" style={{ display: 'grid', gap: 16, marginBottom: 16 }}>
+        <div className="dna-surface" style={{ padding: 8 }}>
+          <DnaHubMap
+            ariaLabel="غرفة عمليات واتساب — مراقبة حية حسب الغضب والدفع والتوصيل والانتظار"
+            animate={whatsappCommandPulse.urgentTotal > 0}
+            center={{ icon: <Headphones />, label: whatsappCommandPulse.health, ariaLabel: `${whatsappCommandPulse.health} · عاجل ${whatsappCommandPulse.urgentTotal} · أعلى انتظار ${whatsappCommandPulse.maxWait} د · المسار الساخن ${whatsappCommandPulse.laneLabel}` }}
+            live={{ on: counts.support > 0, label: `تحتاج دعم ${counts.support}` }}
+            count={{ value: counts.unread, icon: <MessageCircle />, label: 'غير مقروء' }}
+            overline={`غرفة عمليات واتساب · ${counts.all} محادثة`}
+            title={whatsappCommandPulse.move}
+            nodes={(['anger', 'payment', 'delivery', 'waiting'] as UrgentReplyKind[]).map((kind) => {
+              const info = urgentReplyInfo[kind];
+              const stat = operationLane[kind];
+              const meta = stat.maxWait > 0 ? `${stat.maxWait} د انتظار` : 'هادئ الآن';
+              return {
+                key: kind,
+                icon: ({ anger: <Flame />, payment: <CreditCard />, delivery: <Truck />, waiting: <Clock /> } as Record<UrgentReplyKind, React.ReactNode>)[kind],
+                tone: ({ anger: 'coral', payment: 'mint', delivery: 'sky', waiting: 'amber' } as const)[kind],
+                label: (
+                  <span style={{ display: 'grid', gap: 1, lineHeight: 1.25 }}>
+                    <span>{info.label}</span>
+                    <small style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--dna-muted)' }}>{meta}</small>
+                  </span>
+                ),
+                value: stat.count,
+                state: stat.count > 0 ? (kind === 'anger' ? 'attention' : 'ok') : 'off',
+                onClick: () => setFilter(kind === 'waiting' ? 'unread' : 'all'),
+                ariaLabel: `${info.label}: ${stat.count} · ${meta}`,
+                title: meta,
+              };
             })}
-          </div>
-          </div>
+          />
+        </div>
+        {topSmartDecision && (
+          <DnaStatusHeader
+            icon={<Zap />}
+            tone={whatsappCommandPulse.tone === 'danger' ? 'danger' : 'accent'}
+            title={topSmartDecision.customer}
+            subtitle={`قرار واتساب الآن · ${topSmartDecision.reason}`}
+            divider="dashed"
+            actions={<>
+              <button type="button" onClick={() => { setSelectedPhone(topSmartDecision.item.conversation.phone); setFilter('needs_support'); }} className="dna-btn">
+                <MessageCircle /> افتح المحادثة
+              </button>
+              <button type="button" onClick={() => applyUrgentReply(topSmartDecision.item)} className="dna-btnp">
+                <Send /> جهّز الرد
+              </button>
+            </>}
+          >
+            <p className="wa-decision-reply">{topSmartDecision.reply}</p>
+            {urgentReplies.length > 0 && (
+              <div className="wa-urgent-list">
+                <div className="wa-urgent-head" title={`${urgentReplies.length} حالة مرتبة حسب الانتظار والدفع والغضب والتوصيل`}>
+                  <strong>الردود العاجلة</strong>
+                  <span>{urgentReplies.length}</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                  {urgentReplies.map((item: any) => {
+                    const c = item.conversation;
+                    const info = urgentReplyInfo[item.kind as UrgentReplyKind];
+                    return (
+                      <button key={`${item.kind}-${c.phone || c.id}`} type="button" onClick={() => applyUrgentReply(item)} className="wa-urgent-item">
+                        <span className="wa-urgent-top">
+                          <span className="min-w-0">
+                            <strong className="block truncate">{c.customerName || c.phone}</strong>
+                            <small className="block truncate">{c.phone}</small>
+                          </span>
+                          <span className="wa-urgent-kind">{info.label}</span>
+                        </span>
+                        <span className="wa-urgent-text line-clamp-2">{c.lastInboundText || c.lastMessageText || 'محادثة تحتاج متابعة'}</span>
+                        <span className="wa-urgent-foot">
+                          <small>{item.waitingMinutes > 0 ? `ينتظر ${item.waitingMinutes} د` : 'الآن'}</small>
+                          <span>رد جاهز</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </DnaStatusHeader>
         )}
-      </section>
+      </div>
       {/* Only after the fault has held for two consecutive checks. A single bad reading —
           a heartbeat landing mid-write, one slow request — used to flash a full-width red
           alarm at a bridge that was replying normally, then vanish seconds later. */}
       {bridge && bridge.transport === 'web_bridge' && bridge.connected === false && bridgeFaultConfirmed && (
-        <div role="alert" className="mb-4 rounded-[1.5rem] border-2 border-rose-300 bg-rose-50 p-4 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-              <div className="font-black text-rose-800 flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600" />
-                </span>
-                {bridge.reason === 'needs_auth'
+        <DnaStatusHeader
+          as="section"
+          className="mb-4 wa-bridge-alert"
+          icon={<CircleAlert />}
+          tone="danger"
+          title={<span role="alert">{bridge.reason === 'needs_auth'
                   ? 'واتساب يطلب إعادة ربط الجهاز — امسح رمز QR'
                   : bridge.reason === 'queue_stuck'
                     ? 'الردود تتجهّز ولا تُرسل — الاتصال بالسيرفر متعثّر'
                     : bridge.reason === 'starting'
                       ? 'الجهاز يشتغل ولم يكتمل بعد'
-                      : 'جهاز الواتساب مفصول — البوت لا يرسل شيئًا الآن'}
-              </div>
-              <div className="mt-1.5 text-[12px] font-bold text-rose-700">
-                {bridge.reason === 'never_seen'
+                      : 'جهاز الواتساب مفصول — البوت لا يرسل شيئًا الآن'}</span>}
+          subtitle={<>{bridge.reason === 'never_seen'
                   ? 'ما وصلت أي نبضة من الجهاز إطلاقًا.'
                   : bridge.reason === 'queue_stuck'
                     ? `فشل قراءة الطابور ${bridge.pollFailures} مرات متتالية.`
                     : bridge.reason === 'starting'
                       ? 'وصلت نبضة، لكن الجهاز لم يبلّغ بأنه جاهز للرد.'
                       : `آخر نبضة قبل ${bridge.minutesSinceSeen} دقيقة.`}
-                {' '}الردود تتجمّع في الطابور ولا تصل الزبائن.
-              </div>
-              <div className="mt-1 text-[11px] font-bold text-rose-600">
-                {/* A restart cannot re-link WhatsApp; saying so beats a button that
-                    looks like it should work and does not. */}
-                {bridge.restartCanFix === false
-                  ? 'إعادة التشغيل ما تكفي هنا — لازم مسح رمز QR من واتساب الجوال.'
-                  : 'اضغط «إعادة تشغيل الجهاز» — يرجع خلال دقيقة تقريبًا.'}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={restartBridge}
-                disabled={restartingBridge || bridge.restartCanFix === false}
-                className="rounded-2xl bg-rose-600 px-4 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-60 whitespace-nowrap"
-              >
-                {restartingBridge ? <Loader2 size={14} className="inline animate-spin" /> : '🔄'} إعادة تشغيل الجهاز
-              </button>
-              <div className="text-[11px] font-black text-rose-700 bg-white/70 rounded-2xl px-3 py-2 whitespace-nowrap">
-                🔴 متوقف
-              </div>
-            </div>
-          </div>
-        </div>
+                {' '}الردود تتجمّع في الطابور ولا تصل الزبائن.</>}
+          divider="dashed"
+          actions={<>
+            <DnaLive on={false} label="متوقف" />
+            <button
+              type="button"
+              onClick={restartBridge}
+              disabled={restartingBridge || bridge.restartCanFix === false}
+              className="dna-btnp"
+            >
+              {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw />} إعادة تشغيل الجهاز
+            </button>
+          </>}
+        >
+          <DnaStepper size="md" ariaLabel="صحة الجسر" steps={bridgeHealthSteps} />
+          <p className="wa-bridge-hint">
+            {/* A restart cannot re-link WhatsApp; saying so beats a button that
+                looks like it should work and does not. */}
+            {bridge.restartCanFix === false
+              ? 'إعادة التشغيل ما تكفي هنا — لازم مسح رمز QR من واتساب الجوال.'
+              : 'اضغط «إعادة تشغيل الجهاز» — يرجع خلال دقيقة تقريبًا.'}
+          </p>
+        </DnaStatusHeader>
       )}
 
       {/* Five tabs no longer fit a phone. w-fit let the bar grow past the viewport with
@@ -1572,13 +1567,13 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           unreachable on mobile. Scroll horizontally instead, and keep each tab whole. */}
       <div className="mb-4 flex items-center gap-1.5 rounded-[1.5rem] border border-slate-100 bg-white p-1.5 shadow-sm w-full lg:w-fit overflow-x-auto whatsapp-tabs-scroll">
         {([
-          { id: 'chats', label: 'المحادثات', icon: '💬', badge: tabCounts.needs_support || 0, tone: 'rose' },
-          { id: 'rules', label: 'قواعد الرد', icon: '🤖', badge: autoReplyRules.length, tone: 'slate' },
-          { id: 'texts', label: 'نصوص البوت', icon: '📝', badge: botTexts.filter((t) => (botTextEdits[t.key] ?? t.value).trim()).length, tone: 'slate' },
-          { id: 'ratings', label: 'التقييمات', icon: '⭐', badge: Number(ratings?.count || 0), tone: 'slate' },
+          { id: 'chats', label: 'المحادثات', icon: <MessageCircle size={16} />, badge: tabCounts.needs_support || 0, tone: 'rose' },
+          { id: 'rules', label: 'قواعد الرد', icon: <Bot size={16} />, badge: autoReplyRules.length, tone: 'slate' },
+          { id: 'texts', label: 'نصوص البوت', icon: <FileText size={16} />, badge: botTexts.filter((t) => (botTextEdits[t.key] ?? t.value).trim()).length, tone: 'slate' },
+          { id: 'ratings', label: 'التقييمات', icon: <Star size={16} />, badge: Number(ratings?.count || 0), tone: 'slate' },
           // Everything about the bridge's health lives here, so a stuck bot is fixed
           // from one place instead of hunting across the console.
-          { id: 'device', label: 'إنقاذ الواتساب', icon: bridge?.connected === false ? '🔴' : '🛟', badge: 0, tone: 'rose' },
+          { id: 'device', label: 'إنقاذ الواتساب', icon: bridge?.connected === false ? <CircleAlert size={16} className="text-rose-600" /> : <LifeBuoy size={16} />, badge: 0, tone: 'rose' },
         ] as const).map((t) => (
           <button
             key={t.id}
@@ -1592,7 +1587,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               centerTab === t.id ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50',
             )}
           >
-            <span>{t.icon}</span>
+            <span className="inline-flex" aria-hidden="true">{t.icon}</span>
             <span>{t.label}</span>
             {t.badge > 0 && (
               <span className={cn(
@@ -1971,22 +1966,22 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mb-4">
-          {[
-            { label: 'آخر نبضة', value: bridge ? `${bridge.minutesSinceSeen} د` : '—' },
-            { label: 'آخر سحب ناجح', value: bridge?.lastPollOkAt ? formatTime(bridge.lastPollOkAt) : '—' },
-            { label: 'الرقم', value: bridge?.account || '—' },
-            { label: 'فشل الطابور', value: String(bridge?.pollFailures ?? 0) },
-            { label: 'بانتظار الإرسال', value: String(recovery?.queue?.pending ?? '—') },
-            { label: 'عالق بالإرسال', value: String(recovery?.queue?.stuckProcessing ?? '—') },
-            { label: 'اختبار المخ', value: recovery?.bot ? `${recovery.bot.testsPassed}/${recovery.bot.testsTotal}` : '—' },
-            { label: 'الإصلاح الذاتي', value: 'مفعّل' },
-          ].map((k) => (
-            <div key={k.label} className="rounded-2xl border border-slate-100 bg-slate-50/50 p-3 text-center">
-              <div className="text-[13px] font-black text-slate-800 tabular-nums">{k.value}</div>
-              <div className="text-[10px] font-bold text-slate-400 mt-0.5">{k.label}</div>
-            </div>
-          ))}
+        <div className="dna wa-bridge-path mb-4">
+          <DnaStepper size="md" ariaLabel="صحة الجسر: الجهاز ثم الجسر ثم الطابور ثم البوت" steps={bridgeHealthSteps} />
+          <p className="wa-bridge-meta">
+            {[
+              { label: 'آخر نبضة', value: bridge ? `${bridge.minutesSinceSeen} د` : '—' },
+              { label: 'آخر سحب ناجح', value: bridge?.lastPollOkAt ? formatTime(bridge.lastPollOkAt) : '—' },
+              { label: 'الرقم', value: bridge?.account || '—' },
+              { label: 'فشل الطابور', value: String(bridge?.pollFailures ?? 0) },
+              { label: 'بانتظار الإرسال', value: String(recovery?.queue?.pending ?? '—') },
+              { label: 'عالق بالإرسال', value: String(recovery?.queue?.stuckProcessing ?? '—') },
+              { label: 'اختبار المخ', value: recovery?.bot ? `${recovery.bot.testsPassed}/${recovery.bot.testsTotal}` : '—' },
+              { label: 'الإصلاح الذاتي', value: 'مفعّل' },
+            ].map((k) => (
+              <span key={k.label}>{k.label} <b className="tabular-nums">{k.value}</b></span>
+            ))}
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">

@@ -67,3 +67,36 @@ button.dna-segb {
 .push-radar-calm-card .push-delivery-path p {
   color: inherit;
 }
+
+/* WhatsApp centre */
+.wa-decision-reply {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.9;
+  color: var(--dna-ink);
+}
+.wa-urgent-list { display: grid; gap: 10px; margin-top: 14px; }
+.wa-urgent-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.wa-urgent-head span {
+  min-inline-size: 22px; padding: 1px 8px; border-radius: 999px;
+  background: var(--dna-surface-2); color: var(--dna-muted); font-size: 11px; font-weight: 800; text-align: center;
+}
+.wa-urgent-item {
+  display: grid; gap: 8px; text-align: right; padding: 12px;
+  border-radius: var(--dna-r); border: 1px solid var(--dna-line); background: var(--dna-surface);
+  transition: border-color .2s ease;
+}
+.wa-urgent-item:hover { border-color: var(--dna-line-2); transform: none !important; box-shadow: none !important; }
+.wa-urgent-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.wa-urgent-top strong { font-size: 13px; font-weight: 800; color: var(--dna-ink); }
+.wa-urgent-top small, .wa-urgent-foot small { font-size: 11px; font-weight: 700; color: var(--dna-muted); }
+.wa-urgent-kind { flex-shrink: 0; padding: 2px 10px; border-radius: 999px; background: var(--dna-accent-soft); color: var(--dna-accent); font-size: 11px; font-weight: 800; }
+.wa-urgent-text { font-size: 12px; font-weight: 600; line-height: 1.7; color: var(--dna-muted); }
+.wa-urgent-foot { display: flex; align-items: center; justify-content: space-between; }
+.wa-urgent-foot > span { font-size: 11px; font-weight: 800; color: var(--dna-accent); }
+.wa-bridge-hint, .wa-bridge-meta {
+  margin: 10px 0 0; font-size: 11.5px; font-weight: 700; color: var(--dna-muted); line-height: 1.8;
+}
+.wa-bridge-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
+.wa-bridge-meta b { color: var(--dna-ink); font-weight: 800; }
