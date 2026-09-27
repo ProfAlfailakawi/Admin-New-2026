@@ -53,8 +53,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
     // One-time prompt on load
     if (!checkIsStandalone && !sessionStorage.getItem('pwa_prompt_dismissed')) {
        // Small timeout to not block initial render
+       // Auto-open only where install is actually possible: the browser offered an
+       // install prompt, or iOS Safari (manual "Add to Home Screen"). Elsewhere the
+       // install sheet stays reachable from the manual install button.
+       const ua = window.navigator.userAgent || '';
+       const isIOSSafari = /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua);
        setTimeout(() => {
-         showInstallToast();
+         if (deferredPrompt || isIOSSafari) showInstallToast();
        }, 2000);
     }
 

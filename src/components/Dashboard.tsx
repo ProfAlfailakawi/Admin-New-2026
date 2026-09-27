@@ -25,6 +25,8 @@ import {
   Layers,
   Flame,
   Wallet,
+  ReceiptText,
+  ShieldCheck,
   Sparkles,
   BarChart3,
   Truck,
@@ -76,6 +78,7 @@ import {
   Database,
   Download,
 } from "lucide-react";
+import { DnaHubMap } from "./dna/DnaKit";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -306,17 +309,6 @@ export type DashboardTab =
   | "orders";
 
 // Build Version: 2026-05-20-PULSE-4X4-STRICT-V2.6
-// Helper for dynamic supplier pricing analysis
-const getSupplierPriceIndicator = (s: any) => {
-  if (!s || !s.name) return { val: "0.0%", type: "stable" };
-
-  // Logic: Use phone number last digits for a deterministic but varied indicator
-  const phoneSuffix = parseInt((s.phone || "0").slice(-2), 10);
-  if (phoneSuffix % 3 === 0) return { val: "-4.2%", type: "low" }; // Green Label Trigger
-  if (phoneSuffix % 7 === 0) return { val: "+5.5%", type: "high" }; // Warning Label Trigger
-
-  return { val: "0.0%", type: "stable" };
-};
 
 const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   const unifiedInvoices = useMemo(() => getUnifiedInvoices(data), [data]);
@@ -347,244 +339,44 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   const profit = totalSales - totalCost;
   const healthScore = totalSales > 0 ? (profit / totalSales) * 100 : 0;
 
+  const hubLabel = (value: React.ReactNode, name: string) => (
+    <span style={{ display: "grid", gap: 0, lineHeight: 1.2 }}>
+      <b style={{ fontSize: 12.5, fontWeight: 800, color: "var(--dna-ink)" }} className="tabular-nums">{value}</b>
+      <small style={{ fontSize: 10.5, fontWeight: 700, color: "var(--dna-muted)" }}>{name}</small>
+    </span>
+  );
+
   return (
-    <div
+    <section
       id="bi-engine-core-section"
-      className="relative w-full min-h-[400px] md:min-h-[500px] lg:min-h-[650px] py-16 flex items-center justify-center mb-4 lg:mb-16 overflow-hidden rounded-3xl rounded-3xl sm:rounded-2xl bg-slate-950 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-800/20 group"
+      className="dna dna-surface bi-engine-hub mb-4 lg:mb-8"
+      style={{ padding: 16 }}
     >
-      {/* Immersive Atmospheric Gradients */}
-      <div
-        className={cn(
-          "absolute inset-0 opacity-40 transition-all duration-500 blur-3xl",
-          healthScore > 20
-            ? "bg-emerald-500/20"
-            : healthScore > 0
-              ? "bg-amber-500/20"
-              : "bg-rose-500/20",
-        )}
+      <DnaHubMap
+        ariaLabel="الهامش والمؤشرات المالية"
+        animate={false}
+        minHeight={400}
+        center={{
+          value: `${Math.round(healthScore)}%`,
+          label: "الهامش",
+          ariaLabel: `هامش الربح ${Math.round(healthScore)}%`,
+        }}
+        overline="التحليل الفوري"
+        title="نبض الأرباح"
+        nodes={[
+          { key: "sales", icon: <DollarSign />, tone: "mint", label: hubLabel(totalSales.toFixed(3), "المبيعات"), title: "المبيعات" },
+          { key: "cost", icon: <Wallet />, tone: "amber", label: hubLabel(totalCost.toFixed(3), "التكلفة"), title: "التكلفة" },
+          { key: "profit", icon: <TrendingUp />, tone: profit >= 0 ? "accent" : "danger", label: hubLabel(profit.toFixed(3), "صافي الربح"), title: "صافي الربح" },
+          { key: "invoices", icon: <ReceiptText />, tone: "sky", label: hubLabel(unifiedInvoices?.length || 0, "الفواتير"), title: "الفواتير" },
+        ]}
       />
-
-      {/* Moving Light Rays */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <motion.div
-          animate={{ x: [-500, 500], opacity: [0, 0.2, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-          className="absolute top-0 bottom-0 w-64 bg-gradient-to-r from-transparent via-white to-transparent skew-x-12"
-        />
-      </div>
-
-      {/* Grid structure (Technical Recipe) */}
-      <div className="absolute inset-0 opacity-20 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px]" />
-
-      <div className="relative flex flex-col items-center">
-        {/* The Nuclear Core */}
-        <div className="relative w-64 h-64 sm:w-96 sm:h-96 flex items-center justify-center">
-          {/* Outer Rotating Orbits */}
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 border border-slate-800 rounded-full border-dashed opacity-50"
-          />
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 45, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-6 sm:inset-8 border border-slate-700/30 rounded-full"
-          />
-
-          {/* Core Visual */}
-          <motion.div
-            animate={{
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="w-48 h-48 sm:w-72 sm:h-72 relative flex items-center justify-center"
-          >
-            {/* Plasma Glow */}
-            <div
-              className={cn(
-                "absolute inset-0 rounded-full blur-3xl opacity-30 animate-pulse",
-                healthScore > 20 ? "bg-emerald-500" : "bg-amber-500",
-              )}
-            />
-
-            {/* Inner Mechanical Rings */}
-            <div className="absolute inset-2 sm:inset-4 border-[4px] sm:border-8 border-slate-900 rounded-full shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]" />
-            <div className="absolute inset-4 sm:inset-6 border-[2px] sm:border-[3px] border-slate-800 rounded-full" />
-
-            {/* The Heart Reactor */}
-            <div className="w-32 h-32 sm:w-48 sm:h-48 bg-slate-900 rounded-full border border-slate-700 flex items-center justify-center relative shadow-xl z-10 overflow-hidden translate-z-0">
-              {/* Holographic Scanline */}
-              <motion.div
-                animate={{ y: [-100, 100] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-x-0 h-10 bg-white/5 blur-md pointer-events-none"
-              />
-
-              <div className="text-center z-20">
-                <motion.div
-                  animate={{ opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 0.1, repeat: Infinity }}
-                  className="flex flex-col items-center"
-                >
-                  <span className="text-3xl md:text-5xl font-mono font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 tracking-tighter leading-none">
-                    {Math.round(healthScore)}
-                  </span>
-                  <span className="text-sm sm:text-xl font-bold text-slate-500 -mt-1">
-                    %
-                  </span>
-                </motion.div>
-                <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase mt-1 sm:mt-2 px-3 sm:px-4 py-1 bg-slate-950 rounded-full border border-slate-800">
-                  استقرار النظام
-                </p>
-              </div>
-
-              {/* Spinning Node Connectors */}
-              {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute"
-                  style={{
-                    transform: `rotate(${angle}deg) translate(80px) rotate(-${angle}deg)`,
-                  }}
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.5, 1, 0.5],
-                  }}
-                  transition={{
-                    delay: i * 0.2,
-                    duration: 1.5,
-                    repeat: Infinity,
-                  }}
-                >
-                  <div
-                    className={cn(
-                      "w-2 h-2 rounded-full",
-                      healthScore > 20 ? "bg-emerald-400" : "bg-amber-400",
-                    )}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Satellite Data Units */}
-          <style>{`
- .satellite { --translate-dist: 100px; }
- @media (min-width: 640px) { .satellite { --translate-dist: 180px; } }
- `}</style>
-          {[
-            {
-              icon: <DollarSign />,
-              label: "مبيعات",
-              color: "text-blue-400",
-              angle: 45,
-              val: totalSales.toFixed(3),
-            },
-            {
-              icon: <Target />,
-              label: "أهداف",
-              color: "text-emerald-400",
-              angle: 135,
-              val: profit.toFixed(3),
-            },
-            {
-              icon: <Activity />,
-              label: "نبض",
-              color: "text-rose-400",
-              angle: 225,
-              val: unifiedInvoices?.length || 0,
-            },
-            {
-              icon: <Zap />,
-              label: "طاقة",
-              color: "text-amber-400",
-              angle: 315,
-              val: "ACTIVE",
-            },
-          ].map((sat, i) => (
-            <motion.div
-              key={i}
-              className="absolute z-30 satellite"
-              style={{
-                transform: `rotate(${sat.angle}deg) translate(var(--translate-dist)) rotate(-${sat.angle}deg)`,
-              }}
-              whileHover={{ scale: 1.2 }}
-            >
-              <div className="bg-slate-900/60 backdrop-blur-2xl border border-white/10 p-3 sm:p-3 rounded-2xl sm:rounded-2xl shadow-xl flex flex-col items-center min-w-[70px] sm:min-w-[100px]">
-                <div
-                  className={cn(
-                    "mb-1 sm:mb-2 p-1.5 sm:p-2 rounded-xl bg-white/5",
-                    sat.color,
-                  )}
-                >
-                  {React.cloneElement(sat.icon as any, {
-                    size: 16,
-                    className: "sm:w-5 sm:h-5",
-                  })}
-                </div>
-                <span className="text-[10px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1">
-                  {sat.label}
-                </span>
-                <span className="text-xs sm:text-sm font-bold text-white">
-                  {sat.val}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Status Report (Glassmorphism Section) */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-6 sm:mt-12 mx-4 sm:mx-0 w-full max-w-none bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 flex flex-col gap-6 justify-between items-center relative overflow-hidden z-40 mb-4"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent pointer-events-none" />
-
-          <div className="text-center sm:text-right flex-1 min-w-0 order-1 sm:order-2">
-            <h3 className="text-slate-500 text-[10px] sm:text-xs font-bold uppercase mb-2 sm:mb-3 flex items-center justify-center sm:justify-end gap-2">
-              التحليل الفوري
-              <Sparkles size={14} className="text-amber-400" />
-            </h3>
-            <p className="text-white text-sm sm:text-lg lg:text-xl font-bold leading-relaxed sm:leading-tight">
-              « النظام في حالة{" "}
-              {healthScore > 20 ? "ازدهار قصوى" : "استقرار تشغيلي"}.
-              {profit > 0
-                ? ` صافي الربح وصل إلى ${profit.toFixed(3)} د.ك بنسبة نجاح ممتازة.`
-                : " ينصح بمراجعة التكاليف لرفع الكفاءة."}{" "}
-              »
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-col justify-center sm:justify-start gap-3 w-full shrink-0 order-2 sm:order-1">
-            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-emerald-500/20 text-emerald-400 rounded-xl sm:rounded-2xl border border-emerald-500/20 text-[11px] sm:text-[10px] leading-5 font-bold text-center whitespace-normal flex-1 sm:flex-none">
-              التراث الذكي: جاهز
-            </div>
-            <div className="px-4 py-2 sm:px-5 sm:py-2 bg-blue-500/20 text-blue-400 rounded-xl sm:rounded-2xl border border-blue-500/20 text-[11px] sm:text-[10px] leading-5 font-bold text-center whitespace-normal flex-1 sm:flex-none">
-              المزامنة مستقرة
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Corner UI Elements (Mission Control Vibe) */}
-      <div className="absolute top-3 md:p-4 left-10 flex gap-4">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        <div className="text-[10px] font-mono text-slate-600">
-          REACTOR_STABLE_V2.6
-        </div>
-      </div>
-      <div className="absolute bottom-10 right-10 flex items-center gap-4">
-        <div className="text-[10px] font-mono text-slate-600">
-          KUWAIT_REGION_01
-        </div>
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-      </div>
-    </div>
+      <p style={{ margin: "8px 4px 0", fontSize: 12, fontWeight: 700, color: "var(--dna-muted)", textAlign: "center", lineHeight: 1.7 }}>
+        النظام في حالة {healthScore > 20 ? "ازدهار قصوى" : "استقرار تشغيلي"}.
+        {profit > 0
+          ? ` صافي الربح وصل إلى ${profit.toFixed(3)} د.ك بنسبة نجاح ممتازة.`
+          : " ينصح بمراجعة التكاليف لرفع الكفاءة."}
+      </p>
+    </section>
   );
 };
 
@@ -868,8 +660,8 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
               <CloudRain size={18} className="text-amber-300 mb-2" />
-              <div className="text-lg md:text-xl font-black">{estimatedTemp}°</div>
-              <div className="text-[10px] font-bold text-slate-400">تقدير الكويت</div>
+              <div className="text-lg md:text-xl font-black">{estimatedTemp <= 28 ? "بارد" : estimatedTemp <= 36 ? "معتدل" : "حار"}</div>
+              <div className="text-[10px] font-bold text-slate-400">الموسم</div>
             </div>
             <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
               <Calendar size={18} className="text-emerald-300 mb-2" />
@@ -2708,7 +2500,7 @@ const [isPending, startTransition] = useTransition();
                     </p>
                   </div>
 
-                  <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Stat 1: Revenue */}
                     <div className="bg-white/5 border border-white/10 p-5 md:p-6 rounded-[28px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">إجمالي مبيعات اليوم</span>
@@ -2735,18 +2527,6 @@ const [isPending, startTransition] = useTransition();
                       </div>
                     </div>
 
-                    {/* Stat 3: Efficiency */}
-                    <div className="bg-white/5 border border-white/10 p-5 md:p-6 rounded-[28px] backdrop-blur-xl group hover:bg-white/10 transition-all duration-500">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4">معدل كفاءة التشغيل</span>
-                      <div className="flex items-baseline gap-3">
-                         <span className="text-3xl md:text-4xl font-black text-white tabular-nums tracking-tighter">98.4</span>
-                         <span className="text-slate-400 text-sm font-bold">%</span>
-                      </div>
-                      <div className="mt-4 text-xs font-black inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
-                        <Zap size={12} />
-                        أعلى من المتوسط بـ 2.1%
-                      </div>
-                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -3098,7 +2878,7 @@ const [isPending, startTransition] = useTransition();
                         <button
                           onClick={() =>
                             toast.info("نفحص كل مسارات التوريد...", {
-                              icon: "📡",
+                              icon: <Truck size={16} />,
                             })
                           }
                           className="hover:scale-110 active:scale-95 transition-transform"
@@ -3117,10 +2897,10 @@ const [isPending, startTransition] = useTransition();
                       onClick={() =>
                         toast.info(
                           "الرادار متصل اللحظة ويعمل بالخلفية لجمع البيانات",
-                          { icon: "⚡" },
+                          { icon: <Activity size={16} /> },
                         )
                       }
-                      className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-2 rounded-2xl animate-pulse hover:animate-none hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-2 rounded-2xl transition-colors cursor-pointer"
                     >
                       <Activity className="pointer-events-none" size={24} />
                     </button>
@@ -3130,10 +2910,7 @@ const [isPending, startTransition] = useTransition();
                       <thead className="text-[12px] font-bold text-slate-500 uppercase">
                         <tr>
                           <th className="p-3 md:p-4">بيانات المورد</th>
-                          <th className="p-3 md:p-4 text-center">مؤشر السعر</th>
-                          <th className="p-3 md:p-4 text-center">
-                            تنبؤ المخاطر
-                          </th>
+                          
                           <th className="p-3 md:p-4 text-left">
                             المركز المالي
                           </th>
@@ -3141,9 +2918,6 @@ const [isPending, startTransition] = useTransition();
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white rounded-2xl overflow-hidden">
                         {(data?.suppliers || []).slice(0, 5).map((s) => {
-                          const indicator = getSupplierPriceIndicator(s);
-                          const isHigh = indicator.type === "high";
-                          const isLow = indicator.type === "low";
 
                           return (
                             <tr
@@ -3159,45 +2933,8 @@ const [isPending, startTransition] = useTransition();
                                       <span className="font-bold text-lg text-[#4a3f35]">
                                         {s.name}
                                       </span>
-                                      {isLow && (
-                                        <div className="flex items-center justify-center w-5 h-5 bg-emerald-500/10 rounded-full border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                                          <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="p-3 md:p-4 text-center">
-                                <div
-                                  className={cn(
-                                    "inline-flex items-center gap-1 font-bold text-base px-4 py-2 rounded-xl",
-                                    isHigh
-                                      ? "text-rose-600 bg-rose-50"
-                                      : isLow
-                                        ? "text-emerald-600 bg-emerald-50"
-                                        : "text-slate-500 bg-slate-50",
-                                  )}
-                                >
-                                  {indicator.val}
-                                </div>
-                              </td>
-                              <td className="p-3 md:p-4 text-center">
-                                <div
-                                  className={cn(
-                                    "text-[11px] font-bold px-5 py-2.5 rounded-full border shadow-sm inline-block",
-                                    isHigh
-                                      ? "bg-rose-50 text-rose-700 border-rose-100"
-                                      : isLow
-                                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                        : "bg-slate-50 text-slate-500 border-slate-200/60",
-                                  )}
-                                >
-                                  {isHigh
-                                    ? "ارتفاع سعر - راجع المورد"
-                                    : isLow
-                                      ? "سعر منافس جداً 🏆"
-                                      : "مستقر"}
                                 </div>
                               </td>
                               <td className="p-3 md:p-4 text-left">
@@ -3226,16 +2963,7 @@ const [isPending, startTransition] = useTransition();
                           نصيحة المشتريات الذكية
                         </p>
                         <p className="text-[10px] text-indigo-700 font-bold mt-0.5">
-                          بناءً على مشترياتك، فإن التركيز على الموردين أصحاب
-                          العلامة الخضراء قد يوفر لك{" "}
-                          {Math.max(
-                            50,
-                            (data?.suppliers || []).reduce(
-                              (acc, s) => acc + (Number(s.balance) || 0),
-                              0,
-                            ) * 0.08,
-                          ).toFixed(3)}{" "}
-                          د.ك شهرياً.
+                          فتح مراجعة وسداد الموردين
                         </p>
                       </div>
                     </div>
@@ -3259,7 +2987,7 @@ const [isPending, startTransition] = useTransition();
                   <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-4 md:gap-6 pt-4 md:pt-6 border-b border-slate-200 pb-5 md:pb-7 min-w-0">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-ping" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
                         <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">Strategic Intelligence Laboratory</span>
                       </div>
                       <h1 className="text-2xl md:text-3xl xl:text-4xl font-black text-slate-900 tracking-tighter">
@@ -3268,29 +2996,13 @@ const [isPending, startTransition] = useTransition();
                       <p className="text-slate-500 font-bold text-sm md:text-base max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4 bg-slate-50 p-1.5 rounded-3xl border border-slate-200 shadow-inner self-stretch lg:self-auto w-full lg:w-auto min-w-0">
-                      <div className="bg-white px-4 md:px-5 py-3 md:py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">قوة المعالجة</span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl md:text-2xl font-black text-indigo-600 tabular-nums font-mono">98.4</span>
-                          <span className="text-xs font-bold text-slate-400 font-mono">%</span>
-                        </div>
-                      </div>
-                      <div className="bg-white px-4 md:px-5 py-3 md:py-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">دقة المحاكاة</span>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl md:text-2xl font-black text-emerald-600 tabular-nums font-mono">94</span>
-                          <span className="text-xs font-bold text-slate-400 font-mono">%</span>
-                        </div>
-                      </div>
-                    </div>
+
                   </div>
 
                   {/* Phase 1: High-Performance Analytics Core */}
                   {isIntelligence && <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 items-stretch w-full min-w-0">
                     <div className="xl:col-span-8 group">
                       <div className="relative">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
                         <BIEngineCore data={data} />
                       </div>
                     </div>
@@ -3750,7 +3462,7 @@ const [isPending, startTransition] = useTransition();
                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                    <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">تأمين الخوارزمية</span>
                                  </div>
-                                 <span className="text-white text-xs font-bold">نشط 🟢</span>
+                                 <span className="text-white text-xs font-bold inline-flex items-center gap-1.5">نشط <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true" /></span>
                                </div>
                              </div>
                            </div>
@@ -4112,7 +3824,7 @@ const [isPending, startTransition] = useTransition();
                           <ShieldAlert size={32} strokeWidth={2.5} />
                         </div>
                         <div className="text-right">
-                          <h3 className="text-xl md:text-2xl font-black text-white mb-1">رادار حماية الأرباح نشط 🛡️</h3>
+                          <h3 className="text-xl md:text-2xl font-black text-white mb-1">رادار حماية الأرباح نشط <ShieldCheck size={14} className="inline-block align-[-2px]" aria-hidden="true" /></h3>
                           <p className="text-slate-400 text-sm font-bold">
                             رصدنا {profitInsights.filter(i => i.riskLevel === 'high').length} منتجات تعاني من "نزيف مالي" صامت. اضغط للمراجعة الفورية.
                           </p>
@@ -4343,7 +4055,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                             )}
                             <p className="mt-4 text-[10px] text-slate-400 font-bold leading-5 text-right">
-                              💡 الرصيد الحالي = فرق معايرة رصيد البنك + مبيعات المنتجات + رسوم التوصيل - الخصومات - المصروفات - دفعات الموردين - عمولات بوابات الدفع. أرقام الفترة تعرض أثر الفلتر فقط، أما التراكمي فيتحرك مع كل عملية جديدة.
+                              <Lightbulb size={14} className="inline-block align-[-2px]" aria-hidden="true" /> الرصيد الحالي = فرق معايرة رصيد البنك + مبيعات المنتجات + رسوم التوصيل - الخصومات - المصروفات - دفعات الموردين - عمولات بوابات الدفع. أرقام الفترة تعرض أثر الفلتر فقط، أما التراكمي فيتحرك مع كل عملية جديدة.
                             </p>
                           </div>
                         </motion.div>
@@ -4805,7 +4517,7 @@ const [isPending, startTransition] = useTransition();
                             <div className="bg-slate-50 p-3 md:p-4 rounded-3xl border border-slate-200/60 mt-6 flex flex-col w-full ">
                               <div>
                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">
-                                  السبب والتحليل 🔍
+                                  السبب والتحليل <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                                 </h5>
                                 <div className="text-lg font-bold text-slate-700 leading-relaxed italic border-r-4 border-indigo-500 pr-4">
                                   <p>{focusedInsight.cause}</p>
@@ -4834,7 +4546,7 @@ const [isPending, startTransition] = useTransition();
                               </div>
                               <div className="space-y-4">
                                 <h5 className="text-xs font-bold text-slate-500 uppercase mb-3">
-                                  تأثيرات حاسمة ⚡
+                                  تأثيرات حاسمة <Zap size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                                 </h5>
                                 <div className="space-y-2">
                                   {focusedInsight.detailedPoints?.map(
@@ -4921,7 +4633,7 @@ const [isPending, startTransition] = useTransition();
                             onClick={() =>
                               toast.info(
                                 "المركز الرئيسي لمعالجة البيانات الاستراتيجية",
-                                { icon: "🤖" },
+                                { icon: <Cpu size={16} /> },
                               )
                             }
                             className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center border border-indigo-400/30 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all cursor-pointer"
@@ -5159,7 +4871,7 @@ const [isPending, startTransition] = useTransition();
                           onClick={() =>
                             toast.info(
                               "التراث الذكي يقوم بتحليل الأرقام الآن لتقديم هذه التوصيات الدقيقة",
-                              { icon: "🧠" },
+                              { icon: <BrainCircuit size={16} /> },
                             )
                           }
                           className="w-12 h-12 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-400/30 cursor-pointer"
@@ -5170,7 +4882,7 @@ const [isPending, startTransition] = useTransition();
                           />
                         </button>
                         <h3 className="text-xl font-bold text-right">
-                          مقترحات التراث الذكي 🧠
+                          مقترحات التراث الذكي <BrainCircuit size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                         </h3>
                       </div>
                       <div className="space-y-3 relative z-10 text-right">
@@ -5265,7 +4977,7 @@ const [isPending, startTransition] = useTransition();
                               onClick={() =>
                                 toast.info(
                                   "التراث الذكي يتوقع زيادة في طلبات السفر قريباً بناءً على الأنماط التاريخية",
-                                  { icon: "✈️" },
+                                  { icon: <Send size={16} /> },
                                 )
                               }
                               className="hover:scale-110 active:scale-95 transition-transform"
@@ -5276,7 +4988,7 @@ const [isPending, startTransition] = useTransition();
                               />
                             </button>
                             <span className="bg-[#fcedce] text-[#b38026] text-[10px] font-bold px-3 py-1 rounded-full">
-                              نبض الكويت 🛰️
+                              نبض الكويت <Activity size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                             </span>
                           </div>
                           <h3 className="text-lg font-bold text-[#4a3f35] mt-2 mb-1 text-right">
@@ -5527,7 +5239,7 @@ const [isPending, startTransition] = useTransition();
                       onClick={() =>
                         toast.info(
                           "يتم استخلاص هؤلاء العملاء بناءً على حجم وتواتر الطلبات",
-                          { icon: "📊" },
+                          { icon: <BarChart3 size={16} /> },
                         )
                       }
                       className="hover:scale-110 active:scale-95 transition-transform"
@@ -5543,7 +5255,7 @@ const [isPending, startTransition] = useTransition();
                       <div
                         onClick={() => {
                           toast.info(`بنحوّلك لملف العميل: ${c.name}...`, {
-                            icon: "🧑‍💼",
+                            icon: <User size={16} />,
                           });
                           if (setDeepLinkData) {
                             setDeepLinkData({ search: c.name });
@@ -5723,7 +5435,7 @@ const [isPending, startTransition] = useTransition();
                             onClick={handleLoyaltyAnalyze}
                             className="bg-rose-500 hover:bg-rose-600 text-white px-5 md:px-10 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-rose-500/20 active:scale-95 transition-all"
                           >
-                            بدء تحليل الولاء 🔍
+                            <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" /> بدء تحليل الولاء
                           </button>
                         </div>
                       )}
@@ -5884,10 +5596,10 @@ const [isPending, startTransition] = useTransition();
                     <div className="bg-white rounded-2xl p-3 md:p-4 border border-[#f0e6d2] shadow-sm flex flex-col gap-3 md:p-4 md:gap-4 md:p-3">
                       <div className="flex flex-col justify-between items-center gap-4 flex-row-reverse text-center sm:text-right">
                         <h3 className="font-bold text-lg md:text-xl text-slate-800">
-                          تحليل نبض العملاء 🛰️
+                          تحليل نبض العملاء <Activity size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                         </h3>
                         <div className="text-[10px] md:text-[11px] font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 w-full w-full">
-                          محلل التراث الذكي مفعّل ✅
+                          محلل التراث الذكي مفعّل <CheckCircle2 size={14} className="inline-block align-[-2px]" aria-hidden="true" />
                         </div>
                       </div>
 
@@ -5913,7 +5625,7 @@ const [isPending, startTransition] = useTransition();
                                     className="animate-spin"
                                   />
                                 ) : (
-                                  "تحليل النبض الفوري 🔍"
+                                  "تحليل النبض الفوري"
                                 )}
                               </button>
                               <button

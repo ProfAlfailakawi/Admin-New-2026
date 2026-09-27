@@ -4,6 +4,8 @@ import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
 import App from './App.tsx';
 import './index.css';
+import './components/dna/dna.css';
+import './components/dna/dna-theme.css';
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 

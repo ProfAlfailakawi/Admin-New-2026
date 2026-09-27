@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { DnaSegmented } from "./dna/DnaKit";
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import {
   ClipboardList,
@@ -22,6 +23,8 @@ import {
   RefreshCw,
   Users,
   Dices,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn, normalizeArabic, robustNormalize, normalizeArabicNumerals, formatKuwaitiDate, formatKuwaitiDateOnly, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, parseTimeTo24h, formatTimeInput, validateAndCleanTime, getArabicWeekdayAndDate } from '../lib/utils';
@@ -113,96 +116,6 @@ interface OrderPageProps {
   setDeepLinkData?: (data: any) => void;
   isPartner?: boolean;
 }
-
-const InsightCard = ({
-  label,
-  value,
-  icon: Icon,
-  color,
-  onClick,
-}: {
-  label: string;
-  value: any;
-  icon: any;
-  color: string;
-  onClick?: () => void;
-}) => {
-  const isFailedCard = label === "فشل في عملية الدفع" && value > 0;
-  const isPendingCard = label === "بانتظار الدفع" && value > 0;
-  const isSplitPendingCard = label === "قيد تجميع القطية" && value > 0;
-  const needsPulse = isFailedCard || isPendingCard || isSplitPendingCard;
-  const glowColorClass = isFailedCard
-    ? "bg-amber-500"
-    : isPendingCard
-      ? "bg-violet-500"
-      : isSplitPendingCard
-        ? "bg-purple-500"
-        : "";
-  const bgGlowColorClass = isFailedCard
-    ? "bg-amber-500/10"
-    : isPendingCard
-      ? "bg-violet-500/10"
-      : isSplitPendingCard
-        ? "bg-purple-500/10"
-        : "";
-
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 relative overflow-hidden",
-        onClick
-          ? "cursor-pointer hover:shadow-md transition-all active:scale-95"
-          : "",
-      )}
-    >
-      {needsPulse && (
-        <motion.div
-          animate={{ opacity: [0.05, 0.15, 0.05] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className={cn(
-            "absolute inset-0 pointer-events-none",
-            bgGlowColorClass,
-          )}
-        />
-      )}
-      <div
-        className={cn(
-          "p-2.5 rounded-xl bg-slate-50 relative z-10",
-          color.replace("text-", "bg-").replace("-500", "-500/10"),
-        )}
-      >
-        <Icon size={20} className={color} />
-        {needsPulse && (
-          <motion.div
-            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className={cn(
-              "absolute inset-0 rounded-xl filter blur-sm",
-              glowColorClass,
-            )}
-          />
-        )}
-      </div>
-      <div className="relative z-10">
-        <div className="text-[10px] font-bold text-slate-500 uppercase leading-none mb-1">
-          {label}
-        </div>
-        <div className="text-lg font-bold text-slate-900 leading-none flex items-center gap-2">
-          {value}
-          {needsPulse && (
-            <span
-              className={cn(
-                "flex h-2 w-2 rounded-full animate-pulse",
-                glowColorClass,
-              )}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 import {
   isPaidStatus,
@@ -505,7 +418,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
     }
     if (isFailedStatus(status)) return "فشل في عملية الدفع";
     if (String(status).includes("تجميع القطية") || status === "split_pending")
-      return "قيد تجميع القطية 🔄";
+      return "قيد تجميع القطية";
     if (isPendingStatus(status) || isFailedStatus(status))
       return "بانتظار الدفع";
     return status;
@@ -1498,114 +1411,50 @@ Alturath.kw`;
       className="p-3 md:p-4 lg:p-3 md:p-3 space-y-6 animate-in fade-in duration-500"
       dir="rtl"
     >
-      {/* Quick Insights Bar */}
-      <div className="flex overflow-x-auto lg:grid lg:grid-cols-7 gap-3 md:gap-4 pb-2 -mx-3 px-3 md:mx-0 md:px-0 md:pb-0 hide-scrollbar">
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="إجمالي الطلبات"
-            value={orders.length}
-            icon={ClipboardList}
-            color="text-slate-500"
-            onClick={() => setFilterStatus("all")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="طلبات اليوم"
-            value={
-              data.orders.filter((o) => {
-                let d = new Date();
-                const oAsAny = o as any;
-                if (oAsAny.createdAt && oAsAny.createdAt.seconds)
-                  d = new Date(oAsAny.createdAt.seconds * 1000);
-                else if (oAsAny.createdAt) d = new Date(oAsAny.createdAt);
-                else if (o.date) d = new Date(o.date);
-                else return false;
+      {/* Quick Insights Bar — one filter bar driving the same filter state */}
+      {(() => {
+        const isToday = (o: any) => {
+          let d = new Date();
+          const oAsAny = o as any;
+          if (oAsAny.createdAt && oAsAny.createdAt.seconds)
+            d = new Date(oAsAny.createdAt.seconds * 1000);
+          else if (oAsAny.createdAt) d = new Date(oAsAny.createdAt);
+          else if (o.date) d = new Date(o.date);
+          else return false;
 
-                if (isNaN(d.getTime())) return false;
-                const today = new Date();
-                return (
-                  d.getDate() === today.getDate() &&
-                  d.getMonth() === today.getMonth() &&
-                  d.getFullYear() === today.getFullYear()
-                );
-              }).length
-            }
-            icon={Calendar}
-            color="text-indigo-500"
-            onClick={() => setFilterStatus("today")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="قيد تجميع القطية"
-            value={
-              data.orders.filter(
-                (o) =>
-                  String(o.status).includes("تجميع القطية") ||
-                  o.status === "split_pending",
-              ).length
-            }
-            icon={RefreshCw}
-            color="text-purple-500"
-            onClick={() => setFilterStatus("split_pending")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="بانتظار الدفع"
-            value={
-              data.orders.filter(
-                (o) =>
-                  (isPendingStatus(o.status as string) ||
-                    isFailedStatus(o.status as string)) &&
-                  !(
-                    String(o.status).includes("تجميع القطية") ||
-                    o.status === "split_pending"
-                  ),
-              ).length
-            }
-            icon={Clock}
-            color="text-violet-500"
-            onClick={() => setFilterStatus("pending")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="فشل في الدفع"
-            value={
-              data.orders.filter((o) => isFailedStatus(o.status as string))
-                .length
-            }
-            icon={AlertCircle}
-            color="text-amber-500"
-            onClick={() => setFilterStatus("failed")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="جاري التوصيل"
-            value={
-              data.orders.filter((o) => isPaidStatus(o.status as string)).length
-            }
-            icon={CheckCircle2}
-            color="text-emerald-500"
-            onClick={() => setFilterStatus("paid")}
-          />
-        </div>
-        <div className="min-w-[140px] md:min-w-0">
-          <InsightCard
-            label="ملغي"
-            value={
-              data.orders.filter((o) => isCancelledStatus(o.status as string))
-                .length
-            }
-            icon={XCircle}
-            color="text-rose-500"
-            onClick={() => setFilterStatus("cancelled")}
-          />
-        </div>
-      </div>
+          if (isNaN(d.getTime())) return false;
+          const today = new Date();
+          return (
+            d.getDate() === today.getDate() &&
+            d.getMonth() === today.getMonth() &&
+            d.getFullYear() === today.getFullYear()
+          );
+        };
+        const isSplit = (o: any) =>
+          String(o.status).includes("تجميع القطية") ||
+          o.status === "split_pending";
+        const seg = (label: string, full: string) => (
+          <span title={full} aria-label={full}>{label}</span>
+        );
+        return (
+          <div className="orders-filter-bar dna" style={{ overflowX: "auto", paddingBottom: 2 }}>
+            <DnaSegmented
+              ariaLabel="تصفية الطلبات"
+              value={filterStatus}
+              onChange={(v) => setFilterStatus(v)}
+              options={[
+                { value: "all", label: seg("الكل", "إجمالي الطلبات"), icon: <ClipboardList />, count: orders.length },
+                { value: "today", label: seg("اليوم", "طلبات اليوم"), icon: <Calendar />, count: data.orders.filter(isToday).length },
+                { value: "split_pending", label: seg("القطية", "قيد تجميع القطية"), icon: <RefreshCw />, count: data.orders.filter(isSplit).length },
+                { value: "pending", label: seg("بانتظار الدفع", "بانتظار الدفع"), icon: <Clock />, count: data.orders.filter((o) => (isPendingStatus(o.status as string) || isFailedStatus(o.status as string)) && !isSplit(o)).length },
+                { value: "failed", label: seg("فشل", "فشل في الدفع"), icon: <AlertCircle />, count: data.orders.filter((o) => isFailedStatus(o.status as string)).length },
+                { value: "paid", label: seg("مدفوع", "جاري التوصيل"), icon: <CheckCircle2 />, count: data.orders.filter((o) => isPaidStatus(o.status as string)).length },
+                { value: "cancelled", label: seg("ملغي", "ملغي"), icon: <XCircle />, count: data.orders.filter((o) => isCancelledStatus(o.status as string)).length },
+              ]}
+            />
+          </div>
+        );
+      })()}
 
       {/* Main Container */}
       <div className="bg-white rounded-2xl p-3 md:p-4 lg:p-3 md:p-3 shadow-lg border border-slate-100">
@@ -1644,22 +1493,9 @@ Alturath.kw`;
           >
             {filterStatus === "pending" ? (
               <>
-                <motion.div
-                  animate={{
-                    scale: [1, 1.05, 1],
-                    opacity: [0.6, 1, 0.6],
-                    filter: ["blur(0px)", "blur(4px)", "blur(0px)"],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="w-32 h-32 bg-emerald-100 rounded-full flex items-center justify-center mb-8 relative"
-                >
-                  <div className="absolute inset-0 bg-emerald-300 rounded-full blur-2xl opacity-50" />
-                  <p className="text-5xl relative z-10">✨</p>
-                </motion.div>
+                <div className="w-32 h-32 bg-emerald-50 rounded-full flex items-center justify-center mb-8 relative">
+                  <Sparkles className="relative z-10 w-12 h-12 text-emerald-700" strokeWidth={1.6} aria-hidden="true" />
+                </div>
                 <h3 className="text-emerald-600 font-bold text-3xl mb-4 tracking-tight">
                   إنجاز مبهر!
                 </h3>
@@ -1745,7 +1581,7 @@ Alturath.kw`;
                             hasUnselectedSuppliers(order) &&
                             !order.isConvertedToInvoice &&
                             (order as any).paymentStatus !== "paid" && (
-                              <span className="mr-1">⚠️</span>
+                              <AlertTriangle size={12} className="mr-1 inline-block align-[-2px]" aria-hidden="true" />
                             )}
                         </div>
                       </div>
@@ -2056,8 +1892,8 @@ Alturath.kw`;
                         ) &&
                         (selectedOrder as any).splitParticipants.length > 0 && (
                           <div className="mb-4 bg-purple-100 border-2 border-purple-400 p-4 rounded-xl shadow-inner relative overflow-hidden">
-                            <div className="absolute -right-2 -top-2 md:-right-4 md:-top-4 opacity-10 pointer-events-none text-8xl md:text-9xl">
-                              🎲
+                            <div className="absolute -right-2 -top-2 md:-right-4 md:-top-4 opacity-10 pointer-events-none text-purple-900" aria-hidden="true">
+                              <Dices className="w-20 h-20 md:w-28 md:h-28" strokeWidth={1.2} />
                             </div>
                             <h4 className="text-xs md:text-sm font-bold uppercase text-purple-900 mb-3 md:mb-4 flex items-center gap-2">
                               <Dices className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />{" "}
@@ -2159,19 +1995,10 @@ Alturath.kw`;
                                             <div className="flex items-center gap-1.5">
                                               {productName}
                                               {needsSelection && (
-                                                <motion.span
-                                                  animate={{
-                                                    scale: [1, 1.1, 1],
-                                                    rotate: [0, -2, 2, 0],
-                                                  }}
-                                                  transition={{
-                                                    duration: 0.5,
-                                                    repeat: Infinity,
-                                                  }}
-                                                  className="text-[7px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white shadow-lg shadow-rose-500/30"
-                                                >
-                                                  تحديد مورد مطلوب ⚠️
-                                                </motion.span>
+                                                <span className="inline-flex items-center gap-1 text-[7px] md:text-[11px] font-bold px-2 md:px-3 py-1 rounded-full bg-rose-500 text-white">
+                                                  تحديد مورد مطلوب
+                                                  <AlertTriangle size={11} aria-hidden="true" />
+                                                </span>
                                               )}
                                             </div>
                                             {product?.supplierId && !needsSelection && (
@@ -2821,7 +2648,7 @@ Alturath.kw`;
                             className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 text-white shadow-lg hover:bg-indigo-700"
                           >
                             <MessageSquare size={16} />
-                            إرسال فاتورة جديدة 💬
+                            إرسال فاتورة جديدة
                           </button>
                           {false && (
                             <MagneticButton
@@ -2857,8 +2684,8 @@ Alturath.kw`;
                             >
                               <Wallet size={16} className="md:w-[18px]" />
                               {isMarkedAsPaid
-                                ? "تم الدفع وتأكيد الحجز ✅"
-                                : "تأكيد استلام المبلغ 💰"}
+                                ? "تم الدفع وتأكيد الحجز"
+                                : "تأكيد استلام المبلغ"}
                             </MagneticButton>
                           )}
 
@@ -2888,7 +2715,7 @@ Alturath.kw`;
                             <XCircle size={16} className="md:w-[18px]" />
                             {isConfirmingCancel
                               ? "هل أنت متأكد من الإلغاء؟"
-                              : "إلغاء الطلب نهائياً ❌"}
+                              : "إلغاء الطلب نهائياً"}
                           </button>
                         </div>
                       )}

@@ -1,0 +1,219 @@
+/* DNA theme for Alturath admin: maps --dna-* tokens to the site palette
+   (deep green #0f3d1f single accent, cream #fbf7ee canvas) and neutralises
+   legacy global rules that would distort the kit. Loaded after index.css. */
+:root {
+  --dna-canvas: #fbf7ee;
+  --dna-surface: #ffffff;
+  --dna-surface-2: #f8f4ea;
+  --dna-ink: #14231a;
+  --dna-muted: #5f6b63;
+  --dna-line: rgba(20, 35, 26, 0.09);
+  --dna-line-2: rgba(20, 35, 26, 0.16);
+  --dna-accent: var(--color-secondary, #0f3d1f);
+  --dna-accent-soft: #e3ece5;
+  --dna-on-accent: #ffffff;
+  --dna-core: #0f3d1f;
+  --dna-on-core: #ffffff;
+}
+
+/* Cream canvas: the page and the admin shell that covers it (index.css paints the
+   shell slate with !important; this file loads later, same specificity). */
+body,
+.admin-heritage-shell {
+  background: var(--dna-canvas) !important;
+}
+
+/* Legacy globals vs kit ---------------------------------------------- */
+/* global button min-height / lift / transitions */
+.dna button,
+button.dna-btn,
+button.dna-btnp,
+button.dna-ibtn,
+button.dna-segb {
+  transform: none;
+}
+.dna button:hover,
+.dna button:active {
+  transform: none !important;
+}
+/* forced icon sizes/strokes (index.css .admin-heritage-shell .lucide, svg rules) */
+.admin-heritage-shell .dna .lucide,
+.dna .lucide {
+  stroke-width: 1.6 !important;
+}
+/* [class*="empty"] wildcard (index.css) must not paint kit elements */
+.dna[class*='empty'],
+.dna [class*='empty'] {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Push delivery (GeneralSettings): calm light shell instead of the dark radar card */
+.push-radar-readable-card.push-radar-calm-card {
+  background: var(--dna-surface) !important;
+  border: 1px solid var(--dna-line) !important;
+  box-shadow: var(--dna-shadow) !important;
+  color: var(--dna-ink) !important;
+}
+.push-radar-calm-card .push-radar-readable-metric,
+.push-radar-calm-card .push-radar-readable-notification,
+.push-radar-calm-card .push-radar-readable-note {
+  background: var(--dna-surface-2) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: none !important;
+}
+/* index.css paints every span/div in .push-radar-readable-card slate (!important):
+   give the stepper its own colours back so the check marks stay visible. */
+.push-radar-readable-card .dna-steps .dna-node { color: var(--dna-muted) !important; }
+.push-radar-readable-card .dna-steps .dna-stepi[data-state='done'] .dna-node { color: var(--dna-on-accent) !important; }
+.push-radar-readable-card .dna-steps .dna-num { color: inherit !important; }
+.push-radar-readable-card .dna-steps .dna-bdg { color: var(--dna-ink) !important; }
+.push-radar-readable-card .dna-steps .dna-lbl { color: var(--dna-muted) !important; }
+.push-radar-readable-card .dna-steps .dna-stepi[data-state='done'] .dna-lbl { color: var(--dna-ink) !important; }
+
+/* WhatsApp centre */
+.wa-decision-reply {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.9;
+  color: var(--dna-ink);
+}
+.wa-urgent-list { display: grid; gap: 10px; margin-top: 14px; }
+.wa-urgent-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.wa-urgent-head span {
+  min-inline-size: 22px; padding: 1px 8px; border-radius: 999px;
+  background: var(--dna-surface-2); color: var(--dna-muted); font-size: 11px; font-weight: 800; text-align: center;
+}
+.wa-urgent-item {
+  display: grid; gap: 8px; text-align: right; padding: 12px;
+  border-radius: var(--dna-r); border: 1px solid var(--dna-line); background: var(--dna-surface);
+  transition: border-color .2s ease;
+}
+.wa-urgent-item:hover { border-color: var(--dna-line-2); transform: none !important; box-shadow: none !important; }
+.wa-urgent-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.wa-urgent-top strong { font-size: 13px; font-weight: 800; color: var(--dna-ink); }
+.wa-urgent-top small, .wa-urgent-foot small { font-size: 11px; font-weight: 700; color: var(--dna-muted); }
+.wa-urgent-kind { flex-shrink: 0; padding: 2px 10px; border-radius: 999px; background: var(--dna-accent-soft); color: var(--dna-accent); font-size: 11px; font-weight: 800; }
+.wa-urgent-text { font-size: 12px; font-weight: 600; line-height: 1.7; color: var(--dna-muted); }
+.wa-urgent-foot { display: flex; align-items: center; justify-content: space-between; }
+.wa-urgent-foot > span { font-size: 11px; font-weight: 800; color: var(--dna-accent); }
+.wa-bridge-hint, .wa-bridge-meta {
+  margin: 10px 0 0; font-size: 11.5px; font-weight: 700; color: var(--dna-muted); line-height: 1.8;
+}
+.wa-bridge-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
+.wa-bridge-meta b { color: var(--dna-ink); font-weight: 800; }
+.bi-engine-hub .dna-hubn { gap: 4px; }
+
+/* Push radar: the outer dark "radar" shell and its panels drawn light (scoped, visual only). */
+.push-health-pro .push-radar-light.push-radar-light,
+.push-radar-light.push-radar-light {
+  background: var(--dna-surface-2) !important;
+  border: 1px solid var(--dna-line) !important;
+  box-shadow: none !important;
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is(.bg-slate-950, [class*='bg-slate-950/'], [class*='bg-slate-900'], .bg-gradient-to-br) {
+  background: var(--dna-surface) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: var(--dna-shadow) !important;
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='bg-white/5'], [class*='bg-white/10'], [class*='bg-white/14'], [class*='bg-white/15'], [class*='bg-black/']) {
+  background: var(--dna-surface-2) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: none !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='border-white/'], [class*='border-slate-700'], [class*='border-emerald-300/'], [class*='border-amber-300/']) {
+  border-color: var(--dna-line) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is(.text-white, [class~='text-white']) {
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light [class*='text-white/'] {
+  color: var(--dna-muted) !important;
+  opacity: 1 !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-emerald-100'], [class*='text-emerald-200'], [class*='text-emerald-300']) {
+  color: var(--dna-accent) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-amber-100'], [class*='text-amber-200'], [class*='text-amber-300']) {
+  color: var(--dna-warn) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-rose-100'], [class*='text-rose-300']) {
+  color: var(--dna-danger) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light [class*='blur-3xl'] {
+  display: none !important;
+}
+.push-health-pro .push-radar-light.push-radar-light input {
+  background: var(--dna-surface) !important;
+  color: var(--dna-ink) !important;
+  border-color: var(--dna-line-2) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light input::placeholder {
+  color: var(--dna-muted) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light button:is(.bg-white, [class*='bg-white/']) {
+  background: var(--dna-surface) !important;
+  color: var(--dna-ink) !important;
+  border: 1px solid var(--dna-line-2) !important;
+}
+.wa-hub-wrap { min-inline-size: 0; }
+@media (max-width: 520px) {
+  .wa-hub-wrap .dna-hubl { font-size: 11px; }
+  .wa-hub-wrap .dna-hubcap { inset-inline-start: 16px; inset-inline-end: 16px; }
+}
+
+/* Push radar (light): headings/values that legacy rules forced white, plain slate chips,
+   the mint action buttons -> single accent, the doctor card and the device compass. */
+.push-health-pro .push-radar-light.push-radar-light :is(h3, h4, strong) {
+  color: var(--dna-ink) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light [class*='bg-slate-800/'] {
+  background: var(--dna-surface-2) !important;
+  border-color: var(--dna-line) !important;
+}
+.push-health-pro .push-radar-light.push-radar-light :is([class*='text-slate-200'], [class*='text-slate-300']) {
+  color: var(--dna-muted) !important;
+}
+.push-health-pro button[class*='bg-emerald-300'] {
+  background: var(--dna-accent) !important;
+  color: var(--dna-on-accent) !important;
+  border-color: transparent !important;
+}
+.push-health-pro button[class*='bg-emerald-300']:hover {
+  background: color-mix(in srgb, var(--dna-accent) 86%, #000000) !important;
+}
+.push-health-pro .push-radar-light .push-radar-doctor {
+  background: var(--dna-surface) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: var(--dna-shadow) !important;
+}
+.push-compass {
+  background: var(--dna-surface);
+  box-shadow: inset 0 0 0 1px var(--dna-line), var(--dna-shadow);
+  color: var(--dna-ink);
+}
+.push-compass-hub {
+  background: var(--dna-surface);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--dna-accent) 55%, transparent), 0 4px 10px -4px rgba(20, 35, 26, 0.25);
+}
+.push-compass-tip {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--dna-line);
+  box-shadow: 0 12px 32px -12px rgba(20, 35, 26, 0.28);
+}
+
+/* The repo keeps every button at a 44px touch target (index.css base layer);
+   the kit's unlayered 38px minimum would otherwise win. */
+.dna-btn,
+.dna-btnp,
+.dna-ibtn {
+  min-block-size: 44px;
+}
+.dna-ibtn {
+  inline-size: 44px;
+}
