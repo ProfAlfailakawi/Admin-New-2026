@@ -746,7 +746,7 @@ setSearchTerm(val);
  </div>
 
  <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-100 pb-0">
- <table className="w-full text-right min-w-[700px]" dir="rtl">
+ <table className="mobile-card-table w-full text-right min-w-[700px]" dir="rtl">
  <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase">
  <tr>
  <th className="p-3 pr-6">العميل</th>

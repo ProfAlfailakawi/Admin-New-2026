@@ -5577,7 +5577,7 @@ const GeneralSettings: React.FC<Props> = ({
                   {appMode === "local" && (
                     <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed cursor-not-allowed" />
                   )}
-                  <table className="w-full text-right min-w-[600px]" dir="rtl">
+                  <table className="mobile-card-table w-full text-right min-w-[600px]" dir="rtl">
                     <thead className="bg-slate-100 text-[10px] font-bold text-slate-500 uppercase sticky top-0 z-10 shadow-sm shadow-slate-200/50">
                       <tr>
                         <th className="p-3">اسم المنطقة</th>

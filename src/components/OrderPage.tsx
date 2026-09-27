@@ -316,6 +316,7 @@ const OrderPage: React.FC<OrderPageProps> = ({
         return (
           (isPaidStatus(o.status) || isPaidStatus((o as any).paymentStatus)) &&
           !o.isConvertedToInvoice &&
+          !isCancelledStatus(o.status) &&
           !hasUnselectedSuppliers(o) &&
           ((o as any).manuallyModifiedDeliveryType === true || isOlderThan24h)
         );
@@ -763,10 +764,12 @@ const OrderPage: React.FC<OrderPageProps> = ({
   const convertToInvoice = async (order: Order) => {
     setLoading(true);
     if (isCancelledStatus(order.status)) {
+      setLoading(false);
       toast.error("لا يمكن تحويل طلب ملغي إلى فاتورة");
       return;
     }
     if (hasUnselectedSuppliers(order)) {
+      setLoading(false);
       toast.error("يرجى اختيار المورد لجميع المنتجات قبل التحويل");
       return;
     }

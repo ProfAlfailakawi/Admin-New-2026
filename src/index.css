@@ -6371,3 +6371,110 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
     animation: aml-idle 3.2s ease-in-out 0.5s infinite;
   }
 }
+
+/* ==========================================================================
+   Mobile UX pass (phones ≤767px, tablets ≤1023px). Desktop (≥1024px) untouched.
+   ========================================================================== */
+
+/* iPhone notch / home indicator: the PWA uses black-translucent + viewport-fit=cover. */
+@media (max-width: 1023px) {
+  .admin-app-header{
+    height:calc(4rem + env(safe-area-inset-top,0px))!important;
+    padding-top:env(safe-area-inset-top,0px)!important;
+    padding-left:max(.75rem, env(safe-area-inset-left,0px))!important;
+    padding-right:max(.75rem, env(safe-area-inset-right,0px))!important;
+  }
+  .admin-app-main{
+    padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
+    scroll-padding-top:12px;
+    overscroll-behavior-y:contain;
+  }
+}
+
+@media (max-width: 767px) {
+  /* --- Shell spacing: reclaim the width lost to three nested gutters --- */
+  .admin-app-main{padding-left:10px!important;padding-right:10px!important;padding-top:10px!important}
+  .admin-page-frame{padding-left:0!important;padding-right:0!important}
+  .admin-content-polish{padding:6px!important;padding-top:6px!important;border-radius:22px!important}
+  .admin-page-hero{margin-top:4px!important;margin-bottom:12px!important}
+
+  /* --- Header: every control is a 44px touch target --- */
+  .admin-app-header > div{gap:4px!important}
+  .admin-app-header button,
+  .admin-app-header [role="button"]{min-width:44px!important;min-height:44px!important}
+  .admin-app-header .w-9.h-9{width:44px!important;height:44px!important}
+
+  /* --- Legibility floor: no body copy under 12px on phones --- */
+  .admin-app-main .text-\[7px\],.admin-app-main .text-\[8px\],.admin-app-main .text-\[9px\],
+  .admin-app-main .text-\[10px\],.admin-app-main .text-\[10\.5px\],.admin-app-main .text-\[11px\],
+  .admin-app-main .text-\[11\.5px\],
+  [role="dialog"] .text-\[9px\],[role="dialog"] .text-\[10px\],[role="dialog"] .text-\[11px\],
+  .fixed .text-\[9px\],.fixed .text-\[10px\],.fixed .text-\[11px\]{font-size:12px!important;line-height:1.5!important}
+  .admin-app-main .text-xs{font-size:12.5px!important}
+
+  /* --- Wide data tables become stacked cards (labels come from mobileTableCards.ts) --- */
+  /* detail/expander rows (single colspan cell) attach to the card above */
+  /* action cells: keep buttons large and wrapped */
+
+  /* Order details: item table fits the phone instead of clipping totals */
+  .admin-app-main table.min-w-\[340px\],[class*="fixed"] table.min-w-\[340px\]{min-width:0!important;table-layout:auto}
+
+  /* Floating action buttons never cover the last row */
+  .sonner-toast,[data-sonner-toast]{margin-bottom:env(safe-area-inset-bottom,0px)}
+
+  /* Inputs ≥16px so iOS does not zoom and the keyboard scrolls fields into view */
+  .admin-app-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .admin-app-main select,.admin-app-main textarea,
+  [role="dialog"] input,[role="dialog"] select,[role="dialog"] textarea{font-size:16px!important}
+
+  /* Diwaniya live pulse: names no longer stack on top of each other */
+  .pulse-live-line{display:flex!important;align-items:flex-start;gap:6px;height:auto!important;min-height:86px;padding:12px 10px 10px!important;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .pulse-live-line::-webkit-scrollbar{display:none}
+  .pulse-live-line:before{top:22px!important;left:14px!important;right:14px!important}
+  .pulse-live-node{position:relative!important;inset:auto!important;transform:none!important;flex:0 0 auto;min-width:92px;max-width:132px!important;min-height:60px;scroll-snap-align:start;z-index:1}
+  .pulse-live-node small{max-width:128px!important;white-space:normal!important;text-align:center;font-size:12px!important;line-height:1.35;color:rgba(255,255,255,.88)!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+}
+@media (max-width: 767px) {
+  /* first column is the row's identity (name / number): shown as the card title */
+}
+@media (max-width: 767px) {
+  /* Dashboard ambient pattern was pulled 8rem upward and painted a grey band over the Command Brief card */
+  .dashboard > .\-top-32.pointer-events-none{top:0!important;height:100%!important;max-height:800px}
+}
+
+@media (max-width: 1023px) {
+  /* Wide data tables become stacked cards on phones and tablets */
+  .admin-app-main :has(> table.mobile-card-table){overflow-x:visible!important}
+  table.mobile-card-table{min-width:0!important;width:100%!important;white-space:normal!important;border-collapse:separate!important;border-spacing:0!important}
+  table.mobile-card-table thead{display:none!important}
+  table.mobile-card-table tbody{display:flex!important;flex-direction:column;gap:10px;padding:8px 2px!important;border:0!important}
+  table.mobile-card-table tbody > tr{display:block!important;position:relative;background:#fff;border:1px solid rgba(226,232,240,.95)!important;border-radius:20px;padding:10px 12px!important;box-shadow:0 10px 26px -20px rgba(15,23,42,.45)}
+  table.mobile-card-table tbody > tr > td{display:flex!important;align-items:center;justify-content:space-between;gap:12px;width:auto!important;min-width:0!important;padding:7px 0!important;border:0!important;text-align:right!important;white-space:normal!important;word-break:break-word;font-size:14px}
+  table.mobile-card-table tbody > tr > td + td{border-top:1px dashed rgba(226,232,240,.95)!important}
+  table.mobile-card-table tbody > tr > td[data-label]::before{content:attr(data-label);flex:0 0 auto;max-width:42%;font-size:12px;font-weight:800;color:#64748b;line-height:1.5}
+  table.mobile-card-table tbody > tr > td[data-label=""]::before{content:none}
+  table.mobile-card-table tbody > tr > td > *{min-width:0;max-width:100%}
+  table.mobile-card-table tbody > tr > td[colspan]{display:block!important;padding:0!important;border-top:0!important}
+  table.mobile-card-table tbody > tr > td[style*="display: none"],
+  table.mobile-card-table tbody > tr > td[style*="display:none"]{display:none!important}
+  table.mobile-card-table tbody > tr:has(> td[colspan]:only-child){padding:0!important;border-style:dashed!important;box-shadow:none;background:rgba(248,250,252,.9)}
+  table.mobile-card-table tbody > tr:has(> td[colspan]:only-child):empty{display:none!important}
+  table.mobile-card-table td button,table.mobile-card-table td a{min-height:44px;min-width:44px}
+  table.mobile-card-table td .flex{flex-wrap:wrap}
+  table.mobile-card-table tbody > tr > td:first-child::before{content:none!important}
+  table.mobile-card-table tbody > tr > td:first-child{font-size:15px;padding-top:4px!important}
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  table.mobile-card-table tbody{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  table.mobile-card-table tbody > tr:has(> td[colspan]:only-child){grid-column:1 / -1}
+}
+@media (max-width: 767px) {
+  /* Remaining sub-12px labels and sub-44px controls found by the phone sweep */
+  .admin-page-kicker,.smart-panel-toggle span,.smart-panel-toggle p,.admin-app-main .smart-collapsible-panel p{font-size:12px!important}
+  .admin-date-filter-elegant button{min-width:44px!important}
+  .dashboard [class*="rounded-full"][class*="px-"]:is(button){min-height:44px}
+}
+@media (max-width: 1023px) {
+  /* Hover-revealed row actions have no hover on touch screens: always show them in card mode */
+  table.mobile-card-table td [class*="opacity-0"][class*="group-hover:opacity-100"]{opacity:1!important;transform:none!important;pointer-events:auto!important}
+}

@@ -4338,7 +4338,7 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -4538,7 +4538,7 @@ const MainApp: React.FC = () => {
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
+          className="admin-app-header h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
         >
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink min-w-0">
             {userRole !== 'partner' && (
@@ -4821,7 +4821,7 @@ const MainApp: React.FC = () => {
               setSidebarOpen(false);
             }
           }}
-          className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
+          className="admin-app-main flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
         >
           {/* Global Background Accents - Removed for performance */}
           <div className="fixed inset-0 pointer-events-none z-0">
@@ -4873,7 +4873,7 @@ const MainApp: React.FC = () => {
                 duration: 0.12, 
                 ease: "easeOut"
               }}
-              className="w-full min-h-full relative z-10 px-4 md:px-6"
+              className="admin-page-frame w-full min-h-full relative z-10 px-4 md:px-6"
             >
               <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><AdminMicroLoader size={44} label="نحمّل الصفحة" /><p className="text-slate-500 text-sm font-bold">نحمّل...</p></div>}>
                  <PageErrorBoundary>

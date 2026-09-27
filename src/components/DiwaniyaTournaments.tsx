@@ -1256,7 +1256,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         </div>
         <div className="pulse-live-line">
           {(diwaniyaPulse.liveSquads || []).map((sq: any, idx: number) => (
-            <button key={sq.id || idx} type="button" onClick={() => { setActiveTab('radar'); setActiveMapSquadId(sq.id); }} className="pulse-live-node" style={{ insetInlineStart: `${Math.min(92, 8 + idx * 21)}%` }}>
+            <button key={sq.id || idx} type="button" onClick={() => { setActiveTab('radar'); setActiveMapSquadId(sq.id); }} className="pulse-live-node" title={sq.name} aria-label={sq.name} style={{ insetInlineStart: `${Math.min(92, 8 + idx * 21)}%` }}>
               <span />
               <small>{sq.name}</small>
             </button>
@@ -1642,7 +1642,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 )}
 
                 <div className="w-full overflow-x-auto rounded-xl border border-slate-100">
-                  <table className="w-full text-right whitespace-nowrap min-w-[850px]" dir="rtl">
+                  <table className="mobile-card-table w-full text-right whitespace-nowrap min-w-[850px]" dir="rtl">
                     <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
                       <tr>
                         <th className="p-4 pr-6">اسم الديوانية</th>
