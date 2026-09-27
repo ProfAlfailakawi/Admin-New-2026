@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import AdminMicroLoader from './ui/AdminMicroLoader';
+import { DnaStepper } from "./dna/DnaKit";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -686,6 +687,22 @@ const CashAnchorSettings: React.FC<{
     </div>
   );
 };
+
+/** One drawing for a push notification's delivery path: stepper + one muted meta line. */
+const PushDeliveryPath: React.FC<{
+  steps: { key: string; label: string; done: boolean }[];
+  reason?: React.ReactNode;
+  size?: "xs" | "sm" | "md";
+}> = ({ steps, reason, size = "sm" }) => (
+  <div className="dna push-delivery-path" style={{ display: "grid", gap: 6, minWidth: 0 }}>
+    <DnaStepper
+      size={size}
+      ariaLabel="مسار الإشعار"
+      steps={steps.map((step) => ({ key: step.key, label: step.label, state: step.done ? "done" : "pending", title: step.label }))}
+    />
+    {reason ? <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "var(--dna-muted)", lineHeight: 1.6 }}>{reason}</p> : null}
+  </div>
+);
 
 const GeneralSettings: React.FC<Props> = ({
   data,
@@ -5174,7 +5191,7 @@ const GeneralSettings: React.FC<Props> = ({
                                   const firstDevice = card.bestDevice;
                                   const expanded = expandedPushDeviceId === card.key;
                                   return (
-                                    <div key={card.key} className="push-radar-user-card push-radar-readable-card push-radar-night-card rounded-[1.5rem] border p-3 md:p-4 overflow-hidden max-w-full" style={{ background: "radial-gradient(circle at top right, rgba(245,158,11,0.18), transparent 36%), linear-gradient(145deg, #0f172a 0%, #111827 48%, #1e1b4b 100%)", borderColor: "rgba(245,158,11,0.34)", color: "#f8fafc", boxShadow: "0 22px 54px rgba(2,6,23,0.34), inset 0 1px 0 rgba(255,255,255,0.10)" }}>
+                                    <div key={card.key} className="push-radar-user-card push-radar-readable-card push-radar-calm-card rounded-[1.5rem] border p-3 md:p-4 overflow-hidden max-w-full">
                                       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 min-w-0 max-w-full">
                                         <div className="min-w-0 flex-1">
                                           <div className="flex flex-wrap items-center gap-2 min-w-0">
@@ -5204,30 +5221,8 @@ const GeneralSettings: React.FC<Props> = ({
                                               {card.latest?.title && <span className="push-radar-readable-muted mt-1 block truncate text-[10px] font-bold text-slate-500">{card.latest.title}</span>}
                                             </div>
                                           </div>
-                                          <div className="push-radar-readable-panel mt-3 rounded-2xl border p-3" style={{ background: "rgba(2,6,23,0.42)", borderColor: "rgba(251,191,36,0.22)" }}>
-                                            <div className="mb-2 flex items-center justify-between gap-2">
-                                              <span className="push-radar-readable-label text-[10px] font-black" style={{ color: "#fcd34d" }}>مسار آخر إشعار</span>
-                                              <span className="push-radar-readable-muted text-[10px] font-bold" style={{ color: "#cbd5e1" }}>عرض مبسط فقط — بدون تغيير نظام الإرسال</span>
-                                            </div>
-                                            <div className="push-radar-readable-note mb-2 rounded-xl border px-3 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(251,191,36,0.18)", color: "#f8fafc" }}>
-                                              {getDeliveryHumanReason(card.latest, card.bestDevice)}
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-full">
-                                              {getDeliveryMilestones(card.latest).map((step) => (
-                                                <div
-                                                  key={step.key}
-                                                  className={cn(
-                                                    "rounded-xl border px-2.5 py-2 text-[10px] font-black flex items-center gap-2",
-                                                    step.done
-                                                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                                                      : "border-slate-200 bg-slate-50 text-slate-500",
-                                                  )}
-                                                >
-                                                  <span className={cn("h-2 w-2 rounded-full", step.done ? "bg-emerald-300" : "bg-white/20")} />
-                                                  <span>{step.label}</span>
-                                                </div>
-                                              ))}
-                                            </div>
+                                          <div className="push-radar-delivery mt-3" title="مسار آخر إشعار — عرض مبسط فقط، بدون تغيير نظام الإرسال">
+                                            <PushDeliveryPath steps={getDeliveryMilestones(card.latest)} reason={getDeliveryHumanReason(card.latest, card.bestDevice)} />
                                           </div>
                                           {card.lastTestResult && (
                                             <div className="push-radar-readable-note mt-2 rounded-2xl border px-3 py-2 text-[11px] font-bold" style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(251,191,36,0.18)", color: "#f8fafc" }}>
@@ -5299,21 +5294,7 @@ const GeneralSettings: React.FC<Props> = ({
                                                       </div>
                                                     );
                                                   })()}
-                                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
-                                                    {getDeliveryMilestones(notification).map((step) => (
-                                                      <span
-                                                        key={step.key}
-                                                        className={cn(
-                                                          "rounded-lg border px-2 py-1 text-[9px] font-black text-center",
-                                                          step.done
-                                                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                                            : "border-slate-200 bg-slate-50 text-slate-400",
-                                                        )}
-                                                      >
-                                                        {step.done ? "✓ " : "— "}{step.label}
-                                                      </span>
-                                                    ))}
-                                                  </div>
+                                                  <PushDeliveryPath steps={getDeliveryMilestones(notification)} />
                                                 </div>
                                               ))}
                                             </div>
@@ -5401,14 +5382,7 @@ const GeneralSettings: React.FC<Props> = ({
                                             {recipient.subtitle && <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">المعرّف: {recipient.subtitle}</span>}
                                             <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">التوكن: {recipient.tokenTail}</span>
                                           </div>
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                                            {steps.map((step) => (
-                                              <span key={step.key} className={cn("rounded-lg border px-2 py-1 text-[9px] font-black text-center", step.done ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-400")}>
-                                                {step.done ? "✓ " : "— "}{step.label}
-                                              </span>
-                                            ))}
-                                          </div>
-                                          <div className="rounded-xl bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-700">{getDeliveryHumanReason(notification, (notification as any).device)}</div>
+                                          <PushDeliveryPath steps={steps} reason={getDeliveryHumanReason(notification, (notification as any).device)} />
                                         </div>
                                       )}
                                     </div>

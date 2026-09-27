@@ -47,3 +47,23 @@ button.dna-segb {
   border: 0 !important;
   box-shadow: none !important;
 }
+
+/* Push delivery (GeneralSettings): calm light shell instead of the dark radar card */
+.push-radar-readable-card.push-radar-calm-card {
+  background: var(--dna-surface) !important;
+  border: 1px solid var(--dna-line) !important;
+  box-shadow: var(--dna-shadow) !important;
+  color: var(--dna-ink) !important;
+}
+.push-radar-calm-card .push-radar-readable-metric,
+.push-radar-calm-card .push-radar-readable-notification,
+.push-radar-calm-card .push-radar-readable-note {
+  background: var(--dna-surface-2) !important;
+  border-color: var(--dna-line) !important;
+  box-shadow: none !important;
+}
+.push-radar-calm-card .push-delivery-path span,
+.push-radar-calm-card .push-delivery-path div,
+.push-radar-calm-card .push-delivery-path p {
+  color: inherit;
+}
