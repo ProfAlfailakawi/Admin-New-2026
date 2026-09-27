@@ -2877,7 +2877,7 @@ const [isPending, startTransition] = useTransition();
                         <button
                           onClick={() =>
                             toast.info("نفحص كل مسارات التوريد...", {
-                              icon: "📡",
+                              icon: <Truck size={16} />,
                             })
                           }
                           className="hover:scale-110 active:scale-95 transition-transform"
@@ -2896,7 +2896,7 @@ const [isPending, startTransition] = useTransition();
                       onClick={() =>
                         toast.info(
                           "الرادار متصل اللحظة ويعمل بالخلفية لجمع البيانات",
-                          { icon: "⚡" },
+                          { icon: <Activity size={16} /> },
                         )
                       }
                       className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-2 rounded-2xl transition-colors cursor-pointer"

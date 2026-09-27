@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import { motion } from 'motion/react';
-import { AlertCircle, Bot, CheckCircle2, CircleAlert, Clock, CreditCard, FileText, Flame, Headphones, LifeBuoy, ListOrdered, Loader2, MessageCircle, Pencil, Plus, RadioTower, RefreshCw, Save, Search, Send, Smartphone, Sparkles, Star, Trash2, Truck, UserRound, X, Zap } from 'lucide-react';
+import { AlertCircle, Bot, Brain, CheckCircle2, CircleAlert, CircleDot, Hourglass, KeyRound, ThumbsUp, Clock, CreditCard, FileText, Flame, Headphones, LifeBuoy, ListOrdered, Loader2, MessageCircle, Pencil, Plus, RadioTower, RefreshCw, Save, Search, Send, Smartphone, Sparkles, Star, Trash2, Truck, UserRound, X, Zap } from 'lucide-react';
 import { DnaHubMap, DnaLive, DnaStatusHeader, DnaStepper, type DnaStep } from './dna/DnaKit';
 import { cn } from '../lib/utils';
 import type { AppState, Customer, Product } from '../types';
@@ -831,8 +831,8 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       showNotice(
         menuOk ? 'success' : 'error',
         menuOk
-          ? `البوت يشوف ${json.visibleToBot.productsShownInMenu} صنف — المنيو سليم ✅`
-          : 'البوت لا يرى أي منتج — هذا سبب عطل المنيو 🔴',
+          ? `البوت يشوف ${json.visibleToBot.productsShownInMenu} صنف — المنيو سليم`
+          : 'البوت لا يرى أي منتج — هذا سبب عطل المنيو',
       );
     } catch (e: any) {
       setDataCheck({ loading: false, result: null });
@@ -1419,7 +1419,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر إرسال طلب التقييم');
       await loadMessages(selectedPhone, true);
-      showNotice('success', 'انرسل طلب التقييم للعميل ⭐');
+      showNotice('success', 'انرسل طلب التقييم للعميل');
     } catch (e: any) {
       showNotice('error', e?.message || 'تعذر إرسال طلب التقييم');
     } finally {
@@ -1432,8 +1432,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       {notice && <div className={cn('mb-4 rounded-2xl border px-4 py-3 text-sm font-black flex items-center gap-2', notice.type === 'success' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : notice.type === 'error' ? 'border-rose-100 bg-rose-50 text-rose-700' : 'border-sky-100 bg-sky-50 text-sky-700')}><AlertCircle size={16} /> {notice.text}</div>}
       {error && <div className="mb-4 rounded-2xl border border-rose-100 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">{error}</div>}
       <div className="dna wa-command-deck" style={{ display: 'grid', gap: 16, marginBottom: 16 }}>
-        <div className="dna-surface" style={{ padding: 8 }}>
+        <div className="wa-hub-wrap">
           <DnaHubMap
+            minHeight={400}
             ariaLabel="غرفة عمليات واتساب — مراقبة حية حسب الغضب والدفع والتوصيل والانتظار"
             animate={whatsappCommandPulse.urgentTotal > 0}
             center={{ icon: <Headphones />, label: whatsappCommandPulse.health, ariaLabel: `${whatsappCommandPulse.health} · عاجل ${whatsappCommandPulse.urgentTotal} · أعلى انتظار ${whatsappCommandPulse.maxWait} د · المسار الساخن ${whatsappCommandPulse.laneLabel}` }}
@@ -1603,7 +1604,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             <div className="mt-1 text-[11px] font-bold text-slate-400">تشتغل قبل الردود الافتراضية، ويمكن تعطيلها أو حذفها بأي وقت</div>
             {dataCheck.result && (
               <div className="mt-3 rounded-2xl border border-sky-100 bg-sky-50/60 p-3">
-                <div className="text-[11px] font-black text-sky-900 mb-2">🔍 ما يراه البوت من بياناتك</div>
+                <div className="text-[11px] font-black text-sky-900 mb-2"><Search size={14} className="inline-block align-[-2px]" aria-hidden="true" /> ما يراه البوت من بياناتك</div>
                 <div className="flex flex-wrap gap-2 text-[11px] font-bold">
                   {[
                     { label: 'أصناف تظهر بالمنيو', value: dataCheck.result?.visibleToBot?.productsShownInMenu, critical: true },
@@ -1616,12 +1617,12 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     const bad = row.critical && n === 0;
                     return (
                       <span key={row.label} className={cn('rounded-xl px-2.5 py-1.5 border', bad ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-slate-200 text-slate-600')}>
-                        {row.label}: <b className="tabular-nums">{n}</b>{bad ? ' 🔴' : ''}
+                        {row.label}: <b className="tabular-nums">{n}</b>{bad ? <> <CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /></> : ''}
                       </span>
                     );
                   })}
                   <span className={cn('rounded-xl px-2.5 py-1.5 border', dataCheck.result?.whatsappAppSecretSet ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700')}>
-                    توقيع ميتا: <b>{dataCheck.result?.whatsappAppSecretSet ? 'مفعّل ✅' : 'غير مفعّل'}</b>
+                    توقيع ميتا: <b>{dataCheck.result?.whatsappAppSecretSet ? <>مفعّل <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /></> : 'غير مفعّل'}</b>
                   </span>
                 </div>
                 {Number(dataCheck.result?.visibleToBot?.productsShownInMenu || 0) === 0 && (
@@ -1639,7 +1640,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               title="يركّب باقة قواعد جاهزة. أي قاعدة عندك ما تتغيّر."
               className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-black text-emerald-700 hover:bg-emerald-100 flex items-center justify-center gap-2"
             >
-              ✨ القواعد الجاهزة
+              <Sparkles size={14} className="inline-block align-[-2px]" aria-hidden="true" /> القواعد الجاهزة
             </button>
             <button
               type="button"
@@ -1648,7 +1649,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               title="يسأل البوت: كم منتج وعميل وطلب تشوف فعلاً؟"
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {dataCheck.loading ? <Loader2 size={14} className="animate-spin" /> : '🔍'} فحص البيانات
+              {dataCheck.loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" />} فحص البيانات
             </button>
             {/* The restart button lived here and in the جهاز الواتساب tab — one place is
                 enough, and that tab is where device controls belong. Removed the copy. */}
@@ -1752,7 +1753,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 onClick={seedDefaultAutoReplyRules}
                 className="mt-3 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:bg-emerald-700"
               >
-                ✨ ركّب القواعد الجاهزة
+                <Sparkles size={14} className="inline-block align-[-2px]" aria-hidden="true" /> ركّب القواعد الجاهزة
               </button>
             </div>
           )}
@@ -1764,7 +1765,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="font-black text-slate-900 flex items-center gap-2">📝 نصوص البوت</div>
+            <div className="font-black text-slate-900 flex items-center gap-2"><FileText size={14} className="inline-block align-[-2px]" aria-hidden="true" /> نصوص البوت</div>
             <div className="mt-1 text-[11px] font-bold text-slate-400">
               عدّل صياغة أي رسالة يرسلها البوت. اترك الخانة فاضية ليرجع للنص الافتراضي — البوت ما يسكت أبدًا.
             </div>
@@ -1784,7 +1785,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               disabled={botTextsBusy || !botTexts.length}
               className="rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-60 flex items-center gap-2"
             >
-              {botTextsBusy ? <Loader2 size={14} className="animate-spin" /> : '💾'} حفظ الكل
+              {botTextsBusy ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} className="inline-block align-[-2px]" aria-hidden="true" />} حفظ الكل
             </button>
           </div>
         </div>
@@ -1840,7 +1841,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="font-black text-slate-900 flex items-center gap-2">🛟 مركز إنقاذ الواتساب</div>
+            <div className="font-black text-slate-900 flex items-center gap-2"><LifeBuoy size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> مركز إنقاذ الواتساب</div>
             <div className="mt-1 text-[11px] font-bold text-slate-400">يعرف العطل بالضبط ويشغّل الإجراء الصحيح — بدون تعديل كود</div>
             {recovery?.checkedAt && (
               <div className="mt-1 text-[10px] font-bold text-slate-400">آخر تشخيص: {formatTime(recovery.checkedAt)}</div>
@@ -1853,7 +1854,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               disabled={recoveryBusy}
               className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-50 flex items-center gap-2"
             >
-              {recoveryBusy ? <Loader2 size={14} className="animate-spin" /> : '🔍'} تشخيص الآن
+              {recoveryBusy ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" />} تشخيص الآن
             </button>
             <span className={cn(
               'rounded-2xl px-4 py-2 text-xs font-black border',
@@ -1861,11 +1862,11 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 : bridge?.reason === 'needs_auth' ? 'bg-amber-50 border-amber-200 text-amber-700'
                 : 'bg-rose-50 border-rose-200 text-rose-700',
             )}>
-              {bridge?.connected ? '🟢 يعمل'
-                : bridge?.reason === 'needs_auth' ? '🔑 يحتاج ربط'
-                : bridge?.reason === 'starting' ? '🟡 يشتغل'
-                : bridge?.reason === 'queue_stuck' ? '🔴 الطابور متعثّر'
-                : bridge ? '🔴 مفصول' : '…'}
+              {bridge?.connected ? <><CircleDot size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /> يعمل</>
+                : bridge?.reason === 'needs_auth' ? <><KeyRound size={14} className="inline-block align-[-2px] text-amber-600" aria-hidden="true" /> يحتاج ربط</>
+                : bridge?.reason === 'starting' ? <><CircleDot size={14} className="inline-block align-[-2px] text-amber-500" aria-hidden="true" /> يشتغل</>
+                : bridge?.reason === 'queue_stuck' ? <><CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> الطابور متعثّر</>
+                : bridge ? <><CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> مفصول</> : '…'}
             </span>
           </div>
         </div>
@@ -1884,7 +1885,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               recovery.diagnosis.severity === 'ok' ? 'text-emerald-800'
                 : recovery.diagnosis.severity === 'critical' ? 'text-rose-800' : 'text-amber-900',
             )}>
-              {recovery.diagnosis.severity === 'ok' ? '✅' : recovery.diagnosis.severity === 'critical' ? '🔴' : '🟡'}
+              {recovery.diagnosis.severity === 'ok' ? <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /> : recovery.diagnosis.severity === 'critical' ? <CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> : <CircleDot size={14} className="inline-block align-[-2px] text-amber-500" aria-hidden="true" />}
               {' '}{recovery.diagnosis.title}
             </div>
             <div className="mt-1.5 text-[12px] font-bold leading-6 text-slate-600">{recovery.diagnosis.explanation}</div>
@@ -1903,7 +1904,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
         {recovery?.control?.restartPending && (
           <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-[11px] font-black text-sky-800">
-            ⏳ طلب الإصلاح محفوظ وينتظر الجهاز
+            <Hourglass size={14} className="inline-block align-[-2px]" aria-hidden="true" /> طلب الإصلاح محفوظ وينتظر الجهاز
             {recovery.control.restartRequestedMinutesAgo !== null
               ? ` منذ ${recovery.control.restartRequestedMinutesAgo} دقيقة`
               : ''}.
@@ -1916,7 +1917,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         {bridge?.qrArt ? (
           <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/60 p-4 mb-4">
             <div className="text-[12px] font-black text-amber-800 mb-3">
-              🔑 امسح الرمز من واتساب المطعم: الإعدادات ← الأجهزة المرتبطة ← ربط جهاز
+              <KeyRound size={14} className="inline-block align-[-2px]" aria-hidden="true" /> امسح الرمز من واتساب المطعم: الإعدادات ← الأجهزة المرتبطة ← ربط جهاز
             </div>
             <div className="flex justify-center">
               <pre
@@ -1931,7 +1932,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           </div>
         ) : bridge?.reason === 'needs_auth' ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-center mb-4">
-            <div className="text-[12px] font-black text-amber-800">🔑 الجهاز يحتاج ربط — جاري إحضار الرمز…</div>
+            <div className="text-[12px] font-black text-amber-800"><KeyRound size={14} className="inline-block align-[-2px]" aria-hidden="true" /> الجهاز يحتاج ربط — جاري إحضار الرمز…</div>
             <div className="mt-1 text-[11px] font-bold text-amber-600">يظهر خلال ثوانٍ. اضغط تحديث لو تأخر.</div>
           </div>
         ) : null}
@@ -1952,7 +1953,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     : check.status === 'critical' ? 'text-rose-800'
                     : check.status === 'action' ? 'text-amber-800' : 'text-slate-700',
                 )}>
-                  {check.status === 'ok' ? '✅' : check.status === 'critical' ? '🔴' : check.status === 'action' ? '🔑' : '🟡'}
+                  {check.status === 'ok' ? <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /> : check.status === 'critical' ? <CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> : check.status === 'action' ? <KeyRound size={14} className="inline-block align-[-2px] text-amber-600" aria-hidden="true" /> : <CircleDot size={14} className="inline-block align-[-2px] text-amber-500" aria-hidden="true" />}
                   {' '}{check.label}
                 </div>
                 <div className="mt-1 text-[10px] font-bold leading-5 text-slate-500">{check.detail}</div>
@@ -1987,7 +1988,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             title="يشخّص ثم يطلب إعادة تشغيل آمنة فقط إذا كان العطل يحتاجها"
             className="rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
           >
-            {repairingBridge ? <Loader2 size={14} className="animate-spin" /> : '🛟'} إصلاح تلقائي
+            {repairingBridge ? <Loader2 size={14} className="animate-spin" /> : <LifeBuoy size={14} className="inline-block align-[-2px]" aria-hidden="true" />} إصلاح تلقائي
           </button>
           <button
             type="button"
@@ -1996,7 +1997,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             title="لو البوت واقف أو ما يرد"
             className="rounded-2xl bg-rose-600 px-5 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
           >
-            {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔄'} إعادة تشغيل الجهاز
+            {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} className="inline-block align-[-2px]" aria-hidden="true" />} إعادة تشغيل الجهاز
           </button>
           <button
             type="button"
@@ -2005,7 +2006,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             title="يفصل الجلسة ويطلب رمز QR جديد"
             className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-xs font-black text-amber-800 hover:bg-amber-100 disabled:opacity-50 flex items-center gap-2"
           >
-            {relinkingBridge ? <Loader2 size={14} className="animate-spin" /> : '🔑'} إعادة ربط (QR جديد)
+            {relinkingBridge ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} className="inline-block align-[-2px]" aria-hidden="true" />} إعادة ربط (QR جديد)
           </button>
           <button
             type="button"
@@ -2014,20 +2015,20 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             title="يشغّل المنيو والترحيب والمساعدة داخليًا، من دون مراسلة أي زبون"
             className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-2.5 text-xs font-black text-violet-800 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-2"
           >
-            {brainTestBusy ? <Loader2 size={14} className="animate-spin" /> : '🧠'} اختبار مخ البوت
+            {brainTestBusy ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} className="inline-block align-[-2px]" aria-hidden="true" />} اختبار مخ البوت
           </button>
         </div>
 
         {brainTest && Array.isArray(brainTest.checks) && (
           <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/40 p-3">
             <div className="text-[11px] font-black text-violet-900">
-              🧠 نتيجة مخ البوت: {brainTest.ok ? `سليم — ${brainTest.passed}/${brainTest.total}` : `يحتاج انتباه — ${brainTest.passed}/${brainTest.total}`}
+              <Brain size={14} className="inline-block align-[-2px]" aria-hidden="true" /> نتيجة مخ البوت: {brainTest.ok ? `سليم — ${brainTest.passed}/${brainTest.total}` : `يحتاج انتباه — ${brainTest.passed}/${brainTest.total}`}
             </div>
             <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
               {brainTest.checks.map((check: any) => (
                 <div key={check.id} className="rounded-xl border border-white bg-white/80 p-2.5">
                   <div className={cn('text-[11px] font-black', check.ok ? 'text-emerald-700' : 'text-rose-700')}>
-                    {check.ok ? '✅' : '🔴'} {check.label}
+                    {check.ok ? <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /> : <CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" />} {check.label}
                   </div>
                   <div className="mt-1 text-[10px] font-bold leading-5 text-slate-500">
                     {check.ok ? check.preview : check.error || 'لم ينتج ردًا'}
@@ -2058,7 +2059,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       <section className="mb-4 rounded-[1.5rem] border border-slate-100 bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="font-black text-slate-900 flex items-center gap-2">⭐ تقييمات العملاء</div>
+            <div className="font-black text-slate-900 flex items-center gap-2"><Star size={14} className="inline-block align-[-2px] text-amber-500" aria-hidden="true" /> تقييمات العملاء</div>
             <div className="mt-1 text-[11px] font-bold text-slate-400">آخر 30 يوم — من ردود العملاء على طلب التقييم</div>
           </div>
           <button type="button" onClick={loadRatings} disabled={ratingsBusy} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-black text-slate-600 hover:bg-slate-100 disabled:opacity-60">
@@ -2070,7 +2071,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           <div className="p-10 flex items-center justify-center"><AdminMicroLoader size={32} label="جاري التحميل" /></div>
         ) : !ratings || ratings.count === 0 ? (
           <div className="p-10 text-center text-slate-400 font-bold border border-dashed rounded-2xl">
-            ما فيه تقييمات بعد. افتح محادثة واضغط «⭐ اطلب تقييم» بعد ما يوصل الطلب.
+            ما فيه تقييمات بعد. افتح محادثة واضغط «اطلب تقييم» بعد ما يوصل الطلب.
           </div>
         ) : (
           <>
@@ -2095,7 +2096,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <div className="text-[10px] font-bold text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('ar-KW', { dateStyle: 'short', timeStyle: 'short' }) : ''}</div>
                   </div>
                   <span className={cn('shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-black border', r.score >= 3 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : r.score === 2 ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-rose-100 text-rose-700 border-rose-200')}>
-                    {r.score >= 3 ? '⭐ ممتاز' : r.score === 2 ? '👍 جيد' : '🔴 يحتاج تحسين'}
+                    {r.score >= 3 ? <><Star size={14} className="inline-block align-[-2px]" aria-hidden="true" /> ممتاز</> : r.score === 2 ? <><ThumbsUp size={14} className="inline-block align-[-2px]" aria-hidden="true" /> جيد</> : <><CircleAlert size={14} className="inline-block align-[-2px]" aria-hidden="true" /> يحتاج تحسين</>}
                   </span>
                 </div>
               ))}
@@ -2191,7 +2192,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 <div className="flex items-center gap-2 flex-wrap">
                   <button onClick={() => setMode('human')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode === 'human' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white hover:bg-amber-50 border-slate-200 text-slate-600')}><Headphones size={16} className="inline ml-1" /> استلام يدوي</button>
                   <button onClick={() => setMode('bot')} className={cn('px-4 py-2 rounded-2xl text-sm font-bold border transition', selected.mode !== 'human' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white hover:bg-emerald-50 border-slate-200 text-slate-600')}><Bot size={16} className="inline ml-1" /> إرجاع للبوت</button>
-                  <button onClick={requestRating} disabled={requestingRating} title="أرسله بعد ما يوصل الطلب، والعميل يقيّم برد 1/2/3" className="px-4 py-2 rounded-2xl text-sm font-bold border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 disabled:opacity-50">{requestingRating ? <Loader2 size={16} className="inline ml-1 animate-spin" /> : '⭐'} اطلب تقييم</button>
+                  <button onClick={requestRating} disabled={requestingRating} title="أرسله بعد ما يوصل الطلب، والعميل يقيّم برد 1/2/3" className="px-4 py-2 rounded-2xl text-sm font-bold border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 disabled:opacity-50">{requestingRating ? <Loader2 size={16} className="inline ml-1 animate-spin" /> : <Star size={14} className="inline-block align-[-2px]" aria-hidden="true" />} اطلب تقييم</button>
                   <button onClick={closeConversation} className="px-4 py-2 rounded-2xl text-sm font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-600"><CheckCircle2 size={16} className="inline ml-1" /> إغلاق</button>
                 </div>
               </div>
