@@ -1147,7 +1147,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       : Number(bot.testsPassed) >= Number(bot.testsTotal) ? 'done' : 'returned';
     return [
       { key: 'device', label: 'الجهاز', state: deviceState, icon: <Smartphone />, title: reason === 'needs_auth' ? 'يحتاج مسح رمز QR' : reason === 'never_seen' ? 'ما وصلت أي نبضة' : seenText },
-      { key: 'bridge', label: 'الجسر', state: bridgeState, icon: <RadioTower />, title: seenText, badge: bridge && !bridge.connected ? `${bridge.minutesSinceSeen}د` : undefined },
+      { key: 'bridge', label: 'الجسر', state: bridgeState, icon: <RadioTower />, title: seenText, badge: bridge && !bridge.connected ? `${bridge.minutesSinceSeen} د` : undefined },
       { key: 'queue', label: 'الطابور', state: queueState, icon: <ListOrdered />, title: `بانتظار الإرسال ${pending ?? '—'} · عالق ${recovery?.queue?.stuckProcessing ?? '—'} · فشل ${bridge?.pollFailures ?? 0}`, badge: pending ? pending : undefined },
       { key: 'bot', label: 'البوت', state: botState, icon: <Bot />, title: bot ? `اختبار المخ ${bot.testsPassed}/${bot.testsTotal}` : 'اختبار المخ —', badge: bot ? `${bot.testsPassed}/${bot.testsTotal}` : undefined },
     ];
@@ -1852,7 +1852,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               type="button"
               onClick={() => void loadRecoveryCenter(true)}
               disabled={recoveryBusy}
-              className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-black text-sky-700 hover:bg-sky-100 disabled:opacity-50 flex items-center gap-2"
+              className="dna-btn"
             >
               {recoveryBusy ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} className="inline-block align-[-2px]" aria-hidden="true" />} تشخيص الآن
             </button>
@@ -1986,7 +1986,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             onClick={autoRepairBridge}
             disabled={repairingBridge}
             title="يشخّص ثم يطلب إعادة تشغيل آمنة فقط إذا كان العطل يحتاجها"
-            className="rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+            className="dna-btnp"
           >
             {repairingBridge ? <Loader2 size={14} className="animate-spin" /> : <LifeBuoy size={14} className="inline-block align-[-2px]" aria-hidden="true" />} إصلاح تلقائي
           </button>
@@ -1995,7 +1995,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             onClick={restartBridge}
             disabled={restartingBridge}
             title="لو البوت واقف أو ما يرد"
-            className="rounded-2xl bg-rose-600 px-5 py-2.5 text-xs font-black text-white hover:bg-rose-700 disabled:opacity-50 flex items-center gap-2"
+            className="dna-btn"
           >
             {restartingBridge ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} className="inline-block align-[-2px]" aria-hidden="true" />} إعادة تشغيل الجهاز
           </button>
@@ -2004,7 +2004,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             onClick={relinkBridge}
             disabled={relinkingBridge}
             title="يفصل الجلسة ويطلب رمز QR جديد"
-            className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-xs font-black text-amber-800 hover:bg-amber-100 disabled:opacity-50 flex items-center gap-2"
+            className="dna-btn"
           >
             {relinkingBridge ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} className="inline-block align-[-2px]" aria-hidden="true" />} إعادة ربط (QR جديد)
           </button>
@@ -2013,7 +2013,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             onClick={runBotBrainSelfTest}
             disabled={brainTestBusy}
             title="يشغّل المنيو والترحيب والمساعدة داخليًا، من دون مراسلة أي زبون"
-            className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-2.5 text-xs font-black text-violet-800 hover:bg-violet-100 disabled:opacity-50 flex items-center gap-2"
+            className="dna-btn"
           >
             {brainTestBusy ? <Loader2 size={14} className="animate-spin" /> : <Brain size={14} className="inline-block align-[-2px]" aria-hidden="true" />} اختبار مخ البوت
           </button>

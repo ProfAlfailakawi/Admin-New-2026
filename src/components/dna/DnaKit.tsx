@@ -580,7 +580,9 @@ export function DnaHubMap({
   const tile = narrow ? 44 : 54;
   const hub = narrow ? 66 : 84;
   const nodeW = narrow ? 92 : 116;
-  const rowGap = tile + (narrow ? 32 : 36);
+  // Narrow: the count badge sits 8px above each tile, so 32px left it touching the
+  // label of the node above. 44px keeps a clear gap on phones.
+  const rowGap = tile + (narrow ? 44 : 36);
   const n = nodes.length;
   const startCount = Math.ceil(n / 2);
   const endCount = n - startCount;
@@ -591,7 +593,9 @@ export function DnaHubMap({
   const inner = Math.max(hub * 2.3, rows * rowGap);
   const height = Math.max(minHeight ?? 0, topPad + bottomPad + inner);
   const mx = w / 2;
-  const my = topPad + inner / 2;
+  // Centre the nodes in the space left between the pills and the caption, so a taller
+  // minHeight adds air above and below instead of an empty band at the bottom.
+  const my = topPad + (height - topPad - bottomPad) / 2;
   const maxOffset = ((rows - 1) / 2) * rowGap || 1;
   const rx = Math.max(hub / 2 + tile + 12, w / 2 - nodeW / 2 - (narrow ? 8 : 26));
   const startSide = box.rtl ? 1 : -1;
