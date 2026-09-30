@@ -6,7 +6,7 @@ import App from './App.tsx';
 import './index.css';
 import './components/dna/dna.css';
 import './components/dna/dna-theme.css';
-import { installAppUpdate } from './lib/app-update';
+import { installAppUpdate, registrationHoldsPushWorker } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 
 installLocalStorageDataGuard();
@@ -16,17 +16,21 @@ installMobileTableCards();
 // التحديث الذاتي الصامت: بصمة الإصدار، منارتها، ثم التحديث والتصعيد عند اللزوم.
 installAppUpdate();
 
-// Register the offline app-shell service worker unconditionally on load so the
-// console works offline and installs as a real PWA. This is separate from
-// firebase-messaging-sw.js, which is registered lazily only when the user opts
-// into push notifications.
+// Register the offline app-shell service worker on load so the console works
+// offline and installs as a real PWA. firebase-messaging-sw.js is registered
+// lazily when the user opts into push notifications, on the same scope "/".
+// A scope holds one worker, so registering the shell over the messaging worker
+// replaces it with one that has no push handler and notifications stop showing.
+// Once the messaging worker holds "/", it stays.
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .catch((err) => {
-        console.warn('Offline service worker registration failed:', err);
-      });
+  window.addEventListener('load', async () => {
+    try {
+      const existing = await navigator.serviceWorker.getRegistration('/');
+      if (registrationHoldsPushWorker(existing)) return;
+      await navigator.serviceWorker.register('/service-worker.js');
+    } catch (err) {
+      console.warn('Offline service worker registration failed:', err);
+    }
   });
 }
 
