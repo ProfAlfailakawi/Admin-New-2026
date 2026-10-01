@@ -5,6 +5,7 @@ node_modules
 firebase-admin-service-account.json
 *.log
 dist
+dist-server
 .DS_Store
 src/tests
 .github

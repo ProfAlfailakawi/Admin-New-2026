@@ -1396,6 +1396,13 @@ const MainApp: React.FC = () => {
   const [retryingOffline, setRetryingOffline] = useState(false);
   const cloudProbeSequenceRef = useRef(0);
   const cloudProbePromiseRef = useRef<Promise<boolean> | null>(null);
+  // Cloud Run scales to zero when idle; waking it took ~9s in a live measurement (Oct 1).
+  // Inside this window after opening or resuming the app, a closed gate waits long enough
+  // for the wake-up and reads "connecting" rather than "offline". The gate stays closed
+  // until the cloud is verified either way.
+  const cloudWakeGraceUntilRef = useRef(Date.now() + 25_000);
+  const isOnlineRef = useRef(false);
+  useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
 
   const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
     let request = cloudProbePromiseRef.current;
@@ -1410,10 +1417,14 @@ const MainApp: React.FC = () => {
         return false;
       }
 
-      setCloudChecking(true);
+      const inWakeGrace = Date.now() < cloudWakeGraceUntilRef.current;
+      if (showFeedback || inWakeGrace) setCloudChecking(true);
       request = (async () => {
         const controller = new AbortController();
-        const timeoutId = window.setTimeout(() => controller.abort(), 5_500);
+        // Wait out a cold start only while the gate is already closed, so an open session
+        // is never left unverified for longer than before.
+        const timeoutMs = inWakeGrace && !isOnlineRef.current ? 15_000 : 5_500;
+        const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
           const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
             cache: 'no-store',
@@ -1422,15 +1433,16 @@ const MainApp: React.FC = () => {
           });
           const payload = await response.json().catch(() => null);
           const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
+          if (healthy) cloudWakeGraceUntilRef.current = 0;
           if (sequence === cloudProbeSequenceRef.current) {
             setIsOnline(healthy);
-            setCloudChecking(false);
+            setCloudChecking(!healthy && Date.now() < cloudWakeGraceUntilRef.current);
           }
           return healthy;
         } catch {
           if (sequence === cloudProbeSequenceRef.current) {
             setIsOnline(false);
-            setCloudChecking(false);
+            setCloudChecking(Date.now() < cloudWakeGraceUntilRef.current);
           }
           return false;
         } finally {
@@ -1485,8 +1497,18 @@ const MainApp: React.FC = () => {
     };
     const onOnline = () => verify();
     const onFocus = () => verify();
+    let hiddenAt = 0;
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') verify();
+      if (document.visibilityState !== 'visible') {
+        hiddenAt = Date.now();
+        return;
+      }
+      // Long enough in the background for Cloud Run to scale to zero: allow for a wake-up.
+      if (hiddenAt && Date.now() - hiddenAt > 3 * 60_000) {
+        cloudWakeGraceUntilRef.current = Date.now() + 25_000;
+      }
+      hiddenAt = 0;
+      verify();
     };
 
     verify();
@@ -1507,6 +1529,16 @@ const MainApp: React.FC = () => {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [probeCloudConnection]);
+
+  // While the gate is closed, re-check every 2s instead of the 5s cadence so the app opens
+  // as soon as the cloud answers. Overlapping probes share one in-flight request.
+  useEffect(() => {
+    if (isOnline) return;
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void probeCloudConnection(false);
+    }, 2_000);
+    return () => window.clearInterval(intervalId);
+  }, [isOnline, probeCloudConnection]);
 
   
   // Persist authentication state
@@ -4005,7 +4037,7 @@ const MainApp: React.FC = () => {
           <CloudConnectionGate
             logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
             name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-            phase="offline"
+            phase={cloudChecking ? 'sync' : 'offline'}
             onRetry={handleManualRetryOffline}
           />
         )}
@@ -4132,7 +4164,7 @@ const MainApp: React.FC = () => {
           <CloudConnectionGate
             logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
             name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-            phase="offline"
+            phase={cloudChecking ? 'sync' : 'offline'}
             onRetry={handleManualRetryOffline}
           />
         )}
