@@ -444,7 +444,7 @@ const BusinessStatusMirror: React.FC<{
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
               الوضع المالي الموحد
             </span>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
           </div>
           <h4 className="text-2xl md:text-3xl font-bold mb-2 tracking-tighter tabular-nums">
             {totalSales.toFixed(3)}{" "}
@@ -3135,7 +3135,7 @@ const [isPending, startTransition] = useTransition();
                                   عقل التراث التشغيلي
                                 </h2>
                                 <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
                                   <span className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-[0.3em]">ALTURATH OPERATING MIND</span>
                                 </div>
                               </div>
@@ -3180,7 +3180,7 @@ const [isPending, startTransition] = useTransition();
                                 </div>
                                 <span className="text-sm md:text-base font-black text-slate-800 uppercase tracking-wide">معدل الصحة العامة</span>
                               </div>
-                              <div className="w-4 h-4 rounded-full bg-emerald-500 animate-ping" />
+                              <div className="w-4 h-4 rounded-full bg-emerald-500" />
                             </div>
                             <div className="p-4 md:p-5 flex-grow overflow-auto">
                               <BusinessHealthFeature data={data} />

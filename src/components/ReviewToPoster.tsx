@@ -188,14 +188,14 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
 
         {resultImage && (
           <div className="w-full h-full p-4 md:p-8 flex items-center justify-center relative">
-            <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none mix-blend-screen z-0">
+            <div className="absolute top-0 start-0 p-8 opacity-20 pointer-events-none mix-blend-screen z-0">
                <div className="w-64 h-64 bg-purple-500 rounded-full blur-[100px]" />
             </div>
-            <div className="absolute bottom-0 left-0 p-8 opacity-20 pointer-events-none mix-blend-screen z-0">
+            <div className="absolute bottom-0 end-0 p-8 opacity-20 pointer-events-none mix-blend-screen z-0">
                <div className="w-64 h-64 bg-rose-500 rounded-full blur-[100px]" />
             </div>
             
-            <Quote className="text-white/10 w-40 h-40 absolute left-4 top-4 rotate-12 z-0 pointer-events-none" />
+            <Quote className="text-white/10 w-40 h-40 absolute end-4 top-4 rotate-12 z-0 pointer-events-none" />
             
             <div className="relative z-10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 group flex flex-col">
                <div className="relative w-full">

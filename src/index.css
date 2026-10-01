@@ -6469,3 +6469,6 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
   /* Hover-revealed row actions have no hover on touch screens: always show them in card mode */
   table.mobile-card-table td [class*="opacity-0"][class*="group-hover:opacity-100"]{opacity:1!important;transform:none!important;pointer-events:auto!important}
 }
+
+/* Visual polish: readable minimum for micro-labels (8–9px → 10px) */
+.text-\[8px\], .text-\[9px\] { font-size: 10px !important; }
