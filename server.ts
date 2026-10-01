@@ -1,5 +1,6 @@
 import { createAlertsRequireSecret } from './src/lib/auth-helpers.ts';
 import { inheritPushRecipientEmail } from './src/lib/pushRecipientIdentity.ts';
+import { isCachedVersionStale, shouldApplyCachedVersion } from './src/lib/cacheFreshness.ts';
 import express from "express";
 import path from "path";
 import cors from 'cors';
@@ -1900,14 +1901,67 @@ interface CacheStore {
   shards: Record<string, any>;
   bootInitialized: boolean;
   fullInitialized: boolean;
+  // Firestore update time (ms) of the document each cached value came from; 0 = unknown.
+  rootVersion: number;
+  shardVersion: Record<string, number>;
 }
 
 const appDataCache: CacheStore = {
   rootData: {},
   shards: {},
   bootInitialized: false,
-  fullInitialized: false
+  fullInitialized: false,
+  rootVersion: 0,
+  shardVersion: {},
 };
+
+function snapshotVersion(snap: any): number {
+  try { return Number(snap?.updateTime?.toMillis?.() || 0); } catch { return 0; }
+}
+
+// A late listener event must never replace a newer value with an older one.
+function applyCachedShard(key: string, value: any, version: number) {
+  if (!shouldApplyCachedVersion(version, appDataCache.shardVersion[key] || 0)) return;
+  appDataCache.shards[key] = value;
+  appDataCache.shardVersion[key] = version;
+}
+
+function applyCachedRoot(data: any, version: number) {
+  if (!shouldApplyCachedVersion(version, appDataCache.rootVersion)) return;
+  appDataCache.rootData = data || {};
+  appDataCache.rootVersion = version;
+}
+
+// Cloud Run gives this instance CPU only while a request is in flight, so the live
+// listeners below can fall behind while it idles: the cache then still holds data from
+// before the owner's last edit. Logging in served that copy, which is how a deleted
+// unpaid invoice came back after logging out and in. Before serving, compare each
+// document's update time (metadata only, no data read) and reload what changed.
+async function refreshStaleAppDataCache(keys: string[]) {
+  if (!db) return;
+  const rootRef = db.collection("appData").doc("shared_company_data");
+  const refs = [rootRef, ...keys.map((key) => rootRef.collection("shards").doc(key))];
+  const snaps: any[] = await db.getAll(...refs, { fieldMask: ["__cacheFreshnessProbe"] });
+  const [rootMeta, ...shardMetas] = snaps;
+  const work: Promise<void>[] = [];
+
+  const rootUpdated = snapshotVersion(rootMeta);
+  if (rootMeta?.exists && isCachedVersionStale(rootUpdated, appDataCache.rootVersion)) {
+    work.push(rootRef.get().then((snap: any) => {
+      if (snap?.exists) applyCachedRoot(snap.data() || {}, snapshotVersion(snap));
+    }));
+  }
+  shardMetas.forEach((meta: any, index: number) => {
+    const key = keys[index];
+    const updated = snapshotVersion(meta);
+    if (!meta?.exists || !isCachedVersionStale(updated, appDataCache.shardVersion[key] || 0)) return;
+    work.push(loadFullAppDataShard(rootRef, key).then((value: any) => {
+      applyCachedShard(key, value, updated);
+      console.log(`[CACHE] Shard ${key} was behind Firestore; reloaded before serving.`);
+    }));
+  });
+  await Promise.all(work);
+}
 
 let bootCachePromise: Promise<void> | null = null;
 let deferredCachePromise: Promise<void> | null = null;
@@ -1938,7 +1992,7 @@ async function initBootCache() {
       ]);
 
       if (rootSnap.exists) {
-        appDataCache.rootData = rootSnap.data() || {};
+        applyCachedRoot(rootSnap.data() || {}, snapshotVersion(rootSnap));
       }
 
       await Promise.all(shardSnaps.map(async (doc: any, index: number) => {
@@ -1954,13 +2008,13 @@ async function initBootCache() {
           return;
         }
         try {
-          appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+          applyCachedShard(key, await loadFullAppDataShard(rootRef, key, doc.data() || {}), snapshotVersion(doc));
         } catch (shardErr: any) {
           console.warn(`[CACHE] Boot shard '${key}' failed on first pass (${shardErr?.message || shardErr}); retrying with a fresh manifest+parts read.`);
           try {
             // Re-read base manifest and parts together — a transient generation mismatch
             // between a stale in-hand manifest and freshly written parts resolves on retry.
-            appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key);
+            applyCachedShard(key, await loadFullAppDataShard(rootRef, key), 0);
           } catch (retryErr: any) {
             console.error(`[CACHE] Boot shard '${key}' still unreadable after retry (${retryErr?.message || retryErr}); leaving prior value so the per-shard live listener can recover it.`);
             // Keep any previously cached value; only default to [] if we have nothing.
@@ -1979,7 +2033,7 @@ async function initBootCache() {
       // Real-time synchronization listeners to keep the cache fully fresh
       rootRef.onSnapshot((snap: any) => {
         if (snap && snap.exists) {
-          appDataCache.rootData = snap.data() || {};
+          applyCachedRoot(snap.data() || {}, snapshotVersion(snap));
           console.log("[CACHE] Root document updated in real-time from Firestore.");
         }
       }, (err: any) => {
@@ -1990,12 +2044,12 @@ async function initBootCache() {
         rootRef.collection("shards").doc(key).onSnapshot(async (doc: any) => {
           if (doc && doc.exists) {
             try {
-              appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+              applyCachedShard(key, await loadFullAppDataShard(rootRef, key, doc.data() || {}), snapshotVersion(doc));
               console.log(`[CACHE] Live sync: Boot shard ${key} updated.`);
             } catch (decodeError: any) {
               console.warn(`[CACHE] Live boot shard ${key} decode failed (${decodeError?.message || decodeError}); retrying with a fresh manifest+parts read.`);
               try {
-                appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key);
+                applyCachedShard(key, await loadFullAppDataShard(rootRef, key), snapshotVersion(doc));
                 console.log(`[CACHE] Live sync: Boot shard ${key} recovered on retry.`);
               } catch (retryError: any) {
                 console.error(`[CACHE] Live boot shard ${key} still unreadable after retry:`, retryError?.message || retryError);
@@ -2044,7 +2098,7 @@ async function initDeferredCache() {
       await Promise.all(shardSnaps.map(async (doc: any, index: number) => {
         const key = deferredKeys[index];
         if (doc && doc.exists) {
-          appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+          applyCachedShard(key, await loadFullAppDataShard(rootRef, key, doc.data() || {}), snapshotVersion(doc));
         } else {
           appDataCache.shards[key] = [];
         }
@@ -2058,7 +2112,7 @@ async function initDeferredCache() {
         rootRef.collection("shards").doc(key).onSnapshot(async (doc: any) => {
           if (doc && doc.exists) {
             try {
-              appDataCache.shards[key] = await loadFullAppDataShard(rootRef, key, doc.data() || {});
+              applyCachedShard(key, await loadFullAppDataShard(rootRef, key, doc.data() || {}), snapshotVersion(doc));
               console.log(`[CACHE] Live sync: Deferred shard ${key} updated.`);
             } catch (decodeError: any) {
               console.error(`[CACHE] Failed to decode live deferred shard ${key}:`, decodeError?.message || decodeError);
@@ -6489,6 +6543,15 @@ app.get("/api/appdata/full", appDataRequireConsoleAuth, async (_req, res) => {
     const shardKeys = profile === "boot"
       ? FULL_APPDATA_SHARD_KEYS.filter((key) => !BOOT_DEFERRED_APPDATA_SHARD_KEYS.has(key))
       : FULL_APPDATA_SHARD_KEYS;
+
+    // Never serve data older than Firestore's. Bounded so a slow read cannot hold up
+    // the console: on timeout or error the current cache is served as before.
+    await Promise.race([
+      refreshStaleAppDataCache(shardKeys).catch((error: any) => {
+        console.warn("[CACHE] Freshness check failed; serving cached data:", error?.message || error);
+      }),
+      new Promise((resolve) => setTimeout(resolve, 4_000)),
+    ]);
 
     const data: any = { ...appDataCache.rootData };
     const shardCounts: Record<string, number> = {};
