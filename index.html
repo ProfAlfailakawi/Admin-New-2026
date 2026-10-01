@@ -250,8 +250,7 @@
     </script>
     <script>
       // Service Worker Cleanup: only unregister the OLD generic sw.js
-      // (firebase-messaging-sw.js stays untouched for push notifications, and the
-      // offline app-shell worker registered from main.tsx is /service-worker.js).
+      // (firebase-messaging-sw.js stays untouched for push notifications)
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           for (let registration of registrations) {

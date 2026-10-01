@@ -27,7 +27,7 @@ const isSuccessfulPayerForDisplay = (payer: any) => {
 
 import { getUnifiedInvoices, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly, formatKuwaitiTimeOnly, resolveInvoiceDisplayDate, getInvoiceSortTimestamp, coerceDateValue, getKuwaitDateInputValue, getKuwaitDayRange, formatDeliveryDateDisplay, formatDeliveryTimeDisplay, getArabicWeekdayAndDate } from '../lib/utils';
 import { db } from '../firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText,
@@ -247,11 +247,14 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
 
         // Preserve the richer historical record, but let the freshest mirror fields
         // win so today's invoices and latest payment status appear immediately.
-        if (recordTime(incoming) >= recordTime(existing)) {
-          merged.set(id, { ...existing, ...incoming, id });
-        } else {
-          merged.set(id, { ...incoming, ...existing, id });
-        }
+        const next = recordTime(incoming) >= recordTime(existing)
+          ? { ...existing, ...incoming, id }
+          : { ...incoming, ...existing, id };
+        // A deletion wins over any copy: the mirror row was written at creation with
+        // isDeleted: false and is newer than the archive row, so without this the
+        // invoice reappears right after "تم حذف الفاتورة".
+        if (existing.isDeleted === true || incoming.isDeleted === true) next.isDeleted = true;
+        merged.set(id, next);
       };
 
       baseUnifiedInvoices.forEach(mergeInvoice);
@@ -675,9 +678,17 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         return;
       }
 
+      const deletedAt = new Date().toISOString();
       setData((prev) => {
+        // Pressing delete again must not return the items to stock a second time.
+        const alreadyDeleted = (prev?.invoices || []).some(
+          (inv) => inv.id === id && (inv as any).isDeleted === true,
+        );
+        if (alreadyDeleted) return prev;
         const updatedInvoices = (prev?.invoices || []).map((inv) =>
-          inv.id === id ? { ...inv, isDeleted: true } : inv,
+          inv.id === id
+            ? ({ ...inv, isDeleted: true, deletedAt, updatedAt: deletedAt } as any)
+            : inv,
         );
         const updatedProducts = (prev?.products || []).map((p) => {
           const item = invoiceToDeleteObj.items.find(
@@ -695,6 +706,23 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         };
         return recalculateStateBalances(nextState);
       });
+      // The ledger also reads the lightweight `invoices` mirror, which still says the
+      // invoice is live. Hide it there now and record the deletion in the mirror so
+      // it stays hidden on every device and after reopening.
+      setLiveLedgerInvoices((prevRows) =>
+        (prevRows || []).map((row: any) =>
+          String(row.id) === String(id)
+            ? { ...row, isDeleted: true, deletedAt, updatedAt: deletedAt }
+            : row,
+        ),
+      );
+      if (liveLedgerInvoices.some((row: any) => String(row.id) === String(id))) {
+        setDoc(
+          doc(db, "invoices", String(id)),
+          { isDeleted: true, deletedAt, updatedAt: deletedAt, updatedAtServer: serverTimestamp() },
+          { merge: true },
+        ).catch((err) => console.warn("Invoice ledger mirror delete failed:", err));
+      }
       toast.info("تم حذف الفاتورة", {
         description: `تم إخفاء الفاتورة #${id} واستعادة المخزون وتحديث الحسابات بنجاح.`,
         position: "bottom-right",

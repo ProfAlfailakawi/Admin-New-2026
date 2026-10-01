@@ -1,91 +1,61 @@
-import { describe, it, expect } from 'vitest';
-import { registrationHoldsPushWorker, registrationOwnsPushSubscription } from '../lib/app-update';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { purgeShell } from '../lib/app-update';
 
-// Notifications stopped for a week with no error: the silent self-update's hard-refresh
-// escalation called getRegistrations() and unregistered every service worker, including
-// the one that owns the push subscription. Firebase kept the token in IndexedDB, FCM
-// kept accepting sends to it, and the device displayed nothing.
-//
-// The app-shell purge must never take the messaging worker with it.
+// Notifications worked on Sep 4, when firebase-messaging-sw.js was the only service
+// worker. Two later additions broke them on a device until the app was reinstalled:
+// an app-shell worker registered on the same scope "/" (one worker per scope, so it
+// replaced the push worker), and a self-update purge that unregistered workers. These
+// tests keep both out.
 
-describe('the purge must spare the worker that owns the push subscription', () => {
-  it('recognizes the messaging worker by its active script', () => {
-    expect(registrationOwnsPushSubscription([
-      'https://admin.example.com/firebase-messaging-sw.js',
-    ])).toBe(true);
+const root = process.cwd();
+
+describe('the self-update purge', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
-  it('recognizes it while it is still installing or waiting', () => {
-    expect(registrationOwnsPushSubscription([null, '/firebase-messaging-sw.js', null])).toBe(true);
-    expect(registrationOwnsPushSubscription([null, null, '/firebase-messaging-sw.js'])).toBe(true);
-  });
+  it('clears caches but never unregisters a service worker', async () => {
+    const deleted: string[] = [];
+    const unregister = vi.fn(async () => true);
+    vi.stubGlobal('window', { caches: {} });
+    vi.stubGlobal('caches', {
+      keys: async () => ['alturath-shell-abc', 'alturath-push-dedupe-v1', 'other'],
+      delete: async (name: string) => { deleted.push(name); return true; },
+    });
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        getRegistrations: async () => [
+          { active: { scriptURL: '/firebase-messaging-sw.js' }, unregister },
+          { active: { scriptURL: '/service-worker.js' }, unregister },
+        ],
+        getRegistration: async () => ({ active: { scriptURL: '/firebase-messaging-sw.js' }, unregister }),
+      },
+    });
 
-  it('recognizes it through a cache-busting query or a nested path', () => {
-    expect(registrationOwnsPushSubscription(['/firebase-messaging-sw.js?v=42'])).toBe(true);
-    expect(registrationOwnsPushSubscription(['https://cdn.example.com/static/firebase-messaging-sw.js'])).toBe(true);
-  });
+    await purgeShell();
 
-  it('leaves the app-shell worker purgeable', () => {
-    expect(registrationOwnsPushSubscription(['https://admin.example.com/service-worker.js'])).toBe(false);
-    expect(registrationOwnsPushSubscription(['/sw.js'])).toBe(false);
-  });
-
-  it('treats an empty or unknown registration as purgeable', () => {
-    expect(registrationOwnsPushSubscription([])).toBe(false);
-    expect(registrationOwnsPushSubscription([null, undefined, ''])).toBe(false);
-  });
-
-  it('spares a registration where only one of its workers is the messaging worker', () => {
-    // A registration mid-update carries two scripts; if either is the messaging worker,
-    // unregistering still destroys the subscription.
-    expect(registrationOwnsPushSubscription([
-      '/service-worker.js',
-      '/firebase-messaging-sw.js',
-    ])).toBe(true);
+    expect(unregister).not.toHaveBeenCalled();
+    expect(deleted).toEqual(['alturath-shell-abc', 'other']);
   });
 });
 
-describe('the purge filter applied to a realistic set of registrations', () => {
-  const unregisterable = (registrations: { scripts: (string | null)[]; id: string }[]) =>
-    registrations
-      .filter((registration) => !registrationOwnsPushSubscription(registration.scripts))
-      .map((registration) => registration.id);
-
-  it('removes the shell worker and keeps the messaging worker', () => {
-    expect(unregisterable([
-      { id: 'shell', scripts: ['/service-worker.js'] },
-      { id: 'messaging', scripts: ['/firebase-messaging-sw.js'] },
-    ])).toEqual(['shell']);
+describe('a single worker on scope "/"', () => {
+  it('main.tsx does not register the old app-shell worker', () => {
+    const main = readFileSync(join(root, 'src/main.tsx'), 'utf8');
+    expect(main).not.toMatch(/register\(\s*['"]\/service-worker\.js['"]/);
   });
 
-  it('never returns an empty-handed purge that also kept nothing alive', () => {
-    const registrations = [
-      { id: 'shell', scripts: ['/service-worker.js'] },
-      { id: 'messaging', scripts: ['/firebase-messaging-sw.js'] },
-    ];
-    const removed = unregisterable(registrations);
-
-    expect(removed).not.toContain('messaging');
-    expect(registrations.length - removed.length).toBe(1);
-  });
-});
-
-// The shell worker and the messaging worker share scope "/", which holds one worker.
-// Registering the shell over the messaging worker replaces it with one that has no
-// push handler, so startup must leave a scope the messaging worker already holds.
-describe('startup must not register the shell worker over the messaging worker', () => {
-  const worker = (scriptURL: string) => ({ scriptURL }) as ServiceWorker;
-
-  it('sees the messaging worker whether it is active, waiting or installing', () => {
-    expect(registrationHoldsPushWorker({ active: worker('https://a.example/firebase-messaging-sw.js'), waiting: null, installing: null })).toBe(true);
-    expect(registrationHoldsPushWorker({ active: worker('https://a.example/service-worker.js'), waiting: worker('https://a.example/firebase-messaging-sw.js'), installing: null })).toBe(true);
-    expect(registrationHoldsPushWorker({ active: null, waiting: null, installing: worker('https://a.example/firebase-messaging-sw.js') })).toBe(true);
+  it('a device still running the old shell worker gets the push handler on its next update', () => {
+    const shell = readFileSync(join(root, 'public/service-worker.js'), 'utf8');
+    expect(shell).toMatch(/importScripts\(\s*["']\/firebase-messaging-sw\.js["']\s*\)/);
+    expect(shell).not.toMatch(/addEventListener\(\s*["']fetch["']/);
   });
 
-  it('lets the shell register when the scope is empty or already the shell', () => {
-    expect(registrationHoldsPushWorker(undefined)).toBe(false);
-    expect(registrationHoldsPushWorker(null)).toBe(false);
-    expect(registrationHoldsPushWorker({ active: worker('https://a.example/service-worker.js'), waiting: null, installing: null })).toBe(false);
-    expect(registrationHoldsPushWorker({ active: null, waiting: null, installing: null })).toBe(false);
+  it('the push worker itself shows notifications', () => {
+    const push = readFileSync(join(root, 'public/firebase-messaging-sw.js'), 'utf8');
+    expect(push).toMatch(/addEventListener\(\s*["']push["']/);
+    expect(push).toMatch(/showNotification/);
   });
 });
