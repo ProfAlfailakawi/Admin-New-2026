@@ -421,9 +421,11 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
  <th className="p-3 md:p-3">تاريخ الحركة</th>
  <th className="p-3 md:p-3">اسم المورد / نوع الحركة</th>
+ <th className="p-3 md:p-3">مبلغ التوريد (د.ك)</th>
+ <th className="p-3 md:p-3">التوصيل (د.ك)</th>
  <th className="p-3 md:p-3">المبلغ (د.ك)</th>
  <th className="p-3 md:p-3">طريقة الدفع</th>
- <th className="p-3 md:p-3">حالة الرصيد</th>
+ <th className="p-3 md:p-3">آخر حركة</th>
  <th className="p-3 md:p-3">ملاحظات الحساب</th>
  <th className="p-3 md:p-3">إجراءات</th>
  </tr>
@@ -473,13 +475,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td data-mobile-label="التوصيل (د.ك)" className="p-3 md:p-3 font-black text-blue-600">
  {isInvoice ? Number(transaction.deliveryAmount || 0).toFixed(3) : '—'}
  </td>
- <td data-mobile-label="المبلغ (د.ك)" className={cn("p-3 md:p-3 font-bold", isInvoice ?"text-red-500" :"text-emerald-600")}>
+ <td data-mobile-label="المبلغ (د.ك)" className={cn("p-3 md:p-3 font-bold", "whitespace-nowrap", isInvoice ?"text-red-500" :"text-emerald-600")}>
  {isInvoice ? '+' : '-'}{Number(transaction.rawAmount || 0).toFixed(3)} د.ك
  </td>
  <td data-mobile-label="طريقة الدفع" className="p-3 md:p-3">
  <span className={cn(
-"px-3 py-1 rounded-lg text-[10px] font-bold uppercase",
- isInvoice ?"bg-red-50 text-red-500" :"bg-emerald-50 text-emerald-500"
+"px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase whitespace-nowrap bg-white",
+ isInvoice ?"border-slate-200 text-slate-600" :"border-emerald-200 text-emerald-700"
 )}>
  {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : transaction.method}
  </span>

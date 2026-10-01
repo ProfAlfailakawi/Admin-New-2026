@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History, ChevronDown } from 'lucide-react';
+import { Award, Users, Star, Gift, MessageCircle, Clock, Settings, TrendingUp, Zap, Search, ChevronRight, ChevronLeft, Tag, X, History, ChevronDown, Crown, AlertTriangle, Trophy } from 'lucide-react';
 import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } from '../lib/utils';
 import { AppState } from '../types';
 import { toast } from 'sonner';
@@ -463,7 +463,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="text-xl md:text-2xl font-bold">{stats.vipCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-orange-500/20">
- <span className="text-[10px] font-bold text-orange-200 block mb-1">ماشي بالخطر ⚠️</span>
+ <span className="text-[10px] font-bold text-orange-200 mb-1 flex items-center gap-1"><AlertTriangle size={11} />ماشي بالخطر</span>
  <div className="text-xl md:text-2xl font-bold">{stats.atRiskCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-rose-500/20">
@@ -536,7 +536,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="flex items-start justify-between gap-3">
  <div>
  <h3 className="text-xl md:text-3xl font-bold text-amber-400 flex flex-wrap items-center gap-2">
- أبطال الطلبات 🏆
+ <Trophy size={22} className="shrink-0" />أبطال الطلبات
  <span className="text-[10px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10</span>
  </h3>
  <p className="text-slate-400 font-bold mt-1 text-[11px] md:text-sm">مختصر مرتب؛ افتح أي بطل فقط عند الحاجة.</p>
@@ -637,10 +637,10 @@ setSearchTerm(val);
  <div className="loyalty-segment-scroll flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-1 overflow-x-auto w-full lg:w-auto max-w-full">
  {[
  { id: 'all', label: 'الكل' },
- { id: 'VIP', label: 'VIP 👑' },
+ { id: 'VIP', label: 'VIP', icon: <Crown size={13} /> },
  { id: 'نشط', label: 'نشط' },
  { id: 'جديد', label: 'جديد' },
- { id: 'ماشي بالخطر', label: 'تنبيه ⚠️' },
+ { id: 'ماشي بالخطر', label: 'تنبيه', icon: <AlertTriangle size={13} /> },
  { id: 'خامل', label: 'خامل' }
  ].map(seg => (
  <button 
@@ -652,11 +652,11 @@ setSearchTerm(val);
  className={cn(
 "px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors",
  activeSegment === seg.id 
- ?"bg-amber-100 text-amber-700" 
- :"text-slate-500 hover:bg-slate-200/50"
+ ?"bg-white text-amber-700 border border-amber-200" 
+ :"text-slate-500 hover:bg-slate-200/50 border border-transparent"
 )}
  >
- {seg.label}
+ <span className="inline-flex items-center gap-1.5">{(seg as any).icon}{seg.label}</span>
  </button>
 ))}
  </div>

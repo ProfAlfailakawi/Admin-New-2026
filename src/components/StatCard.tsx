@@ -42,7 +42,7 @@ export const StatCardComponent: React.FC<StatCardProps> = ({ label, value, icon,
       </div>
       <div className="flex flex-col text-left md:text-right">
         <div className="md:hidden text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">{label}</div>
-        <div className="text-sm md:text-2xl font-mono tracking-tighter font-bold text-slate-800 mb-0.5 md:mb-1">{value}</div>
+        <div className="text-sm md:text-2xl tabular-nums tracking-tight font-bold text-slate-800 mb-0.5 md:mb-1">{value}</div>
         {description && <div className="hidden md:block text-[9px] md:text-[10px] font-bold text-slate-400 leading-tight">{description}</div>}
       </div>
     </SpatialGlassCard>

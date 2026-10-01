@@ -1976,7 +1976,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/45 backdrop-blur-xl"
+            className="fixed inset-0 bg-slate-950/30 backdrop-blur-sm"
           />
 
           <motion.div
@@ -2106,26 +2106,26 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
             {instantAnswer && (
               <div className="px-3 md:px-4 pt-3">
                 <div className={cn(
-                  'rounded-[24px] border p-3 md:p-4 text-right shadow-sm',
-                  instantAnswer.tone === 'emerald' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
-                  instantAnswer.tone === 'amber' && 'border-amber-200 bg-amber-50 text-amber-900',
-                  instantAnswer.tone === 'rose' && 'border-rose-200 bg-rose-50 text-rose-900',
-                  instantAnswer.tone === 'blue' && 'border-blue-200 bg-blue-50 text-blue-900',
-                  (!instantAnswer.tone || instantAnswer.tone === 'slate') && 'border-slate-200 bg-slate-50 text-slate-900'
+                  'rounded-2xl border bg-white p-3 md:p-4 text-right text-slate-900',
+                  instantAnswer.tone === 'emerald' && 'border-emerald-200',
+                  instantAnswer.tone === 'amber' && 'border-amber-200',
+                  instantAnswer.tone === 'rose' && 'border-rose-200',
+                  instantAnswer.tone === 'blue' && 'border-blue-200',
+                  (!instantAnswer.tone || instantAnswer.tone === 'slate') && 'border-slate-200'
                 )}>
                   <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 shrink-0 rounded-2xl bg-white/80 flex items-center justify-center">
-                      <Sparkles size={17} />
+                    <div className="h-9 w-9 shrink-0 rounded-full border border-slate-200 bg-white text-slate-500 flex items-center justify-center">
+                      <Sparkles size={16} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] font-black opacity-65">إجابة فورية</div>
                       <div className="mt-0.5 text-sm md:text-base font-black truncate">{instantAnswer.title}</div>
-                      <div className="mt-1 text-2xl md:text-3xl font-black leading-none truncate">{instantAnswer.value}</div>
+                      <div className="mt-1 text-xl md:text-2xl font-bold leading-none truncate tabular-nums">{instantAnswer.value}</div>
                       {instantAnswer.subtitle && <div className="mt-2 text-xs md:text-sm font-bold leading-6 opacity-80">{instantAnswer.subtitle}</div>}
                       {instantAnswer.details?.length ? (
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {instantAnswer.details.slice(0, 2).map((line) => (
-                            <span key={line} className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-black opacity-80">{line}</span>
+                            <span key={line} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-600">{line}</span>
                           ))}
                         </div>
                       ) : null}
@@ -2134,7 +2134,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                       <button
                         type="button"
                         onClick={() => { instantAnswer.action?.(); onClose(); }}
-                        className="shrink-0 rounded-2xl bg-white px-3 py-2 text-[11px] font-black shadow-sm border border-white/80 hover:bg-white/80 transition-colors"
+                        className="shrink-0 rounded-full bg-transparent px-3 py-1.5 text-[11px] font-bold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         {instantAnswer.actionLabel}
                       </button>

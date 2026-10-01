@@ -32,6 +32,7 @@ import {
   PackageCheck,
   ChevronDown,
   Star,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppState, Product } from "../types";
@@ -1151,9 +1152,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
           <div className="flex overflow-x-auto hide-scrollbar bg-slate-100 p-1.5 rounded-2xl gap-1 shrink-0 flex-row-reverse w-full md:w-auto">
             {[
               { id: "all", label: "الكل", icon: <Package size={14} /> },
-              { id: "star", label: "نار 🔥", icon: <Sparkles size={14} /> },
-              { id: "slow", label: "بطيء ⚠️", icon: <AlertCircle size={14} /> },
-              { id: "new", label: "جديد ✨", icon: <Clock size={14} /> },
+              { id: "star", label: "نار", icon: <Sparkles size={14} /> },
+              { id: "slow", label: "بطيء", icon: <AlertCircle size={14} /> },
+              { id: "new", label: "جديد", icon: <Clock size={14} /> },
             ].map((tab) => (
               <button
                 key={tab.id}

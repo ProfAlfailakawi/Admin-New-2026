@@ -54,24 +54,24 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <motion.div 
  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
  transition={{ duration: 2, repeat: Infinity }}
- className="absolute inset-0 bg-indigo-500 rounded-full blur-xl"
+ className="absolute inset-0 bg-indigo-300 rounded-full blur-lg"
  />
 )}
  
  <button 
  onClick={() => setShowHub(true)}
  className={cn(
-"relative w-12 h-12 md:w-16 md:h-16 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden",
- activeAlerts[0].insightType === 'خطر' ?"bg-rose-500" : 
- activeAlerts[0].insightType === 'فرصة' ?"bg-indigo-600" : 
-"bg-amber-500"
+"relative w-10 h-10 md:w-14 md:h-14 rounded-full bg-white border shadow-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden",
+ activeAlerts[0].insightType === 'خطر' ?"border-rose-300 text-rose-600" : 
+ activeAlerts[0].insightType === 'فرصة' ?"border-indigo-300 text-indigo-600" : 
+"border-amber-300 text-amber-600"
 )}
  >
  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
- <Sparkles className="text-white animate-pulse" size={32} />
+ <Sparkles size={20} />
  
  {/* Badge */}
- <div className="absolute -top-1 -left-1 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-indigo-600 shadow-sm">
+ <div className="absolute -top-1 -left-1 w-5 h-5 bg-white rounded-full flex items-center justify-center border border-slate-300">
  <span className={cn("text-[10px] font-bold", activeAlerts[0].insightType === 'خطر' ?"text-rose-600" :"text-indigo-600")}>
  {activeAlerts.length}
  </span>

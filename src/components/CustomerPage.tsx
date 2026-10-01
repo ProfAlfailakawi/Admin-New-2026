@@ -470,14 +470,14 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     <table className="mobile-card-table w-full text-right min-w-[800px]" dir="rtl">
      <thead>
       <tr className="bg-slate-50/80 backdrop-blur-md border-b border-slate-200 text-slate-500 text-xs uppercase font-black tracking-widest sticky top-0 z-20">
-       <th className="p-6">العميل</th>
-       <th className="p-6">العنوان والتفاصيل</th>
-       <th className="p-6">إجمالي الإنفاق</th>
-       <th className="p-6">نقاط الولاء</th>
-       <th className="p-6">رقم التلفون</th>
-       <th className="p-6">الديوانية</th>
-       <th className="p-6">الانطباع</th>
-       <th className="p-4 px-6 text-left sticky left-0 bg-slate-50/80 backdrop-blur-md shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">الإجراءات</th>
+       <th className="p-2.5">العميل</th>
+       <th className="p-2.5">العنوان والتفاصيل</th>
+       <th className="p-2.5">إجمالي الإنفاق</th>
+       <th className="p-2.5">نقاط الولاء</th>
+       <th className="p-2.5">رقم التلفون</th>
+       <th className="p-2.5">الديوانية</th>
+       <th className="p-2.5">الانطباع</th>
+       <th className="p-2.5 text-left sticky left-0 bg-slate-50/80 backdrop-blur-md shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">الإجراءات</th>
       </tr>
      </thead>
      <tbody className="divide-y divide-slate-100">
@@ -490,9 +490,9 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
        const sentiment = calculateCustomerSentiment(customer, custInvs) || { score: 50, label: 'محايد', color: 'text-slate-500 bg-slate-50', reason: 'نشاط اعتيادي' };
        return (
         <tr key={String(customer.id || customer.phone || customer.name || Math.random())} className="hover:bg-indigo-50/30 transition-all group cursor-default">
-         <td className="p-6">
-          <div className="flex items-center gap-4">
-           <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm">
+         <td className="p-2.5">
+          <div className="flex items-center gap-3">
+           <div className="w-10 h-10 shrink-0 bg-slate-100 rounded-2xl flex items-center justify-center font-black text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-sm">
             {String(customer.name || "ع").charAt(0)}
            </div>
            <div>
@@ -501,8 +501,8 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            </div>
           </div>
          </td>
-         <td className="p-6">
-          <div className="bg-slate-50 group-hover:bg-white p-2 rounded-xl border border-slate-100 transition-all inline-block min-w-[160px]">
+         <td className="p-2.5">
+          <div className="bg-slate-50 group-hover:bg-white p-2 rounded-xl border border-slate-100 transition-all inline-block min-w-[120px] max-w-[160px]">
             <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
               <MapPin size={12} className="text-rose-500" />
               {customer.area || 'غير محدد'}
@@ -512,7 +512,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             </div>
           </div>
          </td>
-         <td className="p-6">
+         <td className="p-2.5">
            <div className="flex flex-col">
              <div className="flex items-baseline gap-1">
                <span className="font-black text-slate-900 text-lg tabular-nums">{(Number(stats?.totalSpent) || 0).toFixed(3)}</span>
@@ -521,19 +521,19 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(stats?.totalOrders || 0)} طلبيات موثقة</span>
            </div>
          </td>
-         <td className="p-6">
-           <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-2xl border border-amber-100 w-fit shadow-sm">
-             <Gift size={14} className="text-amber-500" />
+         <td className="p-2.5">
+           <div className="flex items-center gap-2 bg-white text-slate-800 px-3 py-1.5 rounded-full border border-amber-200 w-fit">
+             <Gift size={14} className="text-amber-600" />
              <span className="font-black text-lg tabular-nums">{Math.floor(Number(stats?.totalSpent) || 0)}</span>
            </div>
          </td>
-         <td className="p-6 text-indigo-700">
+         <td className="p-2.5 text-indigo-700">
            <div className="flex items-center gap-2 font-mono text-sm bg-slate-100 px-3 py-1.5 rounded-full w-fit group-hover:bg-indigo-100 group-hover:text-indigo-700 transition-all font-bold">
              <Phone size={12} />
              {normalizePhoneDigits(customer.phone) || customer.phone || "—"}
            </div>
          </td>
-          <td className="p-6">
+          <td className="p-2.5">
             {(() => {
               const normalizePhoneForMatch = (p: any) => p ? String(p).replace(/\D/g, '').slice(-8) : '';
               const cPhone = normalizePhoneForMatch(customer.phone);
@@ -546,7 +546,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               if (customer.diwaniyaName && matchedSquads.length === 0) {
                  return (
                   <div className="flex flex-col gap-1 items-start">
-                    <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-amber-200 shadow-sm">
+                    <span className="bg-white text-amber-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 border border-amber-200">
                       <Crown size={12} className="text-amber-500" />
                       {customer.diwaniyaName}
                     </span>
@@ -567,7 +567,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                        const mPoints = memberData?.points;
                        return (
                         <div key={i} className="flex flex-col gap-1 items-start">
-                          <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[11px] font-black flex items-center gap-1.5 border border-amber-200 shadow-sm">
+                          <span className="bg-white text-amber-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 border border-amber-200">
                             <Crown size={12} className="text-amber-500" />
                             {squad?.name}
                           </span>
@@ -576,7 +576,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                               نقاط الديوانية: {squad?.points?.toLocaleString() || 0}
                             </span>
                             {mPoints !== undefined && mPoints > 0 && (
-                              <span className="text-[10px] text-indigo-700 font-black bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 w-fit flex items-center gap-1 mt-0.5 shadow-sm">
+                              <span className="text-[10px] text-indigo-700 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-100 w-fit flex items-center gap-1 mt-0.5">
                                 <Gift size={10} className="text-indigo-500" />
                                 نقاطي: {mPoints?.toLocaleString() || 0}
                               </span>
@@ -594,12 +594,12 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               }
             })()}
           </td>
-         <td className="p-6">
+         <td className="p-2.5">
           <div className={cn(
-            "flex items-center gap-2 px-4 py-2.5 rounded-[20px] border-2 text-xs font-black transition-all shadow-md w-fit group/sent relative",
+            "flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all w-fit group/sent relative",
             sentiment?.color || 'text-slate-500 bg-slate-50 border-slate-200'
           )}>
-            <Sparkles size={14} className="animate-pulse" />
+            <Sparkles size={14} />
             <span>{sentiment?.label || 'محايد'}</span>
             
             {/* Extended Tooltip on hover - Centered Positioning to stay within frame */}
@@ -618,7 +618,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             </div>
           </div>
          </td>
-         <td className="p-6 text-left sticky left-0 bg-white group-hover:bg-indigo-50/30 transition-all shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">
+         <td className="p-2.5 text-left sticky left-0 bg-white group-hover:bg-indigo-50/30 transition-all shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">
           <div className="customer-actions flex items-center gap-1 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
            <button onClick={() => handleSendMessage(customer)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-indigo-600 hover:bg-slate-50 border border-slate-200 text-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة">
              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
