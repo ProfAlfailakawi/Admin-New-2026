@@ -1251,7 +1251,7 @@ const CloudConnectionGate: React.FC<{
             </div>
           )}
 
-          <div className="mt-5 text-[9px] font-light tracking-wide text-slate-500/20">{name || 'شركة مطبخ التراث الكويتي'}</div>
+          <div className="mt-5 text-[11px] font-bold text-slate-400/80">{name || 'شركة مطبخ التراث الكويتي'}</div>
 
           {isOffline && (
             <button

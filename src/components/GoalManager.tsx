@@ -100,7 +100,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
 
  {/* Recommendations */}
  <div className="space-y-4 md:space-y-6">
- <h4 className="font-bold text-base md:text-lg text-white text-right pr-4">اقتراحات القائد الذكي 🤖</h4>
+ <h4 className="font-bold text-base md:text-lg text-slate-800 text-right pr-4">اقتراحات القائد الذكي 🤖</h4>
  <div className="space-y-3 md:space-y-4">
  {recommendations.map((rec, index) => (
  <motion.div

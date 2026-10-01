@@ -4644,15 +4644,15 @@ const [isPending, startTransition] = useTransition();
                             />
                           </button>
                           <div className="text-right">
-                            <h3 className="text-xl font-bold">
+                            <h3 className="text-xl font-bold text-slate-800">
                               المستشار الشامل
                             </h3>
-                            <p className="text-[10px] text-indigo-300/60 font-bold uppercase mt-0.5">
+                            <p className="text-[10px] text-indigo-500 font-bold uppercase mt-0.5">
                               Smart Archive v4.0
                             </p>
                           </div>
                         </div>
-                        <p className="text-xs text-slate-300 font-medium leading-relaxed mb-6">
+                        <p className="text-xs text-slate-600 font-medium leading-relaxed mb-6">
                           يقوم التراث الذكي الآن بمسح شامل لـ{" "}
                           {unifiedInvoices.length} فاتورة و{" "}
                           {reviews.length} تعليق عميل لاستخراج الأنماط الخفية.
