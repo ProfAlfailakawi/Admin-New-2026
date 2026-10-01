@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface SmartIconGuideProps {
@@ -214,7 +214,7 @@ export const SmartIconGuide: React.FC<SmartIconGuideProps> = ({
                       </span>
                     )}
                     <span className="text-[9px] font-semibold text-emerald-400 mt-1 block">
-                      💡 اضغط مرة أخرى للتنفيذ
+                      <Lightbulb size={11} className="inline-block align-[-2px] me-1" aria-hidden="true" />اضغط مرة أخرى للتنفيذ
                     </span>
                   </div>
                 </div>

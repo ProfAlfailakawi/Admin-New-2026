@@ -398,7 +398,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
    <div className="bg-white rounded-3xl p-4 md:p-6 border border-slate-200/60 shadow-sm">
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
       <div className="md:col-span-4 relative">
-        <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+        <Search className="absolute start-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
         <input 
           id="search-input"
           type="text" 
@@ -411,7 +411,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             }
             setSearch(val);
           }}
-          className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right text-sm"
+          className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 ps-11 pe-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right text-sm"
         />
       </div>
       
@@ -454,9 +454,9 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full text-[10px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
           >
             <option value="all">كل الانطباعات</option>
-            <option value="positive">😊 سعيد</option>
-            <option value="neutral">😐 محايد</option>
-            <option value="negative">😠 مستاء</option>
+            <option value="positive">سعيد</option>
+            <option value="neutral">محايد</option>
+            <option value="negative">مستاء</option>
           </select>
           <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={12} />
         </div>
