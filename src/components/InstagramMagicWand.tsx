@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { LAYER } from '../lib/floatingLayers';
-import { Sparkles, X, RefreshCw, Copy, Check, Instagram, Trophy, CalendarDays, MessageCircle, Flame, Clock, Lightbulb } from 'lucide-react';
+import { Sparkles, X, RefreshCw, Copy, Check, Instagram, Trophy, CalendarDays, MessageCircle, Flame, Clock, Lightbulb, Gift, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { AppState } from '../types';
@@ -77,11 +77,11 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
           whileHover={{ scale: 1.1, x: 5 }}
           whileTap={{ scale: 0.9 }}
           onClick={openPanel}
-          className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white p-3 rounded-r-2xl shadow-xl shadow-purple-500/40 group relative"
+          className="bg-slate-900 text-white p-3 rounded-r-2xl shadow-lg group relative"
         >
           <Sparkles className="group-hover:rotate-12 transition-transform" size={24} />
           <div className="absolute right-full mr-4 bg-slate-900 border border-white/10 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-xl">
-            ملهم الانستغرام ✨
+            ملهم الانستغرام
           </div>
         </motion.button>
       </div>
@@ -91,7 +91,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
         <motion.button
           whileTap={{ scale: 0.8 }}
           onClick={openPanel}
-          className="w-14 h-14 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white rounded-full shadow-xl shadow-purple-500/40 flex items-center justify-center border-2 border-white/10"
+          className="w-11 h-11 bg-slate-900 text-white rounded-full shadow-lg flex items-center justify-center border border-white/10"
         >
           <Sparkles size={24} />
         </motion.button>
@@ -118,7 +118,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
               dir="rtl"
             >
               {/* الترويسة — نفس هوية التطبيق */}
-              <div className="p-4 pb-3 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-950 text-white relative shrink-0">
+              <div className="p-4 pb-3 bg-slate-900 text-white relative shrink-0">
                 <button
                   onClick={() => setIsOpen(false)}
                   className="absolute top-4 left-4 p-2.5 bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-90 z-20"
@@ -126,14 +126,14 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                   <X size={18} />
                 </button>
                 <div className="flex items-center gap-3.5">
-                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/30">
+                  <div className="bg-white/10 border border-white/15 p-3 rounded-2xl">
                     <Instagram size={24} className="text-white" />
                   </div>
                   <div>
                     <h3 className="text-xl font-black tracking-tight">ملهم الانستغرام</h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[9.5px] font-bold text-indigo-200/90">مسابقات وتفاعل يكبّر حسابكم — من بياناتكم الحقيقية</span>
+                      <span className="text-[9.5px] font-bold text-slate-300">مسابقات وتفاعل يكبّر حسابكم — من بياناتكم الحقيقية</span>
                     </div>
                   </div>
                 </div>
@@ -168,7 +168,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                       className={cn(
                         'py-3 rounded-2xl text-[11px] font-black transition-all active:scale-95 border-2 flex flex-col items-center gap-1',
                         tab === key
-                          ? 'bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-transparent shadow-lg shadow-purple-500/25'
+                          ? 'bg-slate-900 text-white border-slate-900'
                           : 'bg-white text-slate-500 border-slate-100'
                       )}
                     >
@@ -211,7 +211,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                         <div className={cn(
                           'px-4 py-2.5 flex items-center justify-between',
                           day.isToday
-                            ? 'bg-gradient-to-l from-indigo-600 to-purple-700 text-white'
+                            ? 'bg-slate-800 text-white'
                             : day.isWeekend ? 'bg-amber-50 text-amber-800' : 'bg-slate-50 text-slate-600'
                         )}>
                           <span className="text-[11px] font-black flex items-center gap-1.5">
@@ -228,8 +228,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
 
                         <div className="p-4 space-y-3">
                           <h4 className="text-[13.5px] font-black text-slate-800">{day.title}</h4>
-                          <div className="bg-slate-950 rounded-2xl p-3.5">
-                            <p className="text-[11.5px] font-bold text-slate-100 leading-[1.9] whitespace-pre-line" dir="rtl">
+                          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+                            <p className="text-[11.5px] font-bold text-slate-700 leading-[1.9] whitespace-pre-line" dir="rtl">
                               {day.caption}
                             </p>
                           </div>
@@ -273,7 +273,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                           className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden"
                         >
                           <div className="p-4 pb-3 flex items-start gap-3">
-                            <div className="w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/20 flex items-center justify-center text-xl">
+                            <div className="w-11 h-11 shrink-0 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-xl">
                               {kit.emoji}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -283,12 +283,12 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                           </div>
 
                           <div className="px-4 space-y-2.5">
-                            <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-800">
-                              🎁 الجائزة: {kit.prize}
+                            <div className="bg-white border border-emerald-200 rounded-xl px-3 py-2 text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                              <Gift size={13} className="shrink-0" />الجائزة: {kit.prize}
                             </div>
 
                             <div className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
-                              <p className="text-[9.5px] font-black text-slate-500 mb-1.5">📋 شروط المشاركة</p>
+                              <p className="text-[9.5px] font-black text-slate-500 mb-1.5 flex items-center gap-1"><ClipboardList size={11} />شروط المشاركة</p>
                               <ol className="space-y-1">
                                 {kit.mechanics.map((m, mi) => (
                                   <li key={mi} className="text-[10.5px] font-bold text-slate-700 flex items-start gap-1.5">
@@ -329,8 +329,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                                   </button>
                                 ))}
                               </div>
-                              <div className="bg-slate-950 rounded-2xl p-3.5">
-                                <p className="text-[11.5px] font-bold text-slate-100 leading-[1.9] whitespace-pre-line" dir="rtl">
+                              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+                                <p className="text-[11.5px] font-bold text-slate-700 leading-[1.9] whitespace-pre-line" dir="rtl">
                                   {sectionText}
                                 </p>
                               </div>
@@ -372,7 +372,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                           className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 space-y-3"
                         >
                           <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 shrink-0 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-500/20 flex items-center justify-center text-lg">
+                            <div className="w-10 h-10 shrink-0 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-lg">
                               {idea.emoji}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -398,8 +398,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                             ))}
                           </div>
 
-                          <div className="bg-slate-950 rounded-2xl p-3.5">
-                            <p className="text-[11.5px] font-bold text-slate-100 leading-[1.9] whitespace-pre-line" dir="rtl">
+                          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
+                            <p className="text-[11.5px] font-bold text-slate-700 leading-[1.9] whitespace-pre-line" dir="rtl">
                               {text}
                             </p>
                           </div>
@@ -416,7 +416,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
               {/* التذييل */}
               <div className="px-3 py-2.5 border-t border-slate-200/60 bg-white shrink-0">
                 <p className="text-[9px] text-center font-bold text-slate-400 leading-relaxed">
-                  كل الأسماء والأسعار والتواريخ من منيو ومبيعات مطعمكم الفعلية ✨
+                  كل الأسماء والأسعار والتواريخ من منيو ومبيعات مطعمكم الفعلية
                 </p>
               </div>
             </motion.div>

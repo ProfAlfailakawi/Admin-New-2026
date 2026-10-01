@@ -1380,7 +1380,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
       {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
       {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
       {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {(Number(sup.debt) || 0).toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
-      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span>تأثير الربح: {tone}</span></div>})}</div></section>}
+      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
       {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
@@ -1829,6 +1829,12 @@ const MainApp: React.FC = () => {
   const [commandBarOpen, setCommandBarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  // Visual only: floating helpers step aside while a drawer or the command bar is open.
+  useEffect(() => {
+    if (notifOpen || commandBarOpen) document.body.setAttribute('data-overlay-open', '1');
+    else document.body.removeAttribute('data-overlay-open');
+    return () => document.body.removeAttribute('data-overlay-open');
+  }, [notifOpen, commandBarOpen]);
   const notifRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -4979,7 +4985,7 @@ const MainApp: React.FC = () => {
             onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
             data-floating="secondary"
             style={{ zIndex: LAYER.assist }}
-            className="fixed right-2.5 bottom-24 sm:right-6 sm:bottom-12 h-20 w-8 sm:h-14 sm:w-14 rounded-full bg-white/72 sm:bg-white/90 text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.14)] sm:shadow-[0_14px_40px_rgba(15,23,42,0.16)] border border-white/70 backdrop-blur-xl flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(15,23,42,0.22)] active:scale-95 group overflow-hidden sm:overflow-visible"
+            className="fixed right-2.5 bottom-24 sm:right-6 sm:bottom-12 h-10 w-10 sm:h-14 sm:w-14 rounded-full bg-white/80 sm:bg-white/90 text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.14)] sm:shadow-[0_14px_40px_rgba(15,23,42,0.16)] border border-white/70 backdrop-blur-xl flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-[0_18px_48px_rgba(15,23,42,0.22)] active:scale-95 group overflow-hidden sm:overflow-visible"
             title={`الرجوع للأعلى - تم تصفح ${Math.round(scrollProgress)}٪`}
             aria-label={`الرجوع للأعلى - تم تصفح ${Math.round(scrollProgress)}٪`}
           >
@@ -5024,7 +5030,7 @@ const MainApp: React.FC = () => {
             </svg>
             <span className="hidden sm:block absolute inset-2 rounded-full bg-slate-50/80 shadow-inner" aria-hidden="true" />
             <span className="sm:hidden absolute inset-[7px] rounded-full border border-white/45" aria-hidden="true" />
-            <ArrowUp className="relative z-10 transition-transform group-hover:-translate-y-0.5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.65)]" size={18} strokeWidth={2.8} />
+            <ArrowUp className="relative z-10 transition-transform group-hover:-translate-y-0.5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.65)]" size={18} strokeWidth={1.6} />
           </motion.button>
         )}
       </AnimatePresence>
@@ -5058,6 +5064,7 @@ const MainApp: React.FC = () => {
             exit={{ opacity: 0, y: 100, scale: 0.5 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className={`fixed transition-all duration-700 ease-in-out left-1/2 -translate-x-1/2 z-[100] md:hidden bottom-[3.42rem]`}
+            data-floating="secondary"
           >
             <button
               onClick={() => setCommandBarOpen(true)}

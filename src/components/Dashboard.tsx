@@ -6153,7 +6153,7 @@ const [isPending, startTransition] = useTransition();
                              />
                            </>
                          )}
-                         <span className="relative z-20 block">{opt.label}</span>
+                         <span className="relative z-20 block leading-none">{opt.label}</span>
                        </button>
                      );
                    })}
