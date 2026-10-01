@@ -48,6 +48,45 @@ steps:
       - '--platform=managed'
       - '--quiet'
 
+  # ---------------------------------------------------------------------------
+  # Keep the time-based push alerts alive ("not paid after 10 / 30 minutes").
+  #
+  # Why: Cloud Run gives the API CPU only while a request is in flight and scales
+  # it to zero when idle, so the server's own alerts timer stops whenever nobody
+  # has the console open. This Cloud Scheduler job calls /api/push/alerts-tick
+  # every 5 minutes; each call runs one alerts pass inside the request. Creating
+  # it here means nobody has to set it up by hand in the Google Cloud console.
+  # Cloud Scheduler's free tier covers 3 jobs per billing account.
+  #
+  # Last step and never fatal: if the build account lacks permission, hosting and
+  # the API have already shipped and only this job is missing. Check it at
+  # /api/push/alerts-status ("lastTickSource": "cloud-scheduler").
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        JOB=alturath-alerts-tick
+        URI=https://admin.alturathkw.shop/api/push/alerts-tick
+        gcloud services enable cloudscheduler.googleapis.com --quiet || echo "WARN: could not enable the Cloud Scheduler API"
+        for LOC in europe-west3 europe-west1; do
+          if gcloud scheduler jobs describe "$$JOB" --location="$$LOC" >/dev/null 2>&1; then
+            gcloud scheduler jobs update http "$$JOB" --location="$$LOC" --schedule='*/5 * * * *' --uri="$$URI" --http-method=GET --attempt-deadline=120s --quiet || echo "WARN: could not update $$JOB"
+            gcloud scheduler jobs resume "$$JOB" --location="$$LOC" --quiet >/dev/null 2>&1 || true
+            echo "Cloud Scheduler job $$JOB ready in $$LOC"
+            exit 0
+          fi
+        done
+        for LOC in europe-west3 europe-west1; do
+          if gcloud scheduler jobs create http "$$JOB" --location="$$LOC" --schedule='*/5 * * * *' --uri="$$URI" --http-method=GET --attempt-deadline=120s --quiet; then
+            echo "Cloud Scheduler job $$JOB created in $$LOC"
+            exit 0
+          fi
+        done
+        echo "WARN: could not create Cloud Scheduler job $$JOB; the GitHub workflow alerts-tick.yml remains the fallback."
+        exit 0
+
 timeout: '1800s'
 
 availableSecrets:
