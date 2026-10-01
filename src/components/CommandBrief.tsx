@@ -3,7 +3,7 @@ import { AppState } from '../types';
 import { getKitchenNowDecision, getKuwaitiSeasonalMove } from '../lib/ai-engine';
 import { getProductQualityReport } from '../lib/command-quality';
 import { cn } from '../lib/utils';
-import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles, Gauge } from 'lucide-react';
+import { AlertCircle, Target, Users, TrendingUp, Zap, ShieldAlert, ChevronDown, ChevronUp, Sparkles, Gauge, Coffee, Sun, Utensils } from 'lucide-react';
 
 interface Props {
   data: AppState;
@@ -15,12 +15,12 @@ interface Props {
 export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode = false }: Props) {
   const hour = new Date().getHours();
   const greeting = hour >= 17 && hour < 22
-    ? { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
+    ? { Icon: Coffee, title: 'تحية مسائية هادئة', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
     : hour >= 5 && hour < 12
-      ? { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
+      ? { Icon: Sun, title: 'صباح الخير، يوم جديد وفرص جديدة', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
       : hour >= 12 && hour < 17
-        ? { title: 'مرحباً، وقت الغداء والتركيز! 🍽️', sub: 'تابع الحركة، الطلبات، والفرص من مركز القيادة.' }
-        : { title: 'نظرة هادئة على الأرقام ☕', sub: 'هدوء الليل أفضل وقت لمراجعة الأداء والتجهيز للغد.' };
+        ? { Icon: Utensils, title: 'مرحباً، وقت الغداء والتركيز!', sub: 'تابع الحركة، الطلبات، والفرص من مركز القيادة.' }
+        : { Icon: Coffee, title: 'نظرة هادئة على الأرقام', sub: 'هدوء الليل أفضل وقت لمراجعة الأداء والتجهيز للغد.' };
   const [isExpanded, setIsExpanded] = useState(false);
   const nowDecision = useMemo(() => getKitchenNowDecision(data, 'dashboard'), [data]);
   const seasonalMove = useMemo(() => getKuwaitiSeasonalMove(data), [data]);
@@ -57,24 +57,24 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
         if (totalSales > 100) {
             lines.push({
                icon: <TrendingUp size={16} className="text-emerald-400" />,
-               text: `كفو! اليوم كسرنا حاجز المبيعات، عساها مداخيل العافية 🚀`
+               text: `كفو! اليوم كسرنا حاجز المبيعات، عساها مداخيل العافية`
             });
         } else if (totalSales > 0 && totalSales <= 100) {
             lines.push({
                icon: <TrendingUp size={16} className="text-blue-400" />,
-               text: `ماشيين صح، المبيعات زينة اليوم، بس نقدر نشد حيلنا أكثر! 💪`
+               text: `ماشيين صح، المبيعات زينة اليوم، بس نقدر نشد حيلنا أكثر!`
             });
         } else {
             lines.push({
                icon: <Zap size={16} className="text-amber-400" />,
-               text: `الوضع هادي شوي اليوم ☕.. تبيني أطلع لك قائمة بالعملاء اللي قاطعونا من شهرين وندز لهم رسالة كود خصم، ونحرّك السوق؟`
+               text: `الوضع هادي شوي اليوم.. تبيني أطلع لك قائمة بالعملاء اللي قاطعونا من شهرين وندز لهم رسالة كود خصم، ونحرّك السوق؟`
             });
         }
     } else {
         if (totalSales > 500) {
             lines.push({
                icon: <TrendingUp size={16} className="text-emerald-400" />,
-               text: `أرقام تبيض الوجه، الأداء قوي جداً 🏆 استمر على هالمستوى!`
+               text: `أرقام تبيض الوجه، الأداء قوي جداً، استمر على هالمستوى!`
             });
         }
     }
@@ -237,7 +237,8 @@ export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode
                  dateFilter === 'year' ? 'هذا العام' : 'كل الأوقات'}
               </span>
             </div>
-            <h2 className="text-base md:text-xl font-bold leading-snug text-slate-900 break-words">
+            <h2 className="flex items-center gap-2 text-base md:text-xl font-bold leading-snug text-slate-900 break-words">
+              <greeting.Icon size={18} className="shrink-0 text-slate-400" aria-hidden="true" />
               {greeting.title}
             </h2>
             <p className="text-xs md:text-sm font-medium leading-7 text-slate-500 break-words">

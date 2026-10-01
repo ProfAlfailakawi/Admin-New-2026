@@ -456,7 +456,7 @@ body::before {
   .heritage-command-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
   .heritage-command-tile { min-height: 90px; }
 }
-.admin-heritage-shell .lucide { width:1.12rem; height:1.12rem; stroke-width:2.35; }
+.admin-heritage-shell .lucide { width:1.12rem; height:1.12rem; stroke-width:1.6; }
 .admin-heritage-shell button { border-radius: 18px; }
 .admin-heritage-shell input,
 .admin-heritage-shell select,
@@ -622,7 +622,7 @@ body::before {
 .heritage-command-tile svg {
   width: 18px;
   height: 18px;
-  stroke-width: 2.4;
+  stroke-width: 1.6;
 }
 
 /* V18 — إعادة الترحيب داخل مركز القيادة بالحجم الكامل بدون تكرار */
@@ -6488,3 +6488,22 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
   #geo-heatmap-section .geo-heatmap-component > div > div:first-child{flex-direction:column!important;align-items:stretch!important}
   #geo-heatmap-section .geo-heatmap-component > div > div:first-child > .grid{min-width:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+/* calm tone chips for coupon profit impact: neutral surface, thin tone edge */
+.coupon-ticket span{background:#fff;border:1px solid #a7f3d0;color:#047857}
+.coupon-ticket span[data-tone="mid"]{border-color:#fcd34d;color:#b45309}
+.coupon-ticket span[data-tone="high"]{border-color:#fda4af;color:#be123c}
+
+/* floating helpers step aside while a drawer / command bar is open */
+body[data-overlay-open='1'] [data-floating='secondary'] { opacity: 0 !important; pointer-events: none !important; }
+@media (max-width: 767px) {
+  /* scroll-to-top: a calm 40px circle that clears the bottom content */
+  [data-floating='secondary'][aria-label^='الرجوع للأعلى'] { right: 0.75rem; bottom: 6.5rem; }
+}
+
+/* command bar: calm active row (neutral surface + thin edge, no navy bar) */
+.command-row:hover,.command-row.is-active{background:#f8fafc!important;color:#0f172a!important;border-color:#e2e8f0!important;transform:none!important;box-shadow:none!important;}
+.command-row:hover .font-black,.command-row.is-active .font-black,.command-row:hover .font-bold,.command-row.is-active .font-bold{color:#0f172a!important;}
+.command-row:hover .opacity-60,.command-row.is-active .opacity-60{color:#64748b!important;opacity:1!important;}
+.command-row:hover .command-row-icon,.command-row.is-active .command-row-icon{background:#fff!important;color:#b45309!important;border:1px solid #e2e8f0;}
+.command-row:hover svg:not(.command-row-icon svg),.command-row.is-active svg:not(.command-row-icon svg){color:#64748b!important;}

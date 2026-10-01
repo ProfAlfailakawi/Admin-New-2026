@@ -31,6 +31,7 @@ import {
   MapPin,
   Clock,
   Check,
+  ClipboardList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { playTing } from "../lib/sounds";
@@ -1240,7 +1241,7 @@ Alturath.kw`;
         )} dir="rtl">
           {isMobile && (
             <div className="text-sm font-black text-slate-700 text-right mb-4 flex items-center justify-between border-b pb-3 border-slate-100">
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-full font-black">📋</span>
+              <span className="text-xs text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full font-black"><ClipboardList size={14} /></span>
               <span>تصفح واختيار قائمة الأصناف كاملة</span>
             </div>
           )}

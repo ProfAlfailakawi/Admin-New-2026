@@ -56,6 +56,7 @@ import {
   Puzzle,
   ShoppingBag,
   Truck,
+  MapPin,
 } from "lucide-react";
 import { AppState, Invoice } from "../types";
 import { DEFAULT_GLOBAL_LOGO } from "../constants";
@@ -1421,8 +1422,8 @@ Alturath.kw`;
                                    {(() => {
                                      const addrStr = getInvoiceAddress(inv, customer);
                                      return addrStr ? (
-                                       <div className="text-[9px] text-slate-400 font-light mt-1 max-w-[260px] leading-relaxed break-words border-t border-slate-100/50 pt-1" dir="rtl">
-                                         📍 {addrStr}
+                                       <div className="text-[9px] text-slate-400 font-light mt-1 max-w-[260px] leading-relaxed break-words border-t border-slate-100/50 pt-1 flex items-start gap-1" dir="rtl">
+                                         <MapPin size={10} className="shrink-0 mt-0.5" /><span>{addrStr}</span>
                                        </div>
                                      ) : null;
                                    })()}

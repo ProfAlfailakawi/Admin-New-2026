@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, ExternalLink, MessageCircle, X, Plus, Trash2, Edit2, Check, Copy, MapPin, Radio, Navigation, BellRing, Compass, Smartphone, Laptop, Sparkles, ChevronDown, ChevronUp, Download, AlertTriangle, Activity, Filter } from 'lucide-react';
+import { Users, Trophy, Crown, Medal, Swords, Target, Settings, Flame, Star, ExternalLink, MessageCircle, X, Plus, Trash2, Edit2, Check, Copy, MapPin, Radio, Navigation, BellRing, Compass, Smartphone, Laptop, Sparkles, ChevronDown, ChevronUp, Download, AlertTriangle, Activity, Filter, Gem, Rocket, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { DEFAULT_SQUADS } from '../data';
@@ -577,11 +577,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       case 'Crown': return <Crown />;
       case 'Trophy': return <Trophy />;
       case 'Target': return <Target />;
-      case 'Flame': return <span className="text-xl">🔥</span>;
-      case 'Swords': return <span className="text-xl">⚔️</span>;
-      case 'Diamond': return <span className="text-xl">💎</span>;
-      case 'Rocket': return <span className="text-xl">🚀</span>;
-      case 'Shield': return <span className="text-xl">🛡️</span>;
+      case 'Flame': return <Flame />;
+      case 'Swords': return <Swords />;
+      case 'Diamond': return <Gem />;
+      case 'Rocket': return <Rocket />;
+      case 'Shield': return <Shield />;
       default: return <Target />;
     }
   };
@@ -1205,7 +1205,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                </div>
                <div>
                   <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-                     Diwaniya Golden Arena | حلبة الدواوين الذهبية 🏆
+                     Diwaniya Golden Arena | حلبة الدواوين الذهبية
                   </h2>
                   <p className="text-amber-100/70 font-medium mt-1">حوّل ولاء الأفراد إلى ولاء جماعي وتنافس شرس بين الدواوين!</p>
                </div>
@@ -1291,10 +1291,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
       </div>
 
       <div className="w-full max-w-full flex gap-2 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-thin snap-x select-none" dir="rtl">
-        <button onClick={() => setActiveTab('leaderboard')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>لوحة الصدارة 🔥</button>
-        <button onClick={() => setActiveTab('squads')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">إدارة </span>الدواوين 👥</button>
-        <button onClick={() => setActiveTab('radar')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">رادار الانضمام الجغرافي</span><span className="inline sm:hidden">رادار الانضمام</span> 📍</button>
-        <button onClick={() => setActiveTab('settings')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">إعدادات </span>التحديات ⚙️</button>
+        <button onClick={() => setActiveTab('leaderboard')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'leaderboard' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><Trophy size={14} className="inline-block ms-1.5 -mt-0.5" />لوحة الصدارة</button>
+        <button onClick={() => setActiveTab('squads')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'squads' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">إدارة </span>الدواوين<Users size={14} className="inline-block ms-1.5 -mt-0.5" /></button>
+        <button onClick={() => setActiveTab('radar')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'radar' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">رادار الانضمام الجغرافي</span><span className="inline sm:hidden">رادار الانضمام</span><MapPin size={14} className="inline-block ms-1.5 -mt-0.5" /></button>
+        <button onClick={() => setActiveTab('settings')} className={`shrink-0 snap-start px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${activeTab === 'settings' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}><span className="hidden sm:inline">إعدادات </span>التحديات<Settings size={14} className="inline-block ms-1.5 -mt-0.5" /></button>
       </div>
 
       <div className="bg-white border border-slate-200/70 rounded-3xl p-4 shadow-sm overflow-hidden">
@@ -1376,7 +1376,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         </div>
                       </div>
                       <div className="hidden sm:flex flex-col items-center bg-slate-50 p-2 border border-slate-100 rounded-xl min-w-[120px]">
-                        <span className="text-[10px] text-slate-400 font-bold mb-1">ملك الديوانية 👑</span>
+                        <span className="text-[10px] text-slate-400 font-bold mb-1 inline-flex items-center gap-1"><Crown size={11} />ملك الديوانية</span>
                         <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">{squad.king}</span>
                       </div>
                     </div>
@@ -1646,7 +1646,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     <thead className="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-100">
                       <tr>
                         <th className="p-4 pr-6">اسم الديوانية</th>
-                        <th className="p-4">المؤسس الرئيسي 👑</th>
+                        <th className="p-4"><span className="inline-flex items-center gap-1.5"><Crown size={12} />المؤسس الرئيسي</span></th>
                         <th className="p-4">المستوى</th>
                         <th className="p-4 text-center">النقاط الإجمالية</th>
                         <th className="p-4 text-center">الأعضاء</th>
@@ -1723,7 +1723,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                     <>
                                       <span className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
                                         {founderName}
-                                        <span className="text-[9px] font-bold tracking-wide text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-md">المؤسس الرئيسي 👑</span>
+                                        <span className="text-[9px] font-bold tracking-wide text-amber-800 bg-white border border-amber-200 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1"><Crown size={10} />المؤسس الرئيسي</span>
                                       </span>
                                     </>
                                   )}
@@ -1740,7 +1740,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                 <div className="flex items-center gap-2">
                                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold shrink-0 text-slate-700">{(s.king || '?').charAt(0)}</div>
                                   <div className="flex flex-col">
-                                    <span className="font-bold text-xs text-slate-700">{s.king || 'لا يوجد'} 👑</span>
+                                    <span className="font-bold text-xs text-slate-700 inline-flex items-center gap-1">{s.king || 'لا يوجد'}<Crown size={11} className="text-amber-500" /></span>
                                     <span className="text-[10px] text-slate-400">{s.kingOrders || 0} طلبات</span>
                                   </div>
                                 </div>
