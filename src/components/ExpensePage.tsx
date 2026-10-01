@@ -123,6 +123,8 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  setExpenseToDelete(null);
  };
 
+ const maxExpenseAmount = Math.max(1, ...(filteredExpenses || []).map(e => Math.abs(Number(e.amount) || 0)));
+
  return (
  <div className="space-y-6">
  <div className="grid grid-cols-2 gap-2 md:gap-3 md:p-3 mb-2 md:mb-0 text-right">
@@ -162,7 +164,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <table className="mobile-card-table w-full text-right min-w-[800px]" dir="rtl">
  <thead>
  <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
- <th className="p-3 md:p-3">التاريخ</th>
+ <th className="p-3 md:p-3"><span className="inline-flex items-center gap-1.5"><Calendar size={12} className="text-slate-400" />التاريخ</span></th>
  <th className="p-3 md:p-3">بيان المصروف</th>
  <th className="p-3 md:p-3">المبلغ الصافي</th>
  <th className="p-3 md:p-3">طريقة الدفع</th>
@@ -184,19 +186,20 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
 )}
  ><td className="p-3 md:p-3">
  <div className="flex items-center gap-2 font-bold text-slate-600">
- <Calendar size={14} className="text-slate-500" />
  {formatKuwaitiDateOnly(expense.date)}
  </div>
  </td>
  <td className="p-3 md:p-3">
  <div className="font-bold text-slate-800 text-lg">{expense.description}</div>
  </td>
- <td className="p-3 md:p-3 font-bold text-red-500 text-lg">
+ <td className="p-3 md:p-3 font-bold text-slate-900 text-lg tabular-nums whitespace-nowrap">
  {Number(Math.abs(expense.amount || 0)).toFixed(3)} د.ك
+ <div className="mt-1 h-1 w-28 max-w-full rounded-full bg-slate-100 overflow-hidden" aria-hidden="true">
+ <div className="h-full rounded-full bg-slate-400" style={{ width: `${Math.max(3, Math.min(100, (Math.abs(Number(expense.amount) || 0) / maxExpenseAmount) * 100))}%` }} />
+ </div>
  </td>
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-tighter">
- <CreditCard size={12} className="text-slate-500" />
  {expense.paymentMethod === 'BankTransfer' ? 'حوالة' : 
  expense.paymentMethod === 'KNet' ? 'KNET' :
  expense.paymentMethod === 'Cash' ? 'كاش' : expense.paymentMethod}

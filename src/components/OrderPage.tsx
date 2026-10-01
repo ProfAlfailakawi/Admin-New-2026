@@ -10,6 +10,7 @@ import {
   Clock,
   XCircle,
   AlertCircle,
+  Info,
   ChevronRight,
   ExternalLink,
   MessageSquare,
@@ -1643,17 +1644,17 @@ Alturath.kw`;
                         if (!delDateFormatted && !delTimeFormatted) return null;
 
                         return (
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-amber-900 bg-amber-500/15 border border-amber-400/40 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
-                            <Clock size={12} className="text-amber-600 shrink-0" />
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
+                            <Clock size={12} className="text-slate-500 shrink-0" />
                             <span className="font-bold">التوصيل:</span>
                             {delDateFormatted && (
                               <div className="flex items-center gap-1">
                                 {weekday && <span className="text-slate-700 font-light text-[10px]">{weekday}</span>}
-                                <span dir="ltr" className="text-slate-900 font-black bg-white/60 px-1 py-0.5 rounded text-[10px]">{delDateFormatted}</span>
+                                <span dir="ltr" className="text-slate-900 font-black px-1 py-0.5 text-[10px]">{delDateFormatted}</span>
                               </div>
                             )}
                             {delTimeFormatted && (
-                              <span dir="ltr" className="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded font-black shrink-0 whitespace-nowrap">
+                              <span dir="ltr" className="bg-slate-100 text-slate-800 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 whitespace-nowrap">
                                 {delTimeFormatted}
                               </span>
                             )}
@@ -1676,18 +1677,21 @@ Alturath.kw`;
                               <span className="truncate min-w-0">
                                 {p?.name || "منتج"}
                               </span>
-                              <span className="text-indigo-600 font-bold shrink-0">
-                                x{it.quantity}
+                              <span className="flex items-center gap-1.5 shrink-0">
+                                {prepInstructions && (
+                                  <span
+                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500"
+                                    title={String(prepInstructions)}
+                                    aria-label={String(prepInstructions)}
+                                  >
+                                    <Info size={10} />
+                                  </span>
+                                )}
+                                <span className="text-indigo-600 font-bold">
+                                  x{it.quantity}
+                                </span>
                               </span>
                             </div>
-                            {prepInstructions && (
-                              <div className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100 flex items-center gap-1 w-fit">
-                                <AlertCircle size={8} className="shrink-0" />{" "}
-                                <span className="truncate max-w-[150px]">
-                                  {prepInstructions}
-                                </span>
-                              </div>
-                            )}
                           </div>
                         );
                       })}
@@ -1725,7 +1729,7 @@ Alturath.kw`;
                                               "منتج غير معروف"}
                                           </div>
                                           {prepInstructions && (
-                                            <div className="mt-1 text-[10px] text-amber-700 flex items-center gap-1 min-w-0">
+                                            <div className="mt-1 text-[10px] text-slate-500 flex items-center gap-1 min-w-0">
                                               <AlertCircle
                                                 size={9}
                                                 className="shrink-0"
@@ -2008,7 +2012,7 @@ Alturath.kw`;
                                               </span>
                                             )}
                                           {prepInstructions && (
-                                            <span className="text-[10px] md:text-[11px] bg-amber-100/90 border border-amber-200 text-amber-800 font-bold px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5 shadow-sm">
+                                            <span className="text-[10px] md:text-[11px] bg-white border border-slate-200 text-slate-600 font-bold px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5">
                                               <AlertCircle
                                                 size={12}
                                                 className="text-amber-600"
