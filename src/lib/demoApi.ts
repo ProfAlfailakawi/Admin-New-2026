@@ -4,6 +4,7 @@
  * Everything here is fictitious.
  */
 import { GET_DEMO_DATA } from '../data';
+import { demoAiResponse } from './demoAi';
 const NOW = () => Date.now();
 const ago = (minutes: number) => new Date(NOW() - minutes * 60000).toISOString();
 
@@ -56,8 +57,38 @@ const BOT_TEXTS = [
   { key: 'rating_request', label: 'طلب التقييم', hint: 'بعد التسليم', defaultText: 'قيّم تجربتك من ١ إلى ٣', value: 'نرجو تقييم تجربتك: ٣ ممتاز، ٢ جيد، ١ يحتاج تحسين ⭐' },
 ];
 
-export function demoApiResponse(pathname: string, search: string, method: string): unknown | null {
+export function demoApiResponse(pathname: string, search: string, method: string, body?: any): unknown | null {
   const m = method.toUpperCase();
+  const ai = demoAiResponse(pathname, m, body && typeof body === 'object' ? body : {});
+  if (ai) return ai;
+
+  // WhatsApp inbox actions: kept in memory only, so the inbox feels alive during a presentation.
+  const actMatch = pathname.match(/^\/api\/whatsapp\/conversations\/([^/]+)\/(reply|mode|close|read|request-rating)$/);
+  if (actMatch && m === 'POST') {
+    const t = threads().find(x => x.phone === decodeURIComponent(actMatch[1]));
+    if (!t) return { success: true, demo: true };
+    const act = actMatch[2];
+    if (act === 'reply') {
+      const text = String(body?.text || '').trim();
+      if (text) {
+        t.msgs.push(['out', text, 0]);
+        t.unread = 0;
+        if (t.status === 'needs_support') t.status = 'open';
+        // A short canned customer answer a moment later, so the thread visibly moves.
+        const canned = ['تمام شكراً لكم 🌹', 'جزاكم الله خير', 'ممتاز، بانتظار طلبي'];
+        setTimeout(() => { t.msgs.push(['in', canned[t.msgs.length % canned.length], 0]); t.unread += 1; }, 2500);
+      }
+    } else if (act === 'mode') {
+      t.mode = body?.mode === 'human' ? 'human' : 'bot';
+    } else if (act === 'close') {
+      t.status = 'closed';
+    } else if (act === 'read') {
+      t.unread = 0;
+    } else if (act === 'request-rating') {
+      t.msgs.push(['out', 'نرجو تقييم تجربتك: ٣ ممتاز، ٢ جيد، ١ يحتاج تحسين ⭐', 0]);
+    }
+    return { success: true, demo: true };
+  }
   if (pathname === '/api/whatsapp/conversations' && m === 'GET') {
     return { success: true, conversations: threads().map((t, i) => {
       const last = t.msgs[t.msgs.length - 1];
@@ -77,6 +108,15 @@ export function demoApiResponse(pathname: string, search: string, method: string
         { id: 'q2', title: 'وقت التوصيل', text: 'التوصيل خلال ٤٥-٦٠ دقيقة من تأكيد الطلب.' },
         { id: 'q3', title: 'اعتذار تأخير', text: 'نعتذر عن التأخير، طلبك في الطريق.' },
       ] };
+  }
+  if (pathname === '/api/whatsapp/backup' && m === 'GET') {
+    const convs = threads();
+    const messages = convs.flatMap(t => t.msgs.map((x, i) => ({ id: `${t.phone}-${i}`, phone: t.phone, direction: x[0] === 'in' ? 'inbound' : 'outbound', text: x[1], createdAt: ago(x[2]) })));
+    return { success: true, demo: true, settings: { note: 'نسخة تجريبية - بيانات وهمية' },
+      counts: { rules: RULES.length, ruleTemplates: 0, botTexts: BOT_TEXTS.length, ratings: 10, conversations: convs.length, messages: messages.length, systemQuickReplies: 3 },
+      rules: RULES, ruleTemplates: [], botTexts: BOT_TEXTS, ratings: [],
+      conversations: convs.map(t => ({ phone: t.phone, customerName: t.name, mode: t.mode, status: t.status })),
+      messages, systemQuickReplies: [{ id: 'q1', title: 'شكر', text: 'الشكر لك، تأمر على شي ثاني؟' }] };
   }
   if (pathname === '/api/whatsapp/auto-replies' && m === 'GET') return { success: true, rules: RULES };
   if (pathname === '/api/whatsapp/bot-texts' && m === 'GET') return { success: true, texts: BOT_TEXTS };

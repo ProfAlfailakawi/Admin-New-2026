@@ -7,6 +7,7 @@
  *   orders -> invoices, transfers -> suppliers, testimonials -> invoices.
  * - Nothing here touches Firebase or any server; it only builds an in-memory AppState.
  */
+import { demoReelArchive } from './lib/demoAi';
 import type {
   AppState, Customer, Expense, Invoice, InvoiceItem, Order, PaymentMethod, Product,
   PromoCode, Supplier, SupplierTransfer, Testimonial, Notification, Squad, Zone,
@@ -234,7 +235,7 @@ export function buildDemoState(base: {
       gatewayFee,
       paymentMethod: method,
       date: date.toISOString(),
-      deliveryDate: date.toISOString(),
+      deliveryDate: date.toISOString().slice(0, 10),
       deliveryTime: `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`,
       totalAmount,
       totalCost: r3(totalCost),
@@ -569,6 +570,7 @@ export function buildDemoState(base: {
 
 /** Smart-studio archive samples (demo only). Pictures are self-contained SVGs. */
 export function demoStudioArchive(storageKey: string): any[] {
+  if (storageKey === 'smart_studio_reel_history') return demoReelArchive();
   if (storageKey !== 'smart_studio_history') return [];
   const rows: Array<[string, number, string, string]> = [
     ['وليمة الخميس العائلية', 22, '🍖', 'وليمة غنم نعيمي بنكهة الديرة - اطلبها قبل ٢٤ ساعة 🌿'],
