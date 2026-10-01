@@ -125,6 +125,14 @@ function shouldRenotifyPush(alertType) {
   );
 }
 
+
+function normalizeAssetUrl(url, fallback = "") {
+  const value = String(url || "").trim();
+  if (!value) return fallback;
+  if (value.startsWith("http")) return value;
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
 
@@ -177,6 +185,19 @@ self.addEventListener("push", (event) => {
     paymentNotificationTag(alertType, url, eventId);
   const dedupeKey = pushDedupeKey(notificationTag, alertType, eventId);
 
+  const image = normalizeAssetUrl(
+    payload.notification?.image ||
+    payload.data?.image ||
+    payload.data?.imageUrl ||
+    payload.image ||
+    ""
+  );
+  const icon = normalizeAssetUrl(payload.notification?.icon || payload.data?.icon || "/ios-icon-192-v6.png", "/ios-icon-192-v6.png");
+  const badge = normalizeAssetUrl(payload.notification?.badge || payload.data?.badge || "/ios-icon-192-v6.png", "/ios-icon-192-v6.png");
+
+  // Set the in-memory lock synchronously before the async cache lookup. Multiple FCM
+  // registrations can deliver the same unpaid alert to one iPhone at the same instant;
+  // without this lock both push handlers used to observe an empty cache and both drew.
   if (PUSH_IN_FLIGHT_KEYS.has(dedupeKey)) {
     event.waitUntil(Promise.resolve());
     return;
@@ -188,20 +209,23 @@ self.addEventListener("push", (event) => {
       const alreadyShown = await wasPushAlreadyShown(dedupeKey);
       if (alreadyShown) return;
 
-      const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
-      oldNotifications.forEach((notification) => notification.close());
-
+      // showNotification replaces the matching tag itself. Listing/closing existing
+      // notifications first can reject and prevent delivery on some browsers.
       const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
 
-      await self.registration.showNotification(title, {
+      const notificationOptions = {
         body,
-        icon: "/ios-icon-192-v6.png",
-        badge: "/ios-icon-192-v6.png",
+        icon,
+        badge,
         tag: notificationTag,
         renotify: shouldRenotifyPush(alertType),
         requireInteraction: true,
-        data: notificationData,
-      });
+        data: { ...notificationData, image },
+      };
+
+      if (image) notificationOptions.image = image;
+
+      await self.registration.showNotification(title, notificationOptions);
 
       // Mark only after the operating system accepted the display. If display fails,
       // a later FCM retry must remain eligible instead of being suppressed for 48h.

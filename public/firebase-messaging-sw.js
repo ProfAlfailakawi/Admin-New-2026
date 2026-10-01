@@ -209,9 +209,8 @@ self.addEventListener("push", (event) => {
       const alreadyShown = await wasPushAlreadyShown(dedupeKey);
       if (alreadyShown) return;
 
-      const oldNotifications = await self.registration.getNotifications({ tag: notificationTag });
-      oldNotifications.forEach((notification) => notification.close());
-
+      // showNotification replaces the matching tag itself. Listing/closing existing
+      // notifications first can reject and prevent delivery on some browsers.
       const notificationData = { url, eventId, parentEventId: eventId, alertType, notificationTag };
 
       const notificationOptions = {

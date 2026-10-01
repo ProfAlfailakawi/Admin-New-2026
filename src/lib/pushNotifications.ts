@@ -12,6 +12,7 @@ export const FALLBACK_VAPID_KEY =
   "BGL4HY3Wt_Mlvf-aOyxUJA1TwffllGlkm19H5IVijVfxBzGUWWFrIkQVlIr5-FQ_xQd2JGxsdCuZpBcjABpv3Fw";
 
 let foregroundPushListenerStarted = false;
+const foregroundPushInFlight = new Set<string>();
 const PUSH_DEVICE_ID_STORAGE_KEY = "alturath_admin_push_device_id_v1";
 
 type PushRegistrationOptions = {
@@ -159,12 +160,20 @@ function startForegroundPushListener(messaging: Messaging) {
   foregroundPushListenerStarted = true;
 
   onMessage(messaging, (payload) => {
-    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    void displayForegroundPush(payload).catch((error) => console.warn("[Push] Foreground display failed:", error));
+  });
+}
 
-    const { title, body, url, eventId, alertType, notificationTag, image, icon, badge } = readPayloadText(payload);
-    // Different server workers may carry different eventIds for the same semantic
-    // payment alert. Deduplicate by order notification tag + payment stage instead.
-    const dedupeKey = `foreground_push_${foregroundPushDedupeKey(notificationTag, alertType, eventId)}`;
+async function displayForegroundPush(payload: any) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+  const { title, body, url, eventId, alertType, notificationTag, image, icon, badge } = readPayloadText(payload);
+  // Different server workers may carry different eventIds for the same semantic
+  // payment alert. Deduplicate by order notification tag + payment stage instead.
+  const dedupeKey = `foreground_push_${foregroundPushDedupeKey(notificationTag, alertType, eventId)}`;
+  if (foregroundPushInFlight.has(dedupeKey)) return;
+  foregroundPushInFlight.add(dedupeKey);
+  try {
     const lastShown = Number(sessionStorage.getItem(dedupeKey) || "0");
 
     const isPaymentAlert = String(alertType || "").toLowerCase().includes("payment") || String(alertType || "").toLowerCase().includes("invoice");
@@ -184,21 +193,16 @@ function startForegroundPushListener(messaging: Messaging) {
       (notificationOptions as any).image = image;
     }
 
-    const notification = new Notification(title, notificationOptions);
-    // Record receipt only after the browser accepted the notification. A constructor
-    // failure stays retryable and is never archived as a successful device delivery.
+    // Persistent notifications work on installed iOS/Android apps; the Notification
+    // constructor can throw there even when permission is granted. Click handling is
+    // owned by the same worker as background delivery.
+    const registration = await navigator.serviceWorker.ready;
+    await registration.showNotification(title, notificationOptions);
     sessionStorage.setItem(dedupeKey, String(Date.now()));
     void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "received");
-
-    notification.onclick = () => {
-      notification.close();
-      void sendForegroundPushReceiptAck({ eventId, notificationTag, alertType, url }, "clicked");
-      window.focus();
-      if (url && url !== "/") {
-        window.location.href = url;
-      }
-    };
-  });
+  } finally {
+    foregroundPushInFlight.delete(dedupeKey);
+  }
 }
 
 export async function startForegroundPushListenerIfAllowed() {
@@ -253,6 +257,7 @@ async function getFreshMessagingServiceWorkerRegistration(): Promise<ServiceWork
 
   const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
     scope: "/",
+    updateViaCache: "none",
   });
 
   try {
@@ -434,6 +439,13 @@ function rememberHealthyPushToken(token: string, silent = false) {
   if (silent) localStorage.setItem("push_last_silent_refresh", now);
 }
 
+let pushRegistrationQueue: Promise<unknown> = Promise.resolve();
+function serializePushRegistration<T>(operation: () => Promise<T>): Promise<T> {
+  const result = pushRegistrationQueue.then(operation, operation);
+  pushRegistrationQueue = result.catch(() => undefined);
+  return result;
+}
+
 export async function registerPushNotifications(options?: PushRegistrationOptions): Promise<{
   success: boolean;
   token?: string;
@@ -463,7 +475,7 @@ export async function registerPushNotifications(options?: PushRegistrationOption
     startForegroundPushListener(messaging);
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
-    const token = await getAndSaveHealthyMessagingToken(messaging, registration, options);
+    const token = await serializePushRegistration(() => getAndSaveHealthyMessagingToken(messaging, registration, options));
     rememberHealthyPushToken(token);
 
     return {
@@ -496,12 +508,12 @@ async function refreshAllowedPushRegistration(
     startForegroundPushListener(messaging);
     const registration = await getFreshMessagingServiceWorkerRegistration();
 
-    const token = await getAndSaveHealthyMessagingToken(
+    const token = await serializePushRegistration(() => getAndSaveHealthyMessagingToken(
       messaging,
       registration,
       options,
       forceRenew,
-    );
+    ));
     rememberHealthyPushToken(token, true);
 
     return { success: true, token };

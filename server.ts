@@ -8254,22 +8254,29 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
       const isProbablyPwa = !!standalone;
       const deviceType = isIPhone ? "iphone" : (isIOS ? "ios" : "other");
       
-      const { createHash } = await import("crypto");
-      const tokenHash = createHash("sha256").update(token).digest("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+      if (!db) {
+        return res.status(503).json({ success: false, error: "خدمة الإشعارات غير متاحة حالياً؛ حاول مرة أخرى" });
+      }
 
       if (db) {
         const tokenRef = db.collection("pushTokens").doc(token);
         const tokenDoc = await tokenRef.get();
 
-        const normalizedUserEmail = String(userEmail || "").trim().toLowerCase();
-        const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
-        const permissionDenied = String(notificationPermission || "").trim().toLowerCase() === "denied";
         const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
+        // A silent refresh may omit identity while Firebase auth is restoring. Keep
+        // the identity of this exact token instead of silently disabling the device.
+        const normalizedUserEmail = String(userEmail || existingTokenData.userEmail || existingTokenData.email || "").trim().toLowerCase();
+        const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
+        const effectivePermission = notificationPermission || existingTokenData.notificationPermission;
+        const permissionDenied = String(effectivePermission || "").trim().toLowerCase() === "denied";
+        const tokenRetired = Boolean(existingTokenData.invalidReason || existingTokenData.invalidatedAt || existingTokenData.replacedByTokenHash || existingTokenData.replacedAt);
 
         // Never revive a token that was already retired/replaced. Firebase can keep an
         // invalid token in its browser cache; this signal makes the client delete that
         // cached registration and mint a new token during the same refresh.
-        if (tokenDoc.exists && existingTokenData.active === false && recipientAuthorized && !permissionDenied) {
+        if (tokenDoc.exists && tokenRetired && recipientAuthorized && !permissionDenied) {
           await tokenRef.set(removeUndefinedDeep({
             lastRenewalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
             lastRenewalRequestedByUserId: userId || null,
@@ -8286,18 +8293,18 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         const data: any = {
           token,
           tokenHash,
-          deviceId: deviceId || null,
-          userId: userId || null,
-          userEmail: userEmail || null,
-          userName: userName || null,
-          userRole: userRole || null,
+          deviceId: deviceId || existingTokenData.deviceId || null,
+          userId: userId || existingTokenData.userId || null,
+          userEmail: normalizedUserEmail || null,
+          userName: userName || existingTokenData.userName || null,
+          userRole: userRole || existingTokenData.userRole || null,
           restaurantId: restaurantId || "kitchen_default",
           platform: platform || "",
           userAgent: ua,
           vendor: vendor || null,
           language: language || null,
           standalone,
-          notificationPermission,
+          notificationPermission: effectivePermission,
           serviceWorkerController,
           currentUrl,
           screen,
@@ -8317,6 +8324,16 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
         }
 
         await tokenRef.set(removeUndefinedDeep(data), { merge: true });
+
+        if (!data.active) {
+          return res.status(403).json({
+            success: false,
+            code: permissionDenied ? "permission-denied" : "recipient-not-approved",
+            error: permissionDenied
+              ? "المتصفح لا يسمح بالإشعارات؛ فعّلها من إعدادات الموقع"
+              : "لم يتم تفعيل الإشعارات: بريد الحساب غير موجود ضمن المستلمين المعتمدين",
+          });
+        }
 
         // A refreshed FCM registration for the same browser install supersedes the old
         // token. Retiring it here avoids both duplicates and the risk of later selecting

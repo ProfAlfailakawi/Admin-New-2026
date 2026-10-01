@@ -27,7 +27,8 @@ export function EnableNotificationsButton(props?: {
           restaurantId: props?.restaurantId || "default",
         }).then((result) => {
           if (!mounted) return;
-          if (result.success) setEnabled(true);
+          setEnabled(result.success);
+          if (!result.success && !result.skipped) setMessage(result.error || "تعذر تفعيل الإشعارات");
         });
       }
     });
