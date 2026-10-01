@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "npm run verify:pwa && vite build",
+    "build:server": "esbuild server.ts --bundle --platform=node --format=esm --packages=external --target=node20 --outfile=dist-server/server.mjs --log-level=warning",
     "start": "npx tsx server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
