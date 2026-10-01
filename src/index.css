@@ -6472,3 +6472,16 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
 
 /* Visual polish: readable minimum for micro-labels (8–9px → 10px) */
 .text-\[8px\], .text-\[9px\] { font-size: 10px !important; }
+
+/* Round 3 calm pass (additive, scoped to the admin main area) */
+/* Letter-spacing breaks Arabic joining: keep micro-labels unspaced and readable */
+.admin-app-main :is(.tracking-widest,.tracking-wider,.tracking-wide,[class*="tracking-[0."],[class*="tracking-[."]){letter-spacing:0!important}
+.admin-app-main .text-\[10px\]{font-size:11px!important;line-height:1.5}
+/* Heavy frosted blur and deep drop shadows -> light, quiet elevation */
+.admin-app-main .backdrop-blur-3xl,.admin-app-main .backdrop-blur-2xl{--tw-backdrop-blur:blur(12px)!important;backdrop-filter:blur(12px)!important}
+.admin-app-main :is(.shadow-2xl,[class*="shadow-[0_30px"],[class*="shadow-[0_40px"],[class*="shadow-[0_45px"],[class*="shadow-[0_50px"]){box-shadow:0 8px 24px -12px rgba(15,61,31,.18)!important}
+/* Geo radar in the narrow decisions sidebar: stack header, 2x2 stats (was 4 one-letter-wide columns) */
+@media (min-width:1280px){
+  #geo-heatmap-section .geo-heatmap-component > div > div:first-child{flex-direction:column!important;align-items:stretch!important}
+  #geo-heatmap-section .geo-heatmap-component > div > div:first-child > .grid{min-width:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
