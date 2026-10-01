@@ -3127,11 +3127,11 @@ const [isPending, startTransition] = useTransition();
                         <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5 md:gap-7">
                           <div className="max-w-4xl">
                             <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-5">
-                              <div className="bg-rose-500 p-3 md:p-4 rounded-2xl shadow-[0_0_50px_rgba(244,63,94,0.4)] animate-pulse">
+                              <div className="bg-rose-500 p-3 md:p-4 rounded-2xl shadow-sm">
                                 <BrainCircuit className="text-white w-8 h-8 lg:w-12 lg:h-12" />
                               </div>
                               <div>
-                                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tighter leading-none mb-2 md:mb-4">
+                                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight mb-2 md:mb-4">
                                   عقل التراث التشغيلي
                                 </h2>
                                 <div className="flex items-center gap-2">
