@@ -2,6 +2,8 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
+import { installDemoNetworkGuard } from './lib/demoMode';
+installDemoNetworkGuard();
 import App from './App.tsx';
 import './index.css';
 import './components/dna/dna.css';

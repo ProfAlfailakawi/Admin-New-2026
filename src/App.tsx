@@ -125,6 +125,7 @@ const InstallPrompt = React.lazy(() => import('./components/InstallPrompt'));
 const InstagramMagicWand = React.lazy(() => import('./components/InstagramMagicWand').then(m => ({ default: m.InstagramMagicWand })));
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
+import { IS_DEMO_MODE, exitDemoMode } from './lib/demoMode';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
@@ -305,7 +306,7 @@ function prewarmCloudBoot(): Promise<any> {
 if (typeof window !== 'undefined') {
   try {
     const mode = window.localStorage.getItem('appMode');
-    if (mode !== 'local') prewarmCloudBoot().catch(() => {});
+    if (mode !== 'local' && !IS_DEMO_MODE) prewarmCloudBoot().catch(() => {});
   } catch {}
 }
 
@@ -490,6 +491,14 @@ const getInitialPushDeepLink = () => {
 
 const hasInitialPushDeepLink = () => Boolean(getInitialPushDeepLink());
 const getInitialPageFromDeepLink = () => {
+  if (IS_DEMO_MODE) {
+    // Demo only: ?page=orders (etc.) opens a screen directly.
+    try {
+      const requested = new URLSearchParams(window.location.search).get('page');
+      const allowed = ['dashboard', 'dashboard-ai', 'reports', 'loyalty', 'coupons', 'smart-studio', 'growth-simulator', 'ai', 'diwaniya', 'profit-guard', 'products', 'expenses', 'suppliers', 'suppliers-audit', 'new-invoice', 'invoices-list', 'orders', 'customers', 'settings', 'whatsapp-support'];
+      if (requested && allowed.includes(requested)) return requested;
+    } catch {}
+  }
   const link = getInitialPushDeepLink();
   if (link?.page === 'whatsapp-support') return 'whatsapp-support';
   if (link?.search) return 'invoices-list';
@@ -1382,17 +1391,22 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
 
 const MainApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'partner' | null>(IS_DEMO_MODE ? 'admin' : null);
   // Authentication may persist, but company data never does. A live Firestore probe
   // must succeed before the application can be viewed or edited.
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(!IS_DEMO_MODE);
   const [dataLoading, setDataLoading] = useState(false);
   const [activePersistenceWrites, setActivePersistenceWrites] = useState(0);
   const [hasInstantCloudSnapshot, setHasInstantCloudSnapshot] = useState(false);
   const [deferredChromeReady, setDeferredChromeReady] = useState(false);
   const [triggerSyncReload, setTriggerSyncReload] = useState(0);
-  const [isOnline, setIsOnline] = useState(false); // means verified cloud, not merely Wi-Fi
-  const [cloudChecking, setCloudChecking] = useState(true);
+  // Demo mode is fully in-memory: the cloud gate is always considered open and never changes.
+  const [isOnlineState, setIsOnlineState] = useState(IS_DEMO_MODE); // means verified cloud, not merely Wi-Fi
+  const isOnline = IS_DEMO_MODE ? true : isOnlineState;
+  const setIsOnline = React.useCallback((value: boolean) => {
+    if (!IS_DEMO_MODE) setIsOnlineState(value);
+  }, []);
+  const [cloudChecking, setCloudChecking] = useState(!IS_DEMO_MODE);
   const [retryingOffline, setRetryingOffline] = useState(false);
   const cloudProbeSequenceRef = useRef(0);
   const cloudProbePromiseRef = useRef<Promise<boolean> | null>(null);
@@ -1405,6 +1419,7 @@ const MainApp: React.FC = () => {
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
 
   const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
+    if (IS_DEMO_MODE) return true;
     let request = cloudProbePromiseRef.current;
     if (!request) {
       const sequence = ++cloudProbeSequenceRef.current;
@@ -1543,6 +1558,7 @@ const MainApp: React.FC = () => {
   
   // Persist authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (IS_DEMO_MODE) return true;
     return localStorage.getItem('isAuthenticated') === 'true';
   });
 
@@ -1651,6 +1667,7 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     const warm = () => {
       if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
+      if (IS_DEMO_MODE) return;
       try { fetch('/api/warmup', { cache: 'no-store', keepalive: true }).catch(() => {}); } catch {}
     };
     warm();
@@ -1669,7 +1686,7 @@ const MainApp: React.FC = () => {
   }, [authLoading]);
 
   useEffect(() => {
-    if (!isAuthenticated || authLoading || dataLoading) return;
+    if (IS_DEMO_MODE || !isAuthenticated || authLoading || dataLoading) return;
     const key = `alturath_admin_onboarding_seen_${onboardingRole}`;
     try {
       if (!localStorage.getItem(key)) {
@@ -1945,11 +1962,11 @@ const MainApp: React.FC = () => {
     }
   }, [currentPage]);
   
-  const [data, setRawData] = useState<AppState>(INITIAL_DATA);
+  const [data, setRawData] = useState<AppState>(() => IS_DEMO_MODE ? GET_DEMO_DATA() : INITIAL_DATA);
   // Keep an immediate, synchronous pointer to the newest accepted state. Firestore shard
   // compression/writes are asynchronous and can outlive the render that started them; this
   // pointer plus the monotonic revision below lets every persistence path reject stale work.
-  const latestDataRef = useRef<AppState>(INITIAL_DATA);
+  const latestDataRef = useRef<AppState>(IS_DEMO_MODE ? data : INITIAL_DATA);
   const dataRevisionRef = useRef(0);
 
   const setData = React.useCallback((valueOrUpdater: AppState | ((prev: AppState) => AppState)) => {
@@ -2040,7 +2057,7 @@ const MainApp: React.FC = () => {
   useEffect(() => { dataRef.current = data; }, [data]);
 
   useEffect(() => {
-    if (!isAuthenticated || dataLoading || !isOnline) return;
+    if (IS_DEMO_MODE || !isAuthenticated || dataLoading || !isOnline) return;
     
     const checkPendingPayments = async () => {
       if (!isOnline) return;
@@ -2667,7 +2684,7 @@ const MainApp: React.FC = () => {
 // Removed the problematic JSON.stringify call for the defunct isSyncEnabled state.
 
   // Strictly prevent saving before we have loaded data
-  const hasLoadedDataRef = useRef(false);
+  const hasLoadedDataRef = useRef(IS_DEMO_MODE);
   const lastRemoteSnapshotRef = useRef<string | null>(null);
   const cloudRootExistsRef = useRef(false);
   const loadedCloudShardKeysRef = useRef<Set<string>>(new Set());
@@ -3055,6 +3072,7 @@ const MainApp: React.FC = () => {
 
   // Auth Listener - Optimized session management
   useEffect(() => {
+    if (IS_DEMO_MODE) return;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       const currentMode = 'cloud';
       localStorage.setItem('appMode', 'cloud');
@@ -3123,6 +3141,9 @@ const MainApp: React.FC = () => {
     let syncUnsubscribe: (() => void) | null = null;
     let ordersUnsubscribe: (() => void) | null = null;
     let invoicesUnsubscribe: (() => void) | null = null;
+
+    // Demo mode keeps its in-memory dataset and never starts any cloud listener.
+    if (IS_DEMO_MODE) return;
 
     const startDataSync = async () => {
       // Cloud-only: never hydrate company data from Local Storage.
@@ -3969,6 +3990,7 @@ const MainApp: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    if (IS_DEMO_MODE) { exitDemoMode(); return; }
     setHasInstantCloudSnapshot(false);
     sessionStorage.removeItem('hideSampleDataPrompt');
     await logout();
@@ -4821,8 +4843,8 @@ const MainApp: React.FC = () => {
               className={cn("flex items-center gap-1.5 sm:gap-2.5 pl-1 sm:pl-2 p-1 rounded-2xl transition-all max-w-[150px] xs:max-w-[200px] sm:max-w-[300px] shrink-0 border border-transparent cursor-pointer hover:bg-slate-100/50 hover:scale-105 active:scale-95")}
             >
               <div className="text-right hidden md:flex flex-col overflow-hidden leading-tight min-w-0">
-                <div className="text-[11px] sm:text-xs font-bold truncate text-slate-800">{user?.displayName || 'د. أحمد الفيلكاوي'}</div>
-                <div className="text-[9px] text-slate-500 truncate">{user?.email || 'volcanokw@gmail.com'}</div>
+                <div className="text-[11px] sm:text-xs font-bold truncate text-slate-800">{user?.displayName || (IS_DEMO_MODE ? 'مدير النظام (نسخة تجريبية)' : 'د. أحمد الفيلكاوي')}</div>
+                <div className="text-[9px] text-slate-500 truncate">{user?.email || (IS_DEMO_MODE ? 'demo@example.com' : 'volcanokw@gmail.com')}</div>
               </div>
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-250 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
@@ -5241,7 +5263,7 @@ const App: React.FC = () => {
      // Warm-up only: the endpoint now requires auth, but an anonymous hit still
      // triggers the server's boot-cache warm before it replies 401, so the
      // cold-start benefit is preserved without exposing data.
-     fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
+     if (!IS_DEMO_MODE) fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
      const timer = setTimeout(() => {
        setShowSplash(false);
      }, 900);

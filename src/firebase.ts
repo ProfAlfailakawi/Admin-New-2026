@@ -14,11 +14,13 @@ import {
   getDocFromServer,
   deleteDoc,
   setLogLevel,
-  memoryLocalCache
+  memoryLocalCache,
+  disableNetwork
 } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
 import firebaseConfig from '../firebase-applet-config.json';
+import { IS_DEMO_MODE } from './lib/demoMode';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS } from './constants';
 
 // Suppress Firestore Warnings in dev environment
@@ -42,6 +44,10 @@ console.log("Firebase App Initialized with project:", activeConfig.projectId);
 export const db = initializeFirestore(app, {
   localCache: memoryLocalCache()
 }, (firebaseConfig as any).firestoreDatabaseId);
+// Demo mode: Firestore must never reach the real backend.
+if (IS_DEMO_MODE) {
+  disableNetwork(db).catch(() => {});
+}
 console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firestoreDatabaseId);
 
 const googleProvider = new GoogleAuthProvider();
