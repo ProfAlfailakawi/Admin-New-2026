@@ -57,6 +57,7 @@ import {
   SupplierTransfer,
 } from "../types";
 import { GET_DEMO_DATA, GENERATE_PERFORMANCE_SIMULATION_DATA } from "../data";
+import { IS_DEMO_MODE } from "../lib/demoMode";
 import {
   cn,
   formatFullAddress,
@@ -2739,7 +2740,7 @@ const GeneralSettings: React.FC<Props> = ({
   // one consistent snapshot and omits credentials, sessions and raw provider payloads.
   const fetchWhatsAppBackup = async () => {
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = IS_DEMO_MODE ? "demo" : await auth.currentUser?.getIdToken();
       if (!token) throw new Error("سجّل دخولك ثم أعد التصدير");
       const res = await fetch("/api/whatsapp/backup", {
         headers: { Authorization: `Bearer ${token}` },

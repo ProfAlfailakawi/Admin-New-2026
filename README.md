@@ -39,6 +39,11 @@ This is the operational and admin panel for Alturath, built using React, Vite, T
 Open the app with `?demo=1` (for example `https://<host>/?demo=1`, or `?demo=1&page=orders` to jump to a screen) or build with `VITE_DEMO_MODE=true`.
 Demo mode skips sign-in, never touches Firebase or the API server (Firestore networking is disabled and `/api/*` calls are answered locally), and fills every screen from the in-memory dataset in `src/demoData.ts`. Use `?demo=0` to leave it.
 
+Demo notes:
+- `?page=orders` opens the admin "طلبات الموقع" (website/app orders) board directly; `?page=invoices-list` opens the invoice ledger (its second tab is "طلبات التطبيق").
+- Public pages work in demo: `/track?demo=1` (clickable sample order numbers), `/success?demo=1&invoice=ORD-8100` and `/failed?demo=1&invoice=ORD-8100` (show the result, then land on /track).
+- AI features (image studio, reels, assistant chat, CEO copilot, quick messages) answer with canned local Arabic responses and clearly labelled illustrative pictures/animated reels (`src/lib/demoAi.ts`); the WhatsApp inbox keeps replies in memory only.
+
 ## Testing
 
 The project uses vitest for unit and regression testing.

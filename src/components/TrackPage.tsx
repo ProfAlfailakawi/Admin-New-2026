@@ -4,6 +4,8 @@ import { cn, formatKuwaitiDate } from '../lib/utils';
 import { Toaster, toast } from 'sonner';
 import { db } from '../firebase';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, limit } from 'firebase/firestore';
+import { IS_DEMO_MODE } from '../lib/demoMode';
+import { GET_DEMO_DATA } from '../data';
 import { isPendingStatus, isFailedStatus, isPaidStatus, isCancelledStatus } from '../lib/status-utils';
 
 export default function TrackPage() {
@@ -99,6 +101,22 @@ export default function TrackPage() {
  setLoading(true);
  setHasSearched(true);
  setOrders([]);
+
+ if (IS_DEMO_MODE) {
+ // Demo: search the in-memory dataset only (no Firestore, no network).
+ const demo = GET_DEMO_DATA();
+ const pool: any[] = [...(demo.orders as any[]), ...(demo.invoices as any[])];
+ const needle = queryStr.toLowerCase();
+ const found = pool.filter((o: any) =>
+ String(o.id).toLowerCase() === needle || String(o.id).toLowerCase().endsWith(needle) || String(o.linkedInvoiceId || '').toLowerCase() === needle ||
+ (isFullPhoneSearch && phoneLooksSame(o.customerPhone, queryDigits))).slice(0, 20);
+ await new Promise(r => setTimeout(r, 350));
+ setOrders(found);
+ if (found.length === 0) toast.info('لم يتم العثور على طلبات مطابقة للرقم أو المعرف المدخل');
+ else toast.success(`تم العثور على ${found.length} طلب/طلبات`);
+ setLoading(false);
+ return;
+ }
 
  try {
  let userOrders: any[] = [];
@@ -233,6 +251,20 @@ export default function TrackPage() {
  <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">تتبع الطلب</h1>
  <p className="text-slate-500 text-center text-sm mb-8">اكتب رقم التلفون المسجل أو رقم الطلب عشان تتابع الحالة</p>
  
+ {IS_DEMO_MODE && (() => {
+ const d = GET_DEMO_DATA();
+ const samples = [d.orders.find((o: any) => o.paymentStatus === 'paid'), d.orders.find((o: any) => o.status === 'pending'), d.orders.find((o: any) => o.status === 'failed')].filter(Boolean) as any[];
+ return (
+ <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs font-bold text-amber-800" data-testid="track-demo-hint">
+ <div className="mb-2">نسخة تجريبية - جرّب أحد هذه الأرقام:</div>
+ <div className="flex flex-wrap gap-2">
+ {samples.map((o: any) => (
+ <button key={o.id} type="button" onClick={() => { setPhoneNumber(o.id); handleSearch(undefined, o.id); }} className="px-3 py-1 rounded-full bg-white border border-amber-300" dir="ltr">{o.id}</button>
+ ))}
+ </div>
+ </div>
+ );
+ })()}
  <form onSubmit={handleSearch} className="space-y-4">
  <div>
  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">رقم التلفون أو الفاتورة</label>
@@ -363,7 +395,7 @@ export default function TrackPage() {
  {order.address && (
  <div className="flex flex-col mt-1 pt-1 border-t border-slate-200/60">
  <span className="text-slate-500 mb-1">وصف العنوان:</span>
- <span className="text-slate-700">{order.address}</span>
+ <span className="text-slate-700">{typeof order.address === 'object' ? (order.fullAddress || [order.area, order.address?.block && `قطعة ${order.address.block}`, order.address?.street && `شارع ${order.address.street}`, order.address?.building && `منزل ${order.address.building}`].filter(Boolean).join('، ')) : order.address}</span>
  </div>
 )}
  </div>

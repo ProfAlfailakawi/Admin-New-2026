@@ -546,6 +546,12 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
         }, 120);
     };
 
+    if (IS_DEMO_MODE) {
+       // Demo: no gateway verification, show the result straight from the URL.
+       showMessageAndRedirect(isExplicitFail ? 'failed' : 'success', invoiceId || '');
+       return;
+    }
+
     if (isExplicitFail) {
        // Stop execution and bounce back immediately
        showMessageAndRedirect('failed', invoiceId || '');
@@ -1794,6 +1800,9 @@ const MainApp: React.FC = () => {
   // ORD + INV must both open ReportsPage invoices tab and search by full ID.
   // Old /track?tracked_order=... links are also supported.
   useEffect(() => {
+    // Demo only: public pages (/track, /success, ...) must stay on their own screen
+    // instead of being swallowed by the admin deep-link redirect.
+    if (IS_DEMO_MODE && /^\/(track|success|cancel|failed|error|invoice\/.*)\/?$/.test(window.location.pathname)) return;
     const saved = getInitialPushDeepLink();
     if (!saved) return;
 

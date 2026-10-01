@@ -56,7 +56,9 @@ export function installDemoNetworkGuard(): void {
       const url = new URL(raw, window.location.origin);
       if (url.origin === window.location.origin && url.pathname.startsWith('/api/')) {
         const method = String(init?.method || (typeof input !== 'string' ? input?.method : '') || 'GET');
-        const canned = demoApiResponse(url.pathname, url.search, method);
+        let parsedBody: any;
+        try { const raw = init?.body; if (typeof raw === 'string') parsedBody = JSON.parse(raw); } catch {}
+        const canned = demoApiResponse(url.pathname, url.search, method, parsedBody);
         if (canned) {
           return Promise.resolve(new Response(JSON.stringify(canned), { status: 200, headers: { 'Content-Type': 'application/json' } }));
         }
