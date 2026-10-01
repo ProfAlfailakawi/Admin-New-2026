@@ -1513,7 +1513,7 @@ Alturath.kw`;
                             setDeliveryTime(newVal);
                           }}
                           className={cn(
-                            "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                             (deliveryTime.toLowerCase().includes("am") || deliveryTime.includes("ص"))
                               ? "bg-amber-500 text-white font-black"
                               : "text-slate-500 hover:bg-slate-200"
@@ -1531,7 +1531,7 @@ Alturath.kw`;
                             setDeliveryTime(newVal);
                           }}
                           className={cn(
-                            "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                             (deliveryTime.toLowerCase().includes("pm") || deliveryTime.includes("م"))
                               ? "bg-amber-500 text-white font-black"
                               : "text-slate-500 hover:bg-slate-200"

@@ -2904,7 +2904,7 @@ Alturath.kw`;
                                         }
                                       }}
                                       className={cn(
-                                        "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                                         (orderDeliveryTime.toLowerCase().includes("am") || orderDeliveryTime.includes("ص"))
                                           ? "bg-amber-500 text-slate-950 font-black"
                                           : "text-slate-400 hover:bg-slate-800"
@@ -2925,7 +2925,7 @@ Alturath.kw`;
                                         }
                                       }}
                                       className={cn(
-                                        "px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
                                         (orderDeliveryTime.toLowerCase().includes("pm") || orderDeliveryTime.includes("م"))
                                           ? "bg-amber-500 text-slate-950 font-black"
                                           : "text-slate-400 hover:bg-slate-800"
