@@ -40,7 +40,7 @@ const threads = (): Thread[] => {
   return cachedThreads;
 };
 
-const RULES = [
+const RULES_SEED = [
   { id: 'r1', title: 'طلب المنيو', enabled: true, priority: 1, keywords: ['منيو', 'قائمة', 'menu'], matchMode: 'any', action: 'products', response: 'أهلاً بك في مطبخ التراث الكويتي 🌿 هذا منيونا:' },
   { id: 'r2', title: 'ساعات العمل', enabled: true, priority: 2, keywords: ['دوام', 'مواعيد', 'ساعات'], matchMode: 'any', action: 'reply', response: 'نعمل يومياً من ٩ صباحاً حتى ١١ مساءً.' },
   { id: 'r3', title: 'رسوم التوصيل', enabled: true, priority: 3, keywords: ['توصيل', 'رسوم'], matchMode: 'any', action: 'reply', response: 'رسوم التوصيل ١.٥٠٠ د.ك داخل الكويت، ومجاناً للطلبات فوق ٦٠ د.ك.' },
@@ -49,7 +49,7 @@ const RULES = [
   { id: 'r6', title: 'عروض الولائم', enabled: false, priority: 6, keywords: ['وليمة', 'عزيمة'], matchMode: 'any', action: 'reply', response: 'ولائمنا تبدأ من ٢٨ د.ك وتكفي ١٠ أشخاص، اطلبها قبل ٢٤ ساعة.' },
 ];
 
-const BOT_TEXTS = [
+const BOT_TEXTS_SEED = [
   { key: 'greeting', label: 'رسالة الترحيب', hint: 'أول ما يكتب العميل', defaultText: 'أهلاً بك في مطبخ التراث الكويتي 🌿', value: 'أهلاً بك في مطبخ التراث الكويتي 🌿 تأمر على شي؟' },
   { key: 'order_received', label: 'تأكيد استلام الطلب', hint: 'بعد تسجيل الطلب', defaultText: 'تم تسجيل طلبك ✅', value: 'تم تسجيل طلبك ✅ وبنبلغك أول ما يجهز.' },
   { key: 'payment_link', label: 'رسالة رابط الدفع', hint: 'عند إرسال الرابط', defaultText: 'رابط الدفع الآمن:', value: 'رابط الدفع الآمن الخاص بطلبك:' },
@@ -57,12 +57,38 @@ const BOT_TEXTS = [
   { key: 'rating_request', label: 'طلب التقييم', hint: 'بعد التسليم', defaultText: 'قيّم تجربتك من ١ إلى ٣', value: 'نرجو تقييم تجربتك: ٣ ممتاز، ٢ جيد، ١ يحتاج تحسين ⭐' },
 ];
 
+// In-memory copies so edits made during a presentation show up immediately (and vanish on reload).
+const RULES: any[] = RULES_SEED.map(r => ({ ...r, keywords: [...r.keywords] }));
+const BOT_TEXTS: any[] = BOT_TEXTS_SEED.map(t => ({ ...t }));
+
 export function demoApiResponse(pathname: string, search: string, method: string, body?: any): unknown | null {
   const m = method.toUpperCase();
   const ai = demoAiResponse(pathname, m, body && typeof body === 'object' ? body : {});
   if (ai) return ai;
 
   // WhatsApp inbox actions: kept in memory only, so the inbox feels alive during a presentation.
+  // Auto-reply rules and bot texts: save / toggle / delete / seed, in memory only.
+  if (pathname === '/api/whatsapp/auto-replies' && m === 'POST') {
+    const r = body || {};
+    const id = String(r.id || `demo-rule-${RULES.length + 1}-${Math.floor(Date.now() / 1000) % 100000}`);
+    const next = { ...r, id, keywords: Array.isArray(r.keywords) ? r.keywords : String(r.keywords || '').split(/[,،|]/).map((x: string) => x.trim()).filter(Boolean) };
+    const i = RULES.findIndex(x => x.id === id);
+    if (i >= 0) RULES[i] = { ...RULES[i], ...next }; else RULES.push({ enabled: true, priority: 100, matchMode: 'any', action: 'reply', ...next });
+    return { success: true, demo: true, rule: RULES.find(x => x.id === id) };
+  }
+  const ruleDel = pathname.match(/^\/api\/whatsapp\/auto-replies\/([^/]+)$/);
+  if (ruleDel && m === 'DELETE') {
+    const i = RULES.findIndex(x => x.id === decodeURIComponent(ruleDel[1]));
+    if (i >= 0) RULES.splice(i, 1);
+    return { success: true, demo: true };
+  }
+  if (pathname === '/api/whatsapp/auto-replies/seed' && m === 'POST') return { success: true, demo: true, created: 0, skipped: RULES.length };
+  if (pathname === '/api/whatsapp/bot-texts' && m === 'PUT') {
+    const values = (body && body.values) || {};
+    BOT_TEXTS.forEach(t => { if (typeof values[t.key] === 'string') t.value = values[t.key].trim() || t.defaultText; });
+    return { success: true, demo: true };
+  }
+
   const actMatch = pathname.match(/^\/api\/whatsapp\/conversations\/([^/]+)\/(reply|mode|close|read|request-rating)$/);
   if (actMatch && m === 'POST') {
     const t = threads().find(x => x.phone === decodeURIComponent(actMatch[1]));

@@ -54,7 +54,7 @@ export function buildDemoState(base: {
   const at = (daysAgo: number, hour: number, minute = 0) => {
     const d = new Date(now.getTime() - daysAgo * DAY);
     d.setHours(hour, minute, 0, 0);
-    if (d.getTime() > now.getTime()) d.setTime(now.getTime() - 60000 * int(5, 90));
+    if (d.getTime() > now.getTime()) d.setTime(now.getTime() - 60000 * (5 + ((hour * 13 + minute * 7 + daysAgo * 3) % 86))); // no rnd() here: keeps the sequence identical whatever the time of day
     return d;
   };
 
