@@ -41,3 +41,18 @@ describe('demo dataset', () => {
     expect(now - Math.min(...times)).toBeGreaterThan(120 * 86400000);
   });
 });
+
+describe('demo dataset determinism', () => {
+  it('produces the same ids and statuses whatever the time of day', async () => {
+    const { vi } = await import('vitest');
+    const snap = (iso: string) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(iso));
+      const x = GET_DEMO_DATA();
+      vi.useRealTimers();
+      const byId = (arr: any[], f: (o: any) => any) => arr.map(o => [o.id, f(o)]).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+      return JSON.stringify([byId(x.orders, (o) => [o.status, o.paymentStatus, o.customerName, o.totalAmount]), byId(x.invoices, (i) => [i.customerName, i.totalAmount])]);
+    };
+    expect(snap('2026-10-01T03:10:00')).toBe(snap('2026-10-01T22:45:00'));
+  });
+});

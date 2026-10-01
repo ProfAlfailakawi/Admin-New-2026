@@ -253,7 +253,8 @@ export default function TrackPage() {
  
  {IS_DEMO_MODE && (() => {
  const d = GET_DEMO_DATA();
- const samples = [d.orders.find((o: any) => o.paymentStatus === 'paid'), d.orders.find((o: any) => o.status === 'pending'), d.orders.find((o: any) => o.status === 'failed')].filter(Boolean) as any[];
+ const stable = [...d.orders].sort((a: any, b: any) => String(a.id).localeCompare(String(b.id)));
+ const samples = [stable.find((o: any) => o.paymentStatus === 'paid'), stable.find((o: any) => o.status === 'pending'), stable.find((o: any) => o.status === 'failed')].filter(Boolean) as any[];
  return (
  <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs font-bold text-amber-800" data-testid="track-demo-hint">
  <div className="mb-2">نسخة تجريبية - جرّب أحد هذه الأرقام:</div>
