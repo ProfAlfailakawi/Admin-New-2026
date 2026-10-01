@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Play, TrendingUp, TrendingDown, RefreshCw, BarChart3, Tag, Truck, Sparkles, AlertCircle, Info, Calculator, Zap, ArrowRight, CheckCircle2, Rocket, Megaphone, Target, Users, Layout, MessageCircle, Clock, Copy } from 'lucide-react';
+import { Play, TrendingUp, TrendingDown, RefreshCw, BarChart3, Tag, Truck, Sparkles, AlertCircle, Info, Calculator, Zap, ArrowRight, CheckCircle2, Rocket, Megaphone, Target, Users, Layout, MessageCircle, Clock, Copy, AlertTriangle } from 'lucide-react';
 import { cn, safeFormatCurrency } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState, SimulationResult, AICampaign } from '../types';
@@ -448,12 +448,12 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  <div className={cn(
 "rounded-2xl p-3 md:p-4 text-right shadow-sm border group relative overflow-hidden transition-all",
- isPositive ?"bg-emerald-500/10 border-emerald-500/30" :"bg-rose-500/10 border-rose-500/30"
+ isPositive ?"bg-slate-900/40 border-emerald-500/30" :"bg-slate-900/40 border-rose-500/30"
 )}>
- <div className={cn("absolute inset-0 opacity-20 pointer-events-none transition-all group-hover:opacity-40", isPositive ?"bg-emerald-400" :"bg-rose-400")} />
- <p className={cn("text-[10px] md:text-xs font-bold mb-1 uppercase transition-colors", isPositive ?"text-emerald-400/80 group-hover:text-emerald-400" :"text-rose-400/80 group-hover:text-rose-400")}>المبيعات بعد قرارك (المتوقعة)</p>
+  <p className={cn("text-[10px] md:text-xs font-bold mb-1 uppercase transition-colors", isPositive ?"text-emerald-400/80 group-hover:text-emerald-400" :"text-rose-400/80 group-hover:text-rose-400")}>المبيعات بعد قرارك (المتوقعة)</p>
  <p className={cn("text-2xl md:text-3xl font-bold relative z-10", isPositive ?"text-emerald-400" :"text-rose-400")}>{safeFormatCurrency(simulation.projectedMonthlyProfit)} <span className="text-sm opacity-50 font-bold">د.ك</span></p>
- <div className="absolute top-3 md:p-4 left-6 text-2xl font-bold opacity-30">
+ <div className={cn("relative z-10 mt-1.5 inline-flex items-center gap-1 rounded-full border bg-transparent px-2 py-0.5 text-[11px] font-bold tabular-nums", isPositive ?"border-emerald-500/30 text-emerald-400" :"border-rose-500/30 text-rose-400")} dir="ltr">
+ {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
  {isPositive ? '+' : ''}{safeFormatCurrency(profitDiff)} د.ك
  </div>
  </div>
@@ -498,8 +498,8 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  :"bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-slate-900"
 )}
  >
- {isExecuting ? <RefreshCw className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
- {isExecuting ? 'ننفذ ونحفظ القرار...' : (isPositive ? 'تأكيد وحفظ التعديل الرابح 👍' : 'تنفيذ التعديل بالرغم من المخاطرة ⚠️')}
+ {isExecuting ? <RefreshCw className="animate-spin" size={18} /> : (isPositive ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />)}
+ {isExecuting ? 'ننفذ ونحفظ القرار...' : (isPositive ? 'تأكيد وحفظ التعديل الرابح' : 'تنفيذ التعديل بالرغم من المخاطرة')}
  </button>
  </div>
  </div>
