@@ -1,4 +1,5 @@
 import { createAlertsRequireSecret } from './src/lib/auth-helpers.ts';
+import { inheritPushRecipientEmail } from './src/lib/pushRecipientIdentity.ts';
 import express from "express";
 import path from "path";
 import cors from 'cors';
@@ -5178,9 +5179,36 @@ const currentBuildId = () => {
   if (!cachedBuildId) cachedBuildId = process.env.BUILD_ID || "dev";
   return cachedBuildId;
 };
-app.get("/api/version", (_req, res) => {
+// The browser loads the app from Firebase Hosting, which can lag behind this server:
+// hosting has served the Sep 18 build while Cloud Run kept deploying newer ones. The
+// client's silent self-update compares its bundle with this endpoint. Reporting this
+// server's own build made every open app reload in a loop, and that loop's hard
+// refresh unregistered the push worker, so notifications died until reinstall.
+// Report the build the browser actually receives: hosting's /build-id.json, falling
+// back to this server's own when hosting cannot be read.
+let hostedBuildCache = { id: "", at: 0 };
+async function hostedBuildId(): Promise<string> {
+  if (hostedBuildCache.id && Date.now() - hostedBuildCache.at < 60_000) return hostedBuildCache.id;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3_000);
+    const response = await fetch(`${ALTURATH_ADMIN_BASE_URL}/build-id.json?minute=${Math.floor(Date.now() / 60_000)}`, {
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+    }).finally(() => clearTimeout(timer));
+    if (response.ok) {
+      const build = String(((await response.json()) as any)?.build || "");
+      if (build) {
+        hostedBuildCache = { id: build, at: Date.now() };
+        return build;
+      }
+    }
+  } catch { /* hosting unreachable: fall back below */ }
+  return hostedBuildCache.id || currentBuildId();
+}
+app.get("/api/version", async (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  res.json({ build: currentBuildId() });
+  res.json({ build: await hostedBuildId() });
 });
 
 app.get("/api/push/invoice-alerts", waRequireConsoleAuth, async (req, res) => {
@@ -8266,8 +8294,21 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
         const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
         // A silent refresh may omit identity while Firebase auth is restoring. Keep
-        // the identity of this exact token instead of silently disabling the device.
-        const normalizedUserEmail = String(userEmail || existingTokenData.userEmail || existingTokenData.email || "").trim().toLowerCase();
+        // the identity of this exact token instead of silently disabling the device,
+        // and for a brand-new token take it from the same install or account.
+        let inheritedEmail = "";
+        if (!userEmail && !existingTokenData.userEmail && !existingTokenData.email) {
+          inheritedEmail = await inheritPushRecipientEmail(
+            async (field, value) => {
+              const snap = await db.collection("pushTokens").where(field, "==", value).limit(25).get();
+              return snap.docs.map((doc: any) => doc.data() || {});
+            },
+            ALLOWED_PUSH_RECIPIENT_EMAILS,
+            deviceId,
+            userId,
+          );
+        }
+        const normalizedUserEmail = String(userEmail || existingTokenData.userEmail || existingTokenData.email || inheritedEmail || "").trim().toLowerCase();
         const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
         const effectivePermission = notificationPermission || existingTokenData.notificationPermission;
         const permissionDenied = String(effectivePermission || "").trim().toLowerCase() === "denied";

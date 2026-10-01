@@ -58,11 +58,13 @@ steps:
   # it here means nobody has to set it up by hand in the Google Cloud console.
   # Cloud Scheduler's free tier covers 3 jobs per billing account.
   #
-  # Last step and never fatal: if the build account lacks permission, hosting and
-  # the API have already shipped and only this job is missing. Check it at
+  # Never fatal, and it starts with the build (waitFor '-') instead of after the
+  # deploy steps, so a failing hosting step cannot keep it from running. Check it at
   # /api/push/alerts-status ("lastTickSource": "cloud-scheduler").
   # ---------------------------------------------------------------------------
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'alerts-scheduler'
+    waitFor: ['-']
     entrypoint: 'bash'
     args:
       - '-c'
