@@ -110,7 +110,7 @@ export default function InstallPrompt() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 1 }}
-            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-white rounded-t-[32px] md:rounded-3xl p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
+            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-white rounded-t-[32px] md:rounded-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
             style={{ zIndex: LAYER.sheet }}
             dir="rtl"
           >
