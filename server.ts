@@ -10267,6 +10267,27 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
   // without ever opening Google Console. All dedupe ledgers apply unchanged, so
   // pressing it repeatedly can never duplicate a notification.
   app.post("/api/push/run-alerts-admin", waRequireConsoleAuth, alertsRunHandler);
+
+  // Wake-up tick for the scheduled job in .github/workflows/alerts-tick.yml. Cloud Run
+  // gives this instance CPU only while a request is in flight and scales it to zero when
+  // idle, so the internal runner above cannot send the time-based reminders ("not paid
+  // after 10 / 30 minutes") while nobody has the console open. Running one pass inside
+  // this request does. It needs no secret: the reply carries only a count, a pass runs
+  // at most once a minute per instance, and the dedupe ledgers make repeats harmless.
+  let alertsTickLastRunAt = 0;
+  app.get("/api/push/alerts-tick", async (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    if (Date.now() - alertsTickLastRunAt < 60_000) return res.json({ ok: true, ran: false });
+    alertsTickLastRunAt = Date.now();
+    try {
+      waMaybeSendDailySummary().catch(() => {});
+      const { meta } = await alertsReconcile({ dryRun: false });
+      return res.json({ ok: true, ran: true, sent: Number(meta?.sent || 0) });
+    } catch (error: any) {
+      console.error("[ALERTS] Tick pass failed:", error);
+      return res.status(500).json({ ok: false });
+    }
+  });
   // ALERTS_WORKER_FINAL_CLEAN_V2_ROOT_PUSH_END
 
 

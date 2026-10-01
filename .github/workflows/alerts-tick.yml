@@ -1,0 +1,30 @@
+name: Alerts tick
+
+# Cloud Run scales the API to zero and gives it CPU only while a request is in flight,
+# so the server's own timer cannot send time-based alerts ("not paid after 10 / 30
+# minutes") while nobody has the console open. This wakes it every 5 minutes and runs
+# one alerts pass (/api/push/alerts-tick in server.ts). Free: the repository is public.
+# GitHub may delay scheduled runs under load, so a reminder can land a few minutes late.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: alerts-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Run one alerts pass
+        # A failed tick only warns: failing the job would email on every 5-minute run
+        # while the server is down, and the next tick retries anyway.
+        run: |
+          curl -fsS --retry 3 --retry-delay 10 --retry-all-errors --max-time 90 \
+            "https://admin.alturathkw.shop/api/push/alerts-tick" \
+            || echo "::warning::alerts tick did not get a healthy reply"
