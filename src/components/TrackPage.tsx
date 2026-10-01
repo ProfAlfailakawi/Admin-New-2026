@@ -317,7 +317,7 @@ export default function TrackPage() {
  return (
  <div key={order.id} className={cn("bg-white border-2 p-3 md:p-4 rounded-2xl shadow-sm text-right space-y-4 transition-all", isFailed ?"border-red-100 bg-red-50/5" : isCancelled ?"border-rose-100 bg-rose-50/5" :"border-emerald-100")}>
  <div className="flex justify-between items-center pb-4 border-b border-slate-100">
- <span className="text-sm font-bold text-slate-800">طلب #{order.id.slice(-6)}</span>
+ <span className="text-sm font-bold text-slate-800">طلب #{IS_DEMO_MODE && /^(ORD|INV)-/.test(order.id) ? order.id : order.id.slice(-6)}</span>
  <div className="flex items-center gap-2">
  {(isPending || isFailed) && order.paymentLink && !isCancelled && (
  <button 

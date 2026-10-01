@@ -27,15 +27,32 @@ function mulberry32(seed: number) {
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
-/** Self-contained product picture (no network, never broken). */
-function productImage(label: string, hue: number, emoji: string): string {
+/**
+ * Self-contained "food photo" style picture (no network, never broken): warm table background with
+ * soft light, bokeh, a plate with rim and shadow, the dish emoji and a few garnish dots.
+ * `label` is only used as the accessible title and (for archive cards) as a caption.
+ */
+function productImage(label: string, hue: number, emoji: string, caption = false): string {
+  const safe = label.replace(/[<>&"]/g, '');
+  const h2 = (hue + 28) % 360;
+  const dots = [[96, 70, 9], [310, 92, 7], [84, 232, 6], [330, 214, 10], [60, 150, 5], [352, 150, 6]]
+    .map(([x, y, r], i) => `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${(hue + 120 + i * 20) % 360},55%,55%)" fill-opacity=".55"/>`).join('');
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">` +
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},70%,62%)"/>` +
-    `<stop offset="1" stop-color="hsl(${(hue + 40) % 360},65%,40%)"/></linearGradient></defs>` +
-    `<rect width="400" height="300" fill="url(#g)"/><circle cx="330" cy="50" r="90" fill="#fff" fill-opacity=".08"/>` +
-    `<text x="200" y="150" font-size="96" text-anchor="middle" dominant-baseline="middle">${emoji}</text>` +
-    `<text x="200" y="250" font-size="22" fill="#fff" text-anchor="middle" font-family="sans-serif">${label}</text></svg>`;
+    `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><title>${safe}</title>` +
+    `<defs><linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue},38%,30%)"/><stop offset="1" stop-color="hsl(${h2},45%,14%)"/></linearGradient>` +
+    `<radialGradient id="l" cx=".28" cy=".2" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="p" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9e2d6"/></radialGradient></defs>` +
+    `<rect width="400" height="300" fill="url(#t)"/>` +
+    `<g stroke="#fff" stroke-opacity=".05" stroke-width="2">${[40, 80, 120, 160, 200, 240, 280].map(y => `<path d="M0 ${y} Q200 ${y + 14} 400 ${y}" fill="none"/>`).join('')}</g>` +
+    `<rect width="400" height="300" fill="url(#l)"/>` +
+    `<circle cx="338" cy="44" r="70" fill="#fff" fill-opacity=".06"/><circle cx="52" cy="262" r="48" fill="#fff" fill-opacity=".05"/>` +
+    `<ellipse cx="200" cy="196" rx="132" ry="26" fill="#000" fill-opacity=".35"/>` +
+    `<circle cx="200" cy="140" r="112" fill="url(#p)"/><circle cx="200" cy="140" r="112" fill="none" stroke="hsl(${hue},45%,62%)" stroke-opacity=".7" stroke-width="3"/>` +
+    `<circle cx="200" cy="140" r="84" fill="hsl(${hue},30%,96%)" stroke="#d8cfbf" stroke-width="1.5"/>` +
+    dots +
+    `<text x="200" y="146" font-size="104" text-anchor="middle" dominant-baseline="middle">${emoji}</text>` +
+    (caption ? `<rect x="0" y="252" width="400" height="48" fill="#000" fill-opacity=".38"/><text x="200" y="283" font-size="22" fill="#fff" text-anchor="middle" font-family="sans-serif">${safe}</text>` : '') +
+    `</svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
@@ -131,7 +148,7 @@ export function buildDemoState(base: {
   // ---------------------------------------------------------------- customers
   const first = ['خالد', 'سارة', 'محمد', 'نورة', 'يوسف', 'مريم', 'عبدالرحمن', 'فاطمة', 'عبدالله', 'لولوة', 'علي', 'فهد', 'جاسم', 'هنادي', 'سعد', 'منى', 'بدر', 'دلال', 'فيصل', 'شهد', 'منصور', 'ليلى', 'مشعل', 'ريم', 'سعود', 'إيمان', 'نايف', 'لطيفة', 'ياسر', 'حصة'];
   const family = ['المطيري', 'الكندري', 'العجمي', 'العتيبي', 'الدوسري', 'الشمري', 'الظفيري', 'الرشيدي', 'العنزي', 'الخالد', 'الغانم', 'الفليج', 'الملا', 'العيسى', 'القلاف', 'الشطي', 'السالم', 'الصراف', 'المرزوق', 'الصالح'];
-  const companies = ['ديوانية الهاشم (تجريبي)', 'مجموعة الضيافة الكبرى', 'شركة النقل الوطنية', 'مكتب الرؤية للاستشارات', 'مؤسسة الواحة العقارية', 'مدرسة النخبة الأهلية', 'مستشفى الشفاء الأهلي', 'نادي الفروسية الشبابي'];
+  const companies = ['ديوانية الهاشم', 'مجموعة الضيافة الكبرى', 'شركة النقل الوطنية', 'مكتب الرؤية للاستشارات', 'مؤسسة الواحة العقارية', 'مدرسة النخبة الأهلية', 'مستشفى الشفاء الأهلي', 'نادي الفروسية الشبابي'];
   const areaList = ['السالمية', 'حولي', 'الجابرية', 'الفروانية', 'الشويخ', 'الرميثية', 'مشرف', 'صباح السالم', 'الفحيحيل', 'الجهراء', 'خيطان', 'الدسمة', 'كيفان', 'العديلية', 'سلوى', 'اليرموك', 'الري', 'القادسية'];
   const customers: Customer[] = Array.from({ length: 64 }, (_, i) => {
     const isCompany = i % 8 === 0;
@@ -581,7 +598,7 @@ export function demoStudioArchive(storageKey: string): any[] {
     ['صواني الضيافة الوطنية', 140, '🇰🇼', 'ضيافة المناسبات الوطنية للشركات والمدارس'],
   ];
   return rows.map(([title, hue, emoji, caption], i) => ({
-    url: productImage(title, hue, emoji),
+    url: productImage(title, hue, emoji, true),
     caption,
     date: new Date(Date.now() - (i * 3 + 1) * DAY).toISOString(),
     source: 'idea',

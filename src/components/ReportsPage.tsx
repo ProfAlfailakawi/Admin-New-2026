@@ -1370,7 +1370,7 @@ Alturath.kw`;
                                   shakingId === inv.id && "bg-red-50/50",
                                 )}
                               >
-                                <td className="p-3 md:p-3 font-bold text-primary flex items-center gap-2">
+                                <td className="p-3 md:p-3 font-bold text-primary flex items-center gap-2 whitespace-nowrap">
                                   {isExpanded ? (
                                     <ChevronUp size={14} />
                                   ) : (

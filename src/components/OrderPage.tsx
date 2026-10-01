@@ -1,3 +1,4 @@
+import { IS_DEMO_MODE } from '../lib/demoMode';
 import React, { useState, useEffect } from "react";
 import { DnaSegmented } from "./dna/DnaKit";
 import AdminMicroLoader from './ui/AdminMicroLoader';
@@ -1542,7 +1543,7 @@ Alturath.kw`;
                     <div className="flex justify-between items-start mb-3">
                       <div className="space-y-0.5">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
-                          #{order.id.slice(-6)}
+                          #{IS_DEMO_MODE && /^(ORD|INV)-/.test(order.id) ? order.id : order.id.slice(-6)}
                         </span>
                         <h3 className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors line-clamp-1">
                           {getOrderCustomerName(order)}
@@ -1812,7 +1813,7 @@ Alturath.kw`;
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0 sticky top-0 z-20">
                 <div>
                   <h2 className="text-base md:text-lg font-black text-slate-900">
-                    تفاصيل الطلب #{selectedOrder.id.slice(-6)}
+                    تفاصيل الطلب #{IS_DEMO_MODE && /^(ORD|INV)-/.test(selectedOrder.id) ? selectedOrder.id : selectedOrder.id.slice(-6)}
                   </h2>
                 </div>
                 <button

@@ -6452,6 +6452,9 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
   table.mobile-card-table tbody > tr:has(> td[colspan]:only-child):empty{display:none!important}
   table.mobile-card-table td button,table.mobile-card-table td a{min-height:44px;min-width:44px}
   table.mobile-card-table td .flex{flex-wrap:wrap}
+  /* customer cell holds name + phone + address as sibling blocks: stack them instead of squeezing the name character by character */
+  table.mobile-card-table td[data-label="العميل"]{flex-wrap:wrap}
+  table.mobile-card-table td[data-label="العميل"] > div{flex:1 1 100%;max-width:100%!important}
   table.mobile-card-table tbody > tr > td:first-child::before{content:none!important}
   table.mobile-card-table tbody > tr > td:first-child{font-size:15px;padding-top:4px!important}
 }

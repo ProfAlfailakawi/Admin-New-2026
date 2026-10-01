@@ -37,21 +37,30 @@ function dims(format: string): [number, number] {
 const esc = (s: string) => s.replace(/[<>&"]/g, '');
 const toUri = (svg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 
-/** A self-contained "generated" picture (gradient, big emoji, soft light, clear demo ribbon). */
+/** A self-contained "generated" picture: warm table, soft light, plate with the dish, clear demo ribbon. */
 export function demoSceneImage(label: string, hue: number, emoji: string, format = '1:1', variant = 0): string {
   const [w, h] = dims(format);
-  const h2 = (hue + 40 + variant * 25) % 360;
-  const cx = w / 2, cy = h / 2;
+  const hv = (hue + variant * 25) % 360;
+  const h2 = (hv + 30) % 360;
+  const k = (Math.min(w, h) / 300) * 1.05; // plate group is drawn in a 400x300 box centred on (200,140)
+  const tx = w / 2 - 200 * k, ty = h * 0.46 - 140 * k;
+  const stripes = Array.from({ length: Math.ceil(h / 46) }, (_, i) => `<path d="M0 ${i * 46} Q${w / 2} ${i * 46 + 16} ${w} ${i * 46}" fill="none"/>`).join('');
+  const dots = [[96, 40, 10], [320, 62, 8], [78, 236, 7], [338, 228, 11], [52, 132, 6], [356, 140, 7]]
+    .map(([x, y, r], i) => `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${(hv + 120 + i * 20) % 360},55%,55%)" fill-opacity=".5"/>`).join('');
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
-    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${(hue + variant * 25) % 360},68%,60%)"/><stop offset="1" stop-color="hsl(${h2},62%,34%)"/></linearGradient>` +
-    `<radialGradient id="l" cx=".3" cy=".25" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>` +
-    `<rect width="${w}" height="${h}" fill="url(#g)"/><rect width="${w}" height="${h}" fill="url(#l)"/>` +
-    `<ellipse cx="${cx}" cy="${cy + h * 0.16}" rx="${w * 0.3}" ry="${h * 0.05}" fill="#000" fill-opacity=".22"/>` +
-    `<circle cx="${cx}" cy="${cy}" r="${Math.min(w, h) * 0.26}" fill="#fff" fill-opacity=".14"/>` +
-    `<text x="${cx}" y="${cy}" font-size="${Math.min(w, h) * 0.3}" text-anchor="middle" dominant-baseline="middle">${emoji}</text>` +
-    `<text x="${cx}" y="${h * 0.8}" font-size="${Math.min(w, h) * 0.05}" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(label)}</text>` +
-    `<text x="${cx}" y="${h * 0.88}" font-size="${Math.min(w, h) * 0.028}" fill="#fff" fill-opacity=".8" text-anchor="middle" font-family="sans-serif">صورة توضيحية - ${DEMO_NOTE}</text>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><title>${esc(label)}</title>` +
+    `<defs><linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hv},40%,32%)"/><stop offset="1" stop-color="hsl(${h2},46%,13%)"/></linearGradient>` +
+    `<radialGradient id="l" cx=".28" cy=".18" r=".95"><stop offset="0" stop-color="#fff" stop-opacity=".4"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="p" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e9e2d6"/></radialGradient></defs>` +
+    `<rect width="${w}" height="${h}" fill="url(#t)"/><g stroke="#fff" stroke-opacity=".05" stroke-width="3">${stripes}</g><rect width="${w}" height="${h}" fill="url(#l)"/>` +
+    `<g transform="translate(${tx} ${ty}) scale(${k})">` +
+    `<ellipse cx="200" cy="196" rx="132" ry="26" fill="#000" fill-opacity=".38"/>` +
+    `<circle cx="200" cy="140" r="112" fill="url(#p)"/><circle cx="200" cy="140" r="112" fill="none" stroke="hsl(${hv},45%,62%)" stroke-opacity=".7" stroke-width="3"/>` +
+    `<circle cx="200" cy="140" r="84" fill="hsl(${hv},30%,96%)" stroke="#d8cfbf" stroke-width="1.5"/>${dots}` +
+    `<text x="200" y="146" font-size="104" text-anchor="middle" dominant-baseline="middle">${emoji}</text></g>` +
+    `<rect x="0" y="${h * 0.82}" width="${w}" height="${h * 0.18}" fill="#000" fill-opacity=".38"/>` +
+    `<text x="${w / 2}" y="${h * 0.895}" font-size="${Math.min(w, h) * 0.05}" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(label)}</text>` +
+    `<text x="${w / 2}" y="${h * 0.945}" font-size="${Math.min(w, h) * 0.027}" fill="#fff" fill-opacity=".8" text-anchor="middle" font-family="sans-serif">صورة توضيحية - ${DEMO_NOTE}</text>` +
     `</svg>`;
   return toUri(svg);
 }
@@ -67,12 +76,15 @@ export function demoReelMotion(label: string, hue: number, emoji: string, second
     `<g fill="#fff" fill-opacity=".18"><circle cx="90" cy="820" r="24"><animate attributeName="cy" values="860;260;860" dur="${seconds}s" repeatCount="indefinite"/></circle>` +
     `<circle cx="300" cy="900" r="16"><animate attributeName="cy" values="920;180;920" dur="${seconds * 0.8}s" repeatCount="indefinite"/></circle>` +
     `<circle cx="450" cy="780" r="30"><animate attributeName="cy" values="840;320;840" dur="${seconds * 1.2}s" repeatCount="indefinite"/></circle></g>` +
-    `<text x="270" y="470" font-size="220" text-anchor="middle" dominant-baseline="middle">${emoji}` +
+    `<ellipse cx="270" cy="590" rx="230" ry="38" fill="#000" fill-opacity=".35"/>` +
+    `<circle cx="270" cy="470" r="200" fill="#fff" fill-opacity=".94"/><circle cx="270" cy="470" r="200" fill="none" stroke="hsl(${hue},50%,60%)" stroke-width="5"/>` +
+    `<circle cx="270" cy="470" r="150" fill="hsl(${hue},30%,96%)" stroke="#d8cfbf" stroke-width="2"/>` +
+    `<text x="270" y="478" font-size="220" text-anchor="middle" dominant-baseline="middle">${emoji}` +
     `<animate attributeName="font-size" values="210;250;210" dur="${seconds / 2}s" repeatCount="indefinite"/></text>` +
-    `<path d="M200 330 q-20 -50 0 -90 M270 310 q-20 -50 0 -100 M340 330 q-20 -50 0 -90" stroke="#fff" stroke-opacity=".55" stroke-width="8" fill="none" stroke-linecap="round">` +
+    `<path d="M200 250 q-20 -50 0 -90 M270 230 q-20 -50 0 -100 M340 250 q-20 -50 0 -90" stroke="#fff" stroke-opacity=".55" stroke-width="8" fill="none" stroke-linecap="round">` +
     `<animate attributeName="stroke-opacity" values=".1;.7;.1" dur="${seconds / 3}s" repeatCount="indefinite"/></path>` +
-    `<text x="270" y="760" font-size="40" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(label)}</text>` +
-    `<text x="270" y="820" font-size="24" fill="#fff" fill-opacity=".8" text-anchor="middle" font-family="sans-serif">ريل توضيحي - ${DEMO_NOTE}</text>` +
+    `<text x="270" y="800" font-size="40" fill="#fff" text-anchor="middle" font-family="sans-serif">${esc(label)}</text>` +
+    `<text x="270" y="850" font-size="24" fill="#fff" fill-opacity=".8" text-anchor="middle" font-family="sans-serif">ريل توضيحي - ${DEMO_NOTE}</text>` +
     `</svg>`;
   return toUri(svg);
 }
@@ -247,7 +259,7 @@ export function demoAiResponse(pathname: string, method: string, body: Body): un
       return { success: true, demo: true, score: 96, verdict: 'واقعية ممتازة (تقييم تجريبي)', notes: ['إضاءة طبيعية', 'ظلال تلامس مقنعة', 'لا نصوص أو شعارات داخل الصورة'], fixHint: '', publishReady: true, dishLocked: true, hasTextOrLogo: false, instagramReady: true, subscores: { dishLock: 96, realism: 95, textSafety: 100, instagramFit: 94, appetite: 96 } };
 
     case '/api/smart-studio/reel-quality-audit':
-      return { success: true, demo: true, score: 94, verdict: 'ريل جاهز للنشر (فحص تجريبي)', notes: ['حركة هادئة', 'بدون نصوص مزعجة'], fixHint: '', publishReady: true, dishLocked: true, hasTextOrLogo: false, instagramReady: true, subscores: { dishLock: 95, realism: 93, textSafety: 100, instagramFit: 92, appetite: 94 } };
+      return { success: true, demo: true, score: 96, verdict: 'ريل جاهز للنشر (فحص تجريبي)', notes: ['حركة هادئة', 'بدون نصوص مزعجة'], fixHint: '', publishReady: true, dishLocked: true, hasTextOrLogo: false, instagramReady: true, subscores: { dishLock: 96, realism: 95, textSafety: 100, instagramFit: 95, appetite: 96 } };
 
     default:
       return null;
