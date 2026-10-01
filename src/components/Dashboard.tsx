@@ -1995,7 +1995,7 @@ const [isPending, startTransition] = useTransition();
             nextInsights = generateBusinessInsights(data);
             nextProfitInsights = generateRealProfitAnalysis(data);
           }
-          if (isGrowth) nextAutoStrategies = generateAutoStrategies(data);
+          if (isGrowth || isIntelligenceStrategy) nextAutoStrategies = generateAutoStrategies(data);
           if (isIntelligenceGroup) {
             nextHiddenRisks = generateHiddenRisks(data);
             nextAiLearningLogs = generateAILearningInsights(data);
@@ -2034,6 +2034,7 @@ const [isPending, startTransition] = useTransition();
       isPulse,
       isCustomers,
       isGrowth,
+      isIntelligenceStrategy,
       isIntelligenceGroup,
       isFinancials,
       isSuppliers,

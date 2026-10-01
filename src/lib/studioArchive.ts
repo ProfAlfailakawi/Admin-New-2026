@@ -1,3 +1,6 @@
+import { IS_DEMO_MODE } from './demoMode';
+import { demoStudioArchive } from '../demoData';
+
 export type StudioArchiveItem = Record<string, any>;
 
 const DB_NAME = 'smart_content_studio_archive';
@@ -46,6 +49,7 @@ const getAsset = async (key: string): Promise<string | null> => {
 const isDataUrl = (value: any) => typeof value === 'string' && value.startsWith('data:');
 
 export const loadStudioArchive = async <T extends StudioArchiveItem>(storageKey: string, imageFields: string[]): Promise<T[]> => {
+  if (IS_DEMO_MODE) return demoStudioArchive(storageKey) as T[];
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return [];
@@ -72,6 +76,7 @@ export const loadStudioArchive = async <T extends StudioArchiveItem>(storageKey:
 };
 
 export const saveStudioArchive = async <T extends StudioArchiveItem>(storageKey: string, items: T[], imageFields: string[], limit = 10) => {
+  if (IS_DEMO_MODE) return; // demo never writes to the browser's real archive
   try {
     const limited = (items || []).slice(0, limit);
     const prepared = await Promise.all(limited.map(async (item: any, index) => {

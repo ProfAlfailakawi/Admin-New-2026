@@ -34,6 +34,11 @@ This is the operational and admin panel for Alturath, built using React, Vite, T
 -   **Production Server:**
     Run 'npm start' (which executes 'npx tsx server.ts') to serve the API endpoints and the static files.
 
+## Demo mode (presentations)
+
+Open the app with `?demo=1` (for example `https://<host>/?demo=1`, or `?demo=1&page=orders` to jump to a screen) or build with `VITE_DEMO_MODE=true`.
+Demo mode skips sign-in, never touches Firebase or the API server (Firestore networking is disabled and `/api/*` calls are answered locally), and fills every screen from the in-memory dataset in `src/demoData.ts`. Use `?demo=0` to leave it.
+
 ## Testing
 
 The project uses vitest for unit and regression testing.
