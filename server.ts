@@ -9800,6 +9800,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   const ALERTS_LOOKBACK_MINUTES = Number(process.env.ALERTS_LOOKBACK_MINUTES || "1440");
   const ALERTS_MAX_SEND_PER_RUN = Number(process.env.ALERTS_MAX_SEND_PER_RUN || process.env.MAX_SEND_PER_RUN || "100");
   const ALERTS_START_FROM_ISO = process.env.ALERTS_START_FROM_ISO || "";
+  // Last /api/push/alerts-tick pass, shown by /api/push/alerts-status so anyone can
+  // check from outside that the periodic wake-up is arriving.
+  let alertsTickLastRunAt = 0;
+  let alertsTickLastSource = "";
 
       const alertsRequireSecret = createAlertsRequireSecret(ALERTS_ADMIN_TEST_SECRET);
 
@@ -10188,7 +10192,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
   app.get("/api/push/alerts-status", async (_req, res) => {
     try {
       if (!firebaseInitialized || !db) return res.status(500).json({ ok: false, error: "Firebase Admin not initialized" });
-      res.json({ ok: true, route: "/api/push/alerts-status", service: "alerts-worker-final-clean-v3-idempotent", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null });
+      res.json({ ok: true, route: "/api/push/alerts-status", service: "alerts-worker-final-clean-v3-idempotent", lookbackMinutes: ALERTS_LOOKBACK_MINUTES, maxSendPerRun: ALERTS_MAX_SEND_PER_RUN, startFromIso: ALERTS_START_FROM_ISO || null, lastTickAt: alertsTickLastRunAt ? new Date(alertsTickLastRunAt).toISOString() : null, lastTickSource: alertsTickLastSource || null, uptimeSec: Math.round(process.uptime()) });
     } catch (e: any) { res.status(500).json({ ok: false, error: e?.message || String(e) }); }
   });
 
@@ -10274,11 +10278,12 @@ app.get("/api/push/alerts-debug", alertsRequireSecret, async (_req, res) => {
   // after 10 / 30 minutes") while nobody has the console open. Running one pass inside
   // this request does. It needs no secret: the reply carries only a count, a pass runs
   // at most once a minute per instance, and the dedupe ledgers make repeats harmless.
-  let alertsTickLastRunAt = 0;
-  app.get("/api/push/alerts-tick", async (_req, res) => {
+  app.get("/api/push/alerts-tick", async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     if (Date.now() - alertsTickLastRunAt < 60_000) return res.json({ ok: true, ran: false });
     alertsTickLastRunAt = Date.now();
+    const userAgent = String(req.headers["user-agent"] || "");
+    alertsTickLastSource = userAgent.includes("Google-Cloud-Scheduler") ? "cloud-scheduler" : userAgent.startsWith("curl/") ? "curl" : "other";
     try {
       waMaybeSendDailySummary().catch(() => {});
       const { meta } = await alertsReconcile({ dryRun: false });
