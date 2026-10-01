@@ -1,4 +1,5 @@
 import { createAlertsRequireSecret } from './src/lib/auth-helpers.ts';
+import { inheritPushRecipientEmail } from './src/lib/pushRecipientIdentity.ts';
 import express from "express";
 import path from "path";
 import cors from 'cors';
@@ -8293,8 +8294,21 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
 
         const existingTokenData = tokenDoc.exists ? (tokenDoc.data() || {}) : {};
         // A silent refresh may omit identity while Firebase auth is restoring. Keep
-        // the identity of this exact token instead of silently disabling the device.
-        const normalizedUserEmail = String(userEmail || existingTokenData.userEmail || existingTokenData.email || "").trim().toLowerCase();
+        // the identity of this exact token instead of silently disabling the device,
+        // and for a brand-new token take it from the same install or account.
+        let inheritedEmail = "";
+        if (!userEmail && !existingTokenData.userEmail && !existingTokenData.email) {
+          inheritedEmail = await inheritPushRecipientEmail(
+            async (field, value) => {
+              const snap = await db.collection("pushTokens").where(field, "==", value).limit(25).get();
+              return snap.docs.map((doc: any) => doc.data() || {});
+            },
+            ALLOWED_PUSH_RECIPIENT_EMAILS,
+            deviceId,
+            userId,
+          );
+        }
+        const normalizedUserEmail = String(userEmail || existingTokenData.userEmail || existingTokenData.email || inheritedEmail || "").trim().toLowerCase();
         const recipientAuthorized = ALLOWED_PUSH_RECIPIENT_EMAILS.has(normalizedUserEmail);
         const effectivePermission = notificationPermission || existingTokenData.notificationPermission;
         const permissionDenied = String(effectivePermission || "").trim().toLowerCase() === "denied";
