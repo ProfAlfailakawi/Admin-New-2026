@@ -12,12 +12,13 @@
  *  3) تحديث صامت ثم تصعيد: update() للعامل ← إفراغ ذاكرة الـ API ← إعادة تحميل واحدة، مع
  *     تسجيل البصمة الهدف. فإن عادت الصفحة على البصمة القديمة رغم أنها حاولت هذا الإصدار
  *     بعينه، فإعادة التحميل جاءت من نسخة مخزّنة قديمة ← ننفّذ الـ hard refresh نيابةً عن
- *     المستخدم: حذف كل الـ caches وإلغاء تسجيل العامل ثم إعادة تحميل — مرة واحدة فقط.
+ *     المستخدم: حذف الـ caches ثم إعادة تحميل — مرة واحدة فقط. لا نُلغي تسجيل عامل
+ *     الخدمة أبدًا: هو مالك اشتراك الإشعارات.
  *  4) لا إعادة تحميل فوق عمل جارٍ: نافذة حوارية مفتوحة أو سحب/إفلات أو aria-busy تؤجّل
  *     المحاولة أربع ثوانٍ. إعادة التحميل الصحيحة هي التي لا يلاحظها أحد.
  *
  * كل مسار تعافٍ محروس بعلامة تُمسح عند النجاح، فلا تنشأ حلقة إعادة تحميل. ولا نلمس بيانات
- * المستخدم المخزّنة (تفضيلاته وجلسته) — نمسح الكاش وعامل الخدمة فقط.
+ * المستخدم المخزّنة (تفضيلاته وجلسته) — نمسح الكاش فقط.
  */
 
 declare const __BUILD_ID__: string;
@@ -138,38 +139,15 @@ async function clearApiCaches(): Promise<void> {
   } catch { /* أفضل جهد */ }
 }
 
-/**
- * عامل رسائل Firebase هو مالك اشتراك الـ Push. إلغاء تسجيله يهدم الاشتراك بينما يبقى
- * التوكن القديم محفوظًا في IndexedDB، فيقبل FCM الإرسال إلى توكن لا يملك اشتراكًا حيًّا
- * ولا يظهر على الجهاز شيء — إشعارات متوقفة بلا أي رسالة خطأ. المسح هنا لقشرة التطبيق
- * فقط؛ عامل الإشعارات لا يُمَسّ.
- */
-export function registrationOwnsPushSubscription(scriptUrls: (string | null | undefined)[]): boolean {
-  return scriptUrls.some((url) => String(url || '').includes('firebase-messaging-sw'));
-}
-
-function workerScriptUrls(registration: ServiceWorkerRegistration): (string | null)[] {
-  return [registration.active, registration.waiting, registration.installing]
-    .map((worker) => worker?.scriptURL || null);
-}
-
-/**
- * هل يحمل هذا التسجيل عامل الإشعارات؟ عامل القشرة وعامل الإشعارات يتشاركان النطاق "/"،
- * والنطاق لا يتّسع إلا لعامل واحد: تسجيل عامل القشرة فوقه يستبدله بعامل بلا مستمع push،
- * فتصل الإشعارات إلى الجهاز ولا يُعرض منها شيء.
- */
-export function registrationHoldsPushWorker(
-  registration: Pick<ServiceWorkerRegistration, 'active' | 'waiting' | 'installing'> | null | undefined,
-): boolean {
-  if (!registration) return false;
-  return registrationOwnsPushSubscription(workerScriptUrls(registration as ServiceWorkerRegistration));
-}
-
 /** ذاكرة إزالة تكرار الإشعارات: مسحها يعيد عرض إشعار سبق عرضه، فنُبقيها. */
 const PUSH_DEDUPE_CACHE_PREFIX = 'alturath-push-dedupe';
 
-/** الـ hard refresh نفسه، منفَّذًا نيابةً عن المستخدم: caches القشرة + إلغاء عاملها وحده. */
-async function purgeShell(): Promise<void> {
+/**
+ * الـ hard refresh نفسه، منفَّذًا نيابةً عن المستخدم: مسح المخابئ فقط.
+ * لا يُلغى تسجيل أي عامل خدمة إطلاقًا: العامل على النطاق "/" هو مالك اشتراك الـ Push،
+ * وإلغاؤه يهدم الاشتراك بصمت فتتوقف الإشعارات حتى يُعاد تثبيت التطبيق.
+ */
+export async function purgeShell(): Promise<void> {
   try {
     if ('caches' in window) {
       const names = await caches.keys();
@@ -177,16 +155,6 @@ async function purgeShell(): Promise<void> {
         names
           .filter((name) => !name.startsWith(PUSH_DEDUPE_CACHE_PREFIX))
           .map((name) => caches.delete(name)),
-      );
-    }
-  } catch { /* أفضل جهد */ }
-  try {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(
-        registrations
-          .filter((registration) => !registrationHoldsPushWorker(registration))
-          .map((registration) => registration.unregister()),
       );
     }
   } catch { /* أفضل جهد */ }
