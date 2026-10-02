@@ -1121,7 +1121,7 @@ const CloudConnectionGate: React.FC<{
     : [BadgeCheck, Zap, Database];
 
   return (
-    <div className="fixed inset-0 z-[99998] flex items-center-safe justify-center overflow-x-hidden overflow-y-auto bg-[#06110f] px-5 arabic-font" dir="rtl">
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#06110f] px-5 arabic-font" dir="rtl">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(16,185,129,.22),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(245,184,74,.16),transparent_28%),linear-gradient(145deg,#030706_0%,#0b1714_46%,#12110a_100%)]" />
       <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
       <motion.div
@@ -5181,7 +5181,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.01, transition: { duration: reduceMotion ? 0 : 0.7, ease: 'easeInOut' } }}
-          className="safe-area-dark-overlay fixed inset-0 z-[99999] flex items-center-safe justify-center overflow-x-hidden overflow-y-auto bg-[#080d12] px-5"
+          className="safe-area-dark-overlay fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#080d12] px-5"
           dir="rtl"
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(245,184,74,.24),transparent_28%),radial-gradient(circle_at_16%_84%,rgba(16,185,129,.18),transparent_32%),linear-gradient(135deg,#070b10_0%,#111827_52%,#0b1115_100%)]" />
