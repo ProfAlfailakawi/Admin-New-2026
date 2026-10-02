@@ -2943,7 +2943,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           <div className="text-right">
             <h1 className="smart-studio-title flex items-center gap-3 leading-tight">
               <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" strokeWidth={1.6} /></span>
-              <span className="sr-only">استوديو التراث الذكي</span>
+              <span className="frame-dup-title text-2xl sm:text-3xl md:text-4xl font-black">استوديو التراث الذكي</span>
             </h1>
           </div>
           <button onClick={() => setStudioTab('library')} className="h-11 w-11 sm:h-12 sm:w-12 rounded-[14px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 transition-all shadow-[0_2px_12px_rgba(15,23,42,0.03)] active:scale-95" title="الأرشيف">
