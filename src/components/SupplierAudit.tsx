@@ -318,7 +318,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="space-y-8 pt-12 md:pt-16 pb-20">
    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6" dir="rtl">
      <div className="text-right">
-       <h1 className="text-3xl font-black text-slate-900 tracking-tight">كشف الحساب المالي التفصيلي</h1>
+       <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">كشف الحساب المالي التفصيلي</h1>
        <p className="text-slate-500 font-bold mt-1">سجل التوريد والسداد والتدقيق المالي الشامل</p>
      </div>
      <button 
@@ -332,29 +332,29 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 text-right">
  <div className="bg-emerald-600 p-3 md:p-4 rounded-[20px] md:rounded-3xl text-white shadow-xl shadow-emerald-600/20">
- <div className="text-[10px] font-bold uppercase opacity-60 mb-2">إجمالي المحول</div>
+ <div className="text-[11px] font-bold uppercase opacity-60 mb-2">إجمالي المحول</div>
  <div className="text-2xl md:text-3xl font-bold">{Number(totalTransferred || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
- <div className="flex items-center gap-2 text-[10px] font-bold mt-3 opacity-80">
+ <div className="flex items-center gap-2 text-[11px] font-bold mt-3 opacity-80">
  <CheckCircle2 size={12} />
  عدد التحويلات: {(data?.supplierTransfers || []).length}
  </div>
  </div>
  <div className="bg-white p-3 md:p-4 rounded-[20px] md:rounded-3xl border border-slate-100 shadow-sm">
- <div className="text-[10px] font-bold uppercase text-slate-400 mb-2">مستحقات التوريد</div>
+ <div className="text-[11px] font-bold uppercase text-slate-400 mb-2">مستحقات التوريد</div>
  <div className="text-2xl md:text-3xl font-black text-slate-900">{Number(totalSupplyDue || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
- <div className="text-[10px] font-bold mt-3 text-slate-400">تكلفة المنتجات فقط بدون التوصيل</div>
+ <div className="text-[11px] font-bold mt-3 text-slate-400">تكلفة المنتجات فقط بدون التوصيل</div>
  </div>
  <div className="bg-blue-50 p-3 md:p-4 rounded-[20px] md:rounded-3xl border border-blue-100 shadow-sm">
- <div className="text-[10px] font-bold uppercase text-blue-400 mb-2">مستحقات التوصيل</div>
+ <div className="text-[11px] font-bold uppercase text-blue-400 mb-2">مستحقات التوصيل</div>
  <div className="text-2xl md:text-3xl font-black text-blue-700">{Number(totalDeliveryDue || 0).toFixed(3)} <span className="text-xs text-blue-400">د.ك</span></div>
- <div className="text-[10px] font-bold mt-3 text-blue-400">للموردين الذين يوصلون أو شركات التوصيل فقط</div>
+ <div className="text-[11px] font-bold mt-3 text-blue-400">للموردين الذين يوصلون أو شركات التوصيل فقط</div>
  </div>
  <div className="bg-white border border-slate-200 text-slate-900 p-3 md:p-4 rounded-[20px] md:rounded-3xl shadow-sm relative">
- <div className="text-[10px] font-bold uppercase opacity-40 mb-2">إجمالي المستحق</div>
+ <div className="text-[11px] font-bold uppercase opacity-40 mb-2">إجمالي المستحق</div>
  <div className="text-2xl md:text-3xl font-bold text-red-500">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-xs">د.ك</span></div>
  <button 
  onClick={() => setShowWaitingList(prev => !prev)}
- className="flex items-center gap-2 text-[10px] font-bold mt-3 text-slate-500 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded"
+ className="flex items-center gap-2 text-[11px] font-bold mt-3 text-slate-500 cursor-pointer hover:text-white transition-colors p-1 -ml-1 rounded"
  >
  <Clock size={12} />
  موردين بالانتظار: {(data?.suppliers || []).filter(s => (supplierOutstandingMap[s.id]?.balance || 0) > 0).length}
@@ -419,7 +419,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="overflow-x-auto rounded-2xl border border-slate-100">
  <table className="mobile-card-table w-full text-right min-w-[1000px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
+ <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[11px] uppercase text-right">
  <th className="p-3 md:p-3">تاريخ الحركة</th>
  <th className="p-3 md:p-3">اسم المورد / نوع الحركة</th>
  <th className="p-3 md:p-3">مبلغ التوريد (د.ك)</th>
@@ -458,7 +458,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td data-mobile-label="اسم المورد / نوع الحركة" className="p-3 md:p-3">
  <div className="flex flex-col">
  <div className="font-bold text-slate-900">{s?.name || 'مورد محذوف'}</div>
- <div className="text-[10px] font-bold text-slate-500">{transaction.displayType}</div>
+ <div className="text-[11px] font-bold text-slate-500">{transaction.displayType}</div>
  </div>
  </td>
  <td data-mobile-label="مبلغ التوريد (د.ك)" className="p-3 md:p-3 font-black text-slate-700">
@@ -466,7 +466,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    <div className="space-y-1">
      <div>{Number(transaction.supplyAmount || 0).toFixed(3)}</div>
      {Number((transaction as any).addonsSupplyAmount || 0) > 0 && (
-       <div className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-2 py-1 inline-block">
+       <div className="text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-2 py-1 inline-block">
          منتجات {Number((transaction as any).productsSupplyAmount || Math.max(0, Number(transaction.supplyAmount || 0) - Number((transaction as any).addonsSupplyAmount || 0))).toFixed(3)} + إضافات {Number((transaction as any).addonsSupplyAmount || 0).toFixed(3)}
        </div>
      )}
@@ -481,7 +481,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </td>
  <td data-mobile-label="طريقة الدفع" className="p-3 md:p-3">
  <span className={cn(
-"px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase whitespace-nowrap bg-white",
+"px-2.5 py-0.5 rounded-full border text-[11px] font-bold uppercase whitespace-nowrap bg-white",
  isInvoice ?"border-slate-200 text-slate-600" :"border-emerald-200 text-emerald-700"
 )}>
  {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : arLabel(transaction.method)}
@@ -629,7 +629,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const clean = Math.round(((selectedSupplierSummary?.balance ?? 0)) * 1000) / 1000;
  setTransferForm({ ...transferForm, amount: clean });
  }}
- className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
+ className="text-[11px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
  >
  كامل المبلغ
  </button>
@@ -640,21 +640,21 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="bg-slate-50 border border-slate-100 rounded-3xl p-3 md:p-4 space-y-3">
    <div className="grid grid-cols-2 gap-2.5">
      <div className="bg-white rounded-2xl p-3 text-right border border-slate-100 min-w-0">
-       <div className="text-[10px] font-black text-slate-400 mb-1 whitespace-nowrap">توريد متبقّي</div>
+       <div className="text-[11px] font-black text-slate-400 mb-1 whitespace-nowrap">توريد متبقّي</div>
        <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.remainingSupply.toFixed(3)}</div>
      </div>
      {selectedSupplierSummary.remainingDelivery > 0 && (
      <div className="bg-blue-50 rounded-2xl p-3 text-right border border-blue-100 min-w-0">
-       <div className="text-[10px] font-black text-blue-400 mb-1 whitespace-nowrap">توصيل متبقّي</div>
+       <div className="text-[11px] font-black text-blue-400 mb-1 whitespace-nowrap">توصيل متبقّي</div>
        <div className="text-lg font-black text-blue-700 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.remainingDelivery.toFixed(3)}</div>
      </div>
      )}
      <div className="bg-emerald-50 rounded-2xl p-3 text-right border border-emerald-100 min-w-0">
-       <div className="text-[10px] font-black text-emerald-500 mb-1 whitespace-nowrap">مدفوع سابقاً</div>
+       <div className="text-[11px] font-black text-emerald-500 mb-1 whitespace-nowrap">مدفوع سابقاً</div>
        <div className="text-lg font-black text-emerald-700 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.paid.toFixed(3)}</div>
      </div>
      <div className="bg-slate-900 rounded-2xl p-3 text-right text-white min-w-0">
-       <div className="text-[10px] font-black text-white/50 mb-1 whitespace-nowrap">المتبقي</div>
+       <div className="text-[11px] font-black text-white/50 mb-1 whitespace-nowrap">المتبقي</div>
        <div className="text-lg font-black whitespace-nowrap" dir="ltr">{selectedSupplierSummary.balance.toFixed(3)}</div>
      </div>
    </div>
@@ -762,7 +762,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="flex items-center gap-4">
  <div className="text-right">
  <h3 className="text-xl font-black text-slate-900 leading-tight">تفاصيل الفاتورة المسددة</h3>
- <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">#{inv.id} • {formatKuwaitiDateOnly(inv.date)}</p>
+ <p className="text-[11px] font-black text-blue-500 uppercase tracking-[0.2em] mt-0.5">#{inv.id} • {formatKuwaitiDateOnly(inv.date)}</p>
  </div>
  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
  <FileText size={24} />
@@ -775,19 +775,19 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
  <div className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100/60 relative overflow-hidden group">
  <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-blue-500/10 transition-colors" />
- <div className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">بيانات العميل</div>
+ <div className="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-widest">بيانات العميل</div>
  <div className="font-black text-slate-900 text-lg">{customer?.name || (inv as any).customerName || 'عميل مجهول'}</div>
  <div className="text-xs font-bold text-slate-500 mt-0.5">{customer?.phone || (inv as any).customerPhone || 'بدون رقم'}</div>
  </div>
  <div className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100/60 relative overflow-hidden group">
  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
- <div className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">طريقة الدفع والحالة</div>
+ <div className="text-[11px] font-black text-slate-400 uppercase mb-2 tracking-widest">طريقة الدفع والحالة</div>
  <div className="font-black text-slate-900 text-lg">
  {inv.paymentMethod === 'BankTransfer' ? 'حوالة بنكية' : inv.paymentMethod === 'Cash' ? 'نقدي' : inv.paymentMethod === 'KNet' ? 'كي-نت' : arLabel(inv.paymentMethod)}
  </div>
  <div className="flex items-center gap-1.5 mt-1">
  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
- <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">عملية مكتملة ومسددة</span>
+ <span className="text-[11px] font-black text-emerald-600 uppercase tracking-wider">عملية مكتملة ومسددة</span>
  </div>
  </div>
  </div>
@@ -795,10 +795,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  {/* Items Section */}
  <div className="space-y-4">
  <div className="flex justify-between items-center px-1">
- <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+ <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
  <TrendingUp size={14} className="text-blue-500" /> تفاصيل الأصناف الموردة
  </h4>
- <span className="text-[10px] font-black text-slate-400">{(inv.items || []).length} صنف</span>
+ <span className="text-[11px] font-black text-slate-400">{(inv.items || []).length} صنف</span>
  </div>
  <div className="space-y-3">
  {(inv.items || []).map((item, idx) => {
@@ -815,17 +815,17 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div key={idx} className="p-4 border border-slate-100 rounded-3xl transition-all hover:shadow-lg hover:border-blue-100 bg-white group">
  <div className="flex justify-between items-center gap-3">
  <div className="text-left">
- <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{itemRevenueTotal.toFixed(3)} <span className="text-[10px]">د.ك</span></div>
- <div className="text-[10px] text-slate-400 font-bold tracking-tight">{qty} وحدة × {Number(itemPrice || 0).toFixed(3)}</div>
- {addonsRevenue > 0 && <div className="text-[10px] text-amber-600 font-black mt-1">يشمل إضافات {addonsRevenue.toFixed(3)} د.ك</div>}
+ <div className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{itemRevenueTotal.toFixed(3)} <span className="text-[11px]">د.ك</span></div>
+ <div className="text-[11px] text-slate-400 font-bold tracking-tight">{qty} وحدة × {Number(itemPrice || 0).toFixed(3)}</div>
+ {addonsRevenue > 0 && <div className="text-[11px] text-amber-600 font-black mt-1">يشمل إضافات {addonsRevenue.toFixed(3)} د.ك</div>}
  </div>
  <div className="text-right">
  <div className="font-bold text-slate-800 leading-tight">{p?.name || item.productId}</div>
- <div className="text-[10px] font-black text-emerald-600 mt-1 flex items-center gap-1 justify-end">
+ <div className="text-[11px] font-black text-emerald-600 mt-1 flex items-center gap-1 justify-end">
  <DollarSign size={10} />
  حصة المورد: {supplierShareTotal.toFixed(3)} د.ك
  </div>
- {addonsCost > 0 && <div className="text-[10px] font-black text-amber-600 mt-1">منها إضافات المورد: {addonsCost.toFixed(3)} د.ك</div>}
+ {addonsCost > 0 && <div className="text-[11px] font-black text-amber-600 mt-1">منها إضافات المورد: {addonsCost.toFixed(3)} د.ك</div>}
  </div>
  </div>
  {addonsCost > 0 && (
@@ -835,7 +835,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    if (addonCost <= 0) return null;
    const qtyLabel = addon.quantity ?? addon.qty ?? addon.count ?? addon.selectedQuantity ?? addon.selectedQty ?? addon.selectedCount ?? addon.addonQuantity;
    return (
-     <div key={`${idx}-addon-${addonIdx}`} className="flex justify-between items-center gap-2 text-[10px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
+     <div key={`${idx}-addon-${addonIdx}`} className="flex justify-between items-center gap-2 text-[11px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
        <span className="font-black text-amber-700 text-right">إضافة: {addon.name || addon.title || addon.label || 'إضافة'}{qtyLabel !== undefined ? ` × ${qtyLabel}` : ''}</span>
        <span className="font-black text-amber-700 whitespace-nowrap" dir="ltr">{addonCost.toFixed(3)} د.ك</span>
      </div>
@@ -858,21 +858,21 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="relative z-10 space-y-4">
  <div className="flex justify-between items-center pb-4 border-b border-white/10">
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest">إجمالي المبيعات</span>
- <span className="font-black text-lg">{liveInvoiceTotal.toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ <span className="font-black text-lg">{liveInvoiceTotal.toFixed(3)} <span className="text-[11px] opacity-40">د.ك</span></span>
  </div>
  <div className="flex justify-between items-center pb-4 border-b border-white/10">
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest">تكلفة التوريد النهائية</span>
- <span className="font-black text-lg text-emerald-400">{liveInvoiceCost.toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ <span className="font-black text-lg text-emerald-400">{liveInvoiceCost.toFixed(3)} <span className="text-[11px] opacity-40">د.ك</span></span>
  </div>
  {invoiceDeliveryCost > 0 && (
  <div className="flex justify-between items-center pb-4 border-b border-white/10">
  <span className="text-xs font-bold text-white/40 uppercase tracking-widest">تكلفة التوصيل</span>
- <span className="font-black text-lg text-blue-300">{invoiceDeliveryCost.toFixed(3)} <span className="text-[10px] opacity-40">د.ك</span></span>
+ <span className="font-black text-lg text-blue-300">{invoiceDeliveryCost.toFixed(3)} <span className="text-[11px] opacity-40">د.ك</span></span>
  </div>
  )}
  <div className="flex justify-between items-center pt-2">
  <div className="flex flex-col">
- <span className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">صافي الربح الفعلي</span>
+ <span className="text-[11px] font-black text-white/40 uppercase tracking-widest mb-1">صافي الربح الفعلي</span>
  <span className="text-3xl font-black bg-gradient-to-l from-white to-white/60 bg-clip-text text-transparent italic">
  {liveInvoiceProfit.toFixed(3)} <span className="text-xs">د.ك</span>
  </span>
