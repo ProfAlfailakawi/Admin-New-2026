@@ -1259,7 +1259,7 @@ Alturath.kw`;
                 const dayKeys: string[] = [];
                 for (let i = 29; i >= 0; i--) dayKeys.push(getKuwaitDateInputValue(new Date(Date.now() - i * 86400000)));
                 const perDay = new Map<string, number>(dayKeys.map((k) => [k, 0]));
-                activeInvoices.filter(isCountedPaid).forEach((inv) => {
+                filteredInvoices.filter(isCountedPaid).forEach((inv) => {
                   const d = coerceDateValue(resolveInvoiceDisplayDate(inv));
                   if (!d) return;
                   const k = getKuwaitDateInputValue(d);

@@ -187,6 +187,7 @@ import {
 import {
   isPendingStatus,
   isFailedStatus,
+  isCancelledStatus,
   isPaidStatus,
 } from "../lib/status-utils";
 import { GET_DEMO_DATA } from "../data";
@@ -1308,6 +1309,7 @@ const [isPending, startTransition] = useTransition();
       recordedCashMovement,
       orphanOutflows,
       cashAnchorNeeded,
+      filteredExpenses: periodExpenses,
     } = useMemo(() => {
       const invoices = activeInvoices.filter((inv) => {
         const isPaid = isPaidStatus(inv.paymentStatus);
@@ -1487,6 +1489,7 @@ const [isPending, startTransition] = useTransition();
         recordedCashMovement,
         orphanOutflows,
         cashAnchorNeeded,
+        filteredExpenses,
         totalDiscountsVal,
         allTimeFoodSales,
         allTimeCollectedDeliveryFees,
@@ -2593,7 +2596,7 @@ const [isPending, startTransition] = useTransition();
 
                 <ExpensePie
                   slices={Object.entries(
-                    (data?.expenses || []).reduce((acc: Record<string, number>, e: any) => {
+                    periodExpenses.reduce((acc: Record<string, number>, e: any) => {
                       const k = String(e?.category || "General");
                       acc[k] = (acc[k] || 0) + Math.abs(Number(e?.amount) || 0);
                       return acc;
@@ -3863,7 +3866,7 @@ const [isPending, startTransition] = useTransition();
                     days.forEach((d, i) => { idx[d.key] = i; });
                     (unifiedInvoices || []).forEach((inv) => {
                       if (inv.isDeleted) return;
-                      const isPaid = (isPaidStatus(inv.paymentStatus) || inv.paymentStatus === undefined) && !String(inv.status).includes("تجميع القطية") && inv.paymentStatus !== "split_pending" && inv.status !== "split_pending";
+                      const isPaid = (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus(inv.status) && !isFailedStatus(inv.status))) && !String(inv.status).includes("تجميع القطية") && inv.paymentStatus !== "split_pending" && inv.status !== "split_pending";
                       if (!isPaid) return;
                       const t = new Date(inv.date);
                       if (isNaN(t.getTime())) return;
