@@ -189,7 +189,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
  {/* Header Panel */}
- <div className="heritage-dark-card bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 lg:items-center lg:py-6 lg:[&>h2]:mb-2 lg:[&>p]:mb-0">
+ <div className="heritage-dark-card bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 lg:items-center max-lg:pt-5 lg:py-6 lg:[&>h2]:mb-2 lg:[&>p]:mb-0">
  <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400" />
  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12 hidden sm:block"><Calculator size={200} /></div>
  
