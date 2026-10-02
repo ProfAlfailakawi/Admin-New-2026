@@ -193,7 +193,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
          </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="#e2e8f0" />
-        <XAxis dataKey="name" axisLine={false} tickLine={false} dy={12} interval={period === '3_years' ? 3 : period === '2_years' ? 2 : period === '1_year' ? 1 : 0} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif' }} />
+        <XAxis dataKey="name" axisLine={false} tickLine={false} dy={12} interval="preserveStartEnd" minTickGap={56} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif' }} />
         <YAxis axisLine={false} tickLine={false} width={66} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 800, fontFamily: 'Cairo, sans-serif' }} tickFormatter={(value) => Number(value || 0).toLocaleString('en-US')} />
         <Tooltip contentStyle={{ borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 18px 40px rgba(15,23,42,.12)', fontFamily: 'Cairo, Tahoma, sans-serif', direction: 'rtl' }} itemStyle={{ fontWeight: 900 }} labelStyle={{ color: '#334155', fontWeight: 900, marginBottom: '8px' }} formatter={(value: number, name: string) => [`${safeFormatCurrency(value)} د.ك`, name]} />
         <Area type="monotone" dataKey="المبيعات" stroke="#4f46e5" strokeWidth={4} fill="url(#forecastSales)" activeDot={{ r: 6, strokeWidth: 3, stroke: '#fff', fill: '#4f46e5' }} isAnimationActive={false} />

@@ -315,9 +315,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  };
 
  return (
- <div className="space-y-8 pt-12 md:pt-16 pb-20">
+ <div className="space-y-8 pt-2 md:pt-4 pb-20">
    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6" dir="rtl">
-     <div className="text-right">
+     <div className="text-right sr-only">
        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">كشف الحساب المالي التفصيلي</h1>
        <p className="text-slate-500 font-bold mt-1">سجل التوريد والسداد والتدقيق المالي الشامل</p>
      </div>
