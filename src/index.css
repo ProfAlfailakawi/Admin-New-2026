@@ -6606,3 +6606,14 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 /* r41: softer dark panels on the cream page (slightly lighter surface, gentler border and shadow) */
 .heritage-dark-card{background:linear-gradient(160deg,#1a3a2b 0%,#1a2d45 62%,#1d283b 100%)!important;border-color:rgba(212,175,55,.18)!important;box-shadow:0 12px 30px -22px rgba(15,23,42,.38)!important}
 .profit-shield-panel{background:linear-gradient(135deg,#1d2a3f,#2a3750)!important;border:1px solid rgba(212,175,55,.16)!important;box-shadow:0 12px 30px -22px rgba(15,23,42,.38)!important}
+
+/* r52: page hero uses the full row (no 2-column grid leaving a void and wrapping long titles) */
+.admin-page-hero{grid-template-columns:minmax(0,1fr)!important}
+.admin-page-hero .admin-page-hero-main{max-width:none!important;min-width:0}
+/* r52: coupon tickets sit two per row on phones instead of one tall card each */
+@media (max-width:520px){
+  .coupon-theater-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .coupon-ticket{min-width:0}
+  .coupon-ticket span{white-space:normal;line-height:1.4}
+}
+.panel-head span{font-size:11px}

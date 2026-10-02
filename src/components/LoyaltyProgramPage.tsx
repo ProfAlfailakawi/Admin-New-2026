@@ -451,24 +451,24 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  
  <div className="loyalty-stats-grid grid grid-cols-2 lg:grid-cols-5 gap-3 mt-8">
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-white/20">
- <span className="text-[10px] font-bold text-amber-200 block mb-1">إجمالي النقاط الفعالة</span>
- <div className="text-xl md:text-2xl font-bold">{stats.totalPoints.toLocaleString('en-GB')} <span className="text-[10px] opacity-70 font-bold">نقطة</span></div>
+ <span className="text-[11px] font-bold text-amber-200 block mb-1">إجمالي النقاط الفعالة</span>
+ <div className="text-xl md:text-2xl font-bold">{stats.totalPoints.toLocaleString('en-GB')} <span className="text-[11px] opacity-70 font-bold">نقطة</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-emerald-500/20">
- <span className="text-[10px] font-bold text-emerald-200 block mb-1">نشط / جديد</span>
- <div className="text-xl md:text-2xl font-bold">{stats.active} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <span className="text-[11px] font-bold text-emerald-200 block mb-1">نشط / جديد</span>
+ <div className="text-xl md:text-2xl font-bold">{stats.active} <span className="text-[11px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-amber-500/30">
- <span className="text-[10px] font-bold text-amber-200 block mb-1">كبار العملاء "الكفو"</span>
- <div className="text-xl md:text-2xl font-bold">{stats.vipCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <span className="text-[11px] font-bold text-amber-200 block mb-1">كبار العملاء "الكفو"</span>
+ <div className="text-xl md:text-2xl font-bold">{stats.vipCount} <span className="text-[11px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-orange-500/20">
- <span className="text-[10px] font-bold text-orange-200 mb-1 flex items-center gap-1"><AlertTriangle size={11} />ماشي بالخطر</span>
- <div className="text-xl md:text-2xl font-bold">{stats.atRiskCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <span className="text-[11px] font-bold text-orange-200 mb-1 flex items-center gap-1"><AlertTriangle size={11} />ماشي بالخطر</span>
+ <div className="text-xl md:text-2xl font-bold">{stats.atRiskCount} <span className="text-[11px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-rose-500/20">
- <span className="text-[10px] font-bold text-rose-200 block mb-1">خاملون تماماً</span>
- <div className="text-xl md:text-2xl font-bold">{stats.inactive} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
+ <span className="text-[11px] font-bold text-rose-200 block mb-1">خاملون تماماً</span>
+ <div className="text-xl md:text-2xl font-bold">{stats.inactive} <span className="text-[11px] opacity-70 font-bold">عميل</span></div>
  </div>
  </div>
  </div>
@@ -537,15 +537,15 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div>
  <h3 className="text-xl md:text-3xl font-bold text-amber-400 flex flex-wrap items-center gap-2">
  <Trophy size={22} className="shrink-0" />أبطال الطلبات
- <span className="text-[10px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">أعلى 10</span>
+ <span className="text-[11px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">أعلى 10</span>
  </h3>
  <p className="text-slate-400 font-bold mt-1 text-[11px] md:text-sm">مختصر مرتب؛ افتح أي بطل فقط عند الحاجة.</p>
  </div>
  </div>
  <div className="grid grid-cols-3 gap-2">
- <div className="rounded-2xl bg-white/10 border border-white/10 p-2 text-center"><span className="block text-[9px] text-slate-400 font-black">الأبطال</span><b className="text-sm text-white">{topHeroes.length}</b></div>
- <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/15 p-2 text-center"><span className="block text-[9px] text-emerald-200 font-black">نشط</span><b className="text-sm text-emerald-100">{activeHeroes}</b></div>
- <div className="rounded-2xl bg-rose-500/10 border border-rose-500/15 p-2 text-center"><span className="block text-[9px] text-rose-200 font-black">غائب</span><b className="text-sm text-rose-100">{missingHeroes}</b></div>
+ <div className="rounded-2xl bg-white/10 border border-white/10 p-2 text-center"><span className="block text-[11px] text-slate-400 font-black">الأبطال</span><b className="text-sm text-white">{topHeroes.length}</b></div>
+ <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/15 p-2 text-center"><span className="block text-[11px] text-emerald-200 font-black">نشط</span><b className="text-sm text-emerald-100">{activeHeroes}</b></div>
+ <div className="rounded-2xl bg-rose-500/10 border border-rose-500/15 p-2 text-center"><span className="block text-[11px] text-rose-200 font-black">غائب</span><b className="text-sm text-rose-100">{missingHeroes}</b></div>
  </div>
  </div>
  <div className="relative z-10 space-y-2">
@@ -564,18 +564,18 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-300 flex items-center justify-center text-base font-bold border border-amber-500/20 shrink-0">{hero.name?.charAt(0) || '?'}</div>
  <div className="min-w-0">
  <h4 className="font-bold text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
- <p className="text-[10px] text-slate-400 font-bold truncate">{hero.totalSpent.toFixed(2)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
+ <p className="text-[11px] text-slate-400 font-bold truncate">{hero.totalSpent.toFixed(2)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
  </div>
  </div>
  <div className="flex items-center gap-2 shrink-0">
- <span className={cn('rounded-full px-2 py-1 text-[9px] font-black', isMissing ? 'bg-rose-500/15 text-rose-200' : 'bg-emerald-500/15 text-emerald-200')}>{isMissing ? 'استرجاع' : 'مكافأة'}</span>
+ <span className={cn('rounded-full px-2 py-1 text-[11px] font-black', isMissing ? 'bg-rose-500/15 text-rose-200' : 'bg-emerald-500/15 text-emerald-200')}>{isMissing ? 'استرجاع' : 'مكافأة'}</span>
  <ChevronDown size={15} className={cn('text-slate-400 transition-transform', isOpen ? 'rotate-180' : '')} />
  </div>
  </button>
  {isOpen && (
  <div className="border-t border-slate-700 p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
- <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[9px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-white">{hero.totalSpent.toFixed(2)} د.ك</b></div>
- <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[9px] text-slate-500 font-black">الحالة</span><b className={cn('text-[11px]', isMissing ? 'text-rose-200' : 'text-emerald-200')}>{isMissing ? `غائب من ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط 🔥'}</b></div>
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[11px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-white">{hero.totalSpent.toFixed(2)} د.ك</b></div>
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[11px] text-slate-500 font-black">الحالة</span><b className={cn('text-[11px]', isMissing ? 'text-rose-200' : 'text-emerald-200')}>{isMissing ? `غائب من ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط 🔥'}</b></div>
  <button
  onClick={() => {
  const heroName = getFriendlyName(hero.name);
@@ -590,7 +590,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  ], hero.id || hero.phone || hero.name);
  handleWhatsApp(hero.phone, msg);
  }}
- className={cn('rounded-xl py-2 px-3 text-[10px] font-black transition-all', isMissing ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200')}
+ className={cn('rounded-xl py-2 px-3 text-[11px] font-black transition-all', isMissing ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-200' : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200')}
  >
  {isMissing ? 'استرجاع بخصم 15%' : 'مكافأة الاستمرار'}
  </button>
@@ -613,9 +613,9 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="flex flex-col xl:flex-row items-center gap-2 md:gap-3 w-full md:w-auto">
  {/* Sorting */}
  <div className="flex items-center gap-1 md:gap-2 bg-slate-50 border border-slate-200/60 rounded-xl md:rounded-2xl p-1 w-full xl:w-auto">
- <button onClick={() => setSortBy('points')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'points' ?"bg-indigo-600 text-white" :"text-slate-500")}>الأعلى نقاط</button>
- <button onClick={() => setSortBy('spent')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'spent' ?"bg-slate-900 text-white" :"text-slate-500")}>الأعلى صرف</button>
- <button onClick={() => setSortBy('lastOrder')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-bold transition-all", sortBy === 'lastOrder' ?"bg-slate-900 text-white" :"text-slate-500")}>أحدث طلب</button>
+ <button onClick={() => setSortBy('points')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-[11px] font-bold transition-all", sortBy === 'points' ?"bg-indigo-600 text-white" :"text-slate-500")}>الأعلى نقاط</button>
+ <button onClick={() => setSortBy('spent')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-[11px] font-bold transition-all", sortBy === 'spent' ?"bg-slate-900 text-white" :"text-slate-500")}>الأعلى صرف</button>
+ <button onClick={() => setSortBy('lastOrder')} className={cn("px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-[11px] font-bold transition-all", sortBy === 'lastOrder' ?"bg-slate-900 text-white" :"text-slate-500")}>أحدث طلب</button>
  </div>
 
  <div className="relative w-full lg:w-64">
@@ -777,17 +777,17 @@ setSearchTerm(val);
  </div>
  <div className="flex flex-col">
  <span className="font-bold text-slate-800 text-xs md:text-sm">{c.name}</span>
- <span className="text-[10px] md:text-[11px] text-slate-500 font-bold tracking-wide mt-0.5 md:mt-1" dir="ltr">{c.phone}</span>
+ <span className="text-[11px] md:text-[11px] text-slate-500 font-bold tracking-wide mt-0.5 md:mt-1" dir="ltr">{c.phone}</span>
  </div>
  </button>
  </td>
  <td className="p-2 md:p-3 text-center">
  <div className="flex flex-col items-center gap-1.5 md:gap-2">
- <span className={cn("px-2 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold", c.classificationColor)}>
+ <span className={cn("px-2 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-[11px] md:text-xs font-bold", c.classificationColor)}>
  {c.classification === 'VIP' ? 'مميز' : c.classification}
  </span>
  {c.daysSinceLastOrder !== Infinity && (
- <div className="text-[10px] md:text-[11px] text-slate-500 font-bold flex items-center gap-1">
+ <div className="text-[11px] md:text-[11px] text-slate-500 font-bold flex items-center gap-1">
  <Clock size={10} /> منذ {c.daysSinceLastOrder} يوم
  </div>
 )}
@@ -803,7 +803,7 @@ setSearchTerm(val);
  </span>
  {c.pointsStatus !=="فعال" && (
  <span className={cn(
-"text-[10px] whitespace-nowrap font-bold px-2 py-0.5 rounded-lg mt-1",
+"text-[11px] whitespace-nowrap font-bold px-2 py-0.5 rounded-lg mt-1",
  c.pointsStatus ==="معرضة للانتهاء" ?"bg-orange-100 text-orange-600" :"bg-slate-100 text-slate-500"
 )}>
  {c.pointsStatus}
@@ -821,7 +821,7 @@ setSearchTerm(val);
  </td>
  <td className="p-2 md:p-3 text-right">
  <div className="bg-slate-100/50 p-2 md:p-3 rounded-xl inline-block max-w-[280px]">
- <span className="text-[10px] md:text-xs font-bold text-slate-600 leading-relaxed block">
+ <span className="text-[11px] md:text-xs font-bold text-slate-600 leading-relaxed block">
  {c.smartAdvice}
  </span>
  </div>
@@ -915,7 +915,7 @@ setSearchTerm(val);
  {expirationRule === 0 ? 'لا تنتهي' : expirationRule}
  </span>
  </div>
- <p className="text-[10px] text-slate-500 font-bold mt-2">
+ <p className="text-[11px] text-slate-500 font-bold mt-2">
  {expirationRule === 0 ? 'النقاط لا تنتهي أبداً.' : `تنتهي النقاط تلقائياً بعد مرور ${expirationRule} يوم من آخر طلب للعميل.`}
  </p>
  </div>
@@ -923,7 +923,7 @@ setSearchTerm(val);
  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
  <div>
  <div className="font-bold text-slate-800 text-sm">المكافآت التكيفية (ذكي)</div>
- <div className="text-[10px] text-slate-500 font-bold">تعديل قيمة النقاط بناءً على ضغط الحجز والنبض الاقتصادي.</div>
+ <div className="text-[11px] text-slate-500 font-bold">تعديل قيمة النقاط بناءً على ضغط الحجز والنبض الاقتصادي.</div>
  </div>
  <button 
  onClick={() => setIsDynamicRewardsEnabled(!isDynamicRewardsEnabled)}
@@ -990,10 +990,10 @@ setSearchTerm(val);
  <h3 className="text-2xl font-bold">{selectedCustomer.name}</h3>
  <p className="text-slate-500 font-bold" dir="ltr">{selectedCustomer.phone}</p>
  <div className="flex items-center gap-2 mt-2">
- <span className={cn("px-3 py-1 rounded-lg text-[10px] font-bold", selectedCustomer.classificationColor)}>
+ <span className={cn("px-3 py-1 rounded-lg text-[11px] font-bold", selectedCustomer.classificationColor)}>
  {selectedCustomer.classification === 'VIP' ? 'مميز' : selectedCustomer.classification}
  </span>
- <span className="bg-white/10 px-3 py-1 rounded-lg text-[10px] font-bold text-amber-400">
+ <span className="bg-white/10 px-3 py-1 rounded-lg text-[11px] font-bold text-amber-400">
  {selectedCustomer.points} نقطة ولاء
  </span>
  </div>
@@ -1006,19 +1006,19 @@ setSearchTerm(val);
  {/* Key Metrics */}
  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
  <div className="bg-slate-50 p-2 md:p-3 rounded-xl md:rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-bold text-slate-500 uppercase block mb-0.5 md:mb-1">إجمالي الصرف</span>
+ <span className="text-[11px] font-bold text-slate-500 uppercase block mb-0.5 md:mb-1">إجمالي الصرف</span>
  <div className="text-sm md:text-lg font-bold text-slate-800">{(selectedCustomer.totalSpent || 0).toFixed(3)} د.ك</div>
  </div>
  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">عدد الطلبات</span>
+ <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">عدد الطلبات</span>
  <div className="text-lg font-bold text-slate-800">{selectedCustomer.ordersCount}</div>
  </div>
  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">نقاط مكتسبة</span>
+ <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">نقاط مكتسبة</span>
  <div className="text-lg font-bold text-slate-800">{selectedCustomer.rawPoints}</div>
  </div>
  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
- <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">آخر طلب</span>
+ <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">آخر طلب</span>
  <div className="text-lg font-bold text-slate-500">
  {selectedCustomer.lastOrderDate ? formatKuwaitiDateOnly(selectedCustomer.lastOrderDate) : 'لا يوجد'}
  </div>
@@ -1038,7 +1038,7 @@ setSearchTerm(val);
  </div>
  <div>
  <div className="font-bold text-slate-800 text-sm">{h.type}</div>
- <div className="text-[10px] text-slate-500 font-bold">{formatKuwaitiDateOnly(h.date)}</div>
+ <div className="text-[11px] text-slate-500 font-bold">{formatKuwaitiDateOnly(h.date)}</div>
  </div>
  </div>
  <div className="text-rose-600 font-bold text-sm">-{h.amount.toFixed(3)} د.ك</div>
@@ -1069,7 +1069,7 @@ setSearchTerm(val);
 )}
  >
  <div className="text-xs font-bold text-slate-800">{r.name}</div>
- <div className="text-[10px] font-bold text-amber-600">{r.points} نقطة</div>
+ <div className="text-[11px] font-bold text-amber-600">{r.points} نقطة</div>
  </button>
 ))}
  </div>

@@ -87,7 +87,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  </div>
  <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
  <span className={cn(
-"text-[10px] md:text-[11px] font-bold uppercase tracking-tighter sm:block hidden",
+"text-[11px] md:text-[11px] font-bold uppercase tracking-tighter sm:block hidden",
  insight.riskLevel === 'high' ? 'text-rose-600' : insight.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'
 )}>
  {insight.riskLevel === 'high' ? 'خطورة عالية' : insight.riskLevel === 'medium' ? 'تآكل هوامش' : 'أداء مستقر'}
@@ -116,27 +116,27 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.explanation}
  </p>
  <div className="bg-[#fdfbf7] p-3 rounded-xl border border-[#f0e6d2]">
- <h5 className="text-indigo-600 font-bold text-[10px] uppercase mb-1 flex items-center gap-2 justify-end">💡 توصية التصحيح</h5>
+ <h5 className="text-indigo-600 font-bold text-[11px] uppercase mb-1 flex items-center gap-2 justify-end">💡 توصية التصحيح</h5>
  <p className="text-xs font-bold text-slate-700 italic">"{insight.recommendation}"</p>
  </div>
  </div>
  <div className="w-full lg:w-96 flex flex-col gap-3">
  <div className="grid grid-cols-3 gap-2 text-right">
  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
- <span className="text-[10px] font-bold text-slate-500 block">الإيراد</span>
+ <span className="text-[11px] font-bold text-slate-500 block">الإيراد</span>
  <span className="text-sm font-bold text-slate-700">{safeFormatCurrency(insight.revenue)} د.ك</span>
  </div>
  <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
- <span className="text-[10px] font-bold text-indigo-400 block">الربح الظاهري</span>
+ <span className="text-[11px] font-bold text-indigo-400 block">الربح الظاهري</span>
  <span className="text-sm font-bold text-indigo-700">{safeFormatCurrency(insight.rawProfit)} د.ك</span>
  </div>
  <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-100">
- <span className="text-[10px] font-bold text-rose-400 block">تكاليف خفية</span>
+ <span className="text-[11px] font-bold text-rose-400 block">تكاليف خفية</span>
  <span className="text-sm font-bold text-rose-600">{safeFormatPercent(insight.hiddenCostsRatio)}</span>
  </div>
  </div>
  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center flex-row-reverse">
- <span className="text-[10px] font-bold text-slate-500">الربح الحقيقي الصافي</span>
+ <span className="text-[11px] font-bold text-slate-500">الربح الحقيقي الصافي</span>
  <span className={cn("text-sm font-bold", insight.realProfitValue < 0 ? 'text-rose-400' : 'text-emerald-400')}>
  {safeFormatCurrency(insight.realProfitValue)} د.ك
  </span>
@@ -250,13 +250,13 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  <div className="text-right relative z-10 w-full min-w-0">
  <div className="flex flex-col sm:flex-row sm:flex-row-reverse sm:items-center gap-2 sm:justify-start mb-2">
  <h3 className="font-black text-xl sm:text-2xl text-white leading-snug break-words">رادار الدرع المالي</h3>
- <span className="w-fit bg-rose-500/20 text-rose-400 text-[10px] font-black px-3 py-1 rounded-full border border-rose-500/30 whitespace-normal sm:whitespace-nowrap leading-relaxed">حماية نشطة</span>
+ <span className="w-fit bg-rose-500/20 text-rose-400 text-[11px] font-black px-3 py-1 rounded-full border border-rose-500/30 whitespace-normal sm:whitespace-nowrap leading-relaxed">حماية نشطة</span>
  </div>
- <p className="text-slate-400 text-[11px] sm:text-[10px] font-bold leading-6 sm:leading-relaxed">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
+ <p className="text-slate-400 text-[11px] sm:text-[11px] font-bold leading-6 sm:leading-relaxed">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
  </div>
  <div className="flex items-center justify-center gap-3 bg-rose-500/10 px-4 py-2 rounded-2xl sm:rounded-full border border-rose-500/30 relative z-10 shrink-0">
  <ShieldAlert className="text-rose-400 animate-pulse" size={14} />
- <span className="text-[10px] font-bold text-rose-300 uppercase whitespace-nowrap">الدرع نشط</span>
+ <span className="text-[11px] font-bold text-rose-300 uppercase whitespace-nowrap">الدرع نشط</span>
  </div>
  </div>
 
@@ -274,7 +274,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
    </div>
  )}
 
- <div className="flex justify-between items-center px-1 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+ <div className="flex justify-between items-center px-1 text-[11px] font-black text-slate-400 uppercase tracking-widest">
  <span>{filteredInsights.length} منتج تحت المراقبة</span>
  <span>تحليل الهوامش والنزيف</span>
  </div>

@@ -45,14 +45,14 @@ export const StatCardComponent: React.FC<StatCardProps> = ({ label, value, icon,
         <div className={cn("w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-white/90 border flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform shrink-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-5 md:[&>svg]:h-5", textColorMap[color] || textColorMap.blue)}>
           {icon}
         </div>
-        <div className="hidden md:block text-[10px] md:text-xs font-bold uppercase tracking-wider text-slate-400 mt-2 leading-tight">
+        <div className="hidden md:block text-[11px] md:text-xs font-bold uppercase tracking-wider text-slate-400 mt-2 leading-tight">
           {label}
         </div>
       </div>
       <div className="flex flex-col text-left md:text-right">
-        <div className="md:hidden text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">{label}</div>
+        <div className="md:hidden text-[11px] md:text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">{label}</div>
         <div className="text-sm md:text-2xl tabular-nums tracking-tight font-bold text-slate-800 mb-0.5 md:mb-1">{value}</div>
-        {description && <div className="hidden md:block text-[10px] md:text-[11px] font-bold text-slate-400 leading-tight">{description}</div>}
+        {description && <div className="hidden md:block text-[11px] md:text-[11px] font-bold text-slate-400 leading-tight">{description}</div>}
         {(hasChange || hasSeries) && (
           <div className="hidden md:flex items-center gap-2 mt-1.5">
             {hasChange && (

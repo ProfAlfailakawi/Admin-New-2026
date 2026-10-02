@@ -203,7 +203,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="flex gap-4 relative z-10 px-4">
  <div className="bg-white/10 backdrop-blur-md px-4 md:px-6 py-2 md:py-3 rounded-2xl flex items-center gap-3 border border-white/10">
  <Sparkles className="text-cyan-400" size={16} />
- <span className="text-white font-bold text-[10px] md:text-sm">نمذجة دقيقة بناءً على {data.invoices.length} عملية بيع</span>
+ <span className="text-white font-bold text-[11px] md:text-sm">نمذجة دقيقة بناءً على {data.invoices.length} عملية بيع</span>
  </div>
  </div>
  </div>
@@ -247,7 +247,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  <div className="space-y-6 relative z-10">
  <div className="space-y-3 text-right">
- <label className="font-bold text-[10px] md:text-xs text-slate-500 uppercase">اختر الصنف المستهدف</label>
+ <label className="font-bold text-[11px] md:text-xs text-slate-500 uppercase">اختر الصنف المستهدف</label>
  <select 
  value={selectedProductId}
  onChange={(e) => { setSelectedProductId(e.target.value); setCampaignPlan(null); }}
@@ -264,7 +264,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="space-y-6 relative z-10">
  <div className="flex justify-between items-end mb-4">
  <div className="text-right">
- <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">القرار الاستراتيجي</span>
+ <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1">القرار الاستراتيجي</span>
  <span className={cn(
 "text-xs md:text-sm font-bold px-4 py-2 rounded-2xl border transition-all duration-500",
  percentChange > 0 
@@ -308,16 +308,16 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  
  <div className="grid grid-cols-3 gap-2 px-1">
- <span className={cn("text-[10px] font-bold text-right transition-colors duration-500", percentChange < -0.1 ? (isPositive ?"text-emerald-600" :"text-rose-600") :"text-slate-300")}>-50% جرأة سعرية</span>
- <span className="text-[10px] font-bold text-slate-200 text-center">التوازن</span>
- <span className={cn("text-[10px] font-bold text-left transition-colors duration-500", percentChange > 0.1 ? (isPositive ?"text-emerald-600" :"text-rose-600") :"text-slate-300")}>+50% رفع قوي</span>
+ <span className={cn("text-[11px] font-bold text-right transition-colors duration-500", percentChange < -0.1 ? (isPositive ?"text-emerald-600" :"text-rose-600") :"text-slate-300")}>-50% جرأة سعرية</span>
+ <span className="text-[11px] font-bold text-slate-200 text-center">التوازن</span>
+ <span className={cn("text-[11px] font-bold text-left transition-colors duration-500", percentChange > 0.1 ? (isPositive ?"text-emerald-600" :"text-rose-600") :"text-slate-300")}>+50% رفع قوي</span>
  </div>
 
  <div className={cn(
 "p-3 rounded-2xl border transition-all duration-500",
  isPositive ?"bg-emerald-50/50 border-emerald-100/50 text-emerald-900/70" :"bg-rose-50/50 border-rose-100/50 text-rose-900/70"
 )}>
- <p className="text-[10px] font-bold leading-relaxed flex items-start gap-2">
+ <p className="text-[11px] font-bold leading-relaxed flex items-start gap-2">
  <Sparkles size={14} className={isPositive ?"text-emerald-500" :"text-rose-500"} />
  <span>المحرك يحتسب"السحب والضغط": {simulation.explanation}</span>
  </p>
@@ -327,7 +327,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  {scenarioType === 'cost_change' && (
  <div className="space-y-3 text-right">
- <label className="font-bold text-[10px] md:text-xs text-slate-500 uppercase">التكلفة الجديدة (د.ك)</label>
+ <label className="font-bold text-[11px] md:text-xs text-slate-500 uppercase">التكلفة الجديدة (د.ك)</label>
  <input 
  type="number"
  step="0.25"
@@ -385,21 +385,21 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4">
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Target size={14}/> نوع الحملة والهدف</p>
+ <p className="text-[11px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Target size={14}/> نوع الحملة والهدف</p>
  <p className="text-slate-200 font-bold text-sm md:text-base mb-1 whitespace-pre-wrap">{campaignPlan.topic}</p>
  <p className="text-slate-500 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.message}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Users size={14}/> الجمهور المستهدف</p>
+ <p className="text-[11px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Users size={14}/> الجمهور المستهدف</p>
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.targetAudience}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all md:col-span-2">
- <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Sparkles size={14}/> الفكرة الإبداعية </p>
+ <p className="text-[11px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Sparkles size={14}/> الفكرة الإبداعية </p>
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.idea}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm md:col-span-2 relative hover:border-indigo-500/30 transition-all">
  <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
-  <p className="text-[10px] md:text-xs font-bold text-emerald-400 uppercase flex items-center gap-2"><MessageCircle size={14}/> رسالة واتساب جاهزة للنسخ والمبيعات</p>
+  <p className="text-[11px] md:text-xs font-bold text-emerald-400 uppercase flex items-center gap-2"><MessageCircle size={14}/> رسالة واتساب جاهزة للنسخ والمبيعات</p>
   <button onClick={() => { navigator.clipboard.writeText(campaignPlan.marketingMessage || campaignPlan.message || ''); toast.success('تم النسخ بنجاح'); }} className="text-slate-500 hover:text-white bg-slate-800 hover:bg-emerald-600 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold transition-all"><Copy size={14} /> نسخ</button>
  </div>
  <div className="bg-slate-950 p-3 rounded-xl text-xs sm:text-sm font-bold text-slate-300 border border-emerald-500/20 leading-relaxed overflow-x-hidden break-words whitespace-pre-wrap">
@@ -407,11 +407,11 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Clock size={14}/> التوقيت الأنسب</p>
+ <p className="text-[11px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Clock size={14}/> التوقيت الأنسب</p>
  <p className="text-slate-200 font-bold text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.timing}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all">
- <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><TrendingUp size={14}/> العائد المتوقع برأيه</p>
+ <p className="text-[11px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><TrendingUp size={14}/> العائد المتوقع برأيه</p>
  <p className="text-slate-200 font-bold text-sm leading-relaxed whitespace-pre-wrap">{campaignPlan.expectedOutcome}</p>
  </div>
  </div>
@@ -443,14 +443,14 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  
  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-3 md:p-4 mb-8 md:mb-10 relative z-10">
  <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800 rounded-2xl p-3 md:p-4 text-right shadow-sm group">
- <p className="text-slate-500 text-[10px] md:text-xs font-bold mb-1 uppercase group-hover:text-indigo-400 transition-colors">مبيعات الصنف حالياً</p>
+ <p className="text-slate-500 text-[11px] md:text-xs font-bold mb-1 uppercase group-hover:text-indigo-400 transition-colors">مبيعات الصنف حالياً</p>
  <p className="text-2xl md:text-3xl font-bold text-white">{safeFormatCurrency(simulation.currentMonthlyProfit)} <span className="text-sm opacity-50 font-bold">د.ك</span></p>
  </div>
  <div className={cn(
 "rounded-2xl p-3 md:p-4 text-right shadow-sm border group relative overflow-hidden transition-all",
  isPositive ?"bg-slate-900/40 border-emerald-500/30" :"bg-slate-900/40 border-rose-500/30"
 )}>
-  <p className={cn("text-[10px] md:text-xs font-bold mb-1 uppercase transition-colors", isPositive ?"text-emerald-400/80 group-hover:text-emerald-400" :"text-rose-400/80 group-hover:text-rose-400")}>المبيعات بعد قرارك (المتوقعة)</p>
+  <p className={cn("text-[11px] md:text-xs font-bold mb-1 uppercase transition-colors", isPositive ?"text-emerald-400/80 group-hover:text-emerald-400" :"text-rose-400/80 group-hover:text-rose-400")}>المبيعات بعد قرارك (المتوقعة)</p>
  <p className={cn("text-2xl md:text-3xl font-bold relative z-10", isPositive ?"text-emerald-400" :"text-rose-400")}>{safeFormatCurrency(simulation.projectedMonthlyProfit)} <span className="text-sm opacity-50 font-bold">د.ك</span></p>
  <div className={cn("relative z-10 mt-1.5 inline-flex items-center gap-1 rounded-full border bg-transparent px-2 py-0.5 text-[11px] font-bold tabular-nums", isPositive ?"border-emerald-500/30 text-emerald-400" :"border-rose-500/30 text-rose-400")} dir="ltr">
  {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}

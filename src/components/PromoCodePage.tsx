@@ -204,7 +204,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  </p>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10 whitespace-nowrap text-center">
- <div className="text-[10px] opacity-80 font-bold mb-1">إجمالي نقاط النظام</div>
+ <div className="text-[11px] opacity-80 font-bold mb-1">إجمالي نقاط النظام</div>
  <div className="text-xl font-bold">{stats.totalSystemPoints.toLocaleString('en-GB')}</div>
  </div>
  </div>
@@ -231,7 +231,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  <td className="p-3 pr-8">
  <div className="flex flex-col text-right">
  <span className="font-bold text-slate-800 text-lg uppercase tracking-wider">{c.code}</span>
- <span className="text-[10px] text-slate-500 font-bold">{c.description || 'بدون وصف'}</span>
+ <span className="text-[11px] text-slate-500 font-bold">{c.description || 'بدون وصف'}</span>
  </div>
  </td>
  <td className="p-3 text-center">
@@ -246,7 +246,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  <button 
  onClick={() => handleToggleActive(c.id)}
  className={cn(
-"inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold transition-all hover:scale-105 active:scale-95",
+"inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold transition-all hover:scale-105 active:scale-95",
  c.isActive ?"bg-emerald-50 text-emerald-600 border border-emerald-100" :"bg-slate-100 text-slate-500"
 )}
  >
@@ -381,13 +381,13 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
       <Gavel size={22} />
      </div>
      <div>
-      <div className="text-[10px] font-black text-slate-400">محكمة العروض قبل الإطلاق</div>
+      <div className="text-[11px] font-black text-slate-400">محكمة العروض قبل الإطلاق</div>
       <div className={cn("text-lg font-black", court.tone === 'danger' ? 'text-rose-700' : court.tone === 'warning' ? 'text-amber-700' : 'text-emerald-700')}>{court.verdict}</div>
      </div>
     </div>
     <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-     <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">خصم متوقع للطلب</div><div className="text-sm font-black text-slate-800">{court.estimatedDiscount.toFixed(3)} د.ك</div></div>
-     <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">تعرض أقصى</div><div className="text-sm font-black text-slate-800">{court.maxExposure.toFixed(3)} د.ك</div></div>
+     <div className="rounded-2xl bg-white/70 p-3"><div className="text-[11px] font-black text-slate-400">خصم متوقع للطلب</div><div className="text-sm font-black text-slate-800">{court.estimatedDiscount.toFixed(3)} د.ك</div></div>
+     <div className="rounded-2xl bg-white/70 p-3"><div className="text-[11px] font-black text-slate-400">تعرض أقصى</div><div className="text-sm font-black text-slate-800">{court.maxExposure.toFixed(3)} د.ك</div></div>
     </div>
     <p className="mt-3 text-xs font-bold leading-6 text-slate-600">{court.action}</p>
    </div>
@@ -414,7 +414,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
     <motion.div initial={{ scale: 0.94, opacity: 0, y: 18 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.94, opacity: 0, y: 18 }} className="relative w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded-[2rem] bg-white shadow-2xl">
      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 p-5 text-white text-right">
       <button onClick={() => setActivationCourtCoupon(null)} className="absolute left-5 top-5 rounded-full bg-white/10 p-2 text-white/70 hover:text-white"><X size={18} /></button>
-      <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-100 mb-3"><Scale size={13} /> مراجعة قبل التفعيل</div>
+      <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[11px] font-black text-amber-100 mb-3"><Scale size={13} /> مراجعة قبل التفعيل</div>
       <h3 className="text-2xl font-black flex items-center justify-end gap-3"><span>محكمة العروض</span><Gavel className="text-amber-300" /></h3>
       <p className="mt-2 text-sm font-bold text-slate-300">لن يتم تفعيل الكوبون إلا بعد هذا الحكم البصري. القراءة من الداتا الحالية فقط.</p>
      </div>
@@ -423,14 +423,14 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
        <div className="flex items-center justify-between gap-4">
         <div className="rounded-2xl bg-white/80 px-4 py-3 text-left ltr:font-mono font-black text-slate-900 uppercase tracking-widest">{activationCourtCoupon.code}</div>
         <div className="text-right">
-         <div className="text-[10px] font-black text-slate-400">الحكم</div>
+         <div className="text-[11px] font-black text-slate-400">الحكم</div>
          <div className={cn("text-2xl font-black", court.tone === 'danger' ? 'text-rose-700' : court.tone === 'warning' ? 'text-amber-700' : 'text-emerald-700')}>{court.verdict}</div>
         </div>
        </div>
        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">خصم الطلب المتوقع</div><div className="text-sm font-black text-slate-800">{court.estimatedDiscount.toFixed(3)} د.ك</div></div>
-        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">تعرض أقصى</div><div className="text-sm font-black text-slate-800">{court.maxExposure.toFixed(3)} د.ك</div></div>
-        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[9px] font-black text-slate-400">نسبة من المبيعات</div><div className="text-sm font-black text-slate-800">{Math.round(court.exposureRate * 100)}%</div></div>
+        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[11px] font-black text-slate-400">خصم الطلب المتوقع</div><div className="text-sm font-black text-slate-800">{court.estimatedDiscount.toFixed(3)} د.ك</div></div>
+        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[11px] font-black text-slate-400">تعرض أقصى</div><div className="text-sm font-black text-slate-800">{court.maxExposure.toFixed(3)} د.ك</div></div>
+        <div className="rounded-2xl bg-white/70 p-3"><div className="text-[11px] font-black text-slate-400">نسبة من المبيعات</div><div className="text-sm font-black text-slate-800">{Math.round(court.exposureRate * 100)}%</div></div>
        </div>
       </div>
       <div className="grid gap-2">

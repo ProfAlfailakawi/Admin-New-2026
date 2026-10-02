@@ -499,7 +499,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
                </strong>
              </div>
              
-             <div className="space-y-1 text-[9px] font-bold">
+             <div className="space-y-1 text-[11px] font-bold">
                <div className="flex items-center justify-between text-slate-700">
                  <span dir="ltr" className="font-semibold truncate max-w-[130px] text-slate-900">{hoveredCard.bestDevice?.label || hoveredCard.bestDevice?.browser || "جهاز غير معروف"}</span>
                  <span className="text-slate-500">الجهاز:</span>
@@ -516,7 +516,7 @@ const DeviceCompass: React.FC<DeviceCompassProps> = ({
            </div>
 
            <div className="border-t border-slate-100 pt-1 text-center font-black">
-             <div className="text-[9px] font-black text-emerald-800 flex items-center justify-center gap-1">
+             <div className="text-[11px] font-black text-emerald-800 flex items-center justify-center gap-1">
                <Send size={10} className="text-emerald-700" />
                اضغط للاختبار وإطلاق موجة
              </div>
@@ -655,7 +655,7 @@ const CashAnchorSettings: React.FC<{
       </div>
 
       {calibration && (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-500">
           <span>
             آخر معايرة: {formatKuwaitiDateOnly(calibration.calibratedAt)} على أساس رصيد فعلي{" "}
             <span dir="ltr">{money(calibration.actualBalance)}</span>
@@ -4143,7 +4143,7 @@ const GeneralSettings: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-4">
                 {appMode === "local" && (
-                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[10px] font-bold mr-auto">
+                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] font-bold mr-auto">
                     <AlertTriangle size={12} />
                     <span>مغلق في النسخة التجريبية</span>
                   </div>
@@ -4352,7 +4352,7 @@ const GeneralSettings: React.FC<Props> = ({
                   <div className="relative z-10 space-y-4">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div>
-                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
+                        <div className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1 text-[11px] font-black text-emerald-700">
                           <ShieldCheck size={13} /> متابعة وصول الإشعارات
                         </div>
                         <h3 className="mt-2 text-lg md:text-xl font-black text-slate-950">
@@ -4758,7 +4758,7 @@ const GeneralSettings: React.FC<Props> = ({
                               <div className="absolute -left-12 -top-12 h-36 w-36 rounded-full bg-emerald-400/20 blur-3xl" />
                               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div>
-                                  <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.2em]">مركز نبض النظام</div>
+                                  <div className="text-[11px] font-black text-emerald-200 uppercase tracking-[0.2em]">مركز نبض النظام</div>
                                   <div className="mt-1 flex items-center gap-3"><span className={cn("relative flex h-4 w-4 shrink-0", systemPulseScore >= 75 ? "text-emerald-300" : "text-amber-300")}><span className="relative inline-flex h-4 w-4 rounded-full bg-current" /></span><div className="text-3xl font-black">النظام حي بنسبة {systemPulseScore}%</div></div>
                                   <p className="mt-2 text-xs font-bold text-white/55">كل المسارات الأساسية تعمل بهدوء، وآخر قراءة جهاز: {latestDeviceReadLabel}.</p>
                                 </div>
@@ -4773,7 +4773,7 @@ const GeneralSettings: React.FC<Props> = ({
                                   ['آخر اختبار', Object.values(pushTestResults).some((v) => String(v).includes('تم إرسال')) ? 'ناجح' : 'بانتظار'],
                                 ].map(([label, value]) => (
                                   <div key={label} className="rounded-2xl bg-white/10 border border-white/10 p-3">
-                                    <div className="text-[9px] font-black text-white/35">{label}</div>
+                                    <div className="text-[11px] font-black text-white/35">{label}</div>
                                     <div className="mt-1 text-sm font-black text-white">{value}</div>
                                   </div>
                                 ))}
@@ -4791,7 +4791,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     ['وصول مؤكد', `${deliveredCount}`],
                                   ].map(([label, value]) => (
                                     <div key={label} className="rounded-xl bg-black/15 border border-white/10 p-2 min-w-0">
-                                      <div className="text-[9px] font-black text-white/35">{label}</div>
+                                      <div className="text-[11px] font-black text-white/35">{label}</div>
                                       <div className="mt-1 text-xs font-black text-white truncate">{value}</div>
                                     </div>
                                   ))}
@@ -4803,10 +4803,10 @@ const GeneralSettings: React.FC<Props> = ({
                               <div className="rounded-[1.8rem] border border-slate-700/60 bg-slate-950 p-3 sm:p-4 text-white shadow-lg overflow-hidden max-w-full">
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                   <div>
-                                    <div className="text-[10px] font-black text-emerald-200">رادار حياة الإشعار</div>
+                                    <div className="text-[11px] font-black text-emerald-200">رادار حياة الإشعار</div>
                                     <h4 className="text-sm font-black mt-1">نبضة آخر إشعار فقط</h4>
                                   </div>
-                                  <button type="button" onClick={() => openPushNotificationLog(latestNotification)} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">عرض آخر الإشعارات</button>
+                                  <button type="button" onClick={() => openPushNotificationLog(latestNotification)} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[11px] font-black">عرض آخر الإشعارات</button>
                                 </div>
                                 <PushDeliveryPath
                                   steps={[
@@ -4835,9 +4835,9 @@ const GeneralSettings: React.FC<Props> = ({
                                   >
                                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
                                       <span className="text-[11px] font-black text-white truncate">آخر إشعار: {latestNotification.title || "إشعار بدون عنوان"}</span>
-                                      <span className="text-[10px] font-black text-emerald-100 truncate">أُرسل إلى: {latestNotificationRecipient.name}</span>
+                                      <span className="text-[11px] font-black text-emerald-100 truncate">أُرسل إلى: {latestNotificationRecipient.name}</span>
                                     </div>
-                                    <div className="mt-1 text-[10px] font-bold text-white/45 truncate">الجهاز: {latestNotificationRecipient.deviceLabel} — اضغط لفتح هذا الإشعار داخل السجل</div>
+                                    <div className="mt-1 text-[11px] font-bold text-white/45 truncate">الجهاز: {latestNotificationRecipient.deviceLabel} — اضغط لفتح هذا الإشعار داخل السجل</div>
                                   </button>
                                 )}
                               </div>
@@ -4845,7 +4845,7 @@ const GeneralSettings: React.FC<Props> = ({
                                 <div className="flex items-center gap-3">
                                   <DnaIconTile icon={<Stethoscope />} tone={latestCriticalIssue || oldTokenCount > 0 ? "warn" : "mint"} size="sm" />
                                   <div className="min-w-0">
-                                    <div className="text-[10px] font-black text-white/45">طبيب الإشعارات</div>
+                                    <div className="text-[11px] font-black text-white/45">طبيب الإشعارات</div>
                                     <h4 className="mt-1 text-sm font-black">{latestCriticalIssue || oldTokenCount > 0 ? 'تم رصد علة بسيطة' : 'لا توجد أعطال حرجة'}</h4>
                                   </div>
                                 </div>
@@ -4857,7 +4857,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       : 'كل المؤشرات الحرجة هادئة الآن. التفاصيل تبقى داخل السجل عند الحاجة.'}
                                 </p>
                                 {(latestCriticalIssue || oldTokenCount > 0) && (
-                                  <button type="button" onClick={() => openPushRadarArea('users', 'all')} className="mt-3 rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
+                                  <button type="button" onClick={() => openPushRadarArea('users', 'all')} className="mt-3 rounded-2xl bg-white text-slate-950 px-3 py-2 text-[11px] font-black">اختبار أحدث جهاز</button>
                                 )}
                               </div>
                             </div>
@@ -4865,7 +4865,7 @@ const GeneralSettings: React.FC<Props> = ({
                             <div className="rounded-[1.8rem] border border-slate-700/60 bg-slate-950 p-3 sm:p-4 text-white shadow-lg overflow-hidden max-w-full">
                               <div className="flex items-center justify-between gap-3 mb-3">
                                 <div>
-                                  <div className="text-[10px] font-black text-emerald-100/90">خريطة الأجهزة الذكية</div>
+                                  <div className="text-[11px] font-black text-emerald-100/90">خريطة الأجهزة الذكية</div>
                                   <h4 className="text-sm font-black text-white leading-6">اضغط على أي لون لفتح الأجهزة المعنية</h4>
                                 </div>
                                 <MonitorSmartphone size={18} className="text-emerald-200" />
@@ -4891,7 +4891,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       it is far narrower than the page — four columns here
                                       shrank each label to ~45px and split Arabic words
                                       letter by letter. Four only once there is room. */}
-                                  <div className="grid grid-cols-2 2xl:grid-cols-4 gap-1.5 text-[10px] font-bold text-white/60">
+                                  <div className="grid grid-cols-2 2xl:grid-cols-4 gap-1.5 text-[11px] font-bold text-white/60">
                                     {[
                                       ['الأخضر', 'جهاز حديث جاهز للاستقبال', 'golden', 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-300'],
                                       ['الأصفر', 'جهاز صامت ينتظر تأكيد وصول/فتح', 'silent', 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/25 text-amber-300'],
@@ -4905,7 +4905,7 @@ const GeneralSettings: React.FC<Props> = ({
                                         className={cn("rounded-xl border px-2 py-1.5 text-right transition focus:outline-none", cls)}
                                       >
                                         <span className="block font-black text-[11px] mb-0.5 whitespace-nowrap">{color}</span>
-                                        <span className="block opacity-75 truncate text-[9px] font-medium leading-4">{meaning}</span>
+                                        <span className="block opacity-75 truncate text-[11px] font-medium leading-4">{meaning}</span>
                                       </button>
                                     ))}
                                   </div>
@@ -4920,9 +4920,9 @@ const GeneralSettings: React.FC<Props> = ({
                                       <button type="button" key={label} onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', filter as any); }} className={cn("rounded-2xl border p-3 text-right hover:scale-[1.01] transition focus:outline-none", cls, pushDeviceMapFilter === filter ? "ring-2 ring-amber-400 border-amber-300" : "")}>
                                         {/* Keep-all stops Arabic labels splitting mid-word
                                             when the card is narrow. */}
-                                        <div className="text-[10px] font-black opacity-80 [word-break:keep-all]">{label}</div>
+                                        <div className="text-[11px] font-black opacity-80 [word-break:keep-all]">{label}</div>
                                         <div className="mt-1 text-2xl font-black tabular-nums">{value}</div>
-                                        <div className="mt-1 text-[10px] font-bold opacity-75 leading-5 [word-break:keep-all]">{hint}</div>
+                                        <div className="mt-1 text-[11px] font-bold opacity-75 leading-5 [word-break:keep-all]">{hint}</div>
                                       </button>
                                     ))}
                                   </div>
@@ -4933,10 +4933,10 @@ const GeneralSettings: React.FC<Props> = ({
                             <details className="rounded-[1.8rem] border border-white/10 bg-slate-900/72 p-4 text-white overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                               <summary className="cursor-pointer list-none flex items-center justify-between gap-3 select-none">
                                 <div>
-                                  <div className="text-[10px] font-black text-slate-300">فحص كأني عميل</div>
+                                  <div className="text-[11px] font-black text-slate-300">فحص كأني عميل</div>
                                   <h4 className="mt-1 text-sm font-black leading-6 text-white">{pushCustomerVerdict}</h4>
                                 </div>
-                                <span className="rounded-2xl bg-white/14 border border-white/10 px-3 py-2 text-[10px] font-black text-white">عرض التفاصيل</span>
+                                <span className="rounded-2xl bg-white/14 border border-white/10 px-3 py-2 text-[11px] font-black text-white">عرض التفاصيل</span>
                               </summary>
                               <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
                                 {[
@@ -4946,22 +4946,22 @@ const GeneralSettings: React.FC<Props> = ({
                                   ["بلا جهاز", `${missingCount}`, "ناقص"],
                                 ].map(([label, value, hint]) => (
                                   <div key={label} className="rounded-2xl border border-white/10 bg-black/15 p-3">
-                                    <span className="block text-[10px] font-black text-white/45">{hint}</span>
+                                    <span className="block text-[11px] font-black text-white/45">{hint}</span>
                                     <strong className="mt-1 block text-2xl font-black">{value}</strong>
                                     <span className="text-[11px] font-bold text-white/60">{label}</span>
                                   </div>
                                 ))}
                               </div>
                               <div className="mt-3 flex flex-wrap gap-2">
-                                <button type="button" onClick={() => openPushRadarArea('users', 'all')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">اختبار أحدث جهاز</button>
-                                <button type="button" onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', 'silent'); }} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white">عرض الأجهزة الصامتة</button>
+                                <button type="button" onClick={() => openPushRadarArea('users', 'all')} className="rounded-2xl bg-white text-slate-950 px-3 py-2 text-[11px] font-black">اختبار أحدث جهاز</button>
+                                <button type="button" onClick={() => { setPushDeviceSearch(''); openPushRadarArea('users', 'silent'); }} className="rounded-2xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-black text-white">عرض الأجهزة الصامتة</button>
                               </div>
                             </details>
 
                             <div className="push-browser-health-card rounded-2xl border border-rose-900/10 bg-rose-50 px-3 py-3 text-slate-900 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_16px_34px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.88)]">
                               <div>
                                 <div className="text-xs font-black text-slate-950">نبض هذا المتصفح: {pushHealth.verdict}</div>
-                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-700">
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-700">
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.support}</span>
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.permission}</span>
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{arLabel(pushHealth.serviceWorker)}</span>
@@ -4970,7 +4970,7 @@ const GeneralSettings: React.FC<Props> = ({
                               <button
                                 type="button"
                                 onClick={() => setPushHealthDetailsOpen((v) => !v)}
-                                className="rounded-xl bg-white/80 border border-rose-900/10 px-3 py-2 text-[10px] font-black text-slate-900 hover:bg-white transition flex items-center justify-center gap-1"
+                                className="rounded-xl bg-white/80 border border-rose-900/10 px-3 py-2 text-[11px] font-black text-slate-900 hover:bg-white transition flex items-center justify-center gap-1"
                               >
                                 التفاصيل الفنية
                                 <ChevronDown size={14} className={cn("transition-transform", pushHealthDetailsOpen ? "rotate-180" : "")} />
@@ -4987,17 +4987,17 @@ const GeneralSettings: React.FC<Props> = ({
                                     [arLabel("Service Worker"), arLabel(pushHealth.serviceWorker)],
                                   ].map(([label, value]) => (
                                     <div key={label} className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 min-w-0">
-                                      <span className="block text-[9px] font-black text-white/45">{label}</span>
-                                      <strong dir="ltr" className="mt-1 block truncate text-[10px] font-black text-white">{value}</strong>
+                                      <span className="block text-[11px] font-black text-white/45">{label}</span>
+                                      <strong dir="ltr" className="mt-1 block truncate text-[11px] font-black text-white">{value}</strong>
                                     </div>
                                   ))}
                                 </div>
                                 <div className="rounded-xl bg-black/25 border border-white/10 p-2">
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="text-[10px] font-black text-white/45">{arLabel("Current Browser Token")}</span>
-                                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black text-white/45">مخفي افتراضيًا</span>
+                                    <span className="text-[11px] font-black text-white/45">{arLabel("Current Browser Token")}</span>
+                                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-black text-white/45">مخفي افتراضيًا</span>
                                   </div>
-                                  <code dir="ltr" className="mt-2 block truncate text-[10px] font-bold text-emerald-100">
+                                  <code dir="ltr" className="mt-2 block truncate text-[11px] font-bold text-emerald-100">
                                     {pushHealth.token ? `${pushHealth.token.slice(0, 18)}...${pushHealth.token.slice(-10)}` : arLabel("Not available")}
                                   </code>
                                 </div>
@@ -5148,7 +5148,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     <span className="mr-2 text-white/45">اضغط التفاصيل داخل أي بطاقة للقراءة الكاملة.</span>
                                   </div>
                                   {pushDeviceMapFilter !== "all" && (
-                                    <button type="button" onClick={() => { setPushDeviceMapFilter("all"); setPushUsersVisibleCount(12); }} className="rounded-xl bg-white text-slate-950 px-3 py-2 text-[10px] font-black">رجوع للخريطة الكاملة</button>
+                                    <button type="button" onClick={() => { setPushDeviceMapFilter("all"); setPushUsersVisibleCount(12); }} className="rounded-xl bg-white text-slate-950 px-3 py-2 text-[11px] font-black">رجوع للخريطة الكاملة</button>
                                   )}
                                 </div>
                                 <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-white">
@@ -5157,7 +5157,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     <span className="mr-2 text-white/45">({visibleCards.length})</span>
                                   </div>
                                   {pushDeviceMapFilter !== "all" && (
-                                    <button type="button" onClick={() => { setPushDeviceMapFilter("all"); setPushUsersVisibleCount(12); }} className="rounded-xl bg-white/10 border border-white/10 px-3 py-1.5 text-[10px] font-black text-white hover:bg-white/15">عرض الكل</button>
+                                    <button type="button" onClick={() => { setPushDeviceMapFilter("all"); setPushUsersVisibleCount(12); }} className="rounded-xl bg-white/10 border border-white/10 px-3 py-1.5 text-[11px] font-black text-white hover:bg-white/15">عرض الكل</button>
                                   )}
                                 </div>
                                 {visibleCards.length ? visibleUserCards.map((card) => {
@@ -5173,25 +5173,25 @@ const GeneralSettings: React.FC<Props> = ({
                                               <h4 className="push-radar-readable-title text-base font-black truncate" style={{ color: "#ffffff" }}>{getPushPersonName(card.identity, card.identity.id)}</h4>
                                               <div className="push-radar-readable-muted mt-0.5 truncate text-[11px] font-bold" style={{ color: "#cbd5e1" }}>{getPushPersonSubtitle(card.identity, card.identity.id)}</div>
                                             </div>
-                                            <span className="push-radar-readable-pill rounded-full border px-2 py-0.5 text-[10px] font-black" style={{ background: "rgba(245,158,11,0.16)", borderColor: "rgba(251,191,36,0.28)", color: "#fde68a" }}>{cleanRole(card.identity.role)}</span>
-                                            <span className="push-radar-readable-status rounded-full border px-2 py-0.5 text-[10px] font-black" style={{ background: "rgba(255,255,255,0.94)", borderColor: "rgba(251,191,36,0.28)", color: "#7c2d12" }}>{card.state.label}</span>
+                                            <span className="push-radar-readable-pill rounded-full border px-2 py-0.5 text-[11px] font-black" style={{ background: "rgba(245,158,11,0.16)", borderColor: "rgba(251,191,36,0.28)", color: "#fde68a" }}>{cleanRole(card.identity.role)}</span>
+                                            <span className="push-radar-readable-status rounded-full border px-2 py-0.5 text-[11px] font-black" style={{ background: "rgba(255,255,255,0.94)", borderColor: "rgba(251,191,36,0.28)", color: "#7c2d12" }}>{card.state.label}</span>
                                           </div>
                                           <p className="push-radar-readable-detail mt-1 text-xs font-bold leading-6" style={{ color: "#e2e8f0" }}>{card.state.detail}</p>
                                           <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
                                             <div className="push-radar-readable-metric rounded-2xl border p-3" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)" }}>
-                                              <span className="push-radar-readable-label block text-[10px] font-black" style={{ color: "#fcd34d" }}>الأجهزة</span>
+                                              <span className="push-radar-readable-label block text-[11px] font-black" style={{ color: "#fcd34d" }}>الأجهزة</span>
                                               <strong className="push-radar-readable-value mt-1 block text-sm font-black" style={{ color: "#ffffff" }}>{card.devices.length ? `${card.devices.length} جهاز` : "لا يوجد"}</strong>
                                             </div>
                                             <div className="push-radar-readable-metric rounded-2xl border p-3 min-w-0" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)" }}>
-                                              <span className="push-radar-readable-label block text-[10px] font-black" style={{ color: "#fcd34d" }}>آخر إشعار وصل</span>
+                                              <span className="push-radar-readable-label block text-[11px] font-black" style={{ color: "#fcd34d" }}>آخر إشعار وصل</span>
                                               <strong className="push-radar-readable-value mt-1 block truncate text-sm font-black" style={{ color: "#ffffff" }}>{card.latestDelivered?.title || "لا يوجد وصول مؤكد"}</strong>
                                               {card.latestDelivered?.message && <span className="push-radar-readable-muted mt-1 block truncate text-[11px] font-bold text-slate-600">{card.latestDelivered.message}</span>}
-                                              {card.latestDelivered?.date && <span className="push-radar-readable-muted mt-1 block text-[10px] font-bold text-slate-500">{card.latestDelivered.date}</span>}
+                                              {card.latestDelivered?.date && <span className="push-radar-readable-muted mt-1 block text-[11px] font-bold text-slate-500">{card.latestDelivered.date}</span>}
                                             </div>
                                             <div className="push-radar-readable-metric rounded-2xl border p-3" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)" }}>
-                                              <span className="push-radar-readable-label block text-[10px] font-black" style={{ color: "#fcd34d" }}>آخر محاولة</span>
+                                              <span className="push-radar-readable-label block text-[11px] font-black" style={{ color: "#fcd34d" }}>آخر محاولة</span>
                                               <strong className="push-radar-readable-value mt-1 block text-sm font-black" style={{ color: "#ffffff" }}>{getDeliveryMilestoneSummary(card.latest)}</strong>
-                                              {card.latest?.title && <span className="push-radar-readable-muted mt-1 block truncate text-[10px] font-bold text-slate-500">{card.latest.title}</span>}
+                                              {card.latest?.title && <span className="push-radar-readable-muted mt-1 block truncate text-[11px] font-bold text-slate-500">{card.latest.title}</span>}
                                             </div>
                                           </div>
                                           <div className="push-radar-delivery mt-3" title="مسار آخر إشعار — عرض مبسط فقط، بدون تغيير نظام الإرسال">
@@ -5213,7 +5213,7 @@ const GeneralSettings: React.FC<Props> = ({
                                                 void sendPushDeviceTestNotification(firstDevice, card.devices);
                                               }
                                             }}
-                                            className="min-w-0 rounded-2xl bg-white text-slate-950 px-2.5 py-2.5 text-[10px] sm:text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-1.5"
+                                            className="min-w-0 rounded-2xl bg-white text-slate-950 px-2.5 py-2.5 text-[11px] sm:text-[11px] font-black hover:bg-emerald-50 disabled:opacity-45 transition flex items-center justify-center gap-1.5"
                                           >
                                             {firstDevice && sendingPushTestId === firstDevice.id ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                                             اختبر أحدث جهاز
@@ -5221,7 +5221,7 @@ const GeneralSettings: React.FC<Props> = ({
                                           <button
                                             type="button"
                                             onClick={() => setExpandedPushDeviceId(expanded ? null : card.key)}
-                                            className="push-radar-details-btn min-w-0 rounded-2xl bg-white/75 border border-amber-900/10 px-2.5 py-2.5 text-[10px] sm:text-[11px] font-black text-slate-800 hover:bg-white transition flex items-center justify-center gap-1.5"
+                                            className="push-radar-details-btn min-w-0 rounded-2xl bg-white/75 border border-amber-900/10 px-2.5 py-2.5 text-[11px] sm:text-[11px] font-black text-slate-800 hover:bg-white transition flex items-center justify-center gap-1.5"
                                           >
                                             التفاصيل
                                             <ChevronDown size={13} className={cn("transition-transform", expanded ? "rotate-180" : "")} />
@@ -5237,10 +5237,10 @@ const GeneralSettings: React.FC<Props> = ({
                                                 <div key={device.id} className="push-radar-readable-device rounded-2xl border p-3 min-w-0 overflow-hidden max-w-full" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)", color: "#f8fafc" }}>
                                                   <div className="grid grid-cols-[1fr_auto] items-center gap-2 min-w-0">
                                                     <strong className="block min-w-0 truncate text-xs font-black">{arLabel(device.label)}</strong>
-                                                    <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
+                                                    <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
                                                   </div>
-                                                  <p className="push-radar-readable-muted mt-2 text-[10px] font-bold leading-5 text-slate-600">{readiness.detail}</p>
-                                                  <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
+                                                  <p className="push-radar-readable-muted mt-2 text-[11px] font-bold leading-5 text-slate-600">{readiness.detail}</p>
+                                                  <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-bold text-slate-600">
                                                     <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.platform || device.deviceType || "جهاز"}</span>
                                                     <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{isMissingTimestamp(device.lastRead) ? "بلا قراءة" : arLabel(device.lastRead)}</span>
                                                   </div>
@@ -5250,18 +5250,18 @@ const GeneralSettings: React.FC<Props> = ({
                                           </div>
                                           {card.deliveredNotifications.length > 0 ? (
                                             <div className="space-y-2">
-                                              <div className="push-radar-readable-label text-[10px] font-black" style={{ color: "#fcd34d" }}>آخر الإشعارات التي وصلت لهذا المستخدم</div>
+                                              <div className="push-radar-readable-label text-[11px] font-black" style={{ color: "#fcd34d" }}>آخر الإشعارات التي وصلت لهذا المستخدم</div>
                                               {card.deliveredNotifications.slice(0, 4).map((notification: any) => (
                                                 <div key={notification.id} className="push-radar-readable-notification rounded-xl border px-3 py-2 text-[11px] font-bold space-y-2" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)", color: "#f8fafc" }}>
                                                   <div className="flex items-center justify-between gap-3">
                                                     <span className="truncate">{notification.title}</span>
                                                     <span className="push-radar-readable-muted shrink-0 text-slate-500">{getDeliveryMilestoneSummary(notification)}</span>
                                                   </div>
-                                                  {notification.message && <div className="push-radar-readable-muted truncate text-[10px] text-slate-500">{notification.message}</div>}
+                                                  {notification.message && <div className="push-radar-readable-muted truncate text-[11px] text-slate-500">{notification.message}</div>}
                                                   {(() => {
                                                     const recipient = getPushNotificationRecipientMeta(notification);
                                                     return (
-                                                      <div className="grid md:grid-cols-2 gap-1.5 text-[10px] font-black text-slate-600">
+                                                      <div className="grid md:grid-cols-2 gap-1.5 text-[11px] font-black text-slate-600">
                                                         <span className="rounded-lg bg-slate-50 border border-slate-200 px-2 py-1 truncate text-slate-700">أُرسل إلى: {recipient.name}</span>
                                                         <span className="rounded-lg bg-slate-50 border border-slate-200 px-2 py-1 truncate text-slate-700">الجهاز: {recipient.deviceLabel}</span>
                                                       </div>
@@ -5314,7 +5314,7 @@ const GeneralSettings: React.FC<Props> = ({
                                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                   <div>
                                     <div className="text-xs font-black text-slate-950">السجل الذكي للإشعارات</div>
-                                    <div className="text-[10px] font-bold text-slate-500 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة. {focusedNotification ? "تم فتح الإشعار المحدد من الرادار." : "اختر أي إشعار لفتح تفاصيله."}</div>
+                                    <div className="text-[11px] font-bold text-slate-500 mt-1">يعرض {visibleNotificationLog.length} من {notificationLog.length} نتيجة. {focusedNotification ? "تم فتح الإشعار المحدد من الرادار." : "اختر أي إشعار لفتح تفاصيله."}</div>
                                   </div>
                                   <div className="flex flex-wrap gap-1.5">
                                     {[
@@ -5324,7 +5324,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       ['waiting', 'بانتظار تأكيد'],
                                       ['failed', 'فشل'],
                                     ].map(([id, label]) => (
-                                      <button key={id} type="button" onClick={() => { setPushLogStatusFilter(id as any); setPushLogVisibleCount(20); }} className={cn("rounded-xl px-3 py-2 text-[10px] font-black transition", pushLogStatusFilter === id ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>
+                                      <button key={id} type="button" onClick={() => { setPushLogStatusFilter(id as any); setPushLogVisibleCount(20); }} className={cn("rounded-xl px-3 py-2 text-[11px] font-black transition", pushLogStatusFilter === id ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>
                                         {label}
                                       </button>
                                     ))}
@@ -5341,7 +5341,7 @@ const GeneralSettings: React.FC<Props> = ({
                                           <div className="font-black text-sm truncate">{notification.title || "إشعار بدون عنوان"}</div>
                                           <div className="mt-1 text-[11px] font-bold text-slate-500 truncate">أُرسل إلى: {recipient.name} — {notification.message || "بدون نص"}</div>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black shrink-0">
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-black shrink-0">
                                           <span className={cn("rounded-full px-2 py-1", notification.success === false ? "bg-rose-400/15 text-rose-100" : (notification.receivedByDevice || notification.receivedAt || notification.openedByEmployee || notification.clickedAt) ? "bg-emerald-400/15 text-emerald-100" : "bg-amber-400/15 text-amber-100")}>{notification.deliveryStage || getPushDeliveryStageLabel(notification)}</span>
                                           <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">{notification.date || "بلا وقت"}</span>
                                           <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-700">{selected ? "إخفاء" : "تفاصيل"}</span>
@@ -5349,7 +5349,7 @@ const GeneralSettings: React.FC<Props> = ({
                                       </button>
                                       {selected && (
                                         <div className="mt-3 space-y-2">
-                                          <div className="grid sm:grid-cols-2 gap-1.5 text-[10px] font-bold text-slate-600">
+                                          <div className="grid sm:grid-cols-2 gap-1.5 text-[11px] font-bold text-slate-600">
                                             <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">أُرسل إلى: {recipient.name}</span>
                                             <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">الجهاز: {recipient.deviceLabel}</span>
                                             {recipient.subtitle && <span className="rounded-xl bg-slate-100 border border-slate-200 px-2 py-1 truncate">المعرّف: {recipient.subtitle}</span>}
@@ -5391,7 +5391,7 @@ const GeneralSettings: React.FC<Props> = ({
                                         type="button"
                                         onClick={() => setPushAdvancedFilter(id as any)}
                                         className={cn(
-                                          "rounded-xl px-3 py-2 text-[10px] font-black transition",
+                                          "rounded-xl px-3 py-2 text-[11px] font-black transition",
                                           pushAdvancedFilter === id
                                             ? "bg-white text-slate-950"
                                             : "bg-white/10 text-white/60 hover:bg-white/15",
@@ -5407,9 +5407,9 @@ const GeneralSettings: React.FC<Props> = ({
                                     <div key={device.id} className="rounded-2xl border border-white/10 bg-white/10 p-3 min-w-0">
                                       <div className="flex items-center justify-between gap-2">
                                         <strong className="truncate text-xs font-black">{arLabel(device.label)}</strong>
-                                        <span className="rounded-full bg-black/20 px-2 py-0.5 text-[9px] font-black text-white/50">{getPushStatusMeta(device.status).label}</span>
+                                        <span className="rounded-full bg-black/20 px-2 py-0.5 text-[11px] font-black text-white/50">{getPushStatusMeta(device.status).label}</span>
                                       </div>
-                                      <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/50">
+                                      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-bold text-white/50">
                                         <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.userEmail || device.userName || cleanPushAccountLabel(device.userId, "بلا إيميل محفوظ")}</span>
                                         <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{arLabel(device.platform || device.deviceType || "No platform")}</span>
                                         <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{arLabel(device.lastRead)}</span>
@@ -5421,7 +5421,7 @@ const GeneralSettings: React.FC<Props> = ({
                                 <button
                                   type="button"
                                   onClick={() => copyPushExecutiveSummary(pushDevices)}
-                                  className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[10px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"
+                                  className="w-full rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-[11px] font-black text-white hover:bg-white/15 flex items-center justify-center gap-2"
                                 >
                                   <Code size={13} /> نسخ ملخص فني
                                 </button>
@@ -5487,7 +5487,7 @@ const GeneralSettings: React.FC<Props> = ({
                     />
                   </div>
                   {appMode === "local" && (
-                    <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[10px] font-bold">
+                    <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] font-bold">
                       <AlertTriangle size={12} />
                       <span>مغلق التجريبية</span>
                     </div>
@@ -5525,7 +5525,7 @@ const GeneralSettings: React.FC<Props> = ({
                     <div className="absolute inset-0 bg-slate-50/10 backdrop-blur-[0.5px] z-20 cursor-not-allowed cursor-not-allowed" />
                   )}
                   <table className="mobile-card-table w-full text-right min-w-[600px]" dir="rtl">
-                    <thead className="bg-slate-100 text-[10px] font-bold text-slate-500 uppercase sticky top-0 z-10 shadow-sm shadow-slate-200/50">
+                    <thead className="bg-slate-100 text-[11px] font-bold text-slate-500 uppercase sticky top-0 z-10 shadow-sm shadow-slate-200/50">
                       <tr>
                         <th className="p-3">اسم المنطقة</th>
                         <th className="p-3 text-center">تكلفة التوصيل</th>
@@ -5654,7 +5654,7 @@ const GeneralSettings: React.FC<Props> = ({
                                   }));
                                 }}
                                 className={cn(
-                                  "text-[10px] px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed",
+                                  "text-[11px] px-3 py-1.5 rounded-lg border shadow-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed",
                                   zone.isActive
                                     ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
                                     : "bg-slate-100 text-slate-500 border-slate-200/60 hover:bg-slate-200",
@@ -5699,7 +5699,7 @@ const GeneralSettings: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-4">
                 {appMode === "local" && (
-                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[10px] font-bold mr-auto">
+                  <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-100 text-[11px] font-bold mr-auto">
                     <AlertTriangle size={12} />
                     <span>مغلق في النسخة التجريبية</span>
                   </div>
@@ -5783,7 +5783,7 @@ const GeneralSettings: React.FC<Props> = ({
                       </p>
                     </div>
                     {appMode === "local" && (
-                      <span className="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold">
+                      <span className="text-[11px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold">
                         مغلق في التجريبي
                       </span>
                     )}
@@ -5972,7 +5972,7 @@ const GeneralSettings: React.FC<Props> = ({
                     </div>
                     <div
                       className={cn(
-                        "text-[10px] font-bold mt-0.5",
+                        "text-[11px] font-bold mt-0.5",
                         appMode === "cloud"
                           ? "text-emerald-600"
                           : "text-amber-600",
@@ -5985,7 +5985,7 @@ const GeneralSettings: React.FC<Props> = ({
                   </div>
                   <div
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold text-white",
+                      "flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold text-white",
                       appMode === "cloud" ? "bg-emerald-500" : "bg-amber-500",
                     )}
                   >
@@ -6016,7 +6016,7 @@ const GeneralSettings: React.FC<Props> = ({
                           <div className="text-xs font-bold font-sans">
                             تصفير النظام المحلي
                           </div>
-                          <div className="text-[10px] opacity-80">
+                          <div className="text-[11px] opacity-80">
                             مسح كافة البيانات وإعادة تصفير النظام بالكامل للبدء
                             مجدداً
                           </div>
@@ -6043,7 +6043,7 @@ const GeneralSettings: React.FC<Props> = ({
                           <div className="text-xs font-bold font-sans">
                             تعبئة بيانات تجريبية
                           </div>
-                          <div className="text-[10px] opacity-80">
+                          <div className="text-[11px] opacity-80">
                             ملء النظام بالبيانات الترويجية والمبيعات الكاملة
                             فوراً
                           </div>
@@ -6070,7 +6070,7 @@ const GeneralSettings: React.FC<Props> = ({
                           <div className="text-xs font-bold font-sans">
                             محاكاة الأداء الأقصى (الآمنة)
                           </div>
-                          <div className="text-[10px] opacity-80">
+                          <div className="text-[11px] opacity-80">
                             تحميل 10,000 طلب و5,000 عميل محلياً لاختبار سرعة واستجابة النظام
                           </div>
                         </div>
@@ -6115,7 +6115,7 @@ const GeneralSettings: React.FC<Props> = ({
                                 <div className="text-xs font-bold font-sans">
                                   إسترجاع البيانات والملء السريع
                                 </div>
-                                <div className="text-[10px] opacity-80">
+                                <div className="text-[11px] opacity-80">
                                   {hasData
                                     ? "النظام يحتوي على بيانات فعالّة الحين"
                                     : "استعادة المبيعات، الفواتير، والعمليات كاملة فوراً"}
@@ -6142,7 +6142,7 @@ const GeneralSettings: React.FC<Props> = ({
                             <div className="text-xs font-bold">
                               تصدير نسخة احتياطية
                             </div>
-                            <div className="text-[10px] opacity-70 italic">
+                            <div className="text-[11px] opacity-70 italic">
                               نسخة شاملة تشمل (نبض العملاء)
                             </div>
                           </div>
@@ -6164,7 +6164,7 @@ const GeneralSettings: React.FC<Props> = ({
                             <div className="text-xs font-bold">
                               استيراد نسخة سابقة
                             </div>
-                            <div className="text-[10px] opacity-70">
+                            <div className="text-[11px] opacity-70">
                               رفع (JSON, Excel) لمزامنة النظام
                             </div>
                           </div>
@@ -6191,7 +6191,7 @@ const GeneralSettings: React.FC<Props> = ({
                             <div className="text-xs font-bold font-sans">
                               إعادة تهيئة البيانات
                             </div>
-                            <div className="text-[10px] opacity-70">
+                            <div className="text-[11px] opacity-70">
                               مسح البيانات التجريبية وتنظيف السجلات للبدء من جديد
                             </div>
                           </div>

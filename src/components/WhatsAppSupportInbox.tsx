@@ -1587,7 +1587,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             <span>{t.label}</span>
             {t.badge > 0 && (
               <span className={cn(
-                'rounded-full px-2 py-0.5 text-[10px] tabular-nums',
+                'rounded-full px-2 py-0.5 text-[11px] tabular-nums',
                 centerTab === t.id ? 'bg-white/20 text-white'
                   : t.tone === 'rose' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500',
               )}>{t.badge}</span>
@@ -1730,9 +1730,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-black text-slate-900 truncate">{rule.title}</div>
-                  <div className="mt-1 text-[10px] font-bold text-slate-400">{rule.action === 'human' ? 'تحويل للموظف' : rule.action === 'products' ? 'من قائمة المنتجات' : 'رد تلقائي'} · أولوية {rule.priority || 100}</div>
+                  <div className="mt-1 text-[11px] font-bold text-slate-400">{rule.action === 'human' ? 'تحويل للموظف' : rule.action === 'products' ? 'من قائمة المنتجات' : 'رد تلقائي'} · أولوية {rule.priority || 100}</div>
                 </div>
-                <span className={cn('rounded-full px-2 py-1 text-[10px] font-black', rule.enabled === false ? 'bg-slate-200 text-slate-500' : 'bg-emerald-50 text-emerald-700')}>{rule.enabled === false ? 'متوقفة' : 'مفعلة'}</span>
+                <span className={cn('rounded-full px-2 py-1 text-[11px] font-black', rule.enabled === false ? 'bg-slate-200 text-slate-500' : 'bg-emerald-50 text-emerald-700')}>{rule.enabled === false ? 'متوقفة' : 'مفعلة'}</span>
               </div>
               <div className="mt-2 line-clamp-2 text-xs font-bold leading-5 text-slate-500">{(rule.keywords || []).join('، ')}</div>
               <div className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{rule.action === 'products' && !rule.response ? 'يقرأ الرد مباشرة من قائمة المنتجات الحالية.' : rule.response}</div>
@@ -1805,14 +1805,14 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="text-[12px] font-black text-slate-700">{t.label}</div>
                     <div className="flex items-center gap-2">
-                      <span className={cn('text-[10px] font-black rounded-lg px-2 py-0.5', overridden ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400')}>
+                      <span className={cn('text-[11px] font-black rounded-lg px-2 py-0.5', overridden ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400')}>
                         {overridden ? 'معدّل' : 'افتراضي'}
                       </span>
                       {overridden && (
                         <button
                           type="button"
                           onClick={() => setBotTextEdits((prev) => ({ ...prev, [t.key]: t.defaultText }))}
-                          className="text-[10px] font-black text-rose-500 hover:text-rose-700"
+                          className="text-[11px] font-black text-rose-500 hover:text-rose-700"
                           title="الرجوع للنص الافتراضي"
                         >
                           استرجاع
@@ -1820,7 +1820,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                       )}
                     </div>
                   </div>
-                  {t.hint && <div className="mb-2 text-[10px] font-bold text-sky-600">{t.hint}</div>}
+                  {t.hint && <div className="mb-2 text-[11px] font-bold text-sky-600">{t.hint}</div>}
                   <textarea
                     dir="rtl"
                     value={current}
@@ -1844,7 +1844,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             <div className="font-black text-slate-900 flex items-center gap-2"><LifeBuoy size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> مركز إنقاذ الواتساب</div>
             <div className="mt-1 text-[11px] font-bold text-slate-400">يعرف العطل بالضبط ويشغّل الإجراء الصحيح — بدون تعديل كود</div>
             {recovery?.checkedAt && (
-              <div className="mt-1 text-[10px] font-bold text-slate-400">آخر تشخيص: {formatTime(recovery.checkedAt)}</div>
+              <div className="mt-1 text-[11px] font-bold text-slate-400">آخر تشخيص: {formatTime(recovery.checkedAt)}</div>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1893,7 +1893,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
               <ol className="mt-2 space-y-1 text-[11px] font-bold text-slate-600">
                 {recovery.diagnosis.steps.map((step: string, index: number) => (
                   <li key={`${index}-${step}`} className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-slate-700">{index + 1}</span>
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[11px] font-black text-slate-700">{index + 1}</span>
                     <span className="leading-5">{step}</span>
                   </li>
                 ))}
@@ -1956,7 +1956,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   {check.status === 'ok' ? <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /> : check.status === 'critical' ? <CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" /> : check.status === 'action' ? <KeyRound size={14} className="inline-block align-[-2px] text-amber-600" aria-hidden="true" /> : <CircleDot size={14} className="inline-block align-[-2px] text-amber-500" aria-hidden="true" />}
                   {' '}{check.label}
                 </div>
-                <div className="mt-1 text-[10px] font-bold leading-5 text-slate-500">{check.detail}</div>
+                <div className="mt-1 text-[11px] font-bold leading-5 text-slate-500">{check.detail}</div>
               </div>
             ))}
           </div>
@@ -2030,20 +2030,20 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                   <div className={cn('text-[11px] font-black', check.ok ? 'text-emerald-700' : 'text-rose-700')}>
                     {check.ok ? <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /> : <CircleAlert size={14} className="inline-block align-[-2px] text-rose-600" aria-hidden="true" />} {check.label}
                   </div>
-                  <div className="mt-1 text-[10px] font-bold leading-5 text-slate-500">
+                  <div className="mt-1 text-[11px] font-bold leading-5 text-slate-500">
                     {check.ok ? check.preview : check.error || 'لم ينتج ردًا'}
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-2 text-[10px] font-bold text-violet-600">اختبار داخلي فقط — لم تُرسل أي رسالة ولم تتغير أي محادثة.</div>
+            <div className="mt-2 text-[11px] font-bold text-violet-600">اختبار داخلي فقط — لم تُرسل أي رسالة ولم تتغير أي محادثة.</div>
           </div>
         )}
 
         {recovery?.queue?.latestFailure?.label && (
           <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/50 p-3 text-[11px] font-bold leading-6 text-amber-800">
             آخر سبب فشل محفوظ: <span className="font-black">{recovery.queue.latestFailure.label}</span>
-            {recovery.queue.latestFailure.detail ? <span className="block text-[10px] text-amber-700">{recovery.queue.latestFailure.detail}</span> : null}
+            {recovery.queue.latestFailure.detail ? <span className="block text-[11px] text-amber-700">{recovery.queue.latestFailure.detail}</span> : null}
           </div>
         )}
 
@@ -2093,7 +2093,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 <div key={i} className={cn('flex items-center justify-between gap-3 rounded-2xl border p-3', r.score <= 1 ? 'border-rose-200 bg-rose-50/50' : 'border-slate-100 bg-slate-50/40')}>
                   <div className="min-w-0">
                     <div className="font-black text-slate-800 text-[13px] truncate">{r.name || 'عميل'}</div>
-                    <div className="text-[10px] font-bold text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('ar-KW-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }) : ''}</div>
+                    <div className="text-[11px] font-bold text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('ar-KW-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }) : ''}</div>
                   </div>
                   <span className={cn('shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-black border', r.score >= 3 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : r.score === 2 ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-rose-100 text-rose-700 border-rose-200')}>
                     {r.score >= 3 ? <><Star size={14} className="inline-block align-[-2px]" aria-hidden="true" /> ممتاز</> : r.score === 2 ? <><ThumbsUp size={14} className="inline-block align-[-2px]" aria-hidden="true" /> جيد</> : <><CircleAlert size={14} className="inline-block align-[-2px]" aria-hidden="true" /> يحتاج تحسين</>}
@@ -2156,16 +2156,16 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <div className="font-black truncate flex items-center gap-2"><UserRound size={16} /> {c.customerName || c.phone}</div>
                     <div className={cn('text-xs mt-1 truncate', selectedPhone === (c.phone || c.id) ? 'text-white/60' : 'text-slate-400')}>{c.phone}</div>
                   </div>
-                  {!!Number(c.unreadCount || 0) && <span className="bg-rose-500 text-white text-[10px] rounded-full min-w-6 h-6 flex items-center justify-center font-black">{c.unreadCount}</span>}
+                  {!!Number(c.unreadCount || 0) && <span className="bg-rose-500 text-white text-[11px] rounded-full min-w-6 h-6 flex items-center justify-center font-black">{c.unreadCount}</span>}
                 </div>
                 <div className={cn('text-sm mt-3 line-clamp-2 leading-6', active ? 'text-white/80' : 'text-slate-600')}>{c.lastMessageText || 'لا توجد رسائل بعد'}</div>
                 <div className="mt-3 flex items-center gap-2 flex-wrap">
-                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', actionStateClass(actionState.tone, active))} title={actionState.hint}>{actionState.label}</span>
-                  <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', active ? 'bg-white/10 text-white border border-white/10' : temperature.className)} title={temperature.hint}>{temperature.label}</span>
-                  {slaInfo && <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', slaClass(slaInfo.level, active))} title={slaInfo.hint}><Clock size={11} className="inline ml-1" /> {slaInfo.label}</span>}
-                  {!!Number(c.unreadCount || 0) && <span className={cn('px-2 py-1 rounded-full text-[10px] font-black', active ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700 border border-rose-100')}>غير مقروء</span>}
+                  <span className={cn('px-2 py-1 rounded-full text-[11px] font-black', actionStateClass(actionState.tone, active))} title={actionState.hint}>{actionState.label}</span>
+                  <span className={cn('px-2 py-1 rounded-full text-[11px] font-black', active ? 'bg-white/10 text-white border border-white/10' : temperature.className)} title={temperature.hint}>{temperature.label}</span>
+                  {slaInfo && <span className={cn('px-2 py-1 rounded-full text-[11px] font-black', slaClass(slaInfo.level, active))} title={slaInfo.hint}><Clock size={11} className="inline ml-1" /> {slaInfo.label}</span>}
+                  {!!Number(c.unreadCount || 0) && <span className={cn('px-2 py-1 rounded-full text-[11px] font-black', active ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-700 border border-rose-100')}>غير مقروء</span>}
                 </div>
-                <div className="mt-3 flex items-center justify-between text-[10px]">
+                <div className="mt-3 flex items-center justify-between text-[11px]">
                   <span className={cn('px-2 py-1 rounded-full', c.mode === 'human' || c.status === 'needs_support' ? 'bg-amber-100 text-amber-700' : selectedPhone === (c.phone || c.id) ? 'bg-white/10 text-white' : 'bg-emerald-50 text-emerald-700')}>{statusLabel(c)}</span>
                   <span className={selectedPhone === (c.phone || c.id) ? 'text-white/50' : 'text-slate-400'}>{formatTime(c.lastMessageAt)}</span>
                 </div>
@@ -2210,7 +2210,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     {selectedTempTimeline.points.map((point) => (
                       <div key={point.id} className="min-w-[54px] text-center">
                         <div className={cn('mx-auto w-4 rounded-full', point.score >= 75 ? 'bg-rose-500' : point.score >= 55 ? 'bg-amber-400' : 'bg-emerald-400')} style={{ height: `${Math.max(18, Math.round(point.score * 0.72))}px` }} />
-                        <div className="mt-1 text-[10px] font-bold text-slate-400">{point.direction === 'outbound' ? 'رد' : 'عميل'}</div>
+                        <div className="mt-1 text-[11px] font-bold text-slate-400">{point.direction === 'outbound' ? 'رد' : 'عميل'}</div>
                       </div>
                     ))}
                   </div>
@@ -2247,7 +2247,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={cn('flex', inbound ? 'justify-start' : 'justify-end')}>
                       <div className={cn('max-w-[92%] md:max-w-[86%] rounded-[1.5rem] px-5 py-4 shadow-sm border', inbound ? 'bg-white text-slate-800 border-slate-100 rounded-tl-md' : 'bg-slate-900 text-white border-slate-900 rounded-tr-md')}>
                         <div className="whitespace-pre-wrap leading-8 text-[15px]">{m.text}</div>
-                        <div className={cn('mt-3 flex flex-wrap items-center gap-2 text-[10px]', inbound ? 'text-slate-400' : 'text-white/60')}>
+                        <div className={cn('mt-3 flex flex-wrap items-center gap-2 text-[11px]', inbound ? 'text-slate-400' : 'text-white/60')}>
                           <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1', inbound ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-white/70')}><Clock size={11} /> {formatTime(m.createdAt)}</span>
                           {inbound ? <span className="inline-flex rounded-full bg-sky-50 text-sky-700 px-2 py-1 font-black">رسالة عميل</span> : <span className="inline-flex rounded-full bg-white/10 px-2 py-1 font-black">{m.sentBy === 'bot' ? 'رد تلقائي' : 'رد موظف'}</span>}
                         </div>
@@ -2275,13 +2275,13 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <div className="rounded-3xl border border-emerald-100 bg-white p-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 text-xs font-black text-emerald-700"><Sparkles size={14} /> ردود ذكية حسب العميل</div>
-                        <span className="text-[10px] font-black text-slate-400">اضغط على التصنيف لعرض الرسالة كاملة</span>
+                        <span className="text-[11px] font-black text-slate-400">اضغط على التصنيف لعرض الرسالة كاملة</span>
                       </div>
                       <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
                         {selectedSmartReplies.map((item) => (
                           <button key={item.id} type="button" onClick={() => toggleSmartReply(item)} className={cn('shrink-0 rounded-2xl border px-3 py-2 text-right transition shadow-sm', activeSmartReplyId === item.id ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-slate-50 border-slate-100 text-slate-700 hover:bg-white')}>
                             <div className="text-xs font-black">{item.title}</div>
-                            <div className="mt-0.5 max-w-[180px] truncate text-[10px] font-bold text-slate-400">{item.meta}</div>
+                            <div className="mt-0.5 max-w-[180px] truncate text-[11px] font-bold text-slate-400">{item.meta}</div>
                           </button>
                         ))}
                       </div>

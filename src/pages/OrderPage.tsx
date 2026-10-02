@@ -1264,7 +1264,7 @@ export default function OrderPage() {
                           <span className={cn("w-10 h-10 rounded-full bg-white/85 border border-white flex items-center justify-center text-brand shadow-sm transition-transform", isProfileOpen && "rotate-90")}>
                             <ChevronLeft className="w-4 h-4" />
                           </span>
-                          <span className="text-[10px] font-black text-stone-400">{isProfileOpen ? "إغلاق" : "الملف"}</span>
+                          <span className="text-[11px] font-black text-stone-400">{isProfileOpen ? "إغلاق" : "الملف"}</span>
                         </div>
                       </div>
 
@@ -1352,7 +1352,7 @@ export default function OrderPage() {
                                     >
                                       <div className="min-w-0">
                                         <span className="block text-sm font-black text-brand">مزايا العضوية</span>
-                                        <span className="block mt-1 text-[10px] font-bold text-stone-400">{normalizedTiers.length} مستويات</span>
+                                        <span className="block mt-1 text-[11px] font-bold text-stone-400">{normalizedTiers.length} مستويات</span>
                                       </div>
                                       <span className={cn("w-9 h-9 rounded-full bg-stone-50 border border-stone-100 flex items-center justify-center text-brand transition-transform shrink-0", showProfileBenefits && "rotate-90")}>
                                         <ChevronLeft className="w-4 h-4" />
@@ -1376,13 +1376,13 @@ export default function OrderPage() {
                                                   <div className="min-w-0">
                                                     <div className="flex items-center gap-2">
                                                       <strong className={cn("block text-sm font-black truncate rounded-full border px-2.5 py-1", active ? "border-white/20 text-white" : getTierAccent(tier.name))}>{tier.name}</strong>
-                                                      {active && <span className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-black">الحالي</span>}
+                                                      {active && <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-black">الحالي</span>}
                                                     </div>
                                                     {tier.benefit && (
                                                       <p className={cn("mt-2 text-[11px] font-bold leading-relaxed", active ? "text-white/75" : "text-stone-500")}>{String(tier.benefit)}</p>
                                                     )}
                                                   </div>
-                                                  <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black", active ? "bg-white/15 text-white" : "bg-stone-50 text-stone-500")}>{tier.minPoints}</span>
+                                                  <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black", active ? "bg-white/15 text-white" : "bg-stone-50 text-stone-500")}>{tier.minPoints}</span>
                                                 </div>
                                               );
                                             })}
@@ -1406,15 +1406,15 @@ export default function OrderPage() {
                                       <div className="p-4 flex items-center justify-between gap-3">
                                         <div>
                                           <span className="block text-sm font-black text-brand">طلباتك الأخيرة</span>
-                                          <span className="block mt-1 text-[10px] font-bold text-stone-400">من سجل طلباتك</span>
+                                          <span className="block mt-1 text-[11px] font-bold text-stone-400">من سجل طلباتك</span>
                                         </div>
-                                        <span className="rounded-full bg-stone-50 px-3 py-1 text-[10px] font-black text-stone-500">{recentOrderChoices.length}</span>
+                                        <span className="rounded-full bg-stone-50 px-3 py-1 text-[11px] font-black text-stone-500">{recentOrderChoices.length}</span>
                                       </div>
                                       <div className="px-4 pb-4 space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                         {visibleOrders.length > 0 ? visibleOrders.map((item) => (
                                           <div key={`${item.label}-${getOrderReference(item.order)}`} className="rounded-[18px] bg-stone-50 border border-stone-100 p-3 flex items-center justify-between gap-3">
                                             <strong className="text-sm font-black text-brand truncate">{item.label}</strong>
-                                            <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-stone-500">{getOrderReference(item.order)}</span>
+                                            <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[11px] font-black text-stone-500">{getOrderReference(item.order)}</span>
                                           </div>
                                         )) : (
                                           <div className="rounded-[18px] bg-stone-50 border border-stone-100 p-4 text-center text-xs font-bold text-stone-400">تظهر طلباتك بعد أول طلب</div>
@@ -1448,7 +1448,7 @@ export default function OrderPage() {
                                     <div className="rounded-[26px] bg-white border border-stone-100 shadow-sm overflow-hidden">
                                       <div className="p-4 flex items-center justify-between gap-3">
                                         <span className="text-sm font-black text-brand">العناوين المستخدمة</span>
-                                        <span className="text-[10px] font-black text-stone-400">{addressLabels.length} عنوان</span>
+                                        <span className="text-[11px] font-black text-stone-400">{addressLabels.length} عنوان</span>
                                       </div>
                                       <div className="px-4 pb-4 space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                         {visibleAddresses.length > 0 ? visibleAddresses.map((label) => (
@@ -1533,7 +1533,7 @@ export default function OrderPage() {
                   <LayoutDashboard className="w-4 h-4 text-accent" /> سجل
                   الطلبات الأخيرة
                 </h3>
-                <span className="px-3 py-1 bg-brand/5 text-brand text-[10px] font-extrabold rounded-full">
+                <span className="px-3 py-1 bg-brand/5 text-brand text-[11px] font-extrabold rounded-full">
                   {formatOrderWords(orders.length)}
                 </span>
               </div>
@@ -1559,7 +1559,7 @@ export default function OrderPage() {
                     <div className="flex items-start justify-between mb-6">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest">
+                          <span className="text-[11px] font-extrabold text-stone-400 uppercase tracking-widest">
                             رقم الطلب
                           </span>
                           <span className="text-xs font-extrabold text-brand bg-stone-50 px-2 py-0.5 rounded-lg border border-stone-100">
@@ -1586,14 +1586,14 @@ export default function OrderPage() {
                               </button>
                             )}
                         </div>
-                        <p className="text-[10px] text-stone-300 font-medium">
+                        <p className="text-[11px] text-stone-300 font-medium">
                           {order.createdAt || order.date
                             ? `${formatKuwaitiDate(order.createdAt || order.date).date} | ${formatKuwaitiDate(order.createdAt || order.date).time}`
                             : "تاريخ غير معروف"}
                         </p>
                       </div>
                       <div
-                        className={`px-4 py-2 rounded-2xl flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-widest ${statusInfo.color}`}
+                        className={`px-4 py-2 rounded-2xl flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest ${statusInfo.color}`}
                       >
                         {statusInfo.icon}
                         {statusInfo.text}
@@ -1614,12 +1614,12 @@ export default function OrderPage() {
                             <Package className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-[10px] font-extrabold text-stone-400 uppercase">
+                            <p className="text-[11px] font-extrabold text-stone-400 uppercase">
                               المبلغ الإجمالي
                             </p>
                             <p className="text-lg font-extrabold text-brand italic">
                               {Number(getDisplayTotal(order) || 0).toFixed(3)}{" "}
-                              <span className="text-[10px] text-accent font-normal italic">
+                              <span className="text-[11px] text-accent font-normal italic">
                                 د.ك
                               </span>
                             </p>
@@ -1631,7 +1631,7 @@ export default function OrderPage() {
                       </div>
 
                       {order.address && (
-                        <div className="flex items-center gap-2 text-[10px] text-stone-400 bg-stone-50/50 p-3 rounded-xl border border-stone-50 overflow-hidden">
+                        <div className="flex items-center gap-2 text-[11px] text-stone-400 bg-stone-50/50 p-3 rounded-xl border border-stone-50 overflow-hidden">
                           <MapPin className="w-3 h-3 text-accent shrink-0" />
                           <span className="truncate">
                             {typeof order.address === "object"
@@ -2192,7 +2192,7 @@ export default function OrderPage() {
 	                        (p: any) => p.status === "paid" || (isDiwaniyaQatyaOrder(selectedOrder) && p.status === "pending")
 	                      ).length > 0 || (((selectedOrder as any).splitType === "roulette" || isDiwaniyaQatyaOrder(selectedOrder)) && ((selectedOrder as any).splitParticipants || []).length > 0)) && (
                         <div className="track-v14-social-card track-wow-social-card bg-stone-50 p-4 rounded-2xl border border-stone-100">
-                          <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <h4 className="text-[11px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                             <Users className="w-3 h-3" /> {(selectedOrder as any).splitType === 'roulette' ? 'المشاركون في وهق غيرك 🎰' : 'المساهمين في القطية'}
                           </h4>
                           {(selectedOrder as any).splitType === 'roulette' && (selectedOrder as any).rouletteLoser && (
@@ -2216,7 +2216,7 @@ export default function OrderPage() {
                                         {p.name}
                                       </span>
                                       {p.phone && (
-                                        <span className="text-[9px] text-stone-400 font-mono">
+                                        <span className="text-[11px] text-stone-400 font-mono">
                                           {maskPhoneForCustomer(p.phone)}
                                         </span>
                                       )}
@@ -2247,7 +2247,7 @@ export default function OrderPage() {
                                           {p.name}
                                         </span>
                                         {p.phone && (
-                                          <span className="text-[9px] text-stone-400 font-mono">
+                                          <span className="text-[11px] text-stone-400 font-mono">
                                             {maskPhoneForCustomer(p.phone)}
                                           </span>
                                         )}
@@ -2274,17 +2274,17 @@ export default function OrderPage() {
                     {getSafeSplitPayments(selectedOrder).length > 0 && (selectedOrder as any).splitType !== 'roulette' && (
                        <div className="track-v14-split-summary bg-brand/5 p-4 rounded-2xl border border-brand/10 mb-4 flex justify-between items-center text-sm">
                           <div className="flex flex-col text-center">
-                             <span className="text-[10px] text-stone-500 font-bold mb-0.5">الإجمالي</span>
+                             <span className="text-[11px] text-stone-500 font-bold mb-0.5">الإجمالي</span>
                              <span className="font-extrabold text-stone-700">{Number((selectedOrder as any).total).toFixed(3)} د.ك</span>
                           </div>
                           <div className="flex flex-col text-center">
-                             <span className="text-[10px] text-green-600 font-bold mb-0.5">المدفوع</span>
+                             <span className="text-[11px] text-green-600 font-bold mb-0.5">المدفوع</span>
                              <span className="font-extrabold text-green-700">
                                 {getSafeSplitPayments(selectedOrder).filter((p: any) => p.status === "paid").reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0).toFixed(3)} د.ك
                              </span>
                           </div>
                           <div className="flex flex-col text-center">
-                             <span className="text-[10px] text-amber-600 font-bold mb-0.5">المتبقي</span>
+                             <span className="text-[11px] text-amber-600 font-bold mb-0.5">المتبقي</span>
                              <span className="font-extrabold text-amber-700">
                                 {Math.max(0, Number((selectedOrder as any).total) - getSafeSplitPayments(selectedOrder).filter((p: any) => p.status === "paid").reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)).toFixed(3)} د.ك
                              </span>
@@ -2384,7 +2384,7 @@ export default function OrderPage() {
                     {/* Items List */}
                     <div className="space-y-4">
                       
-                      <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest px-2 font-mono border-b border-dashed border-stone-100 pb-2">
+                      <h4 className="text-[11px] font-extrabold text-stone-400 uppercase tracking-widest px-2 font-mono border-b border-dashed border-stone-100 pb-2">
                         الأصناف المطلوبة
                       </h4>
                       <div className="space-y-3 font-mono">
@@ -2408,7 +2408,7 @@ export default function OrderPage() {
                                   {item.productName || item.name}
                                 </span>
                                 {(item.itemNotes || item.note) && (
-                                  <span className="text-[10px] text-stone-400 italic flex items-center gap-1 mt-1">
+                                  <span className="text-[11px] text-stone-400 italic flex items-center gap-1 mt-1">
                                     <MessageCircle className="w-3 h-3" />
                                     <TypewriterText
                                       text={item.itemNotes || item.note}
@@ -2419,7 +2419,7 @@ export default function OrderPage() {
                                 {getActualItemAddons(item).length > 0 && (
                                   <div className="mt-2 space-y-1" dir="rtl">
                                     {getActualItemAddons(item).map((addon, addonIndex) => (
-                                      <div key={`${addon.name}-${addonIndex}`} className="flex items-center gap-2 text-[10px] font-extrabold text-amber-700 bg-amber-50/70 border border-amber-100 rounded-xl px-2 py-1 w-fit">
+                                      <div key={`${addon.name}-${addonIndex}`} className="flex items-center gap-2 text-[11px] font-extrabold text-amber-700 bg-amber-50/70 border border-amber-100 rounded-xl px-2 py-1 w-fit">
                                         <span>+ {addon.name}{addon.qty > 1 ? ` × ${addon.qty}` : ""}</span>
                                         <span className="text-amber-900">{addon.total.toFixed(3)} د.ك</span>
                                       </div>
@@ -2437,7 +2437,7 @@ export default function OrderPage() {
                               {Number(calculateItemTotalWithAddons(item) || 0).toFixed(
                                 3,
                               )}{" "}
-                              <span className="text-[10px] text-stone-400">
+                              <span className="text-[11px] text-stone-400">
                                 د.ك
                               </span>
                             </motion.span>
@@ -2474,7 +2474,7 @@ export default function OrderPage() {
                            </p>
                            <Link
                              to="/?showSquads=true"
-                             className="text-[10px] font-black text-accent bg-accent/5 px-3 py-1.5 rounded-xl border border-accent/10 hover:bg-accent/10 transition-colors"
+                             className="text-[11px] font-black text-accent bg-accent/5 px-3 py-1.5 rounded-xl border border-accent/10 hover:bg-accent/10 transition-colors"
                            >
                              أسس ديوانيتك أو شارك ديوانية ربعك! 🤝
                            </Link>
@@ -2486,7 +2486,7 @@ export default function OrderPage() {
                     {(selectedOrder as any).notes ||
                     (selectedOrder as any).generalNotes ? (
                       <div className="space-y-4">
-                        <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest px-2">
+                        <h4 className="text-[11px] font-extrabold text-stone-400 uppercase tracking-widest px-2">
                           ملاحظات عامة
                         </h4>
                         <div className="bg-orange-50/50 border border-orange-100 p-4 rounded-2xl text-orange-800 text-sm flex gap-3">
@@ -2502,7 +2502,7 @@ export default function OrderPage() {
                     {/* Address Details */}
                     {selectedOrder.address && (
                       <div className="space-y-4">
-                        <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest px-2">
+                        <h4 className="text-[11px] font-extrabold text-stone-400 uppercase tracking-widest px-2">
                           معلومات العميل والتوصيل
                         </h4>
                         <div className="track-v15-address-card bg-white border border-stone-100 p-6 rounded-[32px] space-y-4 font-medium text-brand text-sm shadow-sm">
