@@ -4353,6 +4353,12 @@ const [isPending, startTransition] = useTransition();
                   </div>
 
                   {/* META INTELLIGENCE LAYER: ARCHIVE & ACTION */}
+                  <details className="group/more rounded-2xl border border-amber-200/70 bg-white/70 shadow-sm mb-4" dir="rtl">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
+                      <span>عرض المزيد · رؤى الذكاء الاصطناعي</span>
+                      <ChevronDown size={16} strokeWidth={1.5} className="shrink-0 text-amber-700 transition-transform group-open/more:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="px-1 pb-3 pt-1">
                   <div className="flex flex-col w-full " dir="rtl">
                     {/* DYNAMIC INSIGHTS GRID */}
                     <div className="lg:col-span-4 flex flex-col w-full ">
@@ -4512,6 +4518,9 @@ const [isPending, startTransition] = useTransition();
                     </div>
                   </div>
 
+                    </div>
+                  </details>
+
                   {/* FOCUSED INSIGHT MODAL-LIKE PANEL */}
                   <AnimatePresence>
                     {focusedInsight && (
@@ -4662,6 +4671,12 @@ const [isPending, startTransition] = useTransition();
                   </AnimatePresence>
 
                   {/* MASTER SMART CONTROL CENTER */}
+                  <details className="group/more rounded-2xl border border-amber-200/70 bg-white/70 shadow-sm mb-4" dir="rtl">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
+                      <span>عرض المزيد · المستشار الشامل وتقرير النبض الكامل</span>
+                      <ChevronDown size={16} strokeWidth={1.5} className="shrink-0 text-amber-700 transition-transform group-open/more:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="px-1 pb-3 pt-1">
                   <div
                     className={cn(
                       glassCardStyle,
@@ -4900,6 +4915,9 @@ const [isPending, startTransition] = useTransition();
                       </motion.div>
                     )}
                   </AnimatePresence>
+
+                    </div>
+                  </details>
 
                   <div className="flex flex-col w-full ">
                     <div
