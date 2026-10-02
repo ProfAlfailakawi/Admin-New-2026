@@ -89,6 +89,13 @@
         font-family: "Tajawal", "Cairo", system-ui, -apple-system, "Segoe UI", sans-serif;
         -webkit-font-smoothing: antialiased;
       }
+      /* iOS leaves the status/home-indicator safe areas outside fixed overlays.
+         Keep those exposed edges on the same dark canvas for the whole preboot. */
+      html:has(#preboot-splash),
+      body:has(#preboot-splash) {
+        background: #080d12 !important;
+        color-scheme: dark;
+      }
       #preboot-splash .pb-card {
         position: relative;
         width: 100%;
