@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { displayLabel } from '../lib/displayLabels';
 import { Wallet, Search, Plus, Trash2, Edit2, Calendar, CreditCard, TrendingUp, ArrowDownRight, Target, PlusCircle, X } from 'lucide-react';
 import { AppState, Expense, PaymentMethod } from '../types';
 import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } from '../lib/utils';
@@ -223,7 +224,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <td className="p-3 md:p-3">
  <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-tighter">
  {expense.paymentMethod === 'BankTransfer' ? 'حوالة' : 
- expense.paymentMethod === 'KNet' ? 'KNET' :
+ expense.paymentMethod === 'KNet' ? displayLabel('KNET') :
  expense.paymentMethod === 'Cash' ? 'كاش' : expense.paymentMethod}
  </div>
  </td>

@@ -1193,7 +1193,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
   return (
     <div className="space-y-6 pb-20" dir="rtl">
       {/* Header section */}
-      <div className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-2xl border border-slate-800">
+      <div className="heritage-dark-card bg-slate-900 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-2xl border border-slate-800">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/20 blur-[100px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
         
@@ -1822,7 +1822,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
         <AnimatePresence mode="wait">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="max-w-7xl mx-auto space-y-6 text-right">
-              <div className="relative overflow-hidden rounded-[32px] bg-slate-950 text-white border border-slate-800 shadow-2xl p-5 md:p-7">
+              <div className="heritage-dark-card relative overflow-hidden rounded-[32px] bg-slate-950 text-white border border-slate-800 shadow-2xl p-5 md:p-7">
                 <div className="absolute -top-24 -right-24 w-80 h-80 bg-amber-500/20 rounded-full blur-3xl" />
                 <div className="absolute -bottom-28 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
                 <div className="relative z-10 flex flex-col lg:flex-row gap-5 lg:items-center lg:justify-between">

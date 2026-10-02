@@ -1567,7 +1567,7 @@ Alturath.kw`;
                         )}
                         <div
                           className={cn(
-                            "px-2 py-0.5 rounded-lg text-[10px] font-bold relative z-20 transition-all",
+                            "status-badge-fit px-2 py-0.5 rounded-lg text-[10px] font-bold relative z-20 transition-all",
                             isPendingStatus(order.status as string) ||
                               isFailedStatus(order.status as string) ||
                               (isPaidStatus(order.status) &&
@@ -1636,6 +1636,37 @@ Alturath.kw`;
                           })()}
                         </span>
                       </div>
+                      {(() => {
+                        const delDateRaw = (order as any).deliveryDate || (order as any).deliveryDateKey;
+                        const delTimeRaw = (order as any).deliveryTime;
+                        const { weekday, date: delDateFormatted } = getArabicWeekdayAndDate(delDateRaw);
+                        const delTimeFormatted = formatDeliveryTimeDisplay(delTimeRaw);
+
+                        if (!delDateFormatted && !delTimeFormatted) return null;
+
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
+                            <Clock size={12} className="text-slate-500 shrink-0" />
+                            <span className="font-bold">التوصيل:</span>
+                            {delDateFormatted && (
+                              <div className="flex items-center gap-1">
+                                {weekday && <span className="text-slate-700 font-light text-[10px]">{weekday}</span>}
+                                <span dir="ltr" className="text-slate-900 font-black px-1 py-0.5 text-[10px]">{delDateFormatted}</span>
+                              </div>
+                            )}
+                            {delTimeFormatted && (
+                              <span dir="ltr" className="bg-slate-100 text-slate-800 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 whitespace-nowrap">
+                                {delTimeFormatted}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <details className="order-card-more mb-2" data-order-more>
+                      <summary onClick={(e) => e.stopPropagation()}>العنوان والأصناف</summary>
+                      <div className="space-y-1.5 md:space-y-2 pt-1.5">
                       <div className="flex items-start text-[10px] md:text-[11px] text-slate-700 font-extrabold gap-1.5 md:gap-2 bg-slate-100/70 border border-slate-200/50 px-2 py-1 rounded-lg my-1 w-full">
                         <MapPin
                           size={12}
@@ -1664,33 +1695,6 @@ Alturath.kw`;
                           })()}
                         </span>
                       </div>
-                      {(() => {
-                        const delDateRaw = (order as any).deliveryDate || (order as any).deliveryDateKey;
-                        const delTimeRaw = (order as any).deliveryTime;
-                        const { weekday, date: delDateFormatted } = getArabicWeekdayAndDate(delDateRaw);
-                        const delTimeFormatted = formatDeliveryTimeDisplay(delTimeRaw);
-
-                        if (!delDateFormatted && !delTimeFormatted) return null;
-
-                        return (
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
-                            <Clock size={12} className="text-slate-500 shrink-0" />
-                            <span className="font-bold">التوصيل:</span>
-                            {delDateFormatted && (
-                              <div className="flex items-center gap-1">
-                                {weekday && <span className="text-slate-700 font-light text-[10px]">{weekday}</span>}
-                                <span dir="ltr" className="text-slate-900 font-black px-1 py-0.5 text-[10px]">{delDateFormatted}</span>
-                              </div>
-                            )}
-                            {delTimeFormatted && (
-                              <span dir="ltr" className="bg-slate-100 text-slate-800 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 whitespace-nowrap">
-                                {delTimeFormatted}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
 
                     <div className="space-y-1.5 border-t border-slate-50 pt-2 opacity-80">
                       {order.items?.slice(0, 2).map((it, idx) => {
@@ -1787,6 +1791,8 @@ Alturath.kw`;
                         </div>
                       )}
                     </div>
+                      </div>
+                    </details>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center bg-slate-50/50 -mx-4 -mb-4 px-4 py-2 rounded-b-2xl">

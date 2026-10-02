@@ -6521,3 +6521,72 @@ body[data-overlay-open='1'] [data-floating='secondary'] { opacity: 0 !important;
 .command-row:hover .opacity-60,.command-row.is-active .opacity-60{color:#64748b!important;opacity:1!important;}
 .command-row:hover .command-row-icon,.command-row.is-active .command-row-icon{background:#fff!important;color:#b45309!important;border:1px solid #e2e8f0;}
 .command-row:hover svg:not(.command-row-icon svg),.command-row.is-active svg:not(.command-row-icon svg){color:#64748b!important;}
+
+/* ===== r23 task 1: sidebar contrast (text/icons >= 4.5:1 on the dark rail), clear hover/active ===== */
+aside.bg-slate-950 nav .text-white\/40,
+aside.bg-slate-950 nav .text-white\/45,
+aside.bg-slate-950 nav .text-white\/50,
+aside.bg-slate-950 nav .text-white\/60 { color: rgb(226 232 240 / 0.82); }
+aside.bg-slate-950 nav .text-white\/70 { color: rgb(241 245 249 / 0.92); }
+aside.bg-slate-950 nav .opacity-40,
+aside.bg-slate-950 nav .opacity-50 { opacity: 0.85; }
+aside.bg-slate-950 nav button { transition: background-color .18s ease, color .18s ease, box-shadow .18s ease; }
+aside.bg-slate-950 nav button:hover { color: #fff; background-color: rgb(255 255 255 / 0.09); }
+aside.bg-slate-950 nav button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+/* sub-item icon tile: readable at rest */
+aside.bg-slate-950 nav button span.bg-white\/5 { background-color: rgb(255 255 255 / 0.1); }
+/* active sub-item: amber edge on the reading side so the current page is obvious */
+aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color: rgb(255 255 255 / 0.1); box-shadow: inset -3px 0 0 #f59e0b; }
+
+/* ===== r23 task 2: one page-header rule.
+   The intro panel that follows the page hero (title + "فتح") becomes a slim strip attached to the hero:
+   the duplicate kicker is hidden, title + hint share one line, the toggle stays a reachable button. ===== */
+.admin-page-hero + .smart-collapsible-panel{margin-top:-8px;border-radius:0 0 22px 22px!important;border-top-color:transparent!important;box-shadow:0 10px 24px rgba(15,23,42,.05)!important}
+.admin-page-hero:has(+ .smart-collapsible-panel){border-bottom-left-radius:22px;border-bottom-right-radius:22px}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle{padding:10px 16px!important;align-items:center}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle > div{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle > div > span{display:none}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle h2{font-size:15px!important;margin:0}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle p{font-size:12px!important}
+.admin-page-hero + .smart-collapsible-panel .toggle-pill{min-width:0;padding:6px 14px;box-shadow:none}
+
+/* ===== r23 task 3: shared status badge fit (never wraps mid-pill, never overflows its card, no bounce clipping) ===== */
+.status-badge-fit{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.6;padding-block:2px}
+@media (prefers-reduced-motion: reduce){.status-badge-fit.animate-bounce{animation:none}}
+
+/* ===== r23 task 4: order cards — address + items sit behind a native details (stepper, status, delivery and total stay visible) ===== */
+.order-card-more > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;font-size:11px;font-weight:800}
+.order-card-more > summary::-webkit-details-marker{display:none}
+.order-card-more > summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .18s ease}
+.order-card-more[open] > summary::after{transform:rotate(-135deg);margin-top:3px}
+.order-card-more > summary:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+
+/* ===== r23 tasks 5/6: tiny rings and bars (presentation only) ===== */
+.mini-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.mini-ring svg{position:absolute;inset:0}
+.mini-ring b{position:relative;font-size:9px;font-weight:800;color:#334155;line-height:1}
+.mini-bar{display:block;height:4px;width:100%;border-radius:99px;background:#e2e8f0;overflow:hidden}
+.mini-bar i{display:block;height:100%;border-radius:inherit}
+
+/* ===== r23 task 7: one shared dark-card treatment (deep heritage green-navy, thin gold edge, same radius/shadow tokens as the light cards) ===== */
+.heritage-dark-card{background:linear-gradient(160deg,#10281d 0%,#0f1f33 62%,#0f172a 100%)!important;border:1px solid rgba(212,175,55,.24)!important;box-shadow:0 14px 38px -20px rgba(15,23,42,.5)!important}
+
+/* ===== r23 task 9: page skeleton shown while a lazy page loads (CSS/markup only; loading logic unchanged) ===== */
+.page-skeleton{display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:1480px;margin:0 auto;width:100%;padding:4px 0}
+.page-skeleton > [role="status"]{align-self:center}
+.page-skeleton-hero{height:120px;border-radius:28px}
+.page-skeleton-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.page-skeleton-card{height:110px;border-radius:24px}
+.page-skeleton-wide{height:240px;border-radius:28px}
+@media (max-width:767px){.page-skeleton-grid{grid-template-columns:1fr}.page-skeleton-hero{height:96px}}
+@media (prefers-reduced-motion:reduce){.page-skeleton .admin-skeleton:after{animation:none}}
+.page-skeleton .admin-skeleton{background:#e8edf4!important;border:1px solid #dde4ee}
+
+/* ===== r23 task 10: shared tokens — one thin icon stroke, one card radius, one card shadow ===== */
+:root{--r23-card-radius:26px;--r23-card-shadow:0 14px 36px -22px rgba(15,23,42,.30);--r23-icon-stroke:1.6}
+/* default-weight lucide icons (stroke-width="2") get the thin shared weight; explicit custom weights are left alone */
+:where(svg.lucide[stroke-width="2"]){stroke-width:var(--r23-icon-stroke)}
+.admin-page-hero,.admin-smart-panel,.smart-collapsible-panel,.heritage-dark-card{border-radius:var(--r23-card-radius)!important}
+.admin-page-hero,.admin-smart-panel,.smart-collapsible-panel{box-shadow:var(--r23-card-shadow)!important}
+.heritage-dark-card{box-shadow:0 18px 40px -22px rgba(15,23,42,.5)!important}
+.admin-page-hero + .smart-collapsible-panel{border-radius:0 0 var(--r23-card-radius) var(--r23-card-radius)!important}

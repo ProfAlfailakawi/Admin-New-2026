@@ -1,4 +1,6 @@
 // invalidated cache 2026-05-07 14:18
+import { displayLabel } from "../lib/displayLabels";
+import { MiniRing } from "./ui/MiniRing";
 import { getUnifiedInvoices, formatKuwaitiDate, formatKuwaitiTimeOnly } from '../lib/utils';
 import { LAYER } from '../lib/floatingLayers';
 import { getCashPositionForState } from '../lib/business-logic';
@@ -3912,15 +3914,16 @@ const [isPending, startTransition] = useTransition();
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <MiniRing percent={profitMargin} size={24} stroke={3} label="هامش الربح" tone="#d97706" />
+                        <div className="shrink-0 text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
                           {totalSalesVal.toFixed(3)}{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
                         <ChevronDown
                           size={20}
                           className={cn(
-                            "text-slate-500 transition-transform duration-300",
+                            "shrink-0 text-slate-500 transition-transform duration-300",
                             activeCategory === "financials" ? "rotate-180" : "",
                           )}
                         />
@@ -5365,7 +5368,7 @@ const [isPending, startTransition] = useTransition();
                             <div className="text-center p-3 md:p-4 bg-slate-50 rounded-2xl border border-slate-100">
                               <p className="text-xs font-bold text-slate-500 leading-relaxed">
                                 ماكو بيانات كافية للتحليل، أو ماكو عملاء
-                                VIP تنطبق عليهم شروط الغياب (أكثر من 15 يوم).
+                                {displayLabel("VIP")} تنطبق عليهم شروط الغياب (أكثر من 15 يوم).
                               </p>
                             </div>
                           ) : (
@@ -5379,7 +5382,7 @@ const [isPending, startTransition] = useTransition();
                                     {v.name}
                                     {v.totalSpent > 100 && (
                                       <span className="text-[10px] text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-full">
-                                        VIP
+                                        {displayLabel("VIP")}
                                       </span>
                                     )}
                                   </div>

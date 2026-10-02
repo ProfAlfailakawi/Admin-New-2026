@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MiniRing } from "./ui/MiniRing";
 import { 
   Users, Search, Plus, Trash2, UserPlus, Phone, 
   Calendar, ShoppingBag, Edit2, AlertCircle, 
@@ -601,6 +602,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           )}>
             <Sparkles size={14} />
             <span>{sentiment?.label || 'محايد'}</span>
+            <MiniRing percent={Number(sentiment?.score ?? 50)} size={22} stroke={2.5} tone="currentColor" label="درجة القيمة" />
             
             {/* Extended Tooltip on hover - Centered Positioning to stay within frame */}
             <div className="absolute opacity-0 group-hover/sent:opacity-100 transition-all duration-500 bg-slate-950 text-white p-5 rounded-3xl text-sm whitespace-normal z-[100] bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 pointer-events-none shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 scale-90 group-hover/sent:scale-100 origin-bottom w-[280px] sm:w-[350px]">
