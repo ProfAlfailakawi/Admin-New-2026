@@ -6544,3 +6544,7 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 .admin-page-hero + .smart-collapsible-panel .smart-panel-toggle h2{font-size:15px!important;margin:0}
 .admin-page-hero + .smart-collapsible-panel .smart-panel-toggle p{font-size:12px!important}
 .admin-page-hero + .smart-collapsible-panel .toggle-pill{min-width:0;padding:6px 14px;box-shadow:none}
+
+/* ===== r23 task 3: shared status badge fit (never wraps mid-pill, never overflows its card, no bounce clipping) ===== */
+.status-badge-fit{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.6;padding-block:2px}
+@media (prefers-reduced-motion: reduce){.status-badge-fit.animate-bounce{animation:none}}

@@ -1567,7 +1567,7 @@ Alturath.kw`;
                         )}
                         <div
                           className={cn(
-                            "px-2 py-0.5 rounded-lg text-[10px] font-bold relative z-20 transition-all",
+                            "status-badge-fit px-2 py-0.5 rounded-lg text-[10px] font-bold relative z-20 transition-all",
                             isPendingStatus(order.status as string) ||
                               isFailedStatus(order.status as string) ||
                               (isPaidStatus(order.status) &&
