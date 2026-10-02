@@ -4112,7 +4112,7 @@ const [isPending, startTransition] = useTransition();
                           prev === "ops" ? null : "ops",
                         )
                       }
-                      className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-slate-100/50 transition-colors"
+                      className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div data-login-target="delivery" className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white">
@@ -4196,7 +4196,7 @@ const [isPending, startTransition] = useTransition();
                           prev === "customers" ? null : "customers",
                         )
                       }
-                      className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-slate-100/50 transition-colors"
+                      className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                       dir="rtl"
                     >
                       <div className="flex items-center gap-3">
@@ -4334,25 +4334,33 @@ const [isPending, startTransition] = useTransition();
                         <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
                           <Target size={10} /> كفاءة الأرباح
                         </span>
-                        <span
-                          className={cn(
-                            "text-lg font-bold",
-                            profitMargin >= 10
-                              ? "text-emerald-500"
-                              : "text-amber-500",
-                          )}
-                        >
-                          {profitMargin.toFixed(1)}%
-                        </span>
-                        <svg viewBox="0 0 36 36" className="mt-1 h-9 w-9 -rotate-90" aria-hidden="true">
-                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" className="stroke-slate-100" />
-                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0, Math.min(100, profitMargin))} 100`} className={profitMargin >= 10 ? "stroke-emerald-500" : "stroke-amber-500"} />
-                        </svg>
+                        <div className="relative mt-1 h-16 w-16">
+                          <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90" role="img" aria-label={`كفاءة الأرباح ${profitMargin.toFixed(1)}%`}>
+                            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3.5" className="stroke-slate-200" />
+                            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3.5" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0, Math.min(100, profitMargin))} 100`} className={profitMargin >= 10 ? "stroke-emerald-500" : "stroke-amber-500"} />
+                          </svg>
+                          <span
+                            className={cn(
+                              "absolute inset-0 flex items-center justify-center text-[11px] font-bold",
+                              profitMargin >= 10
+                                ? "text-emerald-600"
+                                : "text-amber-600",
+                            )}
+                          >
+                            {profitMargin.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* META INTELLIGENCE LAYER: ARCHIVE & ACTION */}
+                  <details className="group/more rounded-2xl border border-amber-200/70 bg-white/70 shadow-sm mb-4" dir="rtl">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
+                      <span>عرض المزيد · رؤى الذكاء الاصطناعي</span>
+                      <ChevronDown size={16} strokeWidth={1.5} className="shrink-0 text-amber-700 transition-transform group-open/more:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="px-1 pb-3 pt-1">
                   <div className="flex flex-col w-full " dir="rtl">
                     {/* DYNAMIC INSIGHTS GRID */}
                     <div className="lg:col-span-4 flex flex-col w-full ">
@@ -4512,6 +4520,9 @@ const [isPending, startTransition] = useTransition();
                     </div>
                   </div>
 
+                    </div>
+                  </details>
+
                   {/* FOCUSED INSIGHT MODAL-LIKE PANEL */}
                   <AnimatePresence>
                     {focusedInsight && (
@@ -4662,6 +4673,12 @@ const [isPending, startTransition] = useTransition();
                   </AnimatePresence>
 
                   {/* MASTER SMART CONTROL CENTER */}
+                  <details className="group/more rounded-2xl border border-amber-200/70 bg-white/70 shadow-sm mb-4" dir="rtl">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-700 [&::-webkit-details-marker]:hidden">
+                      <span>عرض المزيد · المستشار الشامل وتقرير النبض الكامل</span>
+                      <ChevronDown size={16} strokeWidth={1.5} className="shrink-0 text-amber-700 transition-transform group-open/more:rotate-180" aria-hidden="true" />
+                    </summary>
+                    <div className="px-1 pb-3 pt-1">
                   <div
                     className={cn(
                       glassCardStyle,
@@ -4900,6 +4917,9 @@ const [isPending, startTransition] = useTransition();
                       </motion.div>
                     )}
                   </AnimatePresence>
+
+                    </div>
+                  </details>
 
                   <div className="flex flex-col w-full ">
                     <div
