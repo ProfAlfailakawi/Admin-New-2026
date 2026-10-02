@@ -2230,7 +2230,7 @@ const [isPending, startTransition] = useTransition();
     return (
       <div className={cn("dashboard w-full pb-32 animate-in fade-in duration-500 relative overflow-visible transition-colors", isExecutiveMode ? "bg-slate-50 min-h-screen" : "")}>
         {/* Dynamic Background Pattern */}
-        <div className="absolute -top-32 right-0 left-0 h-[800px] pointer-events-none -z-10 opacity-70 transition-all duration-1000 ease-in-out">
+        <div className="dashboard-mood-backdrop absolute top-0 right-0 left-0 h-[800px] pointer-events-none -z-10 opacity-50 transition-all duration-1000 ease-in-out [mask-image:linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]">
           <div className={cn("absolute inset-0 bg-gradient-to-b transition-colors duration-1000 ease-in-out", systemMoodClass)} />
           <div
             className="absolute inset-0 opacity-[0.03]"

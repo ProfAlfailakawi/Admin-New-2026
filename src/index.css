@@ -6590,3 +6590,12 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 .admin-page-hero,.admin-smart-panel,.smart-collapsible-panel{box-shadow:var(--r23-card-shadow)!important}
 .heritage-dark-card{box-shadow:0 18px 40px -22px rgba(15,23,42,.5)!important}
 .admin-page-hero + .smart-collapsible-panel{border-radius:0 0 var(--r23-card-radius) var(--r23-card-radius)!important}
+
+/* r41 polish: dashboard shares one gutter (greeting card, executive hub and the sheet behind align) */
+@media (min-width:1024px){
+  .admin-page-frame:has(.dashboard-merged-with-command){padding-inline:0!important}
+  .dashboard-merged-with-command .admin-content-polish{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+  .dashboard-merged-with-command .dashboard-content-shell,
+  .dashboard-merged-with-command .dashboard-executive-shell + *{padding-inline:0!important}
+  .dashboard-merged-with-command .dashboard > .z-40{padding-inline:0!important;background:transparent!important;border-color:transparent!important;backdrop-filter:none!important}
+}
