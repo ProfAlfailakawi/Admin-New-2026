@@ -6512,10 +6512,10 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
 body[data-overlay-open='1'] [data-floating='secondary'] { opacity: 0 !important; pointer-events: none !important; }
 @media (max-width: 767px) {
   /* scroll-to-top: a calm 40px circle that clears the bottom content */
-  [data-floating='secondary'][aria-label^='الرجوع للأعلى'] { right: 0.5rem; bottom: 4.25rem; }
+  [data-floating='secondary'][aria-label^='الرجوع للأعلى'] { right: 0.5rem; bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)); }
   /* phones: park the AI button and the alerts badge in the bottom corners (clear of the bottom gutter) so they never sit on card content */
-  .fixed.bottom-40.left-6[data-floating='secondary'] { left: 0.5rem; bottom: 0.75rem; transform: scale(.85); transform-origin: bottom left; }
-  .fixed.bottom-44.right-6[data-floating='secondary'] { right: 0.5rem; bottom: 0.75rem; transform: scale(.85); transform-origin: bottom right; }
+  .fixed.bottom-40.left-6[data-floating='secondary'] { left: 0.5rem; bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); transform: scale(.85); transform-origin: bottom left; }
+  .fixed.bottom-44.right-6[data-floating='secondary'] { right: 0.5rem; bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); transform: scale(.85); transform-origin: bottom right; }
 }
 
 /* command bar: calm active row (neutral surface + thin edge, no navy bar) */
