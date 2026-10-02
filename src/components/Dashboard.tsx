@@ -2898,7 +2898,7 @@ const [isPending, startTransition] = useTransition();
                               icon: <Truck size={16} />,
                             })
                           }
-                          className="hover:scale-110 active:scale-95 transition-transform"
+                          className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                         >
                           <Truck
                             className="text-indigo-600 pointer-events-none"
@@ -4768,7 +4768,7 @@ const [isPending, startTransition] = useTransition();
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
                         <button
                           onClick={() => setArchiveResult(null)}
-                          className="absolute top-3 md:p-4 left-6 p-3 hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors"
+                          className="absolute top-3 md:p-4 left-6 p-3 shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors"
                         >
                           <X size={24} />
                         </button>
@@ -5045,7 +5045,7 @@ const [isPending, startTransition] = useTransition();
                                   { icon: <Send size={16} /> },
                                 )
                               }
-                              className="hover:scale-110 active:scale-95 transition-transform"
+                              className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                             >
                               <Flame
                                 className="text-amber-500 pointer-events-none"
@@ -5307,7 +5307,7 @@ const [isPending, startTransition] = useTransition();
                           { icon: <BarChart3 size={16} /> },
                         )
                       }
-                      className="hover:scale-110 active:scale-95 transition-transform"
+                      className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                     >
                       <Users
                         size={32}

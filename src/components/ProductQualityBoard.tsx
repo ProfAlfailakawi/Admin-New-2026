@@ -49,7 +49,7 @@ export const ProductQualityBoard: React.FC<Props> = ({ data, onFocusProduct }) =
           <button
             type="button"
             onClick={() => setIsOpen((v) => !v)}
-            className="h-10 w-10 shrink-0 rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-white transition-colors"
+            className="h-10 w-10 max-md:h-11 max-md:w-11 shrink-0 rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-white transition-colors"
             aria-label={isOpen ? 'إغلاق تفاصيل جودة المنيو' : 'فتح تفاصيل جودة المنيو'}
           >
             <ChevronDown size={17} className={cn('transition-transform', isOpen && 'rotate-180')} />

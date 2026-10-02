@@ -332,13 +332,13 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <div className="flex gap-2 order-2 transition-opacity">
  <button 
  onClick={() => openEditModal(supplier)}
- className="p-2 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-600 transition-colors"
+ className="p-2 max-md:min-w-[44px] max-md:min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-600 transition-colors"
  >
  <Edit2 size={16} />
  </button>
  <button 
  onClick={() => setSupplierToDelete(supplier)}
- className="p-2 bg-red-50 hover:bg-red-100 rounded-xl text-red-300 hover:text-red-500 transition-colors"
+ className="p-2 max-md:min-w-[44px] max-md:min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center bg-red-50 hover:bg-red-100 rounded-xl text-red-300 hover:text-red-500 transition-colors"
  >
  <Trash2 size={16} />
  </button>
