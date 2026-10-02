@@ -6516,3 +6516,19 @@ body[data-overlay-open='1'] [data-floating='secondary'] { opacity: 0 !important;
 .command-row:hover .opacity-60,.command-row.is-active .opacity-60{color:#64748b!important;opacity:1!important;}
 .command-row:hover .command-row-icon,.command-row.is-active .command-row-icon{background:#fff!important;color:#b45309!important;border:1px solid #e2e8f0;}
 .command-row:hover svg:not(.command-row-icon svg),.command-row.is-active svg:not(.command-row-icon svg){color:#64748b!important;}
+
+/* ===== r23 task 1: sidebar contrast (text/icons >= 4.5:1 on the dark rail), clear hover/active ===== */
+aside.bg-slate-950 nav .text-white\/40,
+aside.bg-slate-950 nav .text-white\/45,
+aside.bg-slate-950 nav .text-white\/50,
+aside.bg-slate-950 nav .text-white\/60 { color: rgb(226 232 240 / 0.82); }
+aside.bg-slate-950 nav .text-white\/70 { color: rgb(241 245 249 / 0.92); }
+aside.bg-slate-950 nav .opacity-40,
+aside.bg-slate-950 nav .opacity-50 { opacity: 0.85; }
+aside.bg-slate-950 nav button { transition: background-color .18s ease, color .18s ease, box-shadow .18s ease; }
+aside.bg-slate-950 nav button:hover { color: #fff; background-color: rgb(255 255 255 / 0.09); }
+aside.bg-slate-950 nav button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 2px; }
+/* sub-item icon tile: readable at rest */
+aside.bg-slate-950 nav button span.bg-white\/5 { background-color: rgb(255 255 255 / 0.1); }
+/* active sub-item: amber edge on the reading side so the current page is obvious */
+aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color: rgb(255 255 255 / 0.1); box-shadow: inset -3px 0 0 #f59e0b; }
