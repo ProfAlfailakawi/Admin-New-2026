@@ -189,7 +189,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
  {/* Header Panel */}
- <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start">
+ <div className="heritage-dark-card bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start">
  <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400" />
  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12 hidden sm:block"><Calculator size={200} /></div>
  
@@ -210,7 +210,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
 
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4 md:gap-4 md:p-3">
  {/* Controls Panel */}
- <div className="lg:col-span-1 bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden group space-y-6 md:space-y-8">
+ <div className="heritage-dark-card lg:col-span-1 bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden group space-y-6 md:space-y-8">
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#6366f1_1px,transparent_1px),linear-gradient(to_bottom,#6366f1_1px,transparent_1px)] bg-[size:30px_30px] opacity-[0.03] pointer-events-none" />
  <div className="space-y-4 relative z-10">
  <h3 className="font-bold text-base md:text-lg text-white border-b border-slate-800 pb-2">1. اختر نوع السيناريو</h3>
@@ -354,7 +354,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  {/* Results Panel */}
  <div className="lg:col-span-2 space-y-6 md:space-y-8">
  {scenarioType === 'promotion' ? (
- <div className="bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden h-full flex flex-col items-center justify-center">
+ <div className="heritage-dark-card bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden h-full flex flex-col items-center justify-center">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
  {!campaignPlan ? (
  <>
@@ -434,7 +434,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <p className="text-sm font-bold text-slate-500">{simulation.explanation}</p>
  </div>
 ) : (
- <div className="bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden">
+ <div className="heritage-dark-card bg-slate-950 p-3 md:p-4 md:p-3 rounded-2xl md:rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden">
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.1)_0%,rgba(0,0,0,0)_60%)] pointer-events-none" />
  <h3 className="font-bold text-xl md:text-2xl text-white mb-6 md:mb-8 text-right relative z-10 flex items-center justify-end gap-3">
  <BarChart3 className="text-indigo-400" />

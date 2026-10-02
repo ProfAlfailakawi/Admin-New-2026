@@ -141,7 +141,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  };
 
  return (
- <div className="w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-slate-800 p-3 md:p-3 shadow-xl overflow-hidden relative group font-sans">
+ <div className="heritage-dark-card w-full bg-slate-950 rounded-3xl md:rounded-2xl border border-slate-800 p-3 md:p-3 shadow-xl overflow-hidden relative group font-sans">
  {/* Background Matrix/Night Vision Vibe */}
  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.05)_0%,rgba(0,0,0,0)_70%)]" />
  <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:20px_20px] opacity-10" />
