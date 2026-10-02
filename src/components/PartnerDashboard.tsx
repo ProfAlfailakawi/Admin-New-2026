@@ -469,13 +469,13 @@ const {
  const hour = now.getHours();
  const activeOrdersCount = (data.orders || []).filter(o => !['cancelled', 'delivered', 'تم التوصيل', 'تم الإلغاء', 'ملغي'].includes(o.status || '')).length;
  if (hour >= 5 && hour < 12) {
-    return { title: 'صباح الخير، يوم جديد وفرص جديدة ☀️', sub: 'بانتظار وصول طلبات اليوم. بالتوفيق!' };
+    return { title: 'صباح الخير، يوم جديد وفرص جديدة', sub: 'بانتظار وصول طلبات اليوم. بالتوفيق!' };
   } else if (hour >= 12 && hour < 17) {
-  return { title: 'مرحباً، وقت ذروة الغداء! 🍽️', sub: `لدينا ${activeOrdersCount} طلب نشط حالياً، حافظ على هذا الزخم الممتاز.` };
+  return { title: 'مرحباً، وقت ذروة الغداء!', sub: `لدينا ${activeOrdersCount} طلب نشط حالياً، تابعها أولاً بأول.` };
   } else if (hour >= 17 && hour < 22) {
-  return { title: 'مساء الخير، أداء استثنائي اليوم 🌙', sub: 'مبيعات العشاء تتصاعد، استمر في هذا الأداء الرائع.' };
+  return { title: 'مساء الخير', sub: 'تابع طلبات العشاء ومؤشرات اليوم من لوحتك.' };
   } else {
-  return { title: 'تحية مسائية هادئة ☕', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' };
+  return { title: 'تحية مسائية هادئة', sub: 'وقت مناسب لمراجعة أرقامك والتحضير للغد.' };
   }
   };
   const greeting = getContextualGreeting();

@@ -87,15 +87,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         return;
       }
       if (errString.includes('unauthorized-domain')) {
-        setError('هذا النطاق مو مصرح له بتسجيل الدخول. أضف النطاق الحالي لقائمة النطاقات المصرح بها في Firebase Auth.');
+        setError('هذا النطاق غير مصرح له بالدخول. أضفه في Firebase Auth.');
         return;
       }
       if (errString.includes('popup-blocked')) {
-        setError('النافذة مفتوحة بوضع مقيّد. اضغط «فتح في نافذة جديدة» فوق باليمين أو اسمح بالنوافذ المنبثقة.');
+        setError('النافذة مقيّدة. افتحها في نافذة جديدة أو اسمح بالنوافذ المنبثقة.');
         return;
       }
       if (errString.includes('network-request-failed')) {
-        setError('ما قدرنا نوصل لخوادم الدخول. تأكد من النت ووقف أي مانع إعلانات إذا موجود.');
+        setError('تعذر الاتصال بخوادم الدخول. تأكد من الإنترنت.');
         return;
       }
       if (errString.includes('internal-error')) {

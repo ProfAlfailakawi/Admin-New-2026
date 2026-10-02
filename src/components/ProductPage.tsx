@@ -47,6 +47,7 @@ import { findBestProductMatch } from "../lib/name-matching";
 import { getProfitCamera } from "../lib/ai-engine";
 import { ProductQualityBoard } from "./ProductQualityBoard";
 import { storage, auth } from "../firebase";
+import { DnaEmpty } from "./dna/DnaKit";
 import {
   ref,
   uploadBytes,
@@ -1230,25 +1231,21 @@ const ProductPage: React.FC<ProductPageProps> = ({
             className="admin-product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-4 md:gap-5 md:p-2 w-full col-span-full"
           >
           {(visibleProducts || []).length === 0 ? (
-            <div className="col-span-full py-20 px-4 flex flex-col items-center justify-center text-center bg-white/50 backdrop-blur-sm border border-slate-100 border-dashed rounded-3xl md:rounded-2xl">
-              <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
-                <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
-                <Package size={48} />
-              </div>
-              <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">
-                ماكو منتجات حالياً!
-              </h3>
-              <p className="text-slate-500 font-bold max-w-sm mb-8 leading-relaxed">
-                قائمتك فارغة تماماً. أضف أول صنف وابدأ في رحلة الأرباح وتحليل
-                التكاليف.
-              </p>
-              <button
-                onClick={() => setShowModal(true)}
-                className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1"
-              >
-                <Plus size={24} />
-                <span>ابدأ رحلتك وضيف أول منتج الآن!</span>
-              </button>
+            <div className="col-span-full">
+              <DnaEmpty
+                icon={<Package />}
+                title="ماكو منتجات حالياً!"
+                hint="قائمتك فارغة تماماً. أضف أول صنف وابدأ في رحلة الأرباح وتحليل التكاليف."
+                action={
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
+                  >
+                    <Plus size={24} />
+                    <span>ابدأ رحلتك وضيف أول منتج الآن!</span>
+                  </button>
+                }
+              />
             </div>
           ) : (
             (visibleProducts || []).map((product) => {

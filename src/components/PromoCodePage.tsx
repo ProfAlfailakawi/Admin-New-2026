@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getCouponProfitGuard, getKuwaitiSeasonalMove } from '../lib/ai-engine';
 
 import ConfirmModal from './ui/ConfirmModal';
+import { DnaEmpty } from './dna/DnaKit';
 
 export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: AppState) => void }> = ({ data, onUpdateData }) => {
  const coupons = data?.promocodes || [];
@@ -199,8 +200,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  <div className="flex-1">
  <h3 className="text-xl font-bold mb-2">منطق برنامج الولاء المربوط بالسستم (برنامج ولاء التراث)</h3>
  <p className="text-sm font-bold opacity-90 leading-relaxed text-right">
- يتم احتساب النقاط تلقائياً بناءً على المشتريات الفعلية: <span className="underline decoration-2">كل 1 دينار كويتي مدفوع = 1 نقطة ولاء.</span> 
- هذه النقاط تظهر في ملف العميل وتسمح لك بقياس مدى ارتباط العملاء بعلامتك التجارية وتحويلهم إلى مسوقين لك.
+ <span className="underline decoration-2">كل 1 دينار كويتي مدفوع = 1 نقطة ولاء</span>، وتظهر في ملف العميل.
  </p>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/10 whitespace-nowrap text-center">
@@ -266,8 +266,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
 )) : (
  <tr>
  <td colSpan={5} className="p-3 md:p-4 md:p-3 md:p-4 text-center">
- <Tag size={48} className="mx-auto text-slate-200 mb-4" />
- <p className="text-slate-500 font-bold">ماكو كوبونات حالياً. ابدأ بأول كود!</p>
+ <DnaEmpty icon={<Tag />} title="ماكو كوبونات حالياً." hint="ابدأ بأول كود!" />
  </td>
  </tr>
 )}

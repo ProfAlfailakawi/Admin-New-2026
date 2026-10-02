@@ -197,7 +197,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  محرك محاكاة"ماذا لو؟" <Zap className="text-cyan-400 animate-pulse" size={24} />
  </h2>
  <p className="text-indigo-100 text-sm md:text-lg font-bold leading-relaxed max-w-2xl relative z-10 mb-6 md:mb-8 text-right px-4 opacity-90">
- اختبر قراراتك المستقبلية قبل اتخاذها. هذا المحرك يستخدم مرونة الطلب التاريخية وأنماط الشراء في متجرك ليتوقع أثر تغيير الأسعار، خفض التكاليف، أو إطلاق الحملات على أرباحك الصافية.
+ اختبر السعر أو التكلفة أو الحملة قبل التنفيذ.
  </p>
  
  <div className="flex gap-4 relative z-10 px-4">
@@ -363,7 +363,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  </div>
  <h3 className="text-xl md:text-2xl font-bold text-white mb-4 relative z-10 text-center">الخطة التسويقية الذكية للمنتج المختار</h3>
  <p className="text-slate-500 text-center max-w-md text-sm md:text-base font-bold leading-relaxed mb-8 relative z-10">
- سيعرض التراث الذكي قراءة مختصرة لتاريخ مبيعات هذا الصنف وسلوك العملاء، مع حملة جاهزة ورسائل واتساب دقيقة.
+ قراءة مختصرة لمبيعات الصنف مع حملة جاهزة.
  </p>
  <button 
  onClick={generateCampaign}
