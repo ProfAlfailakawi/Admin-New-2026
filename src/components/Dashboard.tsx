@@ -346,7 +346,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   const hubLabel = (value: React.ReactNode, name: string) => (
     <span style={{ display: "grid", gap: 0, lineHeight: 1.2 }}>
       <b style={{ fontSize: 12.5, fontWeight: 800, color: "var(--dna-ink)" }} className="tabular-nums">{value}</b>
-      <small style={{ fontSize: 10.5, fontWeight: 700, color: "var(--dna-muted)" }}>{name}</small>
+      <small style={{ fontSize: 11, fontWeight: 700, color: "var(--dna-muted)" }}>{name}</small>
     </span>
   );
 

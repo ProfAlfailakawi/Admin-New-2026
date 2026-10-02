@@ -303,7 +303,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  step="0.01"
  value={percentChange}
  onChange={(e) => setPercentChange(parseFloat(e.target.value))}
- className="absolute inset-x-0 w-full appearance-none bg-transparent cursor-pointer accent-slate-900 z-10 h-10"
+ className="absolute inset-x-0 w-full appearance-none bg-transparent cursor-pointer accent-slate-900 z-10 h-10 max-md:h-11"
  />
  </div>
  

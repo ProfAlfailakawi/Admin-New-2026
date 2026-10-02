@@ -6627,6 +6627,11 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 
 /* Phones: AI assistant chips, action buttons and send button reach 44px (drawn pills keep their look) */
 @media (max-width: 767px) {
-  .ai-suggestion-chip,.ai-action-row button{min-height:44px}
+  .ai-suggestion-chip,.ai-action-row button{min-height:44px!important}
   .ai-input-wrap button{width:44px!important;height:44px!important}
+}
+
+/* Phones: the toast close button is drawn 20px; a transparent extension brings the touch target to 44px */
+@media (max-width: 767px) {
+  [data-sonner-toast] [data-close-button]::after{content:"";position:absolute;inset:-12px}
 }
