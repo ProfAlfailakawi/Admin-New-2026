@@ -1309,11 +1309,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
             <div>
               <div className="text-sm font-black text-slate-800 flex flex-wrap items-center justify-end gap-2 min-w-0">
                 <span className="shrink-0">شريط مستويات الدواوين</span>
-                <span className="inline-flex items-center whitespace-nowrap bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full leading-5">
+                <span className="inline-flex items-center whitespace-nowrap bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full leading-5">
                   {tiers.length} مستويات تتبع النقاط
                 </span>
               </div>
-              <div className="text-[10px] font-bold text-slate-400 mt-0.5">اضغط لرؤية المستويات وهدايا النقاط بالتفصيل</div>
+              <div className="text-[11px] font-bold text-slate-400 mt-0.5">اضغط لرؤية المستويات وهدايا النقاط بالتفصيل</div>
             </div>
           </div>
           <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 group-hover:bg-slate-100 transition">
@@ -1338,8 +1338,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white bg-gradient-to-br ${tier.color || 'from-slate-300 to-slate-500'} shadow-sm shrink-0`}>{getIcon(tier.iconType)}</div>
                       <div className="min-w-0">
                         <div className="font-black text-slate-800 text-sm truncate">{tier.name}</div>
-                        <div className="text-[10px] font-bold text-slate-500">من {tier.points} نقطة</div>
-                        <div className="text-[10px] font-semibold text-slate-400 truncate">{tier.label}</div>
+                        <div className="text-[11px] font-bold text-slate-500">من {tier.points} نقطة</div>
+                        <div className="text-[11px] font-semibold text-slate-400 truncate">{tier.label}</div>
                       </div>
                     </div>
                   </div>
@@ -1367,8 +1367,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-800 text-lg flex items-center gap-2 truncate">
                           {squad.name} 
-                          {squadDynamicTier === 'شيوخ' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black tracking-wider shrink-0">شيوخ</span>}
-                          {squadDynamicTier === 'نواخذة' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] uppercase font-black shrink-0">نواخذة</span>}
+                          {squadDynamicTier === 'شيوخ' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-md text-[11px] uppercase font-black tracking-wider shrink-0">شيوخ</span>}
+                          {squadDynamicTier === 'نواخذة' && <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[11px] uppercase font-black shrink-0">نواخذة</span>}
                         </h4>
                         <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mt-1">
                           <span className="flex items-center gap-1"><Users size={14} /> {squad.members} أعضاء</span>
@@ -1376,7 +1376,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         </div>
                       </div>
                       <div className="hidden sm:flex flex-col items-center bg-slate-50 p-2 border border-slate-100 rounded-xl min-w-[120px]">
-                        <span className="text-[10px] text-slate-400 font-bold mb-1 inline-flex items-center gap-1"><Crown size={11} />ملك الديوانية</span>
+                        <span className="text-[11px] text-slate-400 font-bold mb-1 inline-flex items-center gap-1"><Crown size={11} />ملك الديوانية</span>
                         <span className="text-sm font-bold text-slate-800 truncate max-w-[100px]">{squad.king}</span>
                       </div>
                     </div>
@@ -1526,7 +1526,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                            <div className="text-xs font-bold text-slate-500 mb-4 bg-white/60 px-3 py-1.5 rounded-lg inline-block border border-slate-200/50">آلية التفعيل: {t.points} نقطة</div>
                            
                            <div className="mt-4 pt-4 border-t border-slate-200/60">
-                             <span className="text-[10px] uppercase font-black text-slate-400 block mb-1">المكافأة الدائمة</span>
+                             <span className="text-[11px] uppercase font-black text-slate-400 block mb-1">المكافأة الدائمة</span>
                              <span className="font-bold text-[13px] text-slate-700 leading-relaxed block min-h-[40px]">{t.label}</span>
                            </div>
                          </>
@@ -1723,14 +1723,14 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                     <>
                                       <span className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
                                         {founderName}
-                                        <span className="text-[9px] font-bold tracking-wide text-amber-800 bg-white border border-amber-200 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1"><Crown size={10} />المؤسس الرئيسي</span>
+                                        <span className="text-[11px] font-bold tracking-wide text-amber-800 bg-white border border-amber-200 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1"><Crown size={10} />المؤسس الرئيسي</span>
                                       </span>
                                     </>
                                   )}
                                 </div>
                               </td>
                               <td className="p-4">
-                                 <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${displayTier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : displayTier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : displayTier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
+                                 <span className={`px-2 py-1 rounded-md text-[11px] font-bold ${displayTier === 'شيوخ' ? 'bg-purple-100 text-purple-700' : displayTier === 'نواخذة' ? 'bg-amber-100 text-amber-700' : displayTier === 'عزوة' ? 'bg-slate-200 text-slate-700' : 'bg-orange-100 text-orange-700'}`}>
                                    {displayTier}
                                  </span>
                               </td>
@@ -1741,7 +1741,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                   <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold shrink-0 text-slate-700">{(s.king || '?').charAt(0)}</div>
                                   <div className="flex flex-col">
                                     <span className="font-bold text-xs text-slate-700 inline-flex items-center gap-1">{s.king || 'لا يوجد'}<Crown size={11} className="text-amber-500" /></span>
-                                    <span className="text-[10px] text-slate-400">{s.kingOrders || 0} طلبات</span>
+                                    <span className="text-[11px] text-slate-400">{s.kingOrders || 0} طلبات</span>
                                   </div>
                                 </div>
                               </td>
@@ -1794,11 +1794,11 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                           </div>
                                           <div className="flex-1">
                                             <div className="font-bold text-sm text-slate-800">{member.name || 'غير معروف'}</div>
-                                            <div className="text-[10px] text-slate-400 font-mono">{member.phone}</div>
+                                            <div className="text-[11px] text-slate-400 font-mono">{member.phone}</div>
                                           </div>
                                           <div className="text-left">
                                             <div className="font-black text-blue-600">{(member.points || 0).toLocaleString('en-US')}</div>
-                                            <div className="text-[9px] text-slate-400">نقطة</div>
+                                            <div className="text-[11px] text-slate-400">نقطة</div>
                                           </div>
                                         </div>
                                       ))}
@@ -1868,7 +1868,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       </div>
                       <div className="text-left">
                         <div className="text-2xl font-black text-slate-900">{card.value}</div>
-                        <div className="text-[10px] font-bold text-slate-400">{card.hint}</div>
+                        <div className="text-[11px] font-bold text-slate-400">{card.hint}</div>
                       </div>
                     </div>
                     <div className="mt-3 text-xs font-black text-slate-700">{card.label}</div>
@@ -1888,7 +1888,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         <button type="button" onClick={() => setRadarMapMode('map')} className={`px-3 py-2 rounded-xl text-xs font-black transition ${radarMapMode === 'map' ? 'bg-white text-amber-700 shadow-sm ring-2 ring-blue-500/70' : 'text-slate-500 hover:text-slate-800'}`}>الخريطة الحالية</button>
                         <button type="button" onClick={() => setRadarMapMode('heatmap')} className={`px-3 py-2 rounded-xl text-xs font-black transition ${radarMapMode === 'heatmap' ? 'bg-white text-rose-700 shadow-sm ring-2 ring-blue-500/70' : 'text-slate-500 hover:text-slate-800'}`}>الخريطة الحرارية</button>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-black">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-black">
                         <span className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">موقع مثبت</span>
                         <span className="px-3 py-1.5 rounded-full bg-slate-50 text-slate-600 border border-slate-100">غير مثبت</span>
                         <span className="px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">طلبات معلقة</span>
@@ -1912,8 +1912,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     {radarMapMode === 'map' && diwaniyaAdminRadar.missingLocation.length > 0 && (
                       <div className="absolute right-3 top-14 z-[700] w-[150px] sm:w-[180px] rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-sm p-2 text-right" dir="rtl">
                         <div className="mb-1.5 flex items-center justify-between gap-1">
-                          <span className="text-[10px] font-black text-slate-500">بدون لوكيشن</span>
-                          <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[9px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
+                          <span className="text-[11px] font-black text-slate-500">بدون لوكيشن</span>
+                          <span className="rounded-full bg-slate-950 px-2 py-0.5 text-[11px] font-black text-white">{diwaniyaAdminRadar.missingLocation.length}</span>
                         </div>
                         <div className="max-h-[185px] overflow-auto space-y-1 pr-0.5">
                           {visibleMissingLocation.map((sq: any) => (
@@ -1925,7 +1925,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                     {radarMapMode === 'heatmap' && (
                       <div className="absolute inset-x-3 bottom-3 z-[700] rounded-2xl border border-rose-100 bg-white/92 p-3 text-right shadow-sm backdrop-blur-md" dir="rtl">
                         <div className="flex items-center justify-end gap-2 font-black text-slate-800 text-xs"><span>حرارة النشاط</span><Activity className="w-4 h-4 text-rose-500" /></div>
-                        <p className="text-[10px] text-slate-500 leading-5 mt-1">الرقم هو عدد عناصر النشاط. الخريطة الآن تفاعلية ويمكن تكبيرها وتحريكها.</p>
+                        <p className="text-[11px] text-slate-500 leading-5 mt-1">الرقم هو عدد عناصر النشاط. الخريطة الآن تفاعلية ويمكن تكبيرها وتحريكها.</p>
                       </div>
                     )}
                   </div>
@@ -1938,7 +1938,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       <div ref={selectedSquadCardRef} tabIndex={-1} className="bg-white rounded-[32px] border border-slate-200 p-5 shadow-sm space-y-4 outline-none ring-0 focus:ring-4 focus:ring-amber-200/70 transition-shadow">
                         <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
                           <div>
-                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+                            <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-black border ${selected.actualLocation ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
                               {selected.actualLocation ? 'موقع مثبت من العميل' : 'غير مثبت على الخريطة'}
                             </span>
                             <h4 className="font-black text-slate-900 text-xl mt-2">{selected.name}</h4>
@@ -1947,10 +1947,10 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           <div className="text-left space-y-2">
                             <div>
                               <div className="text-2xl font-black text-amber-600">{(selected.points || 0).toLocaleString('en-US')}</div>
-                              <div className="text-[10px] text-slate-400 font-bold">نقطة</div>
+                              <div className="text-[11px] text-slate-400 font-bold">نقطة</div>
                             </div>
                             {selected.actualLocation && (
-                              <button type="button" onClick={() => focusRadarOnSquad(selected)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-[10px] font-black hover:bg-amber-100 transition">
+                              <button type="button" onClick={() => focusRadarOnSquad(selected)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-[11px] font-black hover:bg-amber-100 transition">
                                 <Compass size={13} /> ركز
                               </button>
                             )}
@@ -1958,17 +1958,17 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3"><div className="text-[10px] text-slate-400 font-bold">الأعضاء</div><div className="text-lg font-black text-slate-800">{selected.membersCount}</div></div>
-                          <div className="rounded-2xl bg-amber-50 border border-amber-100 p-3"><div className="text-[10px] text-amber-700 font-bold">طلبات دخول</div><div className="text-lg font-black text-amber-700">{selected.pendingRequests.length}</div></div>
-                          <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3"><div className="text-[10px] text-emerald-700 font-bold">موجودين الآن</div><div className="text-lg font-black text-emerald-700">{selected.presence.length}</div></div>
-                          <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[10px] text-indigo-700 font-bold">مدى الدخول</div><div className="text-lg font-black text-indigo-700">{getSquadGeofenceDistance(selected)}م</div></div>
+                          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-3"><div className="text-[11px] text-slate-400 font-bold">الأعضاء</div><div className="text-lg font-black text-slate-800">{selected.membersCount}</div></div>
+                          <div className="rounded-2xl bg-amber-50 border border-amber-100 p-3"><div className="text-[11px] text-amber-700 font-bold">طلبات دخول</div><div className="text-lg font-black text-amber-700">{selected.pendingRequests.length}</div></div>
+                          <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-3"><div className="text-[11px] text-emerald-700 font-bold">موجودين الآن</div><div className="text-lg font-black text-emerald-700">{selected.presence.length}</div></div>
+                          <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-3"><div className="text-[11px] text-indigo-700 font-bold">مدى الدخول</div><div className="text-lg font-black text-indigo-700">{getSquadGeofenceDistance(selected)}م</div></div>
                         </div>
 
                         <div ref={coordinatesBoxRef} tabIndex={-1} className="rounded-2xl bg-slate-50 border border-slate-100 p-3 text-xs leading-6 outline-none">
                           <div className="flex items-start justify-between gap-3 mb-2">
                             <div>
                               <div className="font-black text-slate-800">{selected.name}</div>
-                              <div className="text-[10px] font-bold text-slate-400 mt-0.5">الإحداثيات</div>
+                              <div className="text-[11px] font-bold text-slate-400 mt-0.5">الإحداثيات</div>
                             </div>
                             <MapPin className="w-4 h-4 text-amber-500 shrink-0 mt-1" />
                           </div>
@@ -2079,7 +2079,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           </div>
                           <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
                         </div>
-                        <div className="flex flex-wrap gap-1.5 mt-3 text-[10px] font-black">
+                        <div className="flex flex-wrap gap-1.5 mt-3 text-[11px] font-black">
                           {!sq.actualLocation && <span className="px-2 py-1 rounded-lg bg-rose-100 text-rose-700">بلا موقع</span>}
                           <span className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700">مدى الدخول {getSquadGeofenceDistance(sq)}م</span>
                           {hasOverlap && <span className="px-2 py-1 rounded-lg bg-orange-100 text-orange-700">تداخل موقع</span>}
@@ -2117,7 +2117,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                       <div key={item.title} className="rounded-2xl bg-slate-50 border border-slate-100 p-4">
                         <div className="text-[11px] font-black text-slate-500">{item.title}</div>
                         <div className="text-2xl font-black text-slate-900 mt-1">{item.value}</div>
-                        <div className="text-[10px] font-bold text-slate-400 mt-1">{item.hint}</div>
+                        <div className="text-[11px] font-bold text-slate-400 mt-1">{item.hint}</div>
                       </div>
                     ))}
                   </div>

@@ -881,19 +881,19 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   <div className="flex flex-col gap-1 w-full pl-2 items-end">
                    <h4 className="font-bold text-slate-800 text-[13px] sm:text-[14px] leading-tight text-right line-clamp-1">{p.name}</h4>
                    {p.preparationInstructions && (
-                      <span className="text-[10px] bg-amber-50 border border-amber-200 text-amber-700 font-medium px-1.5 py-0.5 rounded flex items-center gap-1 flex-row-reverse w-fit text-right shadow-sm mt-0.5">
+                      <span className="text-[11px] bg-amber-50 border border-amber-200 text-amber-700 font-medium px-1.5 py-0.5 rounded flex items-center gap-1 flex-row-reverse w-fit text-right shadow-sm mt-0.5">
                         <AlertCircle size={8} className="shrink-0" /> <span className="line-clamp-1">{p.preparationInstructions}</span>
                       </span>
                    )}
                    <div className="flex items-center gap-1 flex-row-reverse text-slate-500">
                      <Truck size={10} />
-                     <span className="text-[10px] font-bold">
+                     <span className="text-[11px] font-bold">
                        {data.suppliers?.find((s) => s.id === p.supplierId)?.name || "مورد"}
                      </span>
                   </div>
                 </div>
                 <div className="flex flex-col items-center justify-center shrink-0 pr-3 border-r border-amber-100">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase mb-0.5">هامش الربح</span>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase mb-0.5">هامش الربح</span>
                   <span className="text-[14px] font-bold text-emerald-600">%{(
                     (((p.price || 0) - (p.cost || 0)) / (p.price || 1)) * 100
                   ).toFixed(0)}</span>
@@ -1092,7 +1092,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   ) : (
                     <>
                       <div className="text-xs font-black text-slate-800">{category}</div>
-                      <div className="text-[9px] font-bold text-slate-400">{usedCount} منتج</div>
+                      <div className="text-[11px] font-bold text-slate-400">{usedCount} منتج</div>
                     </>
                   )}
                 </div>
@@ -1134,7 +1134,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         {/* Smart Filters Bar */}
         <div className="flex flex-col md:flex-row flex-wrap items-stretch md:items-center justify-end gap-2 mb-10 pb-6 border-b border-slate-100 md:flex-row-reverse">
           <div className="bg-slate-50 p-2 rounded-2xl flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase mr-2 text-right">
+            <span className="text-[11px] font-bold text-slate-500 uppercase mr-2 text-right">
               المورد:
             </span>
             <select
@@ -1203,7 +1203,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                     <ChevronDown size={16} className={cn("transition-transform", isOpen ? "rotate-180 text-amber-400" : "text-slate-400")} />
                     <div className="flex-1">
                       <div className="font-extrabold text-xs sm:text-sm title-premium">{category}</div>
-                      <div className={cn("text-[10px] font-bold flex items-center justify-end gap-1 flex-row-reverse", isOpen ? "text-amber-400/70" : "text-slate-400")}>
+                      <div className={cn("text-[11px] font-bold flex items-center justify-end gap-1 flex-row-reverse", isOpen ? "text-amber-400/70" : "text-slate-400")}>
                         <span className="num-premium">{count}</span>
                         <span className="title-premium">منتجات</span>
                       </div>
@@ -1339,7 +1339,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.info(product.isOutOfStock ? '✅ المادة متوفرة الآن' : '🚫 سجلت كنفدت الكمية');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-bold w-8 h-8",
+                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] font-bold w-8 h-8",
                            product.isOutOfStock ? "bg-rose-500 hover:bg-rose-600 border-rose-400 text-white" : "bg-emerald-500 hover:bg-emerald-600 border-emerald-400 text-white"
                          )}
                        >
@@ -1359,7 +1359,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.info(product.isActive !== false ? '👁️ تم إخفاء المنتج' : '👁️ تم إظهار المنتج');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-bold w-8 h-8",
+                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] font-bold w-8 h-8",
                            product.isActive !== false ? "bg-slate-700 hover:bg-slate-800 border-slate-600 text-white" : "bg-amber-500 hover:bg-amber-600 border-amber-400 text-white"
                          )}
                        >
@@ -1388,7 +1388,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                            toast.success(nextFeatured ? '✨ ظهر المنتج ضمن اختياراتنا لكم' : 'تمت إزالة المنتج من اختياراتنا لكم');
                          }}
                          className={cn(
-                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[10px] font-bold w-8 h-8",
+                           "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] font-bold w-8 h-8",
                            (product as any).isMenuFeatured ? "bg-amber-400 hover:bg-amber-500 border-amber-300 text-slate-950 ring-2 ring-amber-200/80" : "bg-white/85 hover:bg-white border-white/70 text-slate-700"
                          )}
                        >
@@ -1401,7 +1401,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       <span className="text-[14px] font-extrabold text-white tracking-wider leading-none num-premium">
                         {Number(product.price || 0).toFixed(3)}
                       </span>
-                      <span className="text-[9px] font-bold text-rose-100 title-premium">د.ك</span>
+                      <span className="text-[11px] font-bold text-rose-100 title-premium">د.ك</span>
                     </div>
 
                     {/* Marketing Badges (Top Right) */}
@@ -1409,18 +1409,18 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       {isSlow && (
                         <span 
                           title="هذا المنتج حركته بطيئة مقارنة بباقي المنتجات"
-                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-pointer pointer-events-auto title-premium max-w-full truncate block">
+                          className="bg-rose-500/80 backdrop-blur-sm text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase cursor-pointer pointer-events-auto title-premium max-w-full truncate block">
                           بطيء الحركة
                         </span>
                       )}
                       {sales > 10 && (
-                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium font-black max-w-full truncate block">
+                        <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium font-black max-w-full truncate block">
                           رائج 🔥
                         </span>
                       )}
                       <span
                         title={profitCamera.hint}
-                        className={cn("backdrop-blur-sm text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium max-w-full truncate block", profitCameraClass)}
+                        className={cn("backdrop-blur-sm text-[11px] font-black px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium max-w-full truncate block", profitCameraClass)}
                       >
                         كاميرا الربح · {profitCamera.label}
                       </span>
@@ -1434,7 +1434,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       </h3>
                       {product.preparationInstructions && (
                         <div className="flex justify-end mt-1">
-                          <span className="text-[10px] md:text-[11px] bg-amber-50 border border-amber-200/60 text-amber-700 font-medium px-2 py-0.5 rounded-md flex items-center gap-1 w-fit flex-row-reverse shadow-sm text-right">
+                          <span className="text-[11px] md:text-[11px] bg-amber-50 border border-amber-200/60 text-amber-700 font-medium px-2 py-0.5 rounded-md flex items-center gap-1 w-fit flex-row-reverse shadow-sm text-right">
                             <AlertCircle size={10} className="text-amber-500 shrink-0" />
                             <span className="line-clamp-2 leading-snug title-premium">{product.preparationInstructions}</span>
                           </span>
@@ -1443,7 +1443,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       <div className="flex flex-col gap-1 items-end">
                         <div className="flex items-center gap-1 sm:gap-1.5 flex-row-reverse justify-end text-slate-500 group-hover:text-primary transition-colors">
                           <Truck size={10} className="sm:size-[12px] shrink-0" />
-                          <span className="text-[10px] sm:text-xs font-bold leading-tight title-premium text-slate-400">
+                          <span className="text-[11px] sm:text-xs font-bold leading-tight title-premium text-slate-400">
                             {supplier?.name || "مورد مجهول"}
                           </span>
                         </div>
@@ -1461,9 +1461,9 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                   <div className="bg-rose-50 border border-rose-100 text-rose-600 p-1.5 rounded-full cursor-pointer shadow-sm">
                                     <AlertCircle size={14} className="shrink-0 animate-pulse" />
                                   </div>
-                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[10px] sm:text-[10px] w-[140px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
-                                    <span className="bg-rose-50 text-rose-600 px-2 py-1 rounded-lg leading-relaxed w-full break-words whitespace-normal text-[9px] title-premium">{bestPrice.supplier}</span>
-                                    <span className="w-full text-[9px] title-premium">يوفره بسعر أقل !</span>
+                                  <div className="absolute bottom-full mb-2 right-1/2 translate-x-[75%] sm:translate-x-[60%] hidden group-hover/badge:flex group-focus/badge:flex focus-within:flex flex-col bg-white text-slate-700 text-[11px] sm:text-[11px] w-[140px] p-2 rounded-xl z-[100] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] font-bold border border-slate-200/60 pointer-events-none items-center gap-1.5 text-center">
+                                    <span className="bg-rose-50 text-rose-600 px-2 py-1 rounded-lg leading-relaxed w-full break-words whitespace-normal text-[11px] title-premium">{bestPrice.supplier}</span>
+                                    <span className="w-full text-[11px] title-premium">يوفره بسعر أقل !</span>
                                     <span className="text-rose-600 bg-rose-50 px-2 py-1 rounded-lg leading-none w-full num-premium text-xs">{Number(bestPrice.cost || 0).toFixed(3)} د.ك</span>
                                   </div>
                                 </div>
@@ -1476,23 +1476,23 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
                     <div className="grid grid-cols-2 gap-1 sm:gap-1.5 bg-slate-100/40 p-1.5 rounded-[18px] sm:rounded-[24px] border border-slate-200/40 shadow-inner">
                       <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase mb-0.5 title-premium">
+                        <span className="text-[7px] sm:text-[11px] font-bold text-slate-400 uppercase mb-0.5 title-premium">
                           البيع
                         </span>
-                        <span className="text-[10px] sm:text-sm font-black text-slate-900 tracking-wider num-premium">
+                        <span className="text-[11px] sm:text-sm font-black text-slate-900 tracking-wider num-premium">
                           {Number(product.price || 0).toFixed(3)}
                         </span>
                       </div>
                       <div className="bg-white rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 shadow-sm border border-slate-100 flex flex-col items-center justify-center">
-                        <span className="text-[7px] sm:text-[10px] font-bold text-slate-400 uppercase mb-0.5 title-premium">
+                        <span className="text-[7px] sm:text-[11px] font-bold text-slate-400 uppercase mb-0.5 title-premium">
                           التكلفة
                         </span>
-                        <span className="text-[10px] sm:text-sm font-bold text-slate-500 tracking-wider num-premium">
+                        <span className="text-[11px] sm:text-sm font-bold text-slate-500 tracking-wider num-premium">
                           {Number(product.cost || 0).toFixed(3)}
                         </span>
                       </div>
                       <div className="col-span-2 bg-gradient-to-r from-emerald-500/5 to-emerald-500/10 rounded-[12px] sm:rounded-[18px] p-1.5 sm:p-3 border border-emerald-500/20 flex items-center justify-between px-2 sm:px-6">
-                        <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase title-premium">
+                        <span className="text-[11px] sm:text-xs font-black text-emerald-600 uppercase title-premium">
                           هامش الربح
                         </span>
                         <span className="flex flex-col items-end gap-1 min-w-[56px]">
@@ -1615,7 +1615,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               <Sparkles size={16} />
                             </div>
                             <div className="text-right">
-                              <p className="text-[10px] font-bold text-indigo-400 uppercase">
+                              <p className="text-[11px] font-bold text-indigo-400 uppercase">
                                 توجيه التراث الذكي: هل تقصد هذا المنتج؟
                               </p>
                               <p className="text-sm font-bold text-indigo-900">
@@ -1659,7 +1659,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         <option key={category} value={category}>{category}</option>
                       ))}
                     </select>
-                    <p className="text-[10px] font-bold text-slate-400 text-right">تقدر تضيف أو تحذف التصنيفات من لوحة التصنيفات أعلى قائمة المنتجات.</p>
+                    <p className="text-[11px] font-bold text-slate-400 text-right">تقدر تضيف أو تحذف التصنيفات من لوحة التصنيفات أعلى قائمة المنتجات.</p>
                   </div>
 
                   <div className="space-y-2">
@@ -1916,7 +1916,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                           )}
                         />
                         {!String(addon.name || '').trim() && (
-                          <p className="text-[10px] font-bold text-rose-500 mt-1">اسم الإضافة إلزامي</p>
+                          <p className="text-[11px] font-bold text-rose-500 mt-1">اسم الإضافة إلزامي</p>
                         )}
                       </div>
 
@@ -1936,7 +1936,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             className={cn("flex min-h-[92px] flex-col items-center justify-center text-center p-2 sm:p-3 rounded-2xl border transition-all", addon.calculationType === 'per_item' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
                             <div className={cn("font-bold text-xs sm:text-sm mb-1 leading-5", addon.calculationType === 'per_item' ? "text-indigo-900" : "text-slate-700")}>لكل طبق</div>
-                            <div className="text-[10px] sm:text-[11px] text-slate-500 leading-4">يزيد مع كمية المنتج</div>
+                            <div className="text-[11px] sm:text-[11px] text-slate-500 leading-4">يزيد مع كمية المنتج</div>
                           </button>
 
                           <button
@@ -1950,7 +1950,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             className={cn("flex min-h-[92px] flex-col items-center justify-center text-center p-2 sm:p-3 rounded-2xl border transition-all", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
                             <div className={cn("font-bold text-xs sm:text-sm mb-1 leading-5", (addon.calculationType === 'per_x_items' || addon.calculationType === 'coverage') ? "text-indigo-900" : "text-slate-700")}>حسب الكمية</div>
-                            <div className="text-[10px] sm:text-[11px] text-slate-500 leading-4">كل عدد أو تغطية ذكية</div>
+                            <div className="text-[11px] sm:text-[11px] text-slate-500 leading-4">كل عدد أو تغطية ذكية</div>
                           </button>
 
                           <button
@@ -1964,7 +1964,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                             className={cn("flex min-h-[92px] flex-col items-center justify-center text-center p-2 sm:p-3 rounded-2xl border transition-all", addon.calculationType === 'fixed' ? "bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500 shadow-sm" : "bg-white border-slate-200 hover:border-indigo-200")}
                           >
                             <div className={cn("font-bold text-xs sm:text-sm mb-1 leading-5", addon.calculationType === 'fixed' ? "text-indigo-900" : "text-slate-700")}>مرة واحدة</div>
-                            <div className="text-[10px] sm:text-[11px] text-slate-500 leading-4">تُحسب مرة عند اختيارها</div>
+                            <div className="text-[11px] sm:text-[11px] text-slate-500 leading-4">تُحسب مرة عند اختيارها</div>
                           </button>
                         </div>
                       </div>
@@ -2135,7 +2135,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                               className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
                             />
                           </div>
-                          <p className="text-[10px] font-bold text-slate-400 leading-5">استخدمها فقط إذا كانت الإضافة لازم تنضاف دائماً. إذا تبيها تنضاف حسب كمية المنتج، استخدم خيار إظهار حسب كمية المنتج فقط.</p>
+                          <p className="text-[11px] font-bold text-slate-400 leading-5">استخدمها فقط إذا كانت الإضافة لازم تنضاف دائماً. إذا تبيها تنضاف حسب كمية المنتج، استخدم خيار إظهار حسب كمية المنتج فقط.</p>
                           
                           <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <div className="space-y-1">
@@ -2193,7 +2193,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 <div className="space-y-3">
                                   <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                     <div className="space-y-1">
-                                      <label className="text-[10px] font-bold text-slate-500">تظهر من كمية</label>
+                                      <label className="text-[11px] font-bold text-slate-500">تظهر من كمية</label>
                                       <input
                                         type="number"
                                         min={1}
@@ -2207,7 +2207,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                       />
                                     </div>
                                     <div className="space-y-1">
-                                      <label className="text-[10px] font-bold text-slate-500">الاقتراح يغطي حتى كمية</label>
+                                      <label className="text-[11px] font-bold text-slate-500">الاقتراح يغطي حتى كمية</label>
                                       <input
                                         type="number"
                                         min={1}
@@ -2234,7 +2234,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                     <option value="auto">يُضاف تلقائياً</option>
                                     <option value="required">تُضاف إجبارياً عند تحقق الكمية</option>
                                   </select>
-                                  <p className="text-[10px] font-bold text-slate-400 leading-5">هذا الخيار يتحكم بالظهور أو الاختيار التلقائي فقط، أما الحساب فيبقى حسب طريقة الحساب المختارة.</p>
+                                  <p className="text-[11px] font-bold text-slate-400 leading-5">هذا الخيار يتحكم بالظهور أو الاختيار التلقائي فقط، أما الحساب فيبقى حسب طريقة الحساب المختارة.</p>
                                 </div>
                               )}
                             </div>
@@ -2261,7 +2261,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                 className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none focus:ring-2 focus:ring-emerald-500/20 text-sm font-bold text-center"
                               />
                               {(addon.freeQuantity || 0) > 0 && (
-                                <p className="text-[10px] text-emerald-600 font-bold mt-1 text-right">أول {addon.freeQuantity} مجانا</p>
+                                <p className="text-[11px] text-emerald-600 font-bold mt-1 text-right">أول {addon.freeQuantity} مجانا</p>
                               )}
                             </div>
                           </div>

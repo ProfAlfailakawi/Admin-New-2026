@@ -1312,7 +1312,7 @@ Alturath.kw`;
                   {p.isOutOfStock && (
                     <div className="absolute top-2 left-2 text-rose-500 z-10 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg border border-rose-100 shadow-sm">
                       <AlertCircle size={14} />
-                      <span className="text-[10px] font-bold title-premium">نفد</span>
+                      <span className="text-[11px] font-bold title-premium">نفد</span>
                     </div>
                   )}
                   {(() => {
@@ -1384,7 +1384,7 @@ Alturath.kw`;
                   </h3>
                   
                   <div className="flex flex-wrap items-center gap-1.5 mt-auto mb-3">
-                    <span className="px-2 py-0.5 rounded-lg bg-slate-50 text-slate-400 text-[9px] font-bold border border-slate-100 uppercase tracking-wider">
+                    <span className="px-2 py-0.5 rounded-lg bg-slate-50 text-slate-400 text-[11px] font-bold border border-slate-100 uppercase tracking-wider">
                       {normalizeCategoryName((p as any).category)}
                     </span>
                     <span className="px-2 py-0.5 rounded-lg bg-primary/5 text-primary/40 text-[8px] font-extralight border border-primary/10 tracking-tighter">
@@ -1397,7 +1397,7 @@ Alturath.kw`;
                       <span className="text-primary font-black num-premium text-base">
                         {p.price.toFixed(3)}
                       </span>
-                      <span className="text-[10px] font-bold text-slate-500 title-premium">
+                      <span className="text-[11px] font-bold text-slate-500 title-premium">
                         د.ك
                       </span>
                     </div>
@@ -1432,7 +1432,7 @@ Alturath.kw`;
                       >
                         <div>
                           <div className="font-black text-slate-800">{group.category}</div>
-                          <div className="text-[10px] font-bold text-slate-400 mt-1">{group.items.length} منتج</div>
+                          <div className="text-[11px] font-bold text-slate-400 mt-1">{group.items.length} منتج</div>
                         </div>
                         <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center transition-all", isOpen ? "bg-primary text-white rotate-180" : "bg-slate-50 text-primary")}>⌄</div>
                       </button>
@@ -1483,7 +1483,7 @@ Alturath.kw`;
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">تاريخ التوصيل</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">تاريخ التوصيل</label>
                     <input
                       type="date"
                       lang="en-GB" dir="ltr"
@@ -1493,7 +1493,7 @@ Alturath.kw`;
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-1">وقت التوصيل</label>
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">وقت التوصيل</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -1519,7 +1519,7 @@ Alturath.kw`;
                             setDeliveryTime(newVal);
                           }}
                           className={cn(
-                            "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            "min-w-9 px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer",
                             (deliveryTime.toLowerCase().includes("am") || deliveryTime.includes("ص"))
                               ? "bg-amber-500 text-white font-black"
                               : "text-slate-500 hover:bg-slate-200"
@@ -1537,7 +1537,7 @@ Alturath.kw`;
                             setDeliveryTime(newVal);
                           }}
                           className={cn(
-                            "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                            "min-w-9 px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer",
                             (deliveryTime.toLowerCase().includes("pm") || deliveryTime.includes("م"))
                               ? "bg-amber-500 text-white font-black"
                               : "text-slate-500 hover:bg-slate-200"
@@ -1591,7 +1591,7 @@ Alturath.kw`;
                         <PlusCircle size={16} className="text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
                         <div className="flex flex-col items-end">
                           <span className="font-bold text-primary">إضافة عميل جديد: {customerSearch}</span>
-                          <span className="text-[10px] text-slate-400">سيتم التحقق من رقم الهاتف قبل الحفظ</span>
+                          <span className="text-[11px] text-slate-400">سيتم التحقق من رقم الهاتف قبل الحفظ</span>
                         </div>
                       </button>
                     )}
@@ -1606,7 +1606,7 @@ Alturath.kw`;
                         <span>{customer.name || "عميل بدون اسم"}</span>
                         <span dir="ltr" className="text-xs text-slate-400">{normalizePhoneDigits(customer.phone) || customer.phone}</span>
                         {(customer.area || customer.address) && (
-                          <span className="text-[10px] text-slate-400 mt-1 line-clamp-1">
+                          <span className="text-[11px] text-slate-400 mt-1 line-clamp-1">
                             {[customer.area, formatFullAddress(customer.address)].filter(Boolean).join(" · ")}
                           </span>
                         )}
@@ -1626,7 +1626,7 @@ Alturath.kw`;
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-primary/5 p-4 rounded-2xl border border-primary/20 space-y-3"
                 >
-                  <div className="text-[10px] font-bold text-primary uppercase">
+                  <div className="text-[11px] font-bold text-primary uppercase">
                     بيانات العميل الجديد
                   </div>
                   <input
@@ -1690,7 +1690,7 @@ Alturath.kw`;
               {!isPartner && (
               <div className="space-y-3">
                 <div className="flex items-center justify-end gap-2">
-                  <span className="text-[10px] font-bold text-slate-500 text-right">طريقة التوصيل</span>
+                  <span className="text-[11px] font-bold text-slate-500 text-right">طريقة التوصيل</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -1732,7 +1732,7 @@ Alturath.kw`;
                 </div>
 
                 <div className="relative">
-                  <div className="text-[9px] font-bold text-slate-400 text-right mb-1">
+                  <div className="text-[11px] font-bold text-slate-400 text-right mb-1">
                     جهة التوصيل
                   </div>
                   <select
@@ -1753,7 +1753,7 @@ Alturath.kw`;
 
 
               <div className="grid grid-cols-2 gap-2">
-                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                <label className="flex flex-col gap-1 text-[11px] font-bold text-slate-500">
                   <span>القطعة</span>
                   <input
                     value={addressDetails.block}
@@ -1768,7 +1768,7 @@ Alturath.kw`;
                     inputMode="numeric"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                <label className="flex flex-col gap-1 text-[11px] font-bold text-slate-500">
                   <span>الشارع</span>
                   <input
                     value={addressDetails.street}
@@ -1783,7 +1783,7 @@ Alturath.kw`;
                     inputMode="numeric"
                   />
                 </label>
-                <label className="flex flex-col gap-1 text-[10px] font-bold text-slate-500">
+                <label className="flex flex-col gap-1 text-[11px] font-bold text-slate-500">
                   <span>المنزل</span>
                   <input
                     value={addressDetails.building}
@@ -1838,7 +1838,7 @@ Alturath.kw`;
                                 <EyeOff size={11} aria-hidden="true" /><span>منتج مخفي بالمنيو</span>
                               </div>
                             )}
-                            <div className="text-[9px] font-extralight text-slate-400 opacity-60 mt-0.5 tracking-tighter">
+                            <div className="text-[11px] font-extralight text-slate-400 opacity-60 mt-0.5 tracking-tighter">
                               {(data.suppliers || []).find(s => s.id === it.product!.supplierId)?.name}
                             </div>
                           </div>
@@ -1862,7 +1862,7 @@ Alturath.kw`;
                             </button>
                           </div>
                           <div className="text-left leading-4">
-                            <div className="font-bold text-slate-500 text-[10px]">
+                            <div className="font-bold text-slate-500 text-[11px]">
                               {Number(
                                 it.priceAtTime || it.product!.price || 0,
                               ).toFixed(3)}{" "}
@@ -1882,7 +1882,7 @@ Alturath.kw`;
                         {Array.isArray(it.product!.addons) &&
                           it.product!.addons.length > 0 && (
                             <div className="space-y-2 pt-2 border-t border-slate-50">
-                              <div className="text-[10px] font-bold text-slate-400 mb-1">
+                              <div className="text-[11px] font-bold text-slate-400 mb-1">
                                 إضافات الوجبة:
                               </div>
                               <div className="grid grid-cols-1 gap-1.5">
@@ -1920,7 +1920,7 @@ Alturath.kw`;
                                         >
                                           <Minus size={11} />
                                         </button>
-                                        <span className="text-[10px] font-black min-w-5 text-center">
+                                        <span className="text-[11px] font-black min-w-5 text-center">
                                           {currentQty}
                                         </span>
                                         <button
@@ -1941,7 +1941,7 @@ Alturath.kw`;
                                         </button>
                                       </div>
                                       <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-bold text-slate-700">
+                                        <span className="text-[11px] font-bold text-slate-700">
                                           {a.name}
                                         </span>
                                         {a.isHiddenPrice ? null : (
@@ -1979,7 +1979,7 @@ Alturath.kw`;
 
               {/* خيارات الخصم (رقم ونسبة) - Moved directly under list of products */}
               <div className="space-y-1.5 border-t border-b border-dashed border-slate-200/80 py-4 my-3" dir="rtl">
-                <div className="text-[10px] font-bold text-slate-500 text-right uppercase">
+                <div className="text-[11px] font-bold text-slate-500 text-right uppercase">
                   خصم إضافي (رقم ونسبة)
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">

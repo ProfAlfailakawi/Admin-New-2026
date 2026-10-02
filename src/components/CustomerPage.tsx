@@ -426,7 +426,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
         </button>
       </div>
 
-      <div className="md:col-span-5 flex flex-col sm:flex-row items-stretch md:items-center gap-2">
+      <div className="md:col-span-5 flex flex-col 2xl:flex-row items-stretch gap-2">
         <div className="flex flex-1 overflow-x-auto hide-scrollbar bg-slate-100 p-1 rounded-2xl gap-1">
           {[
             { id: 'all', label: 'الكل' },
@@ -439,7 +439,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               key={t.id}
               onClick={() => setFilterType(t.id)}
               className={cn(
-                "px-3 py-2 rounded-xl text-[10px] font-bold transition-all flex-1",
+                "px-3 py-2 min-h-[44px] sm:min-h-0 whitespace-nowrap rounded-xl text-[11px] font-bold transition-all flex-1",
                 filterType === t.id ?"bg-white text-indigo-600 shadow-sm" :"text-slate-500 hover:bg-white/50"
               )}
             >
@@ -452,7 +452,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           <select 
             value={sentimentFilter}
             onChange={(e) => setSentimentFilter(e.target.value)}
-            className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full text-[10px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
+            className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full text-[11px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
           >
             <option value="all">كل الانطباعات</option>
             <option value="positive">سعيد</option>
@@ -498,7 +498,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
            </div>
            <div>
              <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name || "عميل بدون اسم"}</div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(customer.lastOrderDate)}` : 'عميل جديد'}</div>
+            <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(customer.lastOrderDate)}` : 'عميل جديد'}</div>
            </div>
           </div>
          </td>
@@ -508,7 +508,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               <MapPin size={12} className="text-rose-500" />
               {customer.area || 'غير محدد'}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 font-bold">
+            <div className="text-[11px] text-slate-400 mt-0.5 font-bold">
               {formatFullAddress(customer.address) || 'لا يوجد عنوان'}
             </div>
           </div>
@@ -519,7 +519,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                <span className="font-black text-slate-900 text-lg tabular-nums">{(Number(stats?.totalSpent) || 0).toFixed(3)}</span>
                <span className="text-xs text-slate-400 font-bold">د.ك</span>
              </div>
-             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{(stats?.totalOrders || 0)} طلبيات موثقة</span>
+             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{(stats?.totalOrders || 0)} طلبيات موثقة</span>
            </div>
          </td>
          <td className="p-2.5">
@@ -552,7 +552,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                       {customer.diwaniyaName}
                     </span>
                     <div className="flex flex-col gap-0.5 mr-1">
-                      <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
+                      <span className="text-[11px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
                         نقاط الديوانية: {customer.diwaniyaPoints?.toLocaleString('en-US') || 0}
                       </span>
                     </div>
@@ -573,11 +573,11 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                             {squad?.name}
                           </span>
                           <div className="flex flex-col gap-0.5 mr-1">
-                            <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
+                            <span className="text-[11px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
                               نقاط الديوانية: {squad?.points?.toLocaleString('en-US') || 0}
                             </span>
                             {mPoints !== undefined && mPoints > 0 && (
-                              <span className="text-[10px] text-indigo-700 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-100 w-fit flex items-center gap-1 mt-0.5">
+                              <span className="text-[11px] text-indigo-700 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-100 w-fit flex items-center gap-1 mt-0.5">
                                 <Gift size={10} className="text-indigo-500" />
                                 نقاطي: {mPoints?.toLocaleString('en-US') || 0}
                               </span>
@@ -609,7 +609,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
                   <span className="font-black text-indigo-400">تحليل التراث الذكي</span>
-                  <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded-full">{sentiment?.score || 50}%</span>
+                  <span className="text-[11px] font-bold bg-white/10 px-2 py-0.5 rounded-full">{sentiment?.score || 50}%</span>
                 </div>
                 <p className="text-[11px] font-bold leading-relaxed text-right">{sentiment?.reason || 'نشاط اعتيادي'}</p>
                 <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
@@ -693,18 +693,18 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          </div>
 
          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
-           <h3 className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2"><MapPin size={12}/> تفاصيل العنوان</h3>
+           <h3 className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-2"><MapPin size={12}/> تفاصيل العنوان</h3>
            <div className="grid grid-cols-3 gap-3">
              <div className="space-y-1">
-               <label className="text-[9px] font-bold text-slate-400 mr-1">القطعة *</label>
+               <label className="text-[11px] font-bold text-slate-400 mr-1">القطعة *</label>
                <input value={customerForm.detailedAddress.block} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, block: enforceEnglishNumbers(e.target.value)}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="ق" />
              </div>
              <div className="space-y-1">
-               <label className="text-[9px] font-bold text-slate-400 mr-1">الشارع *</label>
+               <label className="text-[11px] font-bold text-slate-400 mr-1">الشارع *</label>
                <input value={customerForm.detailedAddress.street} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, street: enforceEnglishNumbers(e.target.value)}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="ش" />
              </div>
              <div className="space-y-1">
-               <label className="text-[9px] font-bold text-slate-400 mr-1">المنزل *</label>
+               <label className="text-[11px] font-bold text-slate-400 mr-1">المنزل *</label>
                <input value={customerForm.detailedAddress.building} onChange={e => setCustomerForm({...customerForm, detailedAddress: {...customerForm.detailedAddress, building: enforceEnglishNumbers(e.target.value)}})} className="w-full bg-white border border-slate-200/60 rounded-xl py-2 px-3 outline-none text-xs font-bold" placeholder="م" />
              </div>
            </div>

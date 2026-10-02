@@ -1543,7 +1543,7 @@ Alturath.kw`;
                   <div className="flex-grow">
                     <div className="flex justify-between items-start mb-3">
                       <div className="space-y-0.5">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
                           #{IS_DEMO_MODE && /^(ORD|INV)-/.test(order.id) ? order.id : order.id.slice(-6)}
                         </span>
                         <h3 className="font-bold text-slate-800 text-sm group-hover:text-indigo-600 transition-colors line-clamp-1">
@@ -1567,7 +1567,7 @@ Alturath.kw`;
                         )}
                         <div
                           className={cn(
-                            "status-badge-fit px-2 py-0.5 rounded-lg text-[10px] font-bold relative z-20 transition-all",
+                            "status-badge-fit px-2 py-0.5 rounded-lg text-[11px] font-bold relative z-20 transition-all",
                             isPendingStatus(order.status as string) ||
                               isFailedStatus(order.status as string) ||
                               (isPaidStatus(order.status) &&
@@ -1619,7 +1619,7 @@ Alturath.kw`;
                     />
 
                     <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-4">
-                      <div className="flex items-center text-[10px] md:text-[11px] text-slate-500 font-bold gap-1.5 md:gap-2">
+                      <div className="flex items-center text-[11px] md:text-[11px] text-slate-500 font-bold gap-1.5 md:gap-2">
                         <Clock size={10} className="md:w-[12px] opacity-40" />
                         <span dir="ltr" className="inline-block text-left">
                           {(() => {
@@ -1645,17 +1645,17 @@ Alturath.kw`;
                         if (!delDateFormatted && !delTimeFormatted) return null;
 
                         return (
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] md:text-[11px] text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] md:text-[11px] text-slate-700 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg font-bold my-1 w-full">
                             <Clock size={12} className="text-slate-500 shrink-0" />
                             <span className="font-bold">التوصيل:</span>
                             {delDateFormatted && (
                               <div className="flex items-center gap-1">
-                                {weekday && <span className="text-slate-700 font-light text-[10px]">{weekday}</span>}
-                                <span dir="ltr" className="text-slate-900 font-black px-1 py-0.5 text-[10px]">{delDateFormatted}</span>
+                                {weekday && <span className="text-slate-700 font-light text-[11px]">{weekday}</span>}
+                                <span dir="ltr" className="text-slate-900 font-black px-1 py-0.5 text-[11px]">{delDateFormatted}</span>
                               </div>
                             )}
                             {delTimeFormatted && (
-                              <span dir="ltr" className="bg-slate-100 text-slate-800 border border-slate-200 text-[10px] px-2 py-0.5 rounded-full font-black shrink-0 whitespace-nowrap">
+                              <span dir="ltr" className="bg-slate-100 text-slate-800 border border-slate-200 text-[11px] px-2 py-0.5 rounded-full font-black shrink-0 whitespace-nowrap">
                                 {delTimeFormatted}
                               </span>
                             )}
@@ -1667,7 +1667,7 @@ Alturath.kw`;
                     <details className="order-card-more mb-2" data-order-more>
                       <summary onClick={(e) => e.stopPropagation()}>العنوان والأصناف</summary>
                       <div className="space-y-1.5 md:space-y-2 pt-1.5">
-                      <div className="flex items-start text-[10px] md:text-[11px] text-slate-700 font-extrabold gap-1.5 md:gap-2 bg-slate-100/70 border border-slate-200/50 px-2 py-1 rounded-lg my-1 w-full">
+                      <div className="flex items-start text-[11px] md:text-[11px] text-slate-700 font-extrabold gap-1.5 md:gap-2 bg-slate-100/70 border border-slate-200/50 px-2 py-1 rounded-lg my-1 w-full">
                         <MapPin
                           size={12}
                           className="text-slate-500 shrink-0 mt-0.5"
@@ -1706,7 +1706,7 @@ Alturath.kw`;
                           (it as any).preparationInstructions;
                         return (
                           <div key={idx} className="flex flex-col gap-1">
-                            <div className="text-[10px] font-medium text-slate-600 flex justify-between items-center">
+                            <div className="text-[11px] font-medium text-slate-600 flex justify-between items-center">
                               <span className="truncate min-w-0">
                                 {p?.name || "منتج"}
                               </span>
@@ -1729,12 +1729,12 @@ Alturath.kw`;
                         );
                       })}
                       {order.items?.length > 2 && (
-                        <div className="text-[10px] text-slate-500 hover:text-indigo-600 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
+                        <div className="text-[11px] text-slate-500 hover:text-indigo-600 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
                           + {order.items.length - 2} أصناف
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.16)] border border-slate-200/80 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[100] text-right">
                             <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/80 text-[11px] font-black text-slate-600 flex items-center justify-between gap-2">
                               <span>الأصناف الإضافية</span>
-                              <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px] font-black" dir="ltr">
+                              <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-black" dir="ltr">
                                 +{order.items.length - 2}
                               </span>
                             </div>
@@ -1762,7 +1762,7 @@ Alturath.kw`;
                                               "منتج غير معروف"}
                                           </div>
                                           {prepInstructions && (
-                                            <div className="mt-1 text-[10px] text-slate-500 flex items-center gap-1 min-w-0">
+                                            <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1 min-w-0">
                                               <AlertCircle
                                                 size={9}
                                                 className="shrink-0"
@@ -1805,7 +1805,7 @@ Alturath.kw`;
                           ) -
                           ((order as any).discount || 0),
                       ).toFixed(3)}
-                      <span className="text-[10px] font-bold mr-1 opacity-40">
+                      <span className="text-[11px] font-bold mr-1 opacity-40">
                         د.ك
                       </span>
                     </div>
@@ -1890,7 +1890,7 @@ Alturath.kw`;
                                       <span className="font-bold text-sm md:text-base text-slate-800">
                                         {sp.name || "مشارك"}
                                       </span>
-                                      <span className="text-[10px] md:text-xs text-slate-500">
+                                      <span className="text-[11px] md:text-xs text-slate-500">
                                         {sp.phone || "بدون رقم"}
                                       </span>
                                     </div>
@@ -1899,21 +1899,21 @@ Alturath.kw`;
                                         {Number(sp.amount || 0).toFixed(3)} د.ك
                                       </span>
                                       {sp.status === "paid" ? (
-                                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                        <span className="text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                                           <CheckCircle2 className="w-3 h-3" />{" "}
                                           مدفوع
                                         </span>
                                       ) : isCancelledStatus(sp.status) ? (
-                                        <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                        <span className="text-[11px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                                           <XCircle className="w-3 h-3" /> ملغي
                                         </span>
                                       ) : sp.status === "failed" ? (
-                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                        <span className="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                                           <AlertCircle className="w-3 h-3" />{" "}
                                           فشل الدفع
                                         </span>
                                       ) : (
-                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                        <span className="text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
                                           <Clock className="w-3 h-3" /> بانتظار
                                           الدفع
                                         </span>
@@ -1941,7 +1941,7 @@ Alturath.kw`;
                             </h4>
 
                             <div className="bg-white rounded-xl p-3 border-2 border-purple-200 mb-3 text-center">
-                              <div className="text-[10px] md:text-xs font-bold text-purple-400 mb-1">
+                              <div className="text-[11px] md:text-xs font-bold text-purple-400 mb-1">
                                 بطل الليلة (الخاسر اللي دفعها)
                               </div>
                               <div className="text-base md:text-lg font-bold text-purple-700">
@@ -1951,7 +1951,7 @@ Alturath.kw`;
                             </div>
 
                             <div className="space-y-1">
-                              <div className="text-[10px] font-bold text-purple-600 mb-2">
+                              <div className="text-[11px] font-bold text-purple-600 mb-2">
                                 المشاركون باللعب:
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -1964,7 +1964,7 @@ Alturath.kw`;
                                     return (
                                       <span
                                         key={idx}
-                                        className="bg-white/60 text-purple-800 text-[10px] md:text-xs font-bold px-2 py-1 rounded-md border border-purple-200"
+                                        className="bg-white/60 text-purple-800 text-[11px] md:text-xs font-bold px-2 py-1 rounded-md border border-purple-200"
                                       >
                                         {pVal}
                                       </span>
@@ -1985,7 +1985,7 @@ Alturath.kw`;
                       <div className="border border-slate-100 rounded-xl md:rounded-2xl overflow-hidden shadow-sm">
                         <div className="overflow-x-auto hide-scrollbar">
                           <table className="w-full text-right border-collapse min-w-[340px] md:min-w-[500px]">
-                            <thead className="bg-slate-50 text-slate-500 text-[10px] md:text-[11px] font-bold uppercase tracking-wider">
+                            <thead className="bg-slate-50 text-slate-500 text-[11px] md:text-[11px] font-bold uppercase tracking-wider">
                               <tr>
                                 <th className="p-3 md:p-4">الصنف والمورد</th>
                                 <th className="p-3 md:p-4 text-center">
@@ -2042,12 +2042,12 @@ Alturath.kw`;
                                               )}
                                             </div>
                                             {product?.supplierId && !needsSelection && (
-                                              <span className="text-[10px] font-extralight text-slate-400 block -mt-0.5 opacity-70 tracking-tight">
+                                              <span className="text-[11px] font-extralight text-slate-400 block -mt-0.5 opacity-70 tracking-tight">
                                                 {(data.suppliers || []).find(s => s.id === product.supplierId)?.name}
                                               </span>
                                             )}
                                           {prepInstructions && (
-                                            <span className="text-[10px] md:text-[11px] bg-white border border-slate-200 text-slate-600 font-bold px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5">
+                                            <span className="text-[11px] md:text-[11px] bg-white border border-slate-200 text-slate-600 font-bold px-2 py-1 rounded-lg mt-1 w-fit flex items-center gap-1.5">
                                               <AlertCircle
                                                 size={12}
                                                 className="text-amber-600"
@@ -2060,7 +2060,7 @@ Alturath.kw`;
                                         {supplierOptions.length > 1 &&
                                           !isReadOnly && (
                                             <select
-                                              className="text-[10px] md:text-[11px] p-1.5 md:p-2 pr-7 md:pr-8 w-full border border-slate-200/60 rounded-lg md:rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-600/20 appearance-none cursor-pointer transition-all"
+                                              className="text-[11px] md:text-[11px] p-1.5 md:p-2 pr-7 md:pr-8 w-full border border-slate-200/60 rounded-lg md:rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-600/20 appearance-none cursor-pointer transition-all"
                                               style={{
                                                 backgroundImage:
                                                   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E\")",
@@ -2296,7 +2296,7 @@ Alturath.kw`;
 
                                         {(supplierOptions.length === 1 ||
                                           isReadOnly) && (
-                                          <div className="text-[10px] md:text-[11px] font-bold text-slate-500 bg-slate-100/80 px-1.5 md:px-3 py-1 md:py-2 rounded-md md:rounded-xl w-fit">
+                                          <div className="text-[11px] md:text-[11px] font-bold text-slate-500 bg-slate-100/80 px-1.5 md:px-3 py-1 md:py-2 rounded-md md:rounded-xl w-fit">
                                             المورد:{" "}
                                             {(data?.suppliers || []).find(
                                               (s) =>
@@ -2319,7 +2319,7 @@ Alturath.kw`;
                                             (item as any).instructions;
                                           if (noteValue) {
                                             return (
-                                              <div className="text-[10px] md:text-[11px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded-md md:rounded-lg w-fit flex items-center gap-1">
+                                              <div className="text-[11px] md:text-[11px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded-md md:rounded-lg w-fit flex items-center gap-1">
                                                 <MessageSquare
                                                   size={8}
                                                   className="md:w-[10px]"
@@ -2374,7 +2374,7 @@ Alturath.kw`;
                                                     return (
                                                       <div
                                                         key={aIdx}
-                                                        className="text-[10px] md:text-[11px] text-slate-500 font-bold"
+                                                        className="text-[11px] md:text-[11px] text-slate-500 font-bold"
                                                       >
                                                         + {addon.name}{" "}
                                                         {(() => {
@@ -2457,10 +2457,10 @@ Alturath.kw`;
                                           <td className="p-3 md:p-4 text-center font-bold text-slate-800">
                                             x{item.quantity}
                                           </td>
-                                          <td className="p-3 md:p-4 text-center font-bold text-slate-500 text-[10px] md:text-sm">
+                                          <td className="p-3 md:p-4 text-center font-bold text-slate-500 text-[11px] md:text-sm">
                                             {displayPrice.toFixed(3)}
                                           </td>
-                                          <td className="p-3 md:p-4 text-left font-bold text-slate-900 text-[10px] md:text-sm">
+                                          <td className="p-3 md:p-4 text-left font-bold text-slate-900 text-[11px] md:text-sm">
                                             {totalRowPrice.toFixed(3)}
                                           </td>
                                         </>
@@ -2470,7 +2470,7 @@ Alturath.kw`;
                                 );
                               })}
                             </tbody>
-                            <tfoot className="bg-slate-50/50 text-[10px] md:text-xs">
+                            <tfoot className="bg-slate-50/50 text-[11px] md:text-xs">
                               {/* Show Discount if present */}
                               {(selectedOrder as any).discount > 0 && (
                                 <tr>
@@ -2549,7 +2549,7 @@ Alturath.kw`;
                                         ((selectedOrder as any).discount || 0),
                                     ),
                                   ).toFixed(3)}
-                                  <span className="text-[10px] md:text-xs mr-1 md:mr-2 opacity-60">
+                                  <span className="text-[11px] md:text-xs mr-1 md:mr-2 opacity-60">
                                     د.ك
                                   </span>
                                 </td>
@@ -2585,7 +2585,7 @@ Alturath.kw`;
                       return (
                         <div className="bg-indigo-50 border border-indigo-100 p-3 md:p-4 rounded-2xl md:rounded-2xl shadow-sm space-y-3 md:space-y-4">
                           <div className="space-y-2 md:space-y-3">
-                            <h4 className="text-indigo-600 font-bold text-[10px] md:text-[11px] uppercase tracking-wider flex items-center gap-2">
+                            <h4 className="text-indigo-600 font-bold text-[11px] md:text-[11px] uppercase tracking-wider flex items-center gap-2">
                               <MessageSquare
                                 size={12}
                                 className="md:w-[14px]"
@@ -2615,7 +2615,7 @@ Alturath.kw`;
                         </h4>
                         <div
                           className={cn(
-                            "px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-[11px] font-bold uppercase text-white transition-all shadow-md",
+                            "px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[11px] md:text-[11px] font-bold uppercase text-white transition-all shadow-md",
                             isPendingStatus(selectedOrder.status as string) ||
                               isFailedStatus(selectedOrder.status as string) ||
                               (isPaidStatus(selectedOrder.status) &&
@@ -2766,7 +2766,7 @@ Alturath.kw`;
                       <div className="absolute top-0 right-0 w-12 md:w-20 md:w-32 h-12 md:h-20 md:h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
 
                       <div className="relative z-10">
-                        <h4 className="text-white/60 font-bold text-[10px] md:text-[11px] uppercase tracking-widest mb-3 md:mb-4">
+                        <h4 className="text-white/60 font-bold text-[11px] md:text-[11px] uppercase tracking-widest mb-3 md:mb-4">
                           بيانات العميل والتوصيل
                         </h4>
                         <div className="space-y-4 md:space-y-5">
@@ -2778,7 +2778,7 @@ Alturath.kw`;
                               <div className="font-bold text-base md:text-lg">
                                 {getOrderCustomerName(selectedOrder)}
                               </div>
-                              <div className="text-[10px] md:text-xs text-white/50 font-bold">
+                              <div className="text-[11px] md:text-xs text-white/50 font-bold">
                                 {selectedOrder.customerPhone ||
                                   "لا يوجد رقم هاتف"}
                               </div>
@@ -2856,7 +2856,7 @@ Alturath.kw`;
                                   <div className="flex flex-col gap-1.5 md:gap-2">
                                     <div>{addrParts.join(" - ")}</div>
                                     {timeStr && (
-                                      <div className="flex items-center gap-1.5 text-[10px] md:text-xs text-white/60 bg-white/5 py-1 px-3 rounded-lg w-fit mt-1">
+                                      <div className="flex items-center gap-1.5 text-[11px] md:text-xs text-white/60 bg-white/5 py-1 px-3 rounded-lg w-fit mt-1">
                                         <Clock
                                           size={10}
                                           className="md:w-[12px]"
@@ -2886,14 +2886,14 @@ Alturath.kw`;
                                 <span>موعد التوصيل للعميل</span>
                               </span>
                               {(orderDeliveryDate || orderDeliveryTime) && (
-                                <span className="bg-amber-400/20 text-amber-200 text-[9px] px-2 py-0.5 rounded-full font-bold">
+                                <span className="bg-amber-400/20 text-amber-200 text-[11px] px-2 py-0.5 rounded-full font-bold">
                                   محدد
                                 </span>
                               )}
                             </div>
                             <div className="space-y-3 pt-1">
                               <div>
-                                <span className="block text-[10px] text-white/70 font-bold mb-1">تاريخ التوصيل</span>
+                                <span className="block text-[11px] text-white/70 font-bold mb-1">تاريخ التوصيل</span>
                                 <input
                                   type="date"
                                   lang="en-GB" dir="ltr"
@@ -2909,7 +2909,7 @@ Alturath.kw`;
                                 />
                               </div>
                               <div>
-                                <span className="block text-[10px] text-white/70 font-bold mb-1">وقت التوصيل</span>
+                                <span className="block text-[11px] text-white/70 font-bold mb-1">وقت التوصيل</span>
                                 <div className="flex items-center gap-2">
                                   <input
                                     type="text"
@@ -2944,7 +2944,7 @@ Alturath.kw`;
                                         }
                                       }}
                                       className={cn(
-                                        "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        "min-w-9 px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer",
                                         (orderDeliveryTime.toLowerCase().includes("am") || orderDeliveryTime.includes("ص"))
                                           ? "bg-amber-500 text-slate-950 font-black"
                                           : "text-slate-400 hover:bg-slate-800"
@@ -2965,7 +2965,7 @@ Alturath.kw`;
                                         }
                                       }}
                                       className={cn(
-                                        "min-w-9 px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer",
+                                        "min-w-9 px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer",
                                         (orderDeliveryTime.toLowerCase().includes("pm") || orderDeliveryTime.includes("م"))
                                           ? "bg-amber-500 text-slate-950 font-black"
                                           : "text-slate-400 hover:bg-slate-800"
@@ -2982,7 +2982,7 @@ Alturath.kw`;
 
                           {!isReadOnly && !isPartner && (
                             <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/10 space-y-2 md:space-y-3">
-                              <label className="text-white/50 font-bold text-[10px] md:text-[11px] uppercase block">
+                              <label className="text-white/50 font-bold text-[11px] md:text-[11px] uppercase block">
                                 طريقة التوصيل
                               </label>
                               <div className="grid grid-cols-2 gap-2">
@@ -2999,7 +2999,7 @@ Alturath.kw`;
                                       setOrderDeliveryType(type.id as any);
                                     }}
                                     className={cn(
-                                      "flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-2 md:px-3 rounded-lg md:rounded-xl border text-[10px] md:text-xs font-bold transition-all",
+                                      "flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-2.5 px-2 md:px-3 rounded-lg md:rounded-xl border text-[11px] md:text-xs font-bold transition-all",
                                       orderDeliveryType === type.id
                                         ? cn(
                                             "shadow-lg",

@@ -254,7 +254,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <Wallet size={24} />
  </div>
  <div className="flex-1">
- <div className="text-[10px] md:text-sm font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
+ <div className="text-[11px] md:text-sm font-bold text-slate-500 uppercase mb-0.5 md:mb-1">إجمالي المديونية</div>
  <div className="text-lg md:text-3xl font-bold text-slate-900 tracking-tighter leading-none whitespace-nowrap" dir="ltr">{Number(totalOutstanding || 0).toFixed(3)} <span className="text-sm md:text-xl font-bold">د.ك</span></div>
  <p className="hidden md:block text-xs text-slate-500 font-medium mt-2 leading-tight">إجمالي المبالغ المستحقة لجميع الموردين المسجلين</p>
  </div>
@@ -373,7 +373,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  supplierLiveBalance > 0 ?"cursor-pointer bg-red-50 border-red-100 hover:border-red-300" :"cursor-default bg-emerald-50 border-emerald-100"
 )}
  >
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المستحق المالي</div>
+ <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">المستحق المالي</div>
  <div className={cn("text-lg font-bold tracking-tighter", supplierLiveBalance > 0 ?"text-red-600" :"text-emerald-600")}>
  {Number(supplierLiveBalance || 0).toFixed(3)}
  </div>
@@ -382,16 +382,16 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  onClick={() => setShowLedgerSupplierId(supplier.id)}
  className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-blue-50 border-blue-100 hover:border-blue-300 hover:bg-blue-100 text-blue-600"
  >
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">كشف حساب</div>
+ <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">كشف حساب</div>
  <ArrowLeftRight size={18} className="mb-1 mt-1" />
- <div className="text-[10px] font-bold">عرض الفواتير</div>
+ <div className="text-[11px] font-bold">عرض الفواتير</div>
  </div>
  {!isDeliveryOnlySupplier && (
  <div 
  onClick={() => setProductsToShow(supplierProducts)}
  className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
  >
- <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">المنتجات</div>
+ <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">المنتجات</div>
  <div className="text-xl font-bold text-slate-800">{supplierProducts.length}</div>
  </div>
  )}
@@ -404,7 +404,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <History size={18} className="text-slate-600" />
  </div>
  <div className="flex-1">
- <div className="text-[10px] font-extrabold text-slate-400 uppercase tracking-tight">حالة فواتير المورد</div>
+ <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-tight">حالة فواتير المورد</div>
  <div className="text-xs font-bold text-slate-600 mt-1">
  المقصود هنا سدادك للمورد، وليس حالة دفع العميل
  </div>
@@ -421,17 +421,17 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  <div className="grid grid-cols-3 gap-2">
  <div className="bg-white border border-slate-100 rounded-2xl p-2 text-center">
- <div className="text-[10px] font-bold text-slate-400 mb-1">الإجمالي</div>
+ <div className="text-[11px] font-bold text-slate-400 mb-1">الإجمالي</div>
  <div className="text-lg font-extrabold text-slate-800 leading-none">{invoiceStats.totalInvoices}</div>
  </div>
  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-2 text-center">
- <div className="text-[10px] font-bold text-emerald-600 mb-1 flex items-center justify-center gap-1">
+ <div className="text-[11px] font-bold text-emerald-600 mb-1 flex items-center justify-center gap-1">
  <CheckCircle2 size={11} /> مسددة
  </div>
  <div className="text-lg font-extrabold text-emerald-700 leading-none">{invoiceStats.paidInvoices}</div>
  </div>
  <div className="bg-red-50 border border-red-100 rounded-2xl p-2 text-center">
- <div className="text-[10px] font-bold text-red-500 mb-1 flex items-center justify-center gap-1">
+ <div className="text-[11px] font-bold text-red-500 mb-1 flex items-center justify-center gap-1">
  <Clock3 size={11} /> غير مسددة
  </div>
  <div className="text-lg font-extrabold text-red-600 leading-none">{invoiceStats.pendingInvoices}</div>
@@ -439,7 +439,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  {invoiceStats.partiallyPaidInvoices > 0 && (
- <div className="mt-2 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center">
+ <div className="mt-2 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center">
  توجد {invoiceStats.partiallyPaidInvoices} فاتورة عليها سداد جزئي للمورد ضمن غير المسددة.
  </div>
  )}
@@ -447,7 +447,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  )}
 
  {supplierSettlement.unappliedCredit > 0 && (
- <div className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2 text-right leading-5">
+ <div className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2 text-right leading-5">
  رصيد سداد فائض غير مطابق: <span dir="ltr">{supplierSettlement.unappliedCredit.toFixed(3)}</span> د.ك — سدادات لا تقابلها فواتير مسجلة بنفس تاريخها، ولا تُخصم من المستحق الجديد.
  </div>
  )}
@@ -455,12 +455,12 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  <div className="supplier-kind-badges flex flex-wrap gap-2 justify-end">
  {(supplier as any).supplierType !== 'delivery' && (
- <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+ <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center gap-1">
  <Package size={12} /> مورد أكل
  </span>
  )}
  {((supplier as any).supplierType === 'delivery' || (supplier as any).deliverySettlement === 'supplier') && (
- <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-blue-700 flex items-center gap-1">
+ <span className="bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-blue-700 flex items-center gap-1">
  <Truck size={12} /> توصيل
  </span>
  )}
@@ -468,7 +468,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  <div className="flex flex-wrap gap-2 justify-end">
  {toPaymentMethodsArray(supplier.paymentMethods).map(method => (
- <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
+ <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
  <CreditCard size={12} />
  {method === 'BankTransfer' ? 'حوالة' : method === 'KNet' ? displayLabel('KNET') : 'رابط'}
  </span>
@@ -597,7 +597,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <option value="delivery">شركة توصيل فقط</option>
  </select>
  {(supplierForm.supplierType === 'delivery') && (
-   <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">هذا الاسم يظهر كخيار في شركة التوصيل فقط، ولا يحتاج إعداد تسوية إضافي.</p>
+   <p className="text-[11px] font-bold text-slate-400 leading-5 text-right">هذا الاسم يظهر كخيار في شركة التوصيل فقط، ولا يحتاج إعداد تسوية إضافي.</p>
  )}
  </div>
  {supplierForm.supplierType !== 'delivery' && (
@@ -611,7 +611,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <option value="supplier">نعم، يوصّل ويستحق التوصيل</option>
  <option value="delivery_company">لا، أختار شركة التوصيل من الفاتورة</option>
  </select>
- <p className="text-[10px] font-bold text-slate-400 leading-5 text-right">إذا اخترت نعم يظهر اسم المورد تلقائيًا في فاتورة جديدة، وتقدر تبدله من الفاتورة.</p>
+ <p className="text-[11px] font-bold text-slate-400 leading-5 text-right">إذا اخترت نعم يظهر اسم المورد تلقائيًا في فاتورة جديدة، وتقدر تبدله من الفاتورة.</p>
  </div>
  )}
  </div>
@@ -706,7 +706,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   <div className="flex items-center gap-4">
   <div className="text-right">
   <h3 className="text-xl font-black text-slate-900 leading-tight">{supplier?.name}</h3>
-  <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1 block">كشف الحساب المالي التفصيلي</span>
+  <span className="text-[11px] font-black text-blue-500 uppercase tracking-widest mt-1 block">كشف الحساب المالي التفصيلي</span>
   </div>
   <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
   <ArrowLeftRight size={24} />
@@ -718,40 +718,40 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   {showSupplySummary && (
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">توريد المنتجات</div>
+  <div className="text-[11px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">توريد المنتجات</div>
   <div className="text-base font-black text-slate-900 text-center relative z-10">{totalProductsDue.toFixed(3)}</div>
-  <div className="text-[9px] font-black text-slate-400 mt-1 text-center">إجمالي التوريد {totalSupplyDue.toFixed(3)}</div>
+  <div className="text-[11px] font-black text-slate-400 mt-1 text-center">إجمالي التوريد {totalSupplyDue.toFixed(3)}</div>
   </div>
   )}
   {showAddonsSummary && (
   <div className="bg-amber-50 p-3 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-amber-500 uppercase mb-1 text-center relative z-10">إضافات المورد</div>
+  <div className="text-[11px] font-black text-amber-500 uppercase mb-1 text-center relative z-10">إضافات المورد</div>
   <div className="text-base font-black text-amber-700 text-center relative z-10">{totalAddonsDue.toFixed(3)}</div>
-  <div className="text-[9px] font-black text-amber-500 mt-1 text-center">مضافة ضمن المستحق</div>
+  <div className="text-[11px] font-black text-amber-500 mt-1 text-center">مضافة ضمن المستحق</div>
   </div>
   )}
   {showDeliverySummary && (
   <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-blue-400 uppercase mb-1 text-center relative z-10">توصيل المورد</div>
+  <div className="text-[11px] font-black text-blue-400 uppercase mb-1 text-center relative z-10">توصيل المورد</div>
   <div className="text-base font-black text-blue-700 text-center relative z-10">{totalDeliveryDue.toFixed(3)}</div>
-  <div className="text-[9px] font-black text-blue-400 mt-1 text-center">متبقي {remainingDelivery.toFixed(3)}</div>
+  <div className="text-[11px] font-black text-blue-400 mt-1 text-center">متبقي {remainingDelivery.toFixed(3)}</div>
   </div>
   )}
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي المستحق</div>
+  <div className="text-[11px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي المستحق</div>
   <div className="text-base font-black text-slate-900 text-center relative z-10">{totalInvoiced.toFixed(3)}</div>
   </div>
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
+  <div className="text-[11px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
   <div className="text-base font-black text-emerald-600 text-center relative z-10">{totalPaid.toFixed(3)}</div>
   </div>
   <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl relative overflow-hidden">
   <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[10px] font-bold opacity-60 uppercase mb-1 text-center relative z-10">المتبقي حالياً</div>
+  <div className="text-[11px] font-bold opacity-60 uppercase mb-1 text-center relative z-10">المتبقي حالياً</div>
   <div className="text-base font-black text-center relative z-10">{currentBalance.toFixed(3)}</div>
   </div>
   </div>
@@ -759,7 +759,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   {unappliedCredit > 0 && (
   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-right">
   <div className="text-[11px] font-black text-amber-700 mb-1">رصيد سداد فائض غير مطابق: {unappliedCredit.toFixed(3)} د.ك</div>
-  <p className="text-[10px] font-bold text-amber-600 leading-5">
+  <p className="text-[11px] font-bold text-amber-600 leading-5">
   هذا المبلغ سدّدته للمورد ولا تقابله فواتير مسجلة في نفس تاريخه (غالباً فواتير قديمة تم حذفها أو أرشفتها، أو دفعة افتتاحية).
   يظهر هنا بشكل صريح ولا يُخصم تلقائياً من الفواتير الجديدة، حتى لا تختفي مستحقات المورد الحالية.
   </p>
@@ -799,28 +799,28 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
     {item.label}
     {item.type === 'invoice' && (
       <span className={cn(
-        "text-[10px] px-2 py-0.5 rounded-full font-black border transition-all",
+        "text-[11px] px-2 py-0.5 rounded-full font-black border transition-all",
         expandedLedgerId === item.id ? "bg-blue-500 text-white border-blue-500" : "bg-slate-50 text-slate-400 border-slate-200 group-hover:border-blue-200 group-hover:text-blue-500"
       )}>
         {expandedLedgerId === item.id ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
       </span>
     )}
   </div>
-  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
+  <div className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">{formatKuwaitiDateOnly(item.date)}</div>
   <div className="mt-1 flex flex-wrap justify-end gap-1">
   {(() => {
     if (item.type !== 'invoice') return null;
     const paidState = settlement.settlementByEntryId.get(String(item.id));
     if (!paidState) return null;
-    if (paidState.isPaid) return <div className="text-[10px] font-black text-emerald-600 bg-emerald-50 rounded-xl px-2 py-1 inline-block">مسددة بالكامل</div>;
-    if (paidState.isPartiallyPaid) return <div className="text-[10px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">سداد جزئي · متبقي {paidState.remaining.toFixed(3)} د.ك</div>;
-    return <div className="text-[10px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-1 inline-block">غير مسددة · متبقي {paidState.remaining.toFixed(3)} د.ك</div>;
+    if (paidState.isPaid) return <div className="text-[11px] font-black text-emerald-600 bg-emerald-50 rounded-xl px-2 py-1 inline-block">مسددة بالكامل</div>;
+    if (paidState.isPartiallyPaid) return <div className="text-[11px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">سداد جزئي · متبقي {paidState.remaining.toFixed(3)} د.ك</div>;
+    return <div className="text-[11px] font-black text-red-600 bg-red-50 rounded-xl px-2 py-1 inline-block">غير مسددة · متبقي {paidState.remaining.toFixed(3)} د.ك</div>;
   })()}
   {item.type === 'invoice' && Number((item as any).addonsSupplyAmount || 0) > 0 && (
-    <div className="text-[10px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">يشمل إضافات {Number((item as any).addonsSupplyAmount || 0).toFixed(3)} د.ك</div>
+    <div className="text-[11px] font-black text-amber-600 bg-amber-50 rounded-xl px-2 py-1 inline-block">يشمل إضافات {Number((item as any).addonsSupplyAmount || 0).toFixed(3)} د.ك</div>
   )}
   {item.type === 'invoice' && item.deliveryAmount > 0 && (
-    <div className="text-[10px] font-black text-blue-500 bg-blue-50 rounded-xl px-2 py-1 inline-block">يشمل توصيل مورد {Number(item.deliveryAmount || 0).toFixed(3)} د.ك</div>
+    <div className="text-[11px] font-black text-blue-500 bg-blue-50 rounded-xl px-2 py-1 inline-block">يشمل توصيل مورد {Number(item.deliveryAmount || 0).toFixed(3)} د.ك</div>
   )}
   </div>
   </div>
@@ -830,10 +830,10 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  "text-lg font-black tracking-tighter whitespace-nowrap",
   item.type === 'invoice' ? "text-slate-900" : "text-emerald-600"
  )} dir="ltr">
-  {item.type === 'invoice' ? '' : '-'}{Math.abs(item.amount).toFixed(3)} <span className="text-[10px]">د.ك</span>
+  {item.type === 'invoice' ? '' : '-'}{Math.abs(item.amount).toFixed(3)} <span className="text-[11px]">د.ك</span>
   </div>
   {item.type === 'transfer' && (
-  <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">
+  <div className="text-[11px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">
   بواسطة {item.method === 'BankTransfer' ? 'تحويل بنكي' : item.method}
   </div>
   )}
@@ -852,48 +852,48 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
         <div className="p-5 space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
             <div className="text-right">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase mb-1">إجمالي البيع </div>
               <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
             </div>
             <div className="text-right border-r border-slate-100 px-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد </div>
+              <div className="text-[11px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد </div>
               <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
             {Number((item as any).addonsSupplyAmount || 0) > 0 && (
             <div className="text-right border-r border-slate-100 px-3">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إضافات المورد</div>
+              <div className="text-[11px] font-black text-slate-400 uppercase mb-1">إضافات المورد</div>
               <div className="text-base font-black text-amber-600 whitespace-nowrap" dir="ltr">{Number((item as any).addonsSupplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
             )}
             {Number(item.deliveryAmount || 0) > 0 && (
             <div className="text-right border-r border-slate-100 px-3">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">توصيل المورد</div>
+              <div className="text-[11px] font-black text-slate-400 uppercase mb-1">توصيل المورد</div>
               <div className="text-base font-black text-blue-600 whitespace-nowrap" dir="ltr">{(item.deliveryAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-2">الأصناف المشمولة</div>
+            <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-right pr-2">الأصناف المشمولة</div>
             <div className="space-y-1">
               {(item.items || []).map((prod: any, pIdx: number) => (
                 <div key={`${item.id}-${pIdx}`} className="bg-white/80 border border-slate-100/50 rounded-2xl p-3 flex flex-wrap justify-between items-center text-right group/item hover:bg-white transition-all">
                   <div className="flex-1">
                     <div className="font-bold text-slate-800 text-sm">{prod.name}</div>
-                    <div className="text-[10px] font-black text-slate-400 flex items-center gap-2 mt-0.5">
+                    <div className="text-[11px] font-black text-slate-400 flex items-center gap-2 mt-0.5">
                       <span>الكمية: {prod.quantity}</span>
                       <span className="w-1 h-1 bg-slate-200 rounded-full" />
                       <span>السعر: {prod.price.toFixed(3)}</span>
                     </div>
                   </div>
                   <div className="text-left shrink-0">
-                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{Number(prod.baseCostTotal ?? ((Number(prod.cost || 0) * Number(prod.quantity || 1)) || 0)).toFixed(3)} <span className="text-[10px]">د.ك</span></div>
-                    <div className="text-[9px] font-bold text-emerald-500">حصة المورد</div>
+                    <div className="text-sm font-black text-slate-900 whitespace-nowrap" dir="ltr">{Number(prod.baseCostTotal ?? ((Number(prod.cost || 0) * Number(prod.quantity || 1)) || 0)).toFixed(3)} <span className="text-[11px]">د.ك</span></div>
+                    <div className="text-[11px] font-bold text-emerald-500">حصة المورد</div>
                   </div>
                   {Array.isArray((prod as any).addons) && (prod as any).addons.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-amber-100/70 w-full space-y-1">
                       {((prod as any).addons || []).filter((addon: any) => Number(addon.costTotal || 0) > 0).map((addon: any, aIdx: number) => (
-                        <div key={`${item.id}-${pIdx}-addon-${aIdx}`} className="flex justify-between items-center gap-2 text-[10px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
+                        <div key={`${item.id}-${pIdx}-addon-${aIdx}`} className="flex justify-between items-center gap-2 text-[11px] bg-amber-50/80 border border-amber-100 rounded-xl px-2 py-1">
                           <span className="font-black text-amber-700 text-right">إضافة: {addon.name}{addon.quantity !== undefined ? ` × ${addon.quantity}` : ''}</span>
                           <span className="font-black text-amber-700 whitespace-nowrap" dir="ltr">{Number(addon.costTotal || 0).toFixed(3)} د.ك</span>
                         </div>

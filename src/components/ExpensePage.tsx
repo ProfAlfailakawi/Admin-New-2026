@@ -188,7 +188,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="overflow-x-auto rounded-3xl border border-slate-100">
  <table className="mobile-card-table w-full text-right min-w-[800px]" dir="rtl">
  <thead>
- <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
+ <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[11px] uppercase text-right">
  <th className="p-3 md:p-3"><span className="inline-flex items-center gap-1.5"><Calendar size={12} className="text-slate-400" />التاريخ</span></th>
  <th className="p-3 md:p-3">بيان المصروف</th>
  <th className="p-3 md:p-3">المبلغ الصافي</th>
@@ -224,7 +224,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </div>
  </td>
  <td className="p-3 md:p-3">
- <div className="flex items-center gap-2 text-slate-500 font-bold text-[10px] uppercase tracking-tighter">
+ <div className="flex items-center gap-2 text-slate-500 font-bold text-[11px] uppercase tracking-tighter">
  {expense.paymentMethod === 'BankTransfer' ? 'حوالة' : 
  expense.paymentMethod === 'KNet' ? displayLabel('KNET') :
  expense.paymentMethod === 'Cash' ? 'كاش' : expense.paymentMethod}

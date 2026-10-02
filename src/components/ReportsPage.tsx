@@ -1183,7 +1183,7 @@ Alturath.kw`;
             >
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
                 <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
                     عدد الفواتير
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-slate-900 tracking-tighter">
@@ -1191,7 +1191,7 @@ Alturath.kw`;
                   </div>
                 </div>
                 <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
                     إجمالي المبيعات
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter truncate">
@@ -1217,7 +1217,7 @@ Alturath.kw`;
                   </div>
                 </div>
                 <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
                     إجمالي الربح
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-emerald-600 tracking-tighter truncate">
@@ -1320,7 +1320,7 @@ Alturath.kw`;
                         key={f}
                         onClick={() => setTimeFilter(f as any)}
                         className={cn(
-                          "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all",
+                          "px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase transition-all",
                           timeFilter === f
                             ? "bg-white text-slate-900 shadow-sm"
                             : "text-slate-500 hover:text-slate-600",
@@ -1372,7 +1372,7 @@ Alturath.kw`;
                 <div className="overflow-x-auto rounded-2xl border border-slate-100">
                   <table className="mobile-card-table w-full text-right min-w-[900px]" dir="rtl">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[10px] uppercase text-right">
+                      <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-500 text-[11px] uppercase text-right">
                         <th className="p-3 md:p-3">رقم الفاتورة</th>
                         <th className="p-3 md:p-3">العميل</th>
                         <th className="p-3 md:p-3">التاريخ</th>
@@ -1454,14 +1454,14 @@ Alturath.kw`;
                                         ? `عميل #${inv.customerId.slice(-4)}`
                                         : "عميل عام (غير مسجل)")}
                                   </div>
-                                  <div className="text-[10px] text-slate-500 font-medium">
+                                  <div className="text-[11px] text-slate-500 font-medium">
                                     {customer?.phone ||
                                       (inv as any).customerPhone}
                                    </div>
                                    {(() => {
                                      const addrStr = getInvoiceAddress(inv, customer);
                                      return addrStr ? (
-                                       <div className="text-[9px] text-slate-400 font-light mt-1 max-w-[260px] leading-relaxed break-words border-t border-slate-100/50 pt-1 flex items-start gap-1" dir="rtl">
+                                       <div className="text-[11px] text-slate-400 font-light mt-1 max-w-[260px] leading-relaxed break-words border-t border-slate-100/50 pt-1 flex items-start gap-1" dir="rtl">
                                          <MapPin size={10} className="shrink-0 mt-0.5" /><span>{addrStr}</span>
                                        </div>
                                      ) : null;
@@ -1481,20 +1481,20 @@ Alturath.kw`;
 
                                       return (
                                         <div className="bg-amber-500/10 border border-amber-500/30 text-amber-950 p-2.5 rounded-xl flex flex-col gap-1 w-full max-w-[200px]">
-                                          <div className="flex items-center gap-1.5 text-[10px] font-black text-amber-800">
+                                          <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-800">
                                             <Clock size={11} className="text-amber-600 shrink-0" />
                                             <span>التوصيل:</span>
                                           </div>
                                           <div className="flex flex-col gap-0.5 mt-0.5 text-slate-900">
                                             {weekday && (
-                                              <span className="text-slate-700 font-light text-[10px]">
+                                              <span className="text-slate-700 font-light text-[11px]">
                                                 {weekday}
                                               </span>
                                             )}
                                             <div className="flex items-center justify-between gap-1">
                                               <span dir="ltr" className="text-slate-900 font-black text-xs">{delDateFormatted}</span>
                                               {delTimeFormatted && (
-                                                <span dir="ltr" className="bg-amber-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 whitespace-nowrap">
+                                                <span dir="ltr" className="bg-amber-600 text-white text-[11px] px-1.5 py-0.5 rounded-md font-bold shrink-0 whitespace-nowrap">
                                                   {delTimeFormatted}
                                                 </span>
                                               )}
@@ -1504,7 +1504,7 @@ Alturath.kw`;
                                       );
                                     })()}
 
-                                    <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1">
+                                    <div className="text-[11px] text-slate-400 font-normal flex items-center gap-1">
                                       <span>إنشاء:</span>
                                       <span dir="ltr">
                                         {formatKuwaitiDateOnly(resolveInvoiceDisplayDate(inv))} - {formatKuwaitiTimeOnly(resolveInvoiceDisplayDate(inv))}
@@ -1516,7 +1516,7 @@ Alturath.kw`;
                                       return (
                                         <span
                                           title={entityName || meta.label}
-                                          className={cn("px-3 py-1 rounded-lg text-[10px] font-bold w-fit", meta.badgeClass)}
+                                          className={cn("px-3 py-1 rounded-lg text-[11px] font-bold w-fit", meta.badgeClass)}
                                         >
                                           {meta.label.replace("توصيل ", "")}
                                         </span>
@@ -1526,12 +1526,12 @@ Alturath.kw`;
                                 </td>
                                 <td className="p-3 md:p-3">
                                   <div className="flex flex-col gap-2 items-start">
-                                    <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase">
+                                    <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[11px] font-bold uppercase">
                                       {arLabel(inv.paymentMethod)}
                                     </span>
                                     <div
                                       className={cn(
-                                        "px-3 py-1 text-[10px] font-bold rounded-lg transition-all w-fit",
+                                        "px-3 py-1 text-[11px] font-bold rounded-lg transition-all w-fit",
                                         isPaidStatus(
                                           inv.paymentStatus as string,
                                         ) || isPaidStatus((inv as any).status)
@@ -1601,7 +1601,7 @@ Alturath.kw`;
                                       د.ك
                                     </span>
                                     {(inv.discount || 0) > 0 && (
-                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
+                                      <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 whitespace-nowrap">
                                         خصم مفعّل{" "}
                                         {inv.appliedPromoCodeName
                                           ? `(${inv.appliedPromoCodeName})`
@@ -1725,7 +1725,7 @@ Alturath.kw`;
                                       >
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4 md:p-3 mt-4">
                                           <div>
-                                            <h4 className="text-[10px] font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
+                                            <h4 className="text-[11px] font-bold uppercase text-slate-500 mb-4 flex items-center gap-2">
                                               <Package size={12} /> محتويات
                                               الطلب (المنتجات)
                                             </h4>
@@ -1757,18 +1757,18 @@ Alturath.kw`;
                                                               "منتج غير معروف"}
                                                           </span>
                                                           {product?.supplierId && (
-                                                            <span className="text-[10px] font-extralight text-slate-400 block -mt-0.5 opacity-70 tracking-tight">
+                                                            <span className="text-[11px] font-extralight text-slate-400 block -mt-0.5 opacity-70 tracking-tight">
                                                               {(data.suppliers || []).find(s => s.id === product.supplierId)?.name}
                                                             </span>
                                                           )}
                                                           {item.itemNotes && (
-                                                            <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
+                                                            <span className="text-[11px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block w-fit">
                                                               ملاحظة:{" "}
                                                               {item.itemNotes}
                                                             </span>
                                                           )}
                                                         </div>
-                                                        <div className="flex flex-col text-[10px] md:text-xs font-bold items-end text-left justify-end">
+                                                        <div className="flex flex-col text-[11px] md:text-xs font-bold items-end text-left justify-end">
                                                           <div className="text-slate-500">
                                                             <div>
                                                               الكمية:{" "}
@@ -1796,7 +1796,7 @@ Alturath.kw`;
                                                         item.addons.length >
                                                           0 && (
                                                           <div className="flex flex-col gap-1 mt-1 border-t border-slate-50 pt-2">
-                                                            <div className="text-[9px] font-bold text-slate-400 mb-1">
+                                                            <div className="text-[11px] font-bold text-slate-400 mb-1">
                                                               تفاصيل الإضافات:
                                                             </div>
                                                             {(Array.isArray(item.addons) ? item.addons : []).map(
@@ -1824,7 +1824,7 @@ Alturath.kw`;
                                                                       {a.name}{" "}
                                                                       {userQty >
                                                                         1 && (
-                                                                        <span className="text-[10px] text-slate-400">
+                                                                        <span className="text-[11px] text-slate-400">
                                                                           (
                                                                           {
                                                                             userQty
@@ -1861,7 +1861,7 @@ Alturath.kw`;
                                             {Array.isArray((inv as any).splitParticipants) &&
                                               (inv as any).splitParticipants.length > 0 && (
                                               <div className="mt-6 space-y-2">
-                                                <div className="text-[10px] font-bold text-purple-600 mb-2">
+                                                <div className="text-[11px] font-bold text-purple-600 mb-2">
                                                   المشاركون باللعب:
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
@@ -1881,7 +1881,7 @@ Alturath.kw`;
                                                       return (
                                                         <span
                                                           key={idx}
-                                                          className="bg-white/60 text-purple-800 text-[10px] font-bold px-2 py-1 rounded-md border border-purple-200"
+                                                          className="bg-white/60 text-purple-800 text-[11px] font-bold px-2 py-1 rounded-md border border-purple-200"
                                                         >
                                                           {pVal}
                                                         </span>
@@ -1895,7 +1895,7 @@ Alturath.kw`;
 
                                           <div className="flex flex-col justify-start gap-4">
                                             <div className="bg-white p-4 rounded-2xl border border-slate-100 space-y-4 shadow-sm">
-                                              <h4 className="text-[10px] font-bold uppercase text-slate-500 flex items-center gap-2 border-b border-slate-50 pb-2">
+                                              <h4 className="text-[11px] font-bold uppercase text-slate-500 flex items-center gap-2 border-b border-slate-50 pb-2">
                                                 <TrendingUp size={12} /> ملخص
                                                 الحساب
                                               </h4>
