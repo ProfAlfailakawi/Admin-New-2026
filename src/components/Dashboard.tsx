@@ -4112,7 +4112,7 @@ const [isPending, startTransition] = useTransition();
                           prev === "ops" ? null : "ops",
                         )
                       }
-                      className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-slate-100/50 transition-colors"
+                      className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
                         <div data-login-target="delivery" className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center text-white">
@@ -4196,7 +4196,7 @@ const [isPending, startTransition] = useTransition();
                           prev === "customers" ? null : "customers",
                         )
                       }
-                      className="w-full flex items-center justify-between p-3 md:p-4 hover:bg-slate-100/50 transition-colors"
+                      className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                       dir="rtl"
                     >
                       <div className="flex items-center gap-3">
