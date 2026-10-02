@@ -5000,7 +5000,7 @@ const MainApp: React.FC = () => {
               }}
               className="admin-page-frame w-full min-h-full relative z-10 px-4 md:px-6"
             >
-              <React.Suspense fallback={<div className="flex flex-col items-center justify-center h-[60vh] gap-4"><AdminMicroLoader size={44} label="نحمّل الصفحة" /><p className="text-slate-500 text-sm font-bold">نحمّل...</p></div>}>
+              <React.Suspense fallback={<div className="page-skeleton" aria-busy="true"><AdminMicroLoader size={36} label="نحمّل الصفحة" /><div className="admin-skeleton page-skeleton-hero" /><div className="page-skeleton-grid"><div className="admin-skeleton page-skeleton-card" /><div className="admin-skeleton page-skeleton-card" /><div className="admin-skeleton page-skeleton-card" /></div><div className="admin-skeleton page-skeleton-wide" /></div>}>
                  <PageErrorBoundary>
                    {userRole === 'partner' ? renderAppContent() : (
                     <AdminExperienceFrame page={currentPage} data={data} onNavigate={(page) => { setCurrentPage(page); setSidebarOpen(false); }}>

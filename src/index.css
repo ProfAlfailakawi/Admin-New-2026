@@ -6565,3 +6565,14 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 
 /* ===== r23 task 7: one shared dark-card treatment (deep heritage green-navy, thin gold edge, same radius/shadow tokens as the light cards) ===== */
 .heritage-dark-card{background:linear-gradient(160deg,#10281d 0%,#0f1f33 62%,#0f172a 100%)!important;border:1px solid rgba(212,175,55,.24)!important;box-shadow:0 14px 38px -20px rgba(15,23,42,.5)!important}
+
+/* ===== r23 task 9: page skeleton shown while a lazy page loads (CSS/markup only; loading logic unchanged) ===== */
+.page-skeleton{display:flex;flex-direction:column;align-items:stretch;gap:14px;max-width:1480px;margin:0 auto;width:100%;padding:4px 0}
+.page-skeleton > [role="status"]{align-self:center}
+.page-skeleton-hero{height:120px;border-radius:28px}
+.page-skeleton-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.page-skeleton-card{height:110px;border-radius:24px}
+.page-skeleton-wide{height:240px;border-radius:28px}
+@media (max-width:767px){.page-skeleton-grid{grid-template-columns:1fr}.page-skeleton-hero{height:96px}}
+@media (prefers-reduced-motion:reduce){.page-skeleton .admin-skeleton:after{animation:none}}
+.page-skeleton .admin-skeleton{background:#e8edf4!important;border:1px solid #dde4ee}
