@@ -69,6 +69,7 @@ const ExpensePage = React.lazy(() => import('./components/ExpensePage'));
 const ReportsPage = React.lazy(() => import('./components/ReportsPage'));
 const OrderPage = React.lazy(() => import('./components/OrderPage'));
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
+import { isHiddenAsDeleted } from './lib/invoiceDeletion';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
 const SmartContentStudio = React.lazy(() => import('./components/SmartContentStudio').then(m => ({ default: m.SmartContentStudio })));
@@ -3241,7 +3242,7 @@ const MainApp: React.FC = () => {
             const externalInvoices = snap.docs
               .map(d => ({ id: d.id, ...d.data() }))
               .filter((invoice: any) => {
-                if (!invoice || invoice.isDeleted) return false;
+                if (!invoice || isHiddenAsDeleted(invoice)) return false;
                 const cutoff = authoritativeDataWrittenAtRef.current;
                 if (!cutoff) return true;
                 const invoiceTime = getRecordTime(invoice);
@@ -3293,6 +3294,9 @@ const MainApp: React.FC = () => {
                                  merged.paid = true;
                                  merged.failed = false;
                                  merged.canPay = false;
+                                 // Paid invoices cannot be deleted; a paid one still flagged
+                                 // deleted (paid old link, or reused number) is live again.
+                                 merged.isDeleted = false;
                              }
                              combined[idx] = merged;
                              changed = true;

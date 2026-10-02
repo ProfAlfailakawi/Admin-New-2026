@@ -72,6 +72,7 @@ import {
   isFailedStatus,
   isCancelledStatus,
 } from "../lib/status-utils";
+import { deletionCovers, isHiddenAsDeleted } from "../lib/invoiceDeletion";
 import {
   computeInvoiceTotal,
   computeInvoiceCost,
@@ -254,10 +255,15 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         const next = recordTime(incoming) >= recordTime(existing)
           ? { ...existing, ...incoming, id }
           : { ...incoming, ...existing, id };
-        // A deletion wins over any copy: the mirror row was written at creation with
-        // isDeleted: false and is newer than the archive row, so without this the
-        // invoice reappears right after "تم حذف الفاتورة".
-        if (existing.isDeleted === true || incoming.isDeleted === true) next.isDeleted = true;
+        // A deletion wins over the copy it deleted: the mirror row was written at
+        // creation with isDeleted: false and is newer than the archive row, so without
+        // this the invoice reappears right after "تم حذف الفاتورة". It does not win over
+        // a copy born after the deletion (a new invoice that reused the number).
+        const deletedCopy = existing.isDeleted === true ? existing : incoming.isDeleted === true ? incoming : null;
+        if (deletedCopy) {
+          const otherCopy = deletedCopy === existing ? incoming : existing;
+          next.isDeleted = deletionCovers(deletedCopy, otherCopy);
+        }
         merged.set(id, next);
       };
 
@@ -431,7 +437,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         .map((o) => o.linkedInvoiceId as string),
     );
     const activeInvoices = useMemo(() => unifiedInvoices.filter(
-      (inv) => !inv.isDeleted && !cancelledOrderInvoiceIds.has(inv.id),
+      (inv) => !isHiddenAsDeleted(inv) && !cancelledOrderInvoiceIds.has(inv.id),
     ), [unifiedInvoices, cancelledOrderInvoiceIds]);
 
     const filteredInvoices = activeInvoices
