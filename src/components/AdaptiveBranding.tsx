@@ -168,7 +168,7 @@ No markdown formatting, just pure JSON.`;
             <div className="flex gap-2">
                {['16:9', '1:1', '9:16', '4:3'].map(f => (
                  <button key={f} onClick={() => setSelectedFormat(f)} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${selectedFormat === f ? 'bg-purple-100 border-purple-500 text-purple-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                   {f === '16:9' ? 'موقع إلكتروني (عريض)' : f === '1:1' ? 'Instagram' : f === '9:16' ? 'Story / TikTok' : 'إعلان 4:3'}
+                   {f === '16:9' ? 'موقع إلكتروني (عريض)' : f === '1:1' ? 'Instagram' : f === '9:16' ? 'ستوري / TikTok' : 'إعلان 4:3'}
                  </button>
                ))}
             </div>
@@ -189,7 +189,7 @@ No markdown formatting, just pure JSON.`;
                textPosition={textPosition}
                setTextPosition={setTextPosition}
                colorClass="purple"
-               title="4. هوية العلامة (Logo)"
+               title="4. هوية العلامة (الشعار)"
             />
           </div>
 
@@ -250,7 +250,7 @@ No markdown formatting, just pure JSON.`;
                 </div>
                 
                 <div className="mt-2">
-                  <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">لوحة ألوان الثيم (Palette)</p>
+                  <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider">لوحة ألوان الثيم </p>
                   <div className="flex h-16 rounded-2xl overflow-hidden shadow-inner border border-slate-200">
                     {generatedTheme.colors.map((color, idx) => (
                       <div key={idx} className="flex-1 flex flex-col items-center justify-center text-xs font-mono text-white/90 drop-shadow-md transition-transform hover:scale-110" style={{ backgroundColor: color }}>

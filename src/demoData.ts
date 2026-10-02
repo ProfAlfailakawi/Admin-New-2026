@@ -99,14 +99,14 @@ export function buildDemoState(base: {
     ['p6', 'قوزي لحم حاشي', 11, 36, 'الولائم', 's2', 130, '🥘', 'puzzle', 12],
     ['p7', 'مندي لحم غنم', 6.2, 19.5, 'اللحوم', 's2', 200, '🍲', 'star', 30],
     ['p8', 'كباب لحم مشكل (كيلو)', 3.4, 8.9, 'المشويات', 's2', 15, '🍢', 'horse', 50],
-    ['p9', 'شيش طاووق (٦ أسياخ)', 1.9, 5.5, 'المشويات', 's1', 25, '🍢', 'horse', 70],
+    ['p9', 'شيش طاووق (6 أسياخ)', 1.9, 5.5, 'المشويات', 's1', 25, '🍢', 'horse', 70],
     ['p10', 'ريش غنم مشوية', 5.1, 15.5, 'المشويات', 's2', 5, '🥩', 'puzzle', 20],
     ['p11', 'سمك صافي مشوي', 4.2, 13.5, 'البحري', 's3', 180, '🐠', 'star', 28],
     ['p12', 'ربيان مقلي بالثوم', 3, 8.5, 'البحري', 's3', 190, '🦐', 'puzzle', 32],
     ['p13', 'صينية مكبوس ربيان', 6.8, 21, 'البحري', 's3', 160, '🦐', 'puzzle', 14],
     ['p14', 'جريش لحم ناطع', 2.5, 6.5, 'اللحوم', 's4', 45, '🥣', 'horse', 45],
     ['p15', 'هريس تراثي', 2.3, 6.25, 'اللحوم', 's4', 300, '🥣', 'horse', 22],
-    ['p16', 'سمبوسة جبن (٢٠ حبة)', 1.1, 3.75, 'المقبلات', 's4', 35, '🥟', 'star', 90],
+    ['p16', 'سمبوسة جبن (20 حبة)', 1.1, 3.75, 'المقبلات', 's4', 35, '🥟', 'star', 90],
     ['p17', 'سلطة تبولة كويتية', 0.8, 2.25, 'المقبلات', 's5', 10, '🥗', 'horse', 80],
     ['p18', 'حمص بطحينة', 0.6, 1.75, 'المقبلات', 's5', 12, '🧆', 'dog', 75],
     ['p19', 'شوربة عدس التراث', 0.5, 1.25, 'المقبلات', 's5', 18, '🍵', 'dog', 8],
@@ -133,7 +133,7 @@ export function buildDemoState(base: {
     featuredRank: matrix === 'star' && i % 2 === 0 ? i + 1 : undefined,
     createdAt: at(200 + i, 10).toISOString(),
     lastSaleDate: at(int(0, 6), 14).toISOString(),
-    preparationInstructions: 'يُسخَّن في الفرن لمدة ١٠ دقائق على ١٨٠ درجة قبل التقديم.',
+    preparationInstructions: 'يُسخَّن في الفرن لمدة 10 دقائق على 180 درجة قبل التقديم.',
   }));
   const productById = new Map(products.map(p => [p.id, p]));
   // weighted popularity: stars sell most
@@ -264,7 +264,7 @@ export function buildDemoState(base: {
       status: opts.status || (paymentStatus === 'paid' ? 'paid' : 'pending'),
       deliverySettlementTarget: useCompany ? 'delivery_company' : 'heritage',
       deliverySettlementSupplierId: useCompany ? 's8' : undefined,
-      notes: rnd() < 0.12 ? pick(['بدون بصل', 'التوصيل بعد الساعة ٨ مساءً', 'تغليف هدية', 'إضافة ملاعق وصحون', 'الطابق الثالث - الجرس معطل']) : undefined,
+      notes: rnd() < 0.12 ? pick(['بدون بصل', 'التوصيل بعد الساعة 8 مساءً', 'تغليف هدية', 'إضافة ملاعق وصحون', 'الطابق الثالث - الجرس معطل']) : undefined,
     } as Invoice;
   };
 
@@ -451,7 +451,7 @@ export function buildDemoState(base: {
     ['خدمة التموين لعزيمة العائلة كانت متميزة، بيضوا وجهنا قدام الضيوف.', 'WhatsApp', 5],
     ['التوصيل سريع والطلب وصل مرتب وساخن، بس أتمنى زيادة كمية الرز شوي.', 'Direct', 4],
     ['الوليمة وايد لذيذة واللحم طري، أكيد بنعيد الطلب في المناسبة الجاية.', 'WhatsApp', 5],
-    ['المطبق الزبيدي رهيب! بس التوصيل تأخر ٢٠ دقيقة عن الموعد.', 'Instagram', 4],
+    ['المطبق الزبيدي رهيب! بس التوصيل تأخر 20 دقيقة عن الموعد.', 'Instagram', 4],
     ['أسعار معقولة مقارنة بالجودة، والمقبلات كانت طازجة.', 'Direct', 4],
     ['الجريش كان ناطع وطعمه مثل أيام زمان، شكراً لكم.', 'WhatsApp', 5],
     ['الطلب وصل ناقص صنف واحد، لكن الفريق عوضنا بسرعة وهذا يستحق التقدير.', 'WhatsApp', 3],
@@ -470,16 +470,16 @@ export function buildDemoState(base: {
   const lostCustomer = customers.find(c => c.status === 'inactive') || customers[customers.length - 1];
   const pendingCount = orders.filter(o => o.status === 'pending').length;
   const notifications: Notification[] = [
-    { id: 'n1', title: 'عميل VIP يحتاج مكافأة', message: `العميل "${topCustomer.name}" حقق أعلى قيمة مشتريات (${topCustomer.totalSpent.toFixed(3)} د.ك). يُنصح بإرسال عرض خاص.`, type: 'warning', read: false, date: at(0, 9).toISOString(), insightType: 'فرصة', explanation: 'أعلى إنفاق تراكمي بين العملاء النشطين.', dataReference: topCustomer.id, recommendedAction: 'إرسال كود خصم ٥ د.ك عبر واتساب' },
+    { id: 'n1', title: 'عميل مميز يحتاج مكافأة', message: `العميل "${topCustomer.name}" حقق أعلى قيمة مشتريات (${topCustomer.totalSpent.toFixed(3)} د.ك). يُنصح بإرسال عرض خاص.`, type: 'warning', read: false, date: at(0, 9).toISOString(), insightType: 'فرصة', explanation: 'أعلى إنفاق تراكمي بين العملاء النشطين.', dataReference: topCustomer.id, recommendedAction: 'إرسال كود خصم 5 د.ك عبر واتساب' },
     { id: 'n2', title: 'تحقق هدف المبيعات اليومي', message: 'تم الوصول لهدف المبيعات اليومي. ما شاء الله!', type: 'success', read: false, date: at(0, 8).toISOString() },
-    { id: 'n3', title: 'عميل مفقود', message: `العميل "${lostCustomer.name}" لم يطلب منذ أكثر من ٧٥ يوماً. تواصل معه.`, type: 'info', read: false, date: at(1, 18).toISOString(), insightType: 'تنبيه', recommendedAction: 'رسالة استرجاع مع خصم ١٠٪' },
+    { id: 'n3', title: 'عميل مفقود', message: `العميل "${lostCustomer.name}" لم يطلب منذ أكثر من 75 يوماً. تواصل معه.`, type: 'info', read: false, date: at(1, 18).toISOString(), insightType: 'تنبيه', recommendedAction: 'رسالة استرجاع مع خصم 10٪' },
     { id: 'n4', title: 'طلبات بانتظار الدفع', message: `لديك ${pendingCount} طلبات موقع بانتظار إتمام الدفع منذ أكثر من ساعة.`, type: 'warning', read: false, date: at(0, 7).toISOString(), insightType: 'تنبيه' },
     { id: 'n5', title: 'مستحقات مورد', message: `رصيد المورد "${suppliers[1].name}" مستحق السداد خلال يومين.`, type: 'warning', read: true, date: at(2, 12).toISOString(), insightType: 'خطر' },
-    { id: 'n6', title: 'منتج الأعلى ربحية', message: 'وليمة غنم نعيمي (VIP) هي الأعلى هامش ربح هذا الشهر. ركز عليها في الحملات.', type: 'info', read: true, date: at(3, 10).toISOString(), insightType: 'فرصة' },
+    { id: 'n6', title: 'منتج الأعلى ربحية', message: 'وليمة غنم نعيمي هي الأعلى هامش ربح هذا الشهر. ركز عليها في الحملات.', type: 'info', read: true, date: at(3, 10).toISOString(), insightType: 'فرصة' },
     { id: 'n7', title: 'مخزون منخفض', message: 'ريش غنم مشوية و شوربة عدس التراث أوشكت على النفاد.', type: 'warning', read: false, date: at(1, 9).toISOString(), insightType: 'خطر' },
-    { id: 'n8', title: 'تقييم جديد ٥ نجوم', message: 'عميل جديد ترك تقييماً ممتازاً على إنستغرام.', type: 'success', read: true, date: at(4, 20).toISOString() },
+    { id: 'n8', title: 'تقييم جديد 5 نجوم', message: 'عميل جديد ترك تقييماً ممتازاً على إنستغرام.', type: 'success', read: true, date: at(4, 20).toISOString() },
     { id: 'n9', title: 'تقرير الأسبوع جاهز', message: 'ملخص أداء الأسبوع الماضي متاح الآن في التقارير التنفيذية.', type: 'info', read: true, date: at(6, 9).toISOString() },
-    { id: 'n10', title: 'كود خصم يقترب من الانتهاء', message: 'كود DIWANIYA5 ينتهي خلال ٣٠ يوماً وتم استخدامه عدة مرات.', type: 'info', read: true, date: at(5, 13).toISOString() },
+    { id: 'n10', title: 'كود خصم يقترب من الانتهاء', message: 'كود DIWANIYA5 ينتهي خلال 30 يوماً وتم استخدامه عدة مرات.', type: 'info', read: true, date: at(5, 13).toISOString() },
   ];
 
   // ------------------------------------------------------------------ squads
@@ -513,7 +513,7 @@ export function buildDemoState(base: {
     topKeywords: ['الطعم', 'التوصيل', 'التغليف', 'السعر'],
     strengths: ['جودة الطعم التراثي', 'سرعة الرد على واتساب', 'تغليف حراري مرتب'],
     weaknesses: ['تأخر التوصيل أوقات الذروة', 'محدودية تنوع الحلويات'],
-    recommendations: ['زيادة سائقين وقت الذروة (٧-٩ مساءً)', 'إضافة ٣ أصناف حلويات جديدة', 'مكافأة العملاء أصحاب التقييمات العالية'],
+    recommendations: ['زيادة سائقين وقت الذروة (7-9 مساءً)', 'إضافة 3 أصناف حلويات جديدة', 'مكافأة العملاء أصحاب التقييمات العالية'],
   };
   const pulseAnalysisHistory = [
     { id: 'pa1', date: at(20, 10).toISOString(), summary: 'انطباع إيجابي عام مع ملاحظات حول سرعة التوصيل.', commentsSnapshot: pulseTexts.slice(0, 4).map(t => t[0]), sentiment: { positive: 68, neutral: 22, negative: 10 }, ...analysisBase },
@@ -523,15 +523,15 @@ export function buildDemoState(base: {
   const deepArchiveAnalysis = { dataReference: `تحليل ${paidInv.length} فاتورة و ${orders.length} طلباً`, sentimentScore: 78, sentiment: 'إيجابي جداً', topRepeated: ['مجبوس دجاج', 'مطبق زبيدي', 'وليمة غنم'], ...analysisBase };
 
   const campaigns = [
-    { id: 'cmp1', topic: 'عزايم عطلة نهاية الأسبوع', idea: 'باقة الوليمة العائلية مع قهوة عربية مجانية', message: 'عزيمتكم علينا! اطلبوا وليمة الغنم النعيمي واستمتعوا بدلة قهوة عربية هدية 🍖☕', marketingMessage: 'وليمة الخميس: وليمة غنم + دلة قهوة هدية', targetAudience: 'العائلات وأصحاب الديوانيات', timing: 'الأربعاء مساءً', expectedOutcome: 'زيادة مبيعات الولائم ٢٠٪', status: 'launched', createdAt: at(12, 10).toISOString() },
-    { id: 'cmp2', topic: 'استرجاع العملاء الغائبين', idea: 'خصم ١٠٪ للعملاء الذين لم يطلبوا منذ ٦٠ يوماً', message: 'اشتقنا لكم! خصم ١٠٪ على طلبكم القادم بكود TURATH10', marketingMessage: 'اشتقنا لك - خصم ١٠٪ بانتظارك', targetAudience: 'العملاء المتوقفون', timing: 'الأحد ١٠ ص', expectedOutcome: 'استرجاع ١٥ عميلاً', status: 'launched', createdAt: at(30, 10).toISOString() },
+    { id: 'cmp1', topic: 'عزايم عطلة نهاية الأسبوع', idea: 'باقة الوليمة العائلية مع قهوة عربية مجانية', message: 'عزيمتكم علينا! اطلبوا وليمة الغنم النعيمي واستمتعوا بدلة قهوة عربية هدية 🍖☕', marketingMessage: 'وليمة الخميس: وليمة غنم + دلة قهوة هدية', targetAudience: 'العائلات وأصحاب الديوانيات', timing: 'الأربعاء مساءً', expectedOutcome: 'زيادة مبيعات الولائم 20٪', status: 'launched', createdAt: at(12, 10).toISOString() },
+    { id: 'cmp2', topic: 'استرجاع العملاء الغائبين', idea: 'خصم 10٪ للعملاء الذين لم يطلبوا منذ 60 يوماً', message: 'اشتقنا لكم! خصم 10٪ على طلبكم القادم بكود TURATH10', marketingMessage: 'اشتقنا لك - خصم 10٪ بانتظارك', targetAudience: 'العملاء المتوقفون', timing: 'الأحد 10 ص', expectedOutcome: 'استرجاع 15 عميلاً', status: 'launched', createdAt: at(30, 10).toISOString() },
     { id: 'cmp3', topic: 'موسم المناسبات الوطنية', idea: 'صواني ضيافة للمدارس والشركات', message: 'احتفل مع فريقك بصواني التراث الكويتي للمناسبات الوطنية 🇰🇼', marketingMessage: 'ضيافة وطنية بنكهة التراث', targetAudience: 'الشركات والمدارس', timing: 'قبل المناسبة بأسبوعين', expectedOutcome: 'حجوزات مؤسسية', status: 'draft', createdAt: at(3, 10).toISOString() },
   ];
   const aiLearningMemory = [
-    { id: 'ai1', predictionDate: at(40, 9).toISOString(), evaluationDate: at(33, 9).toISOString(), context: 'توقع ارتفاع الطلب على الولائم في عطلة نهاية الأسبوع', predictedOutcome: 'زيادة ١٥٪', actualOutcome: 'زيادة ١٧٪', isAccurate: true, status: 'evaluated' as const },
-    { id: 'ai2', predictionDate: at(30, 9).toISOString(), evaluationDate: at(23, 9).toISOString(), context: 'أثر حملة الخصم على عملاء الديوانيات', predictedOutcome: 'استرجاع ١٠ عملاء', actualOutcome: 'استرجاع ٦ عملاء', isAccurate: false, correctionApplied: 'خفض التوقع للحملات المشابهة ٢٥٪', status: 'evaluated' as const },
-    { id: 'ai3', predictionDate: at(14, 9).toISOString(), evaluationDate: at(7, 9).toISOString(), context: 'نفاد مخزون الدجاج المشوي مساء الجمعة', predictedOutcome: 'نفاد قبل ٨ مساءً', actualOutcome: 'نفاد ٧:٤٠ مساءً', isAccurate: true, status: 'evaluated' as const },
-    { id: 'ai4', predictionDate: at(2, 9).toISOString(), evaluationDate: at(-5, 9).toISOString(), context: 'ارتفاع الطلب على المشروبات الباردة', predictedOutcome: 'زيادة ٢٠٪', status: 'pending' as const },
+    { id: 'ai1', predictionDate: at(40, 9).toISOString(), evaluationDate: at(33, 9).toISOString(), context: 'توقع ارتفاع الطلب على الولائم في عطلة نهاية الأسبوع', predictedOutcome: 'زيادة 15٪', actualOutcome: 'زيادة 17٪', isAccurate: true, status: 'evaluated' as const },
+    { id: 'ai2', predictionDate: at(30, 9).toISOString(), evaluationDate: at(23, 9).toISOString(), context: 'أثر حملة الخصم على عملاء الديوانيات', predictedOutcome: 'استرجاع 10 عملاء', actualOutcome: 'استرجاع 6 عملاء', isAccurate: false, correctionApplied: 'خفض التوقع للحملات المشابهة 25٪', status: 'evaluated' as const },
+    { id: 'ai3', predictionDate: at(14, 9).toISOString(), evaluationDate: at(7, 9).toISOString(), context: 'نفاد مخزون الدجاج المشوي مساء الجمعة', predictedOutcome: 'نفاد قبل 8 مساءً', actualOutcome: 'نفاد 7:40 مساءً', isAccurate: true, status: 'evaluated' as const },
+    { id: 'ai4', predictionDate: at(2, 9).toISOString(), evaluationDate: at(-5, 9).toISOString(), context: 'ارتفاع الطلب على المشروبات الباردة', predictedOutcome: 'زيادة 20٪', status: 'pending' as const },
   ];
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthSales = paidInv.filter(i => new Date(i.date) >= monthStart).reduce((s, i) => s + i.totalAmount, 0);
@@ -590,7 +590,7 @@ export function demoStudioArchive(storageKey: string): any[] {
   if (storageKey === 'smart_studio_reel_history') return demoReelArchive();
   if (storageKey !== 'smart_studio_history') return [];
   const rows: Array<[string, number, string, string]> = [
-    ['وليمة الخميس العائلية', 22, '🍖', 'وليمة غنم نعيمي بنكهة الديرة - اطلبها قبل ٢٤ ساعة 🌿'],
+    ['وليمة الخميس العائلية', 22, '🍖', 'وليمة غنم نعيمي بنكهة الديرة - اطلبها قبل 24 ساعة 🌿'],
     ['مجبوس دجاج عائلي', 20, '🍛', 'غداء الجمعة مع العائلة أحلى مع المجبوس التراثي'],
     ['مطبق زبيدي بلاتيني', 200, '🐟', 'المطبق الزبيدي… طعم أيام زمان في صينية وحدة'],
     ['قهوة الديوانية', 28, '☕', 'دلة قهوة عربية مع تمر لكل ديوانية تطلب هالأسبوع'],

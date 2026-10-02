@@ -47,7 +47,7 @@ export default function LivingHeatmap({ invoices = [] }: { invoices?: any[] }) {
               <circle cx={x} cy={y} r={radius + 8} fill="#FFB03A" opacity="0.13" />
               <circle cx={x} cy={y} r={radius} fill="#FFB03A" opacity="0.82" />
               <circle cx={x} cy={y} r="4" fill="#FFFFFF" opacity="0.92" />
-              <title>{`${stat.region} — ${stat.orders} طلب — ${stat.revenue.toFixed(3)} KD`}</title>
+              <title>{`${stat.region} — ${stat.orders} طلب — ${stat.revenue.toFixed(3)} د.ك`}</title>
             </g>
           );
         })}

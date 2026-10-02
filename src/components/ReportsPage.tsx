@@ -85,6 +85,7 @@ import {
   getInvoiceItemAddons,
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
+import { arLabel } from '../lib/arabicLabels';
 
 const getInvoiceAddress = (inv: any, customerObj?: any): string => {
   if (inv.fullAddress) return inv.fullAddress;
@@ -1488,7 +1489,7 @@ Alturath.kw`;
                                 <td className="p-3 md:p-3">
                                   <div className="flex flex-col gap-2 items-start">
                                     <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold uppercase">
-                                      {inv.paymentMethod}
+                                      {arLabel(inv.paymentMethod)}
                                     </span>
                                     <div
                                       className={cn(

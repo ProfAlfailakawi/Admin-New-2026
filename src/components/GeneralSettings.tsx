@@ -98,6 +98,7 @@ import {
 import { recalculateStateBalances, getCashPositionForState } from "../lib/business-logic";
 import { removeProtectedStorageItemIntentionally } from "../lib/dataGuard";
 import firebaseConfig from "../../firebase-applet-config.json";
+import { arLabel } from "../lib/arabicLabels";
 
 interface Props {
   data: AppState;
@@ -4728,7 +4729,7 @@ const GeneralSettings: React.FC<Props> = ({
                           })
                         );
                         const latestDeviceReadLabel = latestDeviceReadAt
-                          ? new Date(latestDeviceReadAt).toLocaleString('ar-KW', { dateStyle: 'short', timeStyle: 'short' })
+                          ? new Date(latestDeviceReadAt).toLocaleString('ar-KW-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' })
                           : 'لا توجد قراءة محفوظة';
                         const hasRecentDeviceReading = latestDeviceReadAt > 0 && (Date.now() - latestDeviceReadAt) < 1000 * 60 * 60 * 24 * 14;
                         const runCustomerLikePushCheck = () => {
@@ -4960,7 +4961,7 @@ const GeneralSettings: React.FC<Props> = ({
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-700">
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.support}</span>
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.permission}</span>
-                                  <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.serviceWorker}</span>
+                                  <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{arLabel(pushHealth.serviceWorker)}</span>
                                 </div>
                               </div>
                               <button
@@ -4979,8 +4980,8 @@ const GeneralSettings: React.FC<Props> = ({
                                   {[
                                     ["Support", pushHealth.support],
                                     ["Permission", pushHealth.permission],
-                                    ["Last Registration", pushHealth.lastRegistration],
-                                    ["Service Worker", pushHealth.serviceWorker],
+                                    [arLabel("Last Registration"), arLabel(pushHealth.lastRegistration)],
+                                    [arLabel("Service Worker"), arLabel(pushHealth.serviceWorker)],
                                   ].map(([label, value]) => (
                                     <div key={label} className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 min-w-0">
                                       <span className="block text-[9px] font-black text-white/45">{label}</span>
@@ -4990,11 +4991,11 @@ const GeneralSettings: React.FC<Props> = ({
                                 </div>
                                 <div className="rounded-xl bg-black/25 border border-white/10 p-2">
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="text-[10px] font-black text-white/45">Current Browser Token</span>
+                                    <span className="text-[10px] font-black text-white/45">{arLabel("Current Browser Token")}</span>
                                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black text-white/45">مخفي افتراضيًا</span>
                                   </div>
                                   <code dir="ltr" className="mt-2 block truncate text-[10px] font-bold text-emerald-100">
-                                    {pushHealth.token ? `${pushHealth.token.slice(0, 18)}...${pushHealth.token.slice(-10)}` : "Not available"}
+                                    {pushHealth.token ? `${pushHealth.token.slice(0, 18)}...${pushHealth.token.slice(-10)}` : arLabel("Not available")}
                                   </code>
                                 </div>
                               </div>
@@ -5232,13 +5233,13 @@ const GeneralSettings: React.FC<Props> = ({
                                               return (
                                                 <div key={device.id} className="push-radar-readable-device rounded-2xl border p-3 min-w-0 overflow-hidden max-w-full" style={{ background: "rgba(15,23,42,0.72)", borderColor: "rgba(148,163,184,0.22)", color: "#f8fafc" }}>
                                                   <div className="grid grid-cols-[1fr_auto] items-center gap-2 min-w-0">
-                                                    <strong className="block min-w-0 truncate text-xs font-black">{device.label}</strong>
+                                                    <strong className="block min-w-0 truncate text-xs font-black">{arLabel(device.label)}</strong>
                                                     <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black", getPushDeviceConfidenceMeta(getPushDeviceConfidence(device)).className)}>{getPushDeviceConfidence(device)}%</span>
                                                   </div>
                                                   <p className="push-radar-readable-muted mt-2 text-[10px] font-bold leading-5 text-slate-600">{readiness.detail}</p>
                                                   <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
                                                     <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.platform || device.deviceType || "جهاز"}</span>
-                                                    <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{isMissingTimestamp(device.lastRead) ? "بلا قراءة" : device.lastRead}</span>
+                                                    <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{isMissingTimestamp(device.lastRead) ? "بلا قراءة" : arLabel(device.lastRead)}</span>
                                                   </div>
                                                 </div>
                                               );
@@ -5402,14 +5403,14 @@ const GeneralSettings: React.FC<Props> = ({
                                   {pushDevices.filter((device) => matchesPushAdvancedFilter(device, pushDevices)).map((device) => (
                                     <div key={device.id} className="rounded-2xl border border-white/10 bg-white/10 p-3 min-w-0">
                                       <div className="flex items-center justify-between gap-2">
-                                        <strong className="truncate text-xs font-black">{device.label}</strong>
+                                        <strong className="truncate text-xs font-black">{arLabel(device.label)}</strong>
                                         <span className="rounded-full bg-black/20 px-2 py-0.5 text-[9px] font-black text-white/50">{getPushStatusMeta(device.status).label}</span>
                                       </div>
                                       <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] font-bold text-white/50">
                                         <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.userEmail || device.userName || cleanPushAccountLabel(device.userId, "بلا إيميل محفوظ")}</span>
-                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.platform || device.deviceType || "No platform"}</span>
-                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{device.lastRead}</span>
-                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate" dir="ltr">{device.token ? `${device.token.slice(0, 12)}...${device.token.slice(-8)}` : "No token"}</span>
+                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{arLabel(device.platform || device.deviceType || "No platform")}</span>
+                                        <span className="rounded-xl bg-slate-100/90 px-2 py-1 truncate text-slate-700">{arLabel(device.lastRead)}</span>
+                                        <span className="rounded-xl bg-black/20 px-2 py-1 truncate" dir="ltr">{device.token ? `${device.token.slice(0, 12)}...${device.token.slice(-8)}` : arLabel("No token")}</span>
                                       </div>
                                     </div>
                                   ))}
@@ -5976,7 +5977,7 @@ const GeneralSettings: React.FC<Props> = ({
                     >
                       {appMode === "cloud"
                         ? "يعمل الآن بميزة المزامنة اللحظية (Real-time Sync)"
-                        : "تعمل الآن بوضع التخزين المحلي (Offline Mode)"}
+                        : "تعمل الآن بوضع التخزين المحلي "}
                     </div>
                   </div>
                   <div

@@ -380,7 +380,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
     </summary>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-4">
       <StatCard label="إجمالي المسجلين" value={totalCustomers} icon={<Users className="w-5 h-5 lg:w-6 lg:h-6" />} color="blue" description="كامل قاعدة البيانات" />
-      <StatCard label="كبار الشخصيات (VIP)" value={vipCustomers} icon={<Crown className="w-5 h-5 lg:w-6 lg:h-6" />} color="accent" description="أكثر من 800 د.ك" />
+      <StatCard label="كبار الشخصيات" value={vipCustomers} icon={<Crown className="w-5 h-5 lg:w-6 lg:h-6" />} color="accent" description="أكثر من 800 د.ك" />
       <StatCard label="عملاء راكدون (30+ يوم)" value={slowCustomers} icon={<Clock className="w-5 h-5 lg:w-6 lg:h-6" />} color="amber" description="راكد" />
       <StatCard label="عملاء مفقودون (90+ يوم)" value={inactiveCustomers} icon={<UserMinus className="w-5 h-5 lg:w-6 lg:h-6" />} color="red" description="مفقود" />
     </div>
@@ -429,7 +429,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
         <div className="flex flex-1 overflow-x-auto hide-scrollbar bg-slate-100 p-1 rounded-2xl gap-1">
           {[
             { id: 'all', label: 'الكل' },
-            { id: 'vip', label: 'VIP' },
+            { id: 'vip', label: 'كبار العملاء' },
             { id: 'active', label: 'نشط' },
             { id: 'slow', label: 'راكد' },
             { id: 'inactive', label: 'مفقود' }
@@ -552,7 +552,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                     </span>
                     <div className="flex flex-col gap-0.5 mr-1">
                       <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
-                        نقاط الديوانية: {customer.diwaniyaPoints?.toLocaleString() || 0}
+                        نقاط الديوانية: {customer.diwaniyaPoints?.toLocaleString('en-US') || 0}
                       </span>
                     </div>
                   </div>
@@ -573,12 +573,12 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
                           </span>
                           <div className="flex flex-col gap-0.5 mr-1">
                             <span className="text-[10px] text-slate-500 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 w-fit">
-                              نقاط الديوانية: {squad?.points?.toLocaleString() || 0}
+                              نقاط الديوانية: {squad?.points?.toLocaleString('en-US') || 0}
                             </span>
                             {mPoints !== undefined && mPoints > 0 && (
                               <span className="text-[10px] text-indigo-700 font-bold bg-white px-2 py-0.5 rounded-md border border-indigo-100 w-fit flex items-center gap-1 mt-0.5">
                                 <Gift size={10} className="text-indigo-500" />
-                                نقاطي: {mPoints?.toLocaleString() || 0}
+                                نقاطي: {mPoints?.toLocaleString('en-US') || 0}
                               </span>
                             )}
                           </div>

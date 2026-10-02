@@ -226,7 +226,7 @@ export function drawQuoteCard(template: CardTemplateKey, format: CardFormatKey, 
     rtl(g); g.font = '700 30px "Tajawal", sans-serif'; g.fillStyle = P.accent
     g.fillText('من مقالات الدكتور أحمد الفيلكاوي', W - pad, 96)
     g.textAlign = 'left'; g.font = '400 26px "Tajawal", sans-serif'; g.fillStyle = P.soft
-    g.fillText(new Date().toLocaleDateString('ar-KW', { year: 'numeric', month: 'long', day: 'numeric' }), pad, 96)
+    g.fillText(new Date().toLocaleDateString('ar-KW-u-nu-latn', { year: 'numeric', month: 'long', day: 'numeric' }), pad, 96)
     const area = fitQuote(g, quote, W - 2 * pad - 40, H * (story ? 0.48 : 0.5), story ? 60 : 56)
     g.font = `400 ${area.size}px "El Messiri", serif`; g.fillStyle = P.ink; rtl(g)
     let y = H / 2 - ((area.lines.length - 1) * area.lh) / 2 - (story ? 40 : 0)

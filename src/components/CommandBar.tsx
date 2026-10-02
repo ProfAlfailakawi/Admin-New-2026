@@ -1511,7 +1511,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
 
       { id: 'customers-page', label: 'بيانات العملاء', hint: 'بحث وتفاصيل', icon: <Users />, category: 'الإدارة الأساسية', action: () => onNavigate('customers', {}), roles: ['admin'] },
       { id: 'products-page', label: 'إدارة المنتجات', hint: 'الأسعار والتصنيفات', icon: <Package />, category: 'الإدارة الأساسية', action: () => onNavigate('products', {}), roles: ['admin'] },
-      { id: 'product-quality-board', label: 'جودة المنيو', hint: `${productQuality.score}% · ${productQuality.proof}`, icon: <Target />, category: 'اقتراحات الآن', tags: ['جودة المنيو','Product Quality Board','منتجات ناقصة','ذهب مدفون','بدون صور'], action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }), roles: ['admin'] },
+      { id: 'product-quality-board', label: 'جودة المنيو', hint: `${productQuality.score}% · ${productQuality.proof}`, icon: <Target />, category: 'اقتراحات الآن', tags: ['جودة المنيو','منتجات ناقصة','ذهب مدفون','بدون صور'], action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }), roles: ['admin'] },
       { id: 'suppliers-audit', label: 'الموردين والمراجعة', hint: 'تدقيق الموردين والمخاطر', icon: <Truck />, category: 'الإدارة الأساسية', action: () => onNavigate('suppliers-audit', {}), roles: ['admin'] },
       { id: 'expenses', label: 'المصروفات', hint: 'تسجيل ومراجعة', icon: <PieChart />, category: 'الإدارة الأساسية', action: () => onNavigate('expenses', {}), roles: ['admin'] },
       { id: 'settings', label: 'الإعدادات العامة', hint: 'هوية وتنبيهات وضبط', icon: <ShieldCheck />, category: 'الإدارة الأساسية', action: () => onNavigate('settings', {}), roles: ['admin'] },
@@ -1662,7 +1662,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
         icon: <Target className="text-slate-700" />,
         category: 'إجراءات مالية ذكية',
         action: () => onNavigate('products', { scrollTarget: 'product-quality-board' }),
-        tags: ['جودة المنيو','Product Quality Board','كوماند','منتجات']
+        tags: ['جودة المنيو','كوماند','منتجات']
       });
     }
 
@@ -1986,7 +1986,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           >
             <div className="command-search-header">
               <div className="hidden md:flex flex-col text-right min-w-[150px]">
-                <span className="text-[10px] font-black tracking-[0.18em] text-amber-600">Alturath Spotlight</span>
+                <span className="text-[10px] font-black text-amber-600">بحث التراث</span>
                 <span className="text-xs font-black text-slate-700">مساعد تنقل خارق للمطبخ</span>
               </div>
               
@@ -2091,7 +2091,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                     "command-voice-button flex items-center justify-center h-7 w-7 rounded-full text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-all shrink-0 ml-1 relative",
                     isListening && "text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700"
                   )}
-                  title={isListening ? "إيقاف الاستماع" : "البحث الصوتي الذكي (Speech-to-Search)"}
+                  title={isListening ? "إيقاف الاستماع" : "البحث الصوتي الذكي "}
                 >
                   {isListening && (
                     <span className="absolute inset-0 rounded-full border border-rose-400/30 animate-ping" />

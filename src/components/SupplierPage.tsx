@@ -849,11 +849,11 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
         <div className="p-5 space-y-4">
           <div className="bg-white rounded-2xl border border-slate-200/60 p-4 shadow-sm grid grid-cols-2 gap-4">
             <div className="text-right">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع (Revenue)</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">إجمالي البيع </div>
               <div className="text-lg font-black text-slate-900 whitespace-nowrap" dir="ltr">{(item.revenue || 0).toFixed(3)} <span className="text-xs text-slate-500">د.ك</span></div>
             </div>
             <div className="text-right border-r border-slate-100 px-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد (Supply Cost)</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase mb-1">تكلفة التوريد </div>
               <div className="text-lg font-black text-rose-500 whitespace-nowrap" dir="ltr">{(item.supplyAmount || 0).toFixed(3)} <span className="text-xs text-slate-400">د.ك</span></div>
             </div>
             {Number((item as any).addonsSupplyAmount || 0) > 0 && (

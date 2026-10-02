@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AppState, AICampaign } from '../types';
 import { generateMarketingCampaign } from '../lib/ai-engine';
 import { toast } from 'sonner';
+import { arLabel } from '../lib/arabicLabels';
 
 interface MarketingLabProps {
  data: AppState;
@@ -121,7 +122,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  <div className="space-y-6 md:space-y-8 flex-grow">
  <div className="p-3 md:p-4 md:p-3 bg-slate-50 rounded-2xl border border-slate-100 relative">
  <div className="absolute top-4 left-4 text-slate-200"><MessageSquare size={40} /></div>
- <h5 className="text-[10px] md:text-xs font-bold text-slate-500 mb-3 uppercase tracking-tighter">مسودة محتوى الإعلان (Smart Copy)</h5>
+ <h5 className="text-[10px] md:text-xs font-bold text-slate-500 mb-3 uppercase tracking-tighter">مسودة محتوى الإعلان </h5>
  {isEditing ? (
  <textarea 
  className="w-full text-base md:text-xl font-bold text-slate-800 leading-relaxed bg-white border border-slate-200/60 rounded-xl p-3 min-h-[120px] focus:outline-none focus:border-indigo-400 custom-scrollbar resize-none"
@@ -140,7 +141,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  <div className="flex flex-wrap gap-2 md:gap-3 justify-end leading-none">
  {['Instagram Ads', 'WhatsApp Direct', 'SMS Gateway', 'Email Blast'].map(channel => (
  <div key={channel} className="px-3 md:px-4 py-2 bg-white border border-slate-100 rounded-xl text-[10px] md:text-xs font-bold text-slate-600 flex items-center gap-2">
- <CheckCircle2 className="text-indigo-500" size={12} /> {channel}
+ <CheckCircle2 className="text-indigo-500" size={12} /> {arLabel(channel)}
  </div>
 ))}
  </div>

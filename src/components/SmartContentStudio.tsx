@@ -317,30 +317,30 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     return [
       {
         step: '01',
-        title: 'اللقطة الافتتاحية (The Hook)',
+        title: 'اللقطة الافتتاحية ',
         shotName: `سحب وقريب جداً (Macro Zoom-In) على تفاصيل مظهر ${productName}`,
-        camera: 'حركة كاميرا بطيئة ومنزلقة تدخل لعمق الصحن بزاوية ٤٥ درجة مع تركيز بؤري حاد.',
+        camera: 'حركة كاميرا بطيئة ومنزلقة تدخل لعمق الصحن بزاوية 45 درجة مع تركيز بؤري حاد.',
         vibe: 'بخار ساخن يتصاعد بشكل طبيعي يبين حرارة الطعام الطازج، اللمعان يسحر العين.',
         audio: 'أصوات دافئة لأوتار عود كويتية عريقة مع صوت دلة هادئ في الخلفية كخافت باهت.',
-        duration: '٢.٥ ثانية'
+        duration: '2.5 ثانية'
       },
       {
         step: '02',
-        title: 'لقطة التفاصيل والشهية (The Sensory Climax)',
+        title: 'لقطة التفاصيل والشهية ',
         shotName: 'حركة دائرية هادئة (Smooth Orbital Rotation) حول قطع اللحم/الدجاج/الأرز',
         camera: 'دوران بطيء بزاوية منخفضة يبرز النضارة والنكهة والزعفران وحبات الرز المكتملة.',
         vibe: 'عناصر الطبق واضحة وجاذبة، إضاءة شمس كويتية دافئة تبرز الألوان المبهجة.',
         audio: 'إيقاع تصفيق كويتي خفيف ومنظم يبني متعة وترقّب للطبق بانسجام تام.',
-        duration: '٣ ثواني'
+        duration: '3 ثواني'
       },
       {
         step: '03',
-        title: 'لقطة وصول العلة والعلامة (The Brand Outro)',
+        title: 'لقطة وصول العلة والعلامة ',
         shotName: 'تكبير تراجعي (Dolly Zoom Out) يظهر التغليف وصناديق التوصيل الفخمة',
         camera: 'لقطة تسحب للخلف بثبات على كاونتر أبيض فاخر بجنب كيس plain أنيق للشعار.',
         vibe: 'توصيل يبيض الوجه، دقة تنظيف عالية تضمن أمان وثقة الجودة للمستلم.',
         audio: 'خفوت تدريجي للنغمات مع شعار العلامة في آخر لقطة لترسيخ الذاكرة.',
-        duration: '٢ ثواني'
+        duration: '2 ثواني'
       }
     ];
   };
@@ -722,7 +722,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     pro: {
       icon: '🎛️',
       title: 'تصوير احترافي',
-      desc: 'كل الأدوات الجميلة: عدسات، خلفيات، شعار، تقييم، ٤ لقطات، ذاكرة الذوق.',
+      desc: 'كل الأدوات الجميلة: عدسات، خلفيات، شعار، تقييم، 4 لقطات، ذاكرة الذوق.',
       badge: 'للأدمن',
       tone: 'bg-indigo-50 border-indigo-200 text-indigo-700'
     }
@@ -2387,7 +2387,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-400/10 blur-xl rounded-full translate-x-12 -translate-y-12" />
             
             <div className="text-[11px] font-black text-amber-800 mb-3 flex items-center gap-2 z-10 relative">
-               <Sparkles size={14} className="text-[#C5A059]" /> السرد البصري (Storytelling)
+               <Sparkles size={14} className="text-[#C5A059]" /> السرد البصري 
             </div>
             
             <motion.div 
@@ -4006,7 +4006,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <span className="absolute bottom-4 right-4 rounded-2xl bg-slate-950/85 px-3 py-2 text-[10px] font-black text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">الإعدادات</span>
                   </button>
 	                  <div className="mx-auto max-w-3xl rounded-3xl border border-slate-100 bg-white p-3 text-slate-900 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between"><b className="text-xs font-black">معاينة كل المقاسات قبل النشر</b><span className="text-[10px] font-black text-slate-400">Mobile / Tablet / Desktop</span></div>
+                    <div className="mb-3 flex items-center justify-between"><b className="text-xs font-black">معاينة كل المقاسات قبل النشر</b><span className="text-[10px] font-black text-slate-400">جوال / لوحي / حاسوب</span></div>
                     <div className="grid grid-cols-3 gap-2 items-end">
                       {[['موبايل','w-16 aspect-[9/16]'], ['تابلت','w-24 aspect-[4/3]'], ['ديسكتوب','w-full aspect-video']].map(([label, cls]) => (
                         <div key={label} className="rounded-2xl bg-slate-50 border border-slate-100 p-2 text-center">

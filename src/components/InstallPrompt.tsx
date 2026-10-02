@@ -63,7 +63,7 @@ export default function InstallPrompt() {
       toast.custom((t) => (
         <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
           <span className="text-slate-900">لتثبيت التطبيق على جهازك:</span>
-          <span className="text-slate-600 font-medium">1. اضغط على زر المشاركة (Share) في المتصفح بالأسفل.</span>
+          <span className="text-slate-600 font-medium">1. اضغط على زر المشاركة  في المتصفح بالأسفل.</span>
           <span className="text-slate-600 font-medium">2. اختر "إضافة للشاشة الرئيسية" (Add to Home Screen).</span>
         </div>
       ), { duration: 6000 });

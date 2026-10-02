@@ -238,7 +238,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  
  <div className="flex justify-between items-start mb-6">
  <div className="text-left">
- <span className="block text-[10px] uppercase font-mono text-slate-500 mb-1">Total LTV</span>
+ <span className="block text-[10px] text-slate-500 mb-1">إجمالي القيمة الحياتية</span>
  <span className="text-2xl font-bold text-emerald-400">{selectedTarget.totalSpend.toFixed(3)} د.ك</span>
  </div>
  <div>

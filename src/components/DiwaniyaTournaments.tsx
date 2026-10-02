@@ -1205,7 +1205,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                </div>
                <div>
                   <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
-                     Diwaniya Golden Arena | حلبة الدواوين الذهبية
+                     حلبة الدواوين الذهبية
                   </h2>
                   <p className="text-amber-100/70 font-medium mt-1">حوّل ولاء الأفراد إلى ولاء جماعي وتنافس شرس بين الدواوين!</p>
                </div>
@@ -1394,7 +1394,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 <div className="flex justify-between items-start mb-6">
                   <div>
                      <h3 className="font-semibold text-lg sm:text-xl text-slate-800 flex flex-wrap items-center gap-1.5 mb-1.5 leading-tight">
-                        مستويات الدواوين <span className="hidden sm:inline text-slate-400 text-sm font-normal">(Tiers & Rewards)</span>
+                        مستويات الدواوين <span className="hidden sm:inline text-slate-400 text-sm font-normal">(المستويات والمكافآت)</span>
                      </h3>
                     <p className="text-slate-500 text-sm font-medium max-w-2xl">
                        كلما طلبت مجموعة الديوانية أكثر، ارتقوا للمستوى التالي وفتحوا ميزات دائمة. هذا يضمن ولائهم التام وصعوبة انتقالهم لمنافس لأنهم سيفقدون امتيازاتهم التراكمية.
@@ -1546,8 +1546,8 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                 <div className="flex flex-col gap-4 mb-6">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                     <div>
-                      <h3 className="font-semibold text-lg sm:text-xl text-slate-800 leading-tight">إدارة الدواوين <span className="hidden sm:inline text-slate-400 text-sm font-normal">(Squads CRM)</span></h3>
-                      <p className="text-xs text-slate-500 mt-1">يتم احتساب النقاط بناءً على المبيعات: <strong>كل ١ دينار = ١ نقطة</strong> لجميع أعضاء الديوانية بناءً على أرقام هواتفهم.</p>
+                      <h3 className="font-semibold text-lg sm:text-xl text-slate-800 leading-tight">إدارة الدواوين <span className="hidden sm:inline text-slate-400 text-sm font-normal">(إدارة علاقات الدواوين)</span></h3>
+                      <p className="text-xs text-slate-500 mt-1">يتم احتساب النقاط بناءً على المبيعات: <strong>كل 1 دينار = 1 نقطة</strong> لجميع أعضاء الديوانية بناءً على أرقام هواتفهم.</p>
                     </div>
                     <button 
                       onClick={() => setShowAddSquad(!showAddSquad)} 
@@ -1734,7 +1734,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                    {displayTier}
                                  </span>
                               </td>
-                              <td className="p-4 text-center font-bold text-slate-600">{(points).toLocaleString()} نقطة</td>
+                              <td className="p-4 text-center font-bold text-slate-600">{(points).toLocaleString('en-US')} نقطة</td>
                               <td className="p-4 text-center font-bold">{s.members}</td>
                               <td className="p-4">
                                 <div className="flex items-center gap-2">
@@ -1797,7 +1797,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                                             <div className="text-[10px] text-slate-400 font-mono">{member.phone}</div>
                                           </div>
                                           <div className="text-left">
-                                            <div className="font-black text-blue-600">{(member.points || 0).toLocaleString()}</div>
+                                            <div className="font-black text-blue-600">{(member.points || 0).toLocaleString('en-US')}</div>
                                             <div className="text-[9px] text-slate-400">نقطة</div>
                                           </div>
                                         </div>
@@ -1946,7 +1946,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                           </div>
                           <div className="text-left space-y-2">
                             <div>
-                              <div className="text-2xl font-black text-amber-600">{(selected.points || 0).toLocaleString()}</div>
+                              <div className="text-2xl font-black text-amber-600">{(selected.points || 0).toLocaleString('en-US')}</div>
                               <div className="text-[10px] text-slate-400 font-bold">نقطة</div>
                             </div>
                             {selected.actualLocation && (
