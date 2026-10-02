@@ -1213,7 +1213,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
              {onNavigate && (
                <button 
                  onClick={() => onNavigate('dashboard')} 
-                 className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
+                 className="p-2 max-md:min-w-[44px] max-md:min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
                >
                  <X size={24} />
                </button>

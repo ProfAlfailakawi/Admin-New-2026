@@ -254,9 +254,9 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  </div>
  <p className="text-slate-400 text-[11px] sm:text-[11px] font-bold leading-6 sm:leading-relaxed">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
  </div>
- <div className="flex items-center justify-center gap-3 bg-rose-500/10 px-4 py-2 rounded-2xl sm:rounded-full border border-rose-500/30 relative z-10 shrink-0">
- <ShieldAlert className="text-rose-400 animate-pulse" size={14} />
- <span className="text-[11px] font-bold text-rose-300 uppercase whitespace-nowrap">الدرع نشط</span>
+ <div className="flex items-center justify-center gap-2 bg-transparent px-3 py-1 rounded-full border border-rose-500/20 relative z-10 shrink-0 w-fit self-start md:self-center">
+ <ShieldAlert className="text-rose-400 animate-pulse" size={14} strokeWidth={1.6} />
+ <span className="text-[11px] font-bold text-rose-300/80 uppercase whitespace-nowrap">الدرع نشط</span>
  </div>
  </div>
 

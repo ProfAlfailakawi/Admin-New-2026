@@ -119,15 +119,15 @@ export const SupplierNegotiator: React.FC<SupplierNegotiatorProps> = ({ insights
 
                   {/* Negotiation Approach Section */}
                   <div className="w-full mt-2">
-                    <div className="bg-slate-900 p-4 md:p-5 rounded-3xl text-right border border-white/5 shadow-2xl relative overflow-hidden group/btn cursor-pointer">
+                    <details className="bg-slate-900 px-4 md:px-5 py-1 rounded-3xl text-right border border-white/5 shadow-2xl relative overflow-hidden group/btn">
                       <div className="absolute top-0 right-0 w-2 h-full bg-indigo-500" />
-                      <h5 className="text-indigo-400 text-[10px] md:text-xs font-black uppercase tracking-wide mb-2 flex items-center justify-end gap-2">
+                      <summary className="relative list-none cursor-pointer min-h-[44px] text-indigo-400 text-[10px] md:text-xs font-black uppercase tracking-wide flex items-center justify-end gap-2 [&::-webkit-details-marker]:hidden">
                         تكتيك التفاوض المقترح <Handshake size={12} />
-                      </h5>
-                      <p className="text-white text-sm md:text-base font-bold leading-relaxed">
+                      </summary>
+                      <p className="relative text-white text-sm md:text-base font-bold leading-relaxed pb-3">
                         "{insight.negotiationApproach}"
                       </p>
-                    </div>
+                    </details>
                   </div>
                 </div>
               </motion.div>

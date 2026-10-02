@@ -195,7 +195,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  <button
  onClick={() => setSelectedTarget(target)}
  className={cn(
-"w-4 h-4 rounded-full -ml-2 -mt-2 shadow-[0_0_15px]",
+"relative !w-4 !h-4 !min-h-0 !min-w-0 !p-0 rounded-full -ml-2 -mt-2 shadow-[0_0_15px] after:content-[''] after:absolute after:-inset-3.5",
  target.riskLevel === 'preemptive' ? 'bg-indigo-500 shadow-indigo-500/50' : target.riskLevel === 'critical' ? 'bg-rose-500 shadow-rose-500/50' : 'bg-amber-500 shadow-amber-500/50',
  selectedTarget?.id === target.id && 'ring-4 ring-white animate-pulse'
 )}

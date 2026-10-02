@@ -2941,20 +2941,20 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
 
         <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4">
           <div className="text-right">
-            <h1 className="smart-studio-title text-2xl sm:text-3xl md:text-4xl font-black flex items-center gap-3 leading-tight">
-              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" /></span>
-              استوديو التراث الذكي
+            <h1 className="smart-studio-title flex items-center gap-3 leading-tight">
+              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" strokeWidth={1.6} /></span>
+              <span className="sr-only">استوديو التراث الذكي</span>
             </h1>
           </div>
           <button onClick={() => setStudioTab('library')} className="h-11 w-11 sm:h-12 sm:w-12 rounded-[14px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 transition-all shadow-[0_2px_12px_rgba(15,23,42,0.03)] active:scale-95" title="الأرشيف">
-            <Library size={18} strokeWidth={2.5} />
+            <Library size={18} strokeWidth={1.6} />
           </button>
         </div>
         
         <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
           {studioTab !== 'home' ? (
             <button onClick={changeStudioPath} className="h-10 w-10 sm:h-11 sm:w-11 rounded-[12px] text-xs sm:text-sm font-black bg-white hover:bg-slate-50 text-slate-600 transition-colors border border-slate-200 flex items-center justify-center shadow-sm active:scale-95" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي">
-              <ChevronLeft size={20} strokeWidth={3} className="rotate-180" />
+              <ChevronLeft size={20} strokeWidth={1.6} className="rotate-180" />
             </button>
           ) : <div />}
         </div>

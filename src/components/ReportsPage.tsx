@@ -1320,7 +1320,7 @@ Alturath.kw`;
                         key={f}
                         onClick={() => setTimeFilter(f as any)}
                         className={cn(
-                          "px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase transition-all",
+                          "px-4 py-1.5 max-md:min-h-[44px] rounded-lg text-[11px] font-bold uppercase transition-all",
                           timeFilter === f
                             ? "bg-white text-slate-900 shadow-sm"
                             : "text-slate-500 hover:text-slate-600",
@@ -1654,7 +1654,7 @@ Alturath.kw`;
                                           }
                                         }
                                       }}
-                                      className="p-2 hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-500 transition-colors"
+                                      className="p-2 max-md:min-h-[44px] max-md:min-w-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-emerald-50 rounded-lg text-slate-500 hover:text-emerald-500 transition-colors"
                                       title="إرسال الفاتورة عبر واتساب"
                                     >
                                       <MessageSquare size={16} />
@@ -1664,7 +1664,7 @@ Alturath.kw`;
                                         e.stopPropagation();
                                         handlePrint(inv);
                                       }}
-                                      className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
+                                      className="p-2 max-md:min-h-[44px] max-md:min-w-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
                                       title="طباعة"
                                     >
                                       <Printer size={16} />
@@ -1675,7 +1675,7 @@ Alturath.kw`;
                                           e.stopPropagation();
                                           handleManageDelivery(inv);
                                         }}
-                                        className="p-2 hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
+                                        className="p-2 max-md:min-h-[44px] max-md:min-w-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-blue-50 rounded-lg text-slate-500 hover:text-blue-600 transition-colors"
                                         title="إدارة التوصيل والمستحقات"
                                         aria-label="إدارة التوصيل والمستحقات"
                                       >
@@ -1690,7 +1690,7 @@ Alturath.kw`;
                                               e.stopPropagation();
                                               handleEditInvoice(inv);
                                             }}
-                                            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
+                                            className="p-2 max-md:min-h-[44px] max-md:min-w-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-600 transition-colors"
                                             title="تعديل"
                                           >
                                             <Edit2 size={16} />
@@ -1702,7 +1702,7 @@ Alturath.kw`;
                                               e.stopPropagation();
                                               setInvoiceToDelete(inv.id);
                                             }}
-                                            className="p-2 hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
+                                            className="p-2 max-md:min-h-[44px] max-md:min-w-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-red-50 rounded-lg text-slate-300 hover:text-red-500 transition-colors"
                                             title="حذف"
                                           >
                                             <Trash2 size={16} />

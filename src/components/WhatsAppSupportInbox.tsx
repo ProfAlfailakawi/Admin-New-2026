@@ -2112,10 +2112,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
       )}>
         <section className="rounded-[1.5rem] bg-white border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[320px] max-h-[440px] xl:min-h-[820px] xl:max-h-none">
           <div className="p-4 border-b border-slate-100 space-y-3">
-            <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-2xl bg-slate-50 border border-slate-100 px-3 py-2 max-md:py-0">
               <Search size={18} className="text-slate-400" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث بالرقم أو الاسم أو آخر رسالة" className="bg-transparent outline-none flex-1 text-sm" />
-              <button onClick={() => loadConversations()} className="p-1.5 rounded-xl hover:bg-white text-slate-500"><RefreshCw size={16} /></button>
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="بحث بالرقم أو الاسم أو آخر رسالة" className="bg-transparent outline-none flex-1 text-sm max-md:!min-h-[44px]" />
+              <button onClick={() => loadConversations()} className="p-1.5 rounded-xl hover:bg-white text-slate-500 max-md:min-w-[44px] max-md:min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"><RefreshCw size={16} /></button>
             </div>
             <div className="grid grid-cols-5 gap-1 text-[11px] font-bold">
               {WA_INBOX_TABS.map((tab) => {
@@ -2265,7 +2265,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-100 px-3 py-2 flex-1 md:w-72">
                         <Search size={16} className="text-slate-400" />
-                        <input value={quickReplySearch} onChange={(e) => setQuickReplySearch(e.target.value)} placeholder="بحث ذكي: دفع، تتبع، اعتذار..." className="bg-transparent outline-none flex-1 text-xs" />
+                        <input value={quickReplySearch} onChange={(e) => setQuickReplySearch(e.target.value)} placeholder="بحث ذكي: دفع، تتبع، اعتذار..." className="max-md:!min-h-[44px] bg-transparent outline-none flex-1 text-xs" />
                       </div>
                       <button onClick={startNewQuickReply} className="shrink-0 rounded-2xl bg-slate-900 hover:bg-slate-50 border border-slate-200 text-slate-800 text-white px-3 py-2 text-xs font-black flex items-center gap-1"><Plus size={14} /> إضافة</button>
                     </div>

@@ -189,7 +189,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  return (
  <div className="space-y-6 md:space-y-8" dir="rtl">
  {/* Header Panel */}
- <div className="heritage-dark-card bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start">
+ <div className="heritage-dark-card bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 lg:items-center max-lg:pt-5 lg:py-6 lg:[&>h2]:mb-2 lg:[&>p]:mb-0">
  <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400" />
  <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12 hidden sm:block"><Calculator size={200} /></div>
  
@@ -200,7 +200,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  اختبر السعر أو التكلفة أو الحملة قبل التنفيذ.
  </p>
  
- <div className="flex gap-4 relative z-10 px-4">
+ <div className="flex gap-4 relative z-10 px-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-center">
  <div className="bg-white/10 backdrop-blur-md px-4 md:px-6 py-2 md:py-3 rounded-2xl flex items-center gap-3 border border-white/10">
  <Sparkles className="text-cyan-400" size={16} />
  <span className="text-white font-bold text-[11px] md:text-sm">نمذجة دقيقة بناءً على {data.invoices.length} عملية بيع</span>
@@ -303,7 +303,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  step="0.01"
  value={percentChange}
  onChange={(e) => setPercentChange(parseFloat(e.target.value))}
- className="absolute inset-x-0 w-full appearance-none bg-transparent cursor-pointer accent-slate-900 z-10 h-10"
+ className="absolute inset-x-0 w-full appearance-none bg-transparent cursor-pointer accent-slate-900 z-10 h-10 max-md:h-11"
  />
  </div>
  
@@ -463,7 +463,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  {/* Recharts chart */}
  <ResponsiveContainer key={chartKey} width="100%" height="100%">
  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
- <XAxis dataKey="name" tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+ <XAxis dataKey="name" tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 'bold'}} axisLine={false} tickLine={false} />
  <Tooltip 
  cursor={{fill: 'rgba(255,255,255,0.05)'}}
  contentStyle={{ borderRadius: '1rem', border: 'none', backgroundColor: '#0f172a', color: '#fff', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.5)', fontWeight: 'bold', fontSize: '12px' }}

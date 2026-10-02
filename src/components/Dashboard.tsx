@@ -346,7 +346,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
   const hubLabel = (value: React.ReactNode, name: string) => (
     <span style={{ display: "grid", gap: 0, lineHeight: 1.2 }}>
       <b style={{ fontSize: 12.5, fontWeight: 800, color: "var(--dna-ink)" }} className="tabular-nums">{value}</b>
-      <small style={{ fontSize: 10.5, fontWeight: 700, color: "var(--dna-muted)" }}>{name}</small>
+      <small style={{ fontSize: 11, fontWeight: 700, color: "var(--dna-muted)" }}>{name}</small>
     </span>
   );
 
@@ -359,7 +359,7 @@ const BIEngineCore: React.FC<{ data: AppState }> = ({ data }) => {
       <DnaHubMap
         ariaLabel="الهامش والمؤشرات المالية"
         animate={false}
-        minHeight={400}
+        minHeight={320}
         center={{
           value: `${Math.round(healthScore)}%`,
           label: "الهامش",
@@ -435,7 +435,7 @@ const BusinessStatusMirror: React.FC<{
   }, [data]);
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col gap-3 w-full h-full">
       <motion.div
         whileHover={{ y: -5 }}
         className="relative flex-1 p-3 md:p-6 rounded-3xl md:rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-xl shadow-indigo-500/20 overflow-hidden group"
@@ -549,8 +549,8 @@ const BusinessStatusMirror: React.FC<{
 
             <div className="h-px bg-slate-100 w-full" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex -space-x-3 space-x-reverse">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2">
                 {[
                   {
                     id: "geo",
@@ -604,7 +604,7 @@ const BusinessStatusMirror: React.FC<{
                       };
                       setTimeout(() => scrollToTarget(), 80);
                     }}
-                    className="w-11 h-11 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 hover:scale-110 hover:z-20 transition-all cursor-pointer active:scale-95"
+                    className="min-w-11 h-11 px-3 whitespace-nowrap rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 shadow-sm hover:bg-emerald-500 hover:text-white hover:border-emerald-500 hover:scale-110 hover:z-20 transition-all cursor-pointer active:scale-95"
                     title={`استكشاف ${opp.label}`}
                   >
                     {opp.label}
@@ -2898,7 +2898,7 @@ const [isPending, startTransition] = useTransition();
                               icon: <Truck size={16} />,
                             })
                           }
-                          className="hover:scale-110 active:scale-95 transition-transform"
+                          className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                         >
                           <Truck
                             className="text-indigo-600 pointer-events-none"
@@ -4768,7 +4768,7 @@ const [isPending, startTransition] = useTransition();
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
                         <button
                           onClick={() => setArchiveResult(null)}
-                          className="absolute top-3 md:p-4 left-6 p-3 hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors"
+                          className="absolute top-3 md:p-4 left-6 p-3 shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors"
                         >
                           <X size={24} />
                         </button>
@@ -5045,7 +5045,7 @@ const [isPending, startTransition] = useTransition();
                                   { icon: <Send size={16} /> },
                                 )
                               }
-                              className="hover:scale-110 active:scale-95 transition-transform"
+                              className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                             >
                               <Flame
                                 className="text-amber-500 pointer-events-none"
@@ -5103,9 +5103,9 @@ const [isPending, startTransition] = useTransition();
                             آخر 5 طلبات
                           </div>
                         </div>
-                        <div className="space-y-2.5 flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2">
+                        <div className="space-y-2.5 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-2.5 lg:content-start flex-1 overflow-y-auto custom-scrollbar pr-2 pb-2">
                           {recentOrders.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-500 py-6 md:py-12">
+                            <div className="lg:col-span-2 h-full flex flex-col items-center justify-center text-slate-500 py-6 md:py-12">
                               <ShoppingBag
                                 size={48}
                                 className="opacity-10 mb-4"
@@ -5307,7 +5307,7 @@ const [isPending, startTransition] = useTransition();
                           { icon: <BarChart3 size={16} /> },
                         )
                       }
-                      className="hover:scale-110 active:scale-95 transition-transform"
+                      className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                     >
                       <Users
                         size={32}
