@@ -86,6 +86,8 @@ import {
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
 import { arLabel } from '../lib/arabicLabels';
+import { DnaEmpty } from "./dna/DnaKit";
+import { ReportsInsights } from "./ReportsInsights";
 
 const getInvoiceAddress = (inv: any, customerObj?: any): string => {
   if (inv.fullAddress) return inv.fullAddress;
@@ -1241,6 +1243,45 @@ Alturath.kw`;
                 </div>
               </div>
 
+              {(() => {
+                const isCountedPaid = (inv: any) =>
+                  (isPaidStatus(inv.paymentStatus) ||
+                    (inv.paymentStatus === undefined &&
+                      !isCancelledStatus(inv.status) &&
+                      !isFailedStatus(inv.status))) &&
+                  !String(inv.status).includes("تجميع القطية") &&
+                  inv.paymentStatus !== "split_pending" &&
+                  inv.status !== "split_pending";
+                const paidInvoices = filteredInvoices.filter(isCountedPaid);
+                const salesTotal = paidInvoices.reduce((a, b) => a + Math.max(0, Number(b.totalAmount || 0)), 0);
+                const profitTotal = paidInvoices.reduce((a, b) => a + Math.max(0, computeInvoiceProfit(b, data?.products || [])), 0);
+                // Last 30 Kuwait days of paid sales, from invoices already loaded on this page.
+                const dayKeys: string[] = [];
+                for (let i = 29; i >= 0; i--) dayKeys.push(getKuwaitDateInputValue(new Date(Date.now() - i * 86400000)));
+                const perDay = new Map<string, number>(dayKeys.map((k) => [k, 0]));
+                activeInvoices.filter(isCountedPaid).forEach((inv) => {
+                  const d = coerceDateValue(resolveInvoiceDisplayDate(inv));
+                  if (!d) return;
+                  const k = getKuwaitDateInputValue(d);
+                  if (perDay.has(k)) perDay.set(k, (perDay.get(k) || 0) + Math.max(0, Number(inv.totalAmount || 0)));
+                });
+                const byMethod = new Map<string, number>();
+                filteredInvoices.forEach((inv) => {
+                  const k = String(inv.paymentMethod || "");
+                  if (k) byMethod.set(k, (byMethod.get(k) || 0) + 1);
+                });
+                return (
+                  <ReportsInsights
+                    invoiceCount={filteredInvoices.length}
+                    paidCount={paidInvoices.length}
+                    salesTotal={salesTotal}
+                    profitTotal={profitTotal}
+                    dailySales={dayKeys.map((k) => perDay.get(k) || 0)}
+                    methods={Array.from(byMethod.entries()).map(([k, n]) => ({ key: k, label: arLabel(k), value: n, valueLabel: String(n) }))}
+                  />
+                );
+              })()}
+
 
               <div className="bg-white rounded-2xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
                 <div className="flex items-center justify-end mb-4 border-b border-slate-100 pb-3 px-1 md:px-2">
@@ -1338,31 +1379,22 @@ Alturath.kw`;
                       {(filteredInvoices || []).length === 0 ? (
                         <tr key="empty-state">
                           <td colSpan={6} className="py-20 px-4 text-center">
-                            <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                              <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
-                                <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
-                                <TrendingUp size={48} />
-                              </div>
-                              <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">
-                                ماكو فواتير!
-                              </h3>
-                              <p className="text-slate-500 font-bold mb-8 leading-relaxed">
-                                لم تقم بإصدار أي فاتورة حتى الآن. القراءة
-                                الاصطناعي بانتظار أول عملية بيع ليرسم لك
-                                استراتيجية النمو.
-                              </p>
-                              {!isPartner && (
-                                <button
-                                  onClick={() => {
-                                    if (onEditInvoice) onEditInvoice("new");
-                                  }}
-                                  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
-                                >
-                                  <Plus size={24} />
-                                  <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
-                                </button>
-                              )}
-                            </div>
+                            <DnaEmpty
+                            icon={<TrendingUp />}
+                            title="ماكو فواتير!"
+                            hint="لم تقم بإصدار أي فاتورة حتى الآن. القراءة الاصطناعي بانتظار أول عملية بيع ليرسم لك استراتيجية النمو."
+                            action={!isPartner ? (
+                              <button
+                                onClick={() => {
+                                  if (onEditInvoice) onEditInvoice("new");
+                                }}
+                                className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95 mx-auto"
+                              >
+                                <Plus size={24} />
+                                <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
+                              </button>
+                            ) : undefined}
+                          />
                           </td>
                         </tr>
                       ) : (
@@ -1958,9 +1990,9 @@ Alturath.kw`;
                         <tr>
                           <td
                             colSpan={6}
-                            className="p-3 md:p-4 text-center text-slate-500 font-bold italic"
+                            className="p-3 md:p-4 text-center"
                           >
-                            ماكو فواتير مطابقة للبحث.
+                            <DnaEmpty icon={<Search />} title="ماكو فواتير مطابقة للبحث." />
                           </td>
                         </tr>
                       )}

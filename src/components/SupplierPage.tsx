@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import { getSupplierSettlementForState, recalculateStateBalances } from '../lib/business-logic';
 import { computeAddonCost, normalizeAddonList } from '../lib/invoice-calculations';
+import { DnaEmpty, DnaRing } from './dna/DnaKit';
 
 interface SupplierPageProps {
  data: AppState;
@@ -407,12 +408,13 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  المقصود هنا سدادك للمورد، وليس حالة دفع العميل
  </div>
  </div>
- </div>
-
- <div className="h-2.5 bg-red-100 rounded-full overflow-hidden mb-3 border border-white" dir="ltr">
- <div
- className="h-full bg-emerald-500 rounded-full transition-all duration-500"
- style={{ width: `${invoiceStats.paidPercentage}%` }}
+ <DnaRing
+ value={invoiceStats.paidPercentage}
+ max={100}
+ size={56}
+ tone={invoiceStats.paidPercentage >= 100 ? 'mint' : invoiceStats.paidPercentage > 0 ? 'amber' : 'danger'}
+ sublabel="مسدد"
+ ariaLabel={`نسبة المسدد ${Math.round(invoiceStats.paidPercentage)}%`}
  />
  </div>
 
@@ -518,7 +520,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  <span className="text-primary whitespace-nowrap" dir="ltr">{Number(p.price || 0).toFixed(3)} د.ك</span>
  </div>
 ))}
- {productsToShow.length === 0 && <p className="text-center text-slate-500 font-bold italic py-4 md:py-8">ماكو منتجات مرتبطة بهذا المورد حالياً.</p>}
+ {productsToShow.length === 0 && <DnaEmpty icon={<Package />} title="ماكو منتجات مرتبطة بهذا المورد حالياً." />}
  </div>
  </div>
  
