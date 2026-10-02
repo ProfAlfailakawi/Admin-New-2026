@@ -291,7 +291,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                               <p className="text-[9.5px] font-black text-slate-500 mb-1.5 flex items-center gap-1"><ClipboardList size={11} />شروط المشاركة</p>
                               <ol className="space-y-1">
                                 {kit.mechanics.map((m, mi) => (
-                                  <li key={mi} className="text-[10.5px] font-bold text-slate-700 flex items-start gap-1.5">
+                                  <li key={mi} className="text-[11px] font-bold text-slate-700 flex items-start gap-1.5">
                                     <span className="w-4 h-4 shrink-0 rounded-full bg-indigo-600 text-white text-[8px] flex items-center justify-center font-black mt-0.5">{mi + 1}</span>
                                     <span className="flex-1 leading-snug">{m}</span>
                                   </li>

@@ -6324,8 +6324,8 @@ const GeneralSettings: React.FC<Props> = ({
         </div>
 
         {/* Sidebar Info */}
-        <div className="space-y-6">
-          <section className="bg-gradient-to-br from-secondary to-secondary/80 rounded-2xl shadow-lg p-3 md:p-4 text-white text-center">
+        <div className="space-y-6 lg:space-y-0">
+          <section className="bg-gradient-to-br from-secondary to-secondary/80 rounded-2xl shadow-lg p-3 md:p-4 text-white text-center lg:h-full lg:flex lg:flex-col lg:justify-center">
             <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
               <Settings className="animate-spin-slow" size={32} />
             </div>
