@@ -1,4 +1,5 @@
 // invalidated cache 2026-05-07 14:18
+import { MiniRing } from "./ui/MiniRing";
 import { getUnifiedInvoices, formatKuwaitiDate, formatKuwaitiTimeOnly } from '../lib/utils';
 import { LAYER } from '../lib/floatingLayers';
 import { getCashPositionForState } from '../lib/business-logic';
@@ -3912,15 +3913,16 @@ const [isPending, startTransition] = useTransition();
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <MiniRing percent={profitMargin} size={24} stroke={3} label="هامش الربح" tone="#d97706" />
+                        <div className="shrink-0 text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
                           {totalSalesVal.toFixed(3)}{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
                         <ChevronDown
                           size={20}
                           className={cn(
-                            "text-slate-500 transition-transform duration-300",
+                            "shrink-0 text-slate-500 transition-transform duration-300",
                             activeCategory === "financials" ? "rotate-180" : "",
                           )}
                         />

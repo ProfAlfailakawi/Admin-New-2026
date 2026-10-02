@@ -6555,3 +6555,10 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 .order-card-more > summary::after{content:"";width:7px;height:7px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-top:-3px;transition:transform .18s ease}
 .order-card-more[open] > summary::after{transform:rotate(-135deg);margin-top:3px}
 .order-card-more > summary:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+
+/* ===== r23 tasks 5/6: tiny rings and bars (presentation only) ===== */
+.mini-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.mini-ring svg{position:absolute;inset:0}
+.mini-ring b{position:relative;font-size:9px;font-weight:800;color:#334155;line-height:1}
+.mini-bar{display:block;height:4px;width:100%;border-radius:99px;background:#e2e8f0;overflow:hidden}
+.mini-bar i{display:block;height:100%;border-radius:inherit}
