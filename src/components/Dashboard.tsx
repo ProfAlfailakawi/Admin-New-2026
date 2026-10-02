@@ -691,7 +691,7 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
                   <div className="line-clamp-2 sm:truncate text-sm font-black leading-6 text-white">{p.name}</div>
                   <div className="text-[10px] font-bold leading-5 text-slate-400">{p.category || "منتج"} · {Number(p.price || 0).toFixed(3)} د.ك</div>
                 </div>
-                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[9px] sm:text-[10px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
+                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[10px] sm:text-[10px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
               </div>
             )) : (
               <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>
@@ -2230,7 +2230,7 @@ const [isPending, startTransition] = useTransition();
     return (
       <div className={cn("dashboard w-full pb-32 animate-in fade-in duration-500 relative overflow-visible transition-colors", isExecutiveMode ? "bg-slate-50 min-h-screen" : "")}>
         {/* Dynamic Background Pattern */}
-        <div className="absolute -top-32 right-0 left-0 h-[800px] pointer-events-none -z-10 opacity-70 transition-all duration-1000 ease-in-out">
+        <div className="dashboard-mood-backdrop absolute top-0 right-0 left-0 h-[800px] pointer-events-none -z-10 opacity-50 transition-all duration-1000 ease-in-out [mask-image:linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]">
           <div className={cn("absolute inset-0 bg-gradient-to-b transition-colors duration-1000 ease-in-out", systemMoodClass)} />
           <div
             className="absolute inset-0 opacity-[0.03]"
@@ -4320,7 +4320,7 @@ const [isPending, startTransition] = useTransition();
                     </div>
 
                     {/* Metrics below (grid 2 columns) */}
-                    <div className="flex flex-col w-full ">
+                    <div className="grid grid-cols-2 gap-3 w-full ">
                       <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
                         <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
                           <TrendingUp size={10} /> مبيعات الفترة
@@ -4344,6 +4344,10 @@ const [isPending, startTransition] = useTransition();
                         >
                           {profitMargin.toFixed(1)}%
                         </span>
+                        <svg viewBox="0 0 36 36" className="mt-1 h-9 w-9 -rotate-90" aria-hidden="true">
+                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" className="stroke-slate-100" />
+                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0, Math.min(100, profitMargin))} 100`} className={profitMargin >= 10 ? "stroke-emerald-500" : "stroke-amber-500"} />
+                        </svg>
                       </div>
                     </div>
                   </div>

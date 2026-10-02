@@ -74,12 +74,12 @@ export function DnaDonut({
           </div>
         )}
       </div>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, minWidth: 0, flex: '1 1 140px' }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, minWidth: 0, flex: '1 1 140px', maxWidth: 260 }}>
         {data.map((s, i) => (
           <li key={s.key} data-dna-tone={s.tone ?? CYCLE[i % CYCLE.length]} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dna-ink)' }}>
             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 999, background: 'var(--t-fg)', flex: '0 0 auto' }} />
-            <span style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
-            <span style={{ color: 'var(--dna-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ flex: '0 1 auto', minWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
+            <span style={{ marginInlineEnd: 'auto', color: 'var(--dna-muted)', fontVariantNumeric: 'tabular-nums' }}>
               {s.valueLabel ?? `${Math.round((s.value / (total || 1)) * 100)}%`}
             </span>
           </li>

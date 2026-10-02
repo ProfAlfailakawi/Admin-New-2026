@@ -80,7 +80,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
           className="bg-slate-900 text-white p-3 rounded-r-2xl shadow-lg group relative"
         >
           <Sparkles className="group-hover:rotate-12 transition-transform" size={24} />
-          <div className="absolute right-full mr-4 bg-slate-900 border border-white/10 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-xl">
+          <div className="absolute right-full mr-4 bg-slate-900 border border-white/10 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 whitespace-nowrap pointer-events-none shadow-xl">
             ملهم الانستغرام
           </div>
         </motion.button>

@@ -6564,7 +6564,7 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 /* ===== r23 tasks 5/6: tiny rings and bars (presentation only) ===== */
 .mini-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .mini-ring svg{position:absolute;inset:0}
-.mini-ring b{position:relative;font-size:9px;font-weight:800;color:#334155;line-height:1}
+.mini-ring b{position:relative;font-size:11px;font-weight:800;color:#334155;line-height:1}
 .mini-bar{display:block;height:4px;width:100%;border-radius:99px;background:#e2e8f0;overflow:hidden}
 .mini-bar i{display:block;height:100%;border-radius:inherit}
 
@@ -6590,3 +6590,16 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 .admin-page-hero,.admin-smart-panel,.smart-collapsible-panel{box-shadow:var(--r23-card-shadow)!important}
 .heritage-dark-card{box-shadow:0 18px 40px -22px rgba(15,23,42,.5)!important}
 .admin-page-hero + .smart-collapsible-panel{border-radius:0 0 var(--r23-card-radius) var(--r23-card-radius)!important}
+
+/* r41 polish: dashboard shares one gutter (greeting card, executive hub and the sheet behind align) */
+@media (min-width:1024px){
+  .admin-page-frame:has(.dashboard-merged-with-command){padding-inline:0!important}
+  .dashboard-merged-with-command .admin-content-polish{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+  .dashboard-merged-with-command .dashboard-content-shell,
+  .dashboard-merged-with-command .dashboard-executive-shell + *{padding-inline:0!important}
+  .dashboard-merged-with-command .dashboard > .z-40{padding-inline:0!important;background:transparent!important;border-color:transparent!important;backdrop-filter:none!important}
+}
+
+/* r41: softer dark panels on the cream page (slightly lighter surface, gentler border and shadow) */
+.heritage-dark-card{background:linear-gradient(160deg,#1a3a2b 0%,#1a2d45 62%,#1d283b 100%)!important;border-color:rgba(212,175,55,.18)!important;box-shadow:0 12px 30px -22px rgba(15,23,42,.38)!important}
+.profit-shield-panel{background:linear-gradient(135deg,#1d2a3f,#2a3750)!important;border:1px solid rgba(212,175,55,.16)!important;box-shadow:0 12px 30px -22px rgba(15,23,42,.38)!important}
