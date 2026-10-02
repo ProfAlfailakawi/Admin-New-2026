@@ -69,7 +69,7 @@ const ExpensePage = React.lazy(() => import('./components/ExpensePage'));
 const ReportsPage = React.lazy(() => import('./components/ReportsPage'));
 const OrderPage = React.lazy(() => import('./components/OrderPage'));
 import { isPendingStatus, isFailedStatus, isPaidStatus } from './lib/status-utils';
-import { isHiddenAsDeleted } from './lib/invoiceDeletion';
+import { deletionCovers, isHiddenAsDeleted } from './lib/invoiceDeletion';
 const TrackPage = React.lazy(() => import('./components/TrackPage'));
 const AIAssistant = React.lazy(() => import('./components/AIAssistant'));
 const SmartContentStudio = React.lazy(() => import('./components/SmartContentStudio').then(m => ({ default: m.SmartContentStudio })));
@@ -3239,8 +3239,12 @@ const MainApp: React.FC = () => {
       try {
          const qInvoices = query(collection(db, 'invoices'), orderBy('date', 'desc'), limit(120));
          invoicesUnsubscribe = onSnapshot(qInvoices, (snap) => {
-            const externalInvoices = snap.docs
-              .map(d => ({ id: d.id, ...d.data() }))
+            const mirrorRows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            // Deletions recorded in the mirror. The ledger hides these, but the delete
+            // did not always reach the archive shard, so supplier balances still counted
+            // the deleted invoice (INV-5125/5126 on 2026-10-01).
+            const deletedMirrorRows = mirrorRows.filter((invoice: any) => invoice && isHiddenAsDeleted(invoice));
+            const externalInvoices = mirrorRows
               .filter((invoice: any) => {
                 if (!invoice || isHiddenAsDeleted(invoice)) return false;
                 const cutoff = authoritativeDataWrittenAtRef.current;
@@ -3248,11 +3252,19 @@ const MainApp: React.FC = () => {
                 const invoiceTime = getRecordTime(invoice);
                 return !invoiceTime || invoiceTime >= cutoff || String(invoice.id || '').startsWith('INV-');
               });
-            if (externalInvoices.length === 0) return;
+            if (externalInvoices.length === 0 && deletedMirrorRows.length === 0) return;
             setData(prev => {
                 const prevInvoices = prev.invoices || [];
                 let changed = false;
                 const combined = [...prevInvoices];
+                deletedMirrorRows.forEach((dr: any) => {
+                     const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(dr.id));
+                     if (idx === -1) return;
+                     const current = combined[idx] as any;
+                     if (current.isDeleted === true || !deletionCovers(dr, current)) return;
+                     combined[idx] = { ...current, isDeleted: true, deletedAt: dr.deletedAt || current.deletedAt };
+                     changed = true;
+                });
                 externalInvoices.forEach((ei: any) => {
                      const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(ei.id || ei.invoiceId || ei.invoiceNo));
                      const externalIsPaid = isPaidStatus(ei.paymentStatus) || isPaidStatus(ei.payment_status) || isPaidStatus(ei.status) || ei.paid === true;
