@@ -4410,7 +4410,7 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[1000] lg:hidden"
+            className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[1000] lg:hidden"
           />
         )}
       </AnimatePresence>
