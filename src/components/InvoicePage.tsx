@@ -87,7 +87,7 @@ import {
 } from "../lib/business-logic";
 import { isPaidStatus } from "../lib/status-utils";
 import { toast } from "sonner";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { deleteField, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { DnaEmpty } from "./dna/DnaKit";
 
@@ -1192,6 +1192,9 @@ Alturath.kw`;
         }));
         setDoc(doc(db, "invoices", String(invoiceId)), {
           ...firestoreInvoice,
+          // A new invoice that reuses the number of a deleted one must not inherit its
+          // deletion through merge: true.
+          ...(editingInvoiceId ? {} : { isDeleted: false, deletedAt: deleteField() }),
           updatedAtServer: serverTimestamp(),
         }, { merge: true }).catch((err) => {
           console.warn("Invoice ledger mirror save failed:", err);
