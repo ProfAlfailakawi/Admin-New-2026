@@ -2710,6 +2710,9 @@ const MainApp: React.FC = () => {
   const isCloudSyncApplyingRef = useRef(false);
   const lastRemoteKeysRef = useRef<Record<string, string>>({});
   const authoritativeDataWrittenAtRef = useRef<number>(0);
+  // Deleted rows of the `invoices` mirror (see the reconcile effect after the sync effect).
+  const ledgerTombstonesRef = useRef<any[]>([]);
+  const [ledgerTombstonesVersion, setLedgerTombstonesVersion] = useState(0);
   const lastFinancialFastSaveRef = useRef<Record<'expenses' | 'supplierTransfers', string | null>>({
     expenses: null,
     supplierTransfers: null,
@@ -3160,6 +3163,7 @@ const MainApp: React.FC = () => {
     let syncUnsubscribe: (() => void) | null = null;
     let ordersUnsubscribe: (() => void) | null = null;
     let invoicesUnsubscribe: (() => void) | null = null;
+    let tombstonesUnsubscribe: (() => void) | null = null;
 
     // Demo mode keeps its in-memory dataset and never starts any cloud listener.
     if (IS_DEMO_MODE) return;
@@ -3239,12 +3243,8 @@ const MainApp: React.FC = () => {
       try {
          const qInvoices = query(collection(db, 'invoices'), orderBy('date', 'desc'), limit(120));
          invoicesUnsubscribe = onSnapshot(qInvoices, (snap) => {
-            const mirrorRows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            // Deletions recorded in the mirror. The ledger hides these, but the delete
-            // did not always reach the archive shard, so supplier balances still counted
-            // the deleted invoice (INV-5125/5126 on 2026-10-01).
-            const deletedMirrorRows = mirrorRows.filter((invoice: any) => invoice && isHiddenAsDeleted(invoice));
-            const externalInvoices = mirrorRows
+            const externalInvoices = snap.docs
+              .map(d => ({ id: d.id, ...d.data() }))
               .filter((invoice: any) => {
                 if (!invoice || isHiddenAsDeleted(invoice)) return false;
                 const cutoff = authoritativeDataWrittenAtRef.current;
@@ -3252,19 +3252,11 @@ const MainApp: React.FC = () => {
                 const invoiceTime = getRecordTime(invoice);
                 return !invoiceTime || invoiceTime >= cutoff || String(invoice.id || '').startsWith('INV-');
               });
-            if (externalInvoices.length === 0 && deletedMirrorRows.length === 0) return;
+            if (externalInvoices.length === 0) return;
             setData(prev => {
                 const prevInvoices = prev.invoices || [];
                 let changed = false;
                 const combined = [...prevInvoices];
-                deletedMirrorRows.forEach((dr: any) => {
-                     const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(dr.id));
-                     if (idx === -1) return;
-                     const current = combined[idx] as any;
-                     if (current.isDeleted === true || !deletionCovers(dr, current)) return;
-                     combined[idx] = { ...current, isDeleted: true, deletedAt: dr.deletedAt || current.deletedAt };
-                     changed = true;
-                });
                 externalInvoices.forEach((ei: any) => {
                      const idx = combined.findIndex((inv: any) => String(inv.id || inv.invoiceId || inv.invoiceNo) === String(ei.id || ei.invoiceId || ei.invoiceNo));
                      const externalIsPaid = isPaidStatus(ei.paymentStatus) || isPaidStatus(ei.payment_status) || isPaidStatus(ei.status) || ei.paid === true;
@@ -3335,7 +3327,28 @@ const MainApp: React.FC = () => {
                console.error("Failed to sync invoices collection:", e);
           }
       }
-      
+
+      // 1c. Deletions recorded in the mirror, all of them (not just the 120 newest by
+      // date). The ledger hides these, but a delete did not always reach the archive
+      // shard, so supplier balances kept counting the deleted invoice (INV-5125/5126 on
+      // 2026-10-01). They are applied to the archive by the reconcile effect below,
+      // whenever the archive or this list changes, so load order does not matter.
+      try {
+         const qTombstones = query(collection(db, 'invoices'), where('isDeleted', '==', true));
+         tombstonesUnsubscribe = onSnapshot(qTombstones, (snap) => {
+            ledgerTombstonesRef.current = snap.docs
+              .map(d => ({ id: d.id, ...d.data() }))
+              .filter((invoice: any) => isHiddenAsDeleted(invoice));
+            setLedgerTombstonesVersion(v => v + 1);
+         }, (err) => {
+            if (!String(err).includes("Missing or insufficient permissions")) {
+               console.warn("invoice deletions sync error: ", err);
+            }
+         });
+      } catch (e: any) {
+          console.warn("Failed to sync invoice deletions:", e);
+      }
+
       // 2. Fast path: load the full shared database through the Admin server.
       // This avoids slow browser Firestore shard reads on first entry and keeps Admin/Order on the same source.
       // Uses prewarmCloudBoot(): the request was fired the moment the app shell loaded,
@@ -3700,8 +3713,31 @@ const MainApp: React.FC = () => {
       if (syncUnsubscribe) syncUnsubscribe();
       if (ordersUnsubscribe) ordersUnsubscribe();
       if (invoicesUnsubscribe) invoicesUnsubscribe();
+      if (tombstonesUnsubscribe) tombstonesUnsubscribe();
     };
   }, [user, appMode, triggerSyncReload, isOnline, probeCloudConnection]);
+
+  // Apply mirror deletions to the archive invoices whenever either side changes, so a
+  // deletion still lands when the archive loads after the deletions list (or reloads).
+  useEffect(() => {
+    const tombstones = ledgerTombstonesRef.current;
+    if (!tombstones.length || !(data.invoices || []).length) return;
+    const byId = new Map(tombstones.map((t: any) => [String(t.id), t]));
+    const needsDelete = (inv: any) => {
+      const t = byId.get(String(inv?.id || ''));
+      return Boolean(t) && inv.isDeleted !== true && deletionCovers(t, inv);
+    };
+    if (!(data.invoices || []).some(needsDelete)) return;
+    setData(prev => {
+      let changed = false;
+      const invoices = (prev.invoices || []).map((inv: any) => {
+        if (!needsDelete(inv)) return inv;
+        changed = true;
+        return { ...inv, isDeleted: true, deletedAt: byId.get(String(inv.id))?.deletedAt || inv.deletedAt };
+      });
+      return changed ? recalculateStateBalances({ ...prev, invoices }) : prev;
+    });
+  }, [data.invoices, ledgerTombstonesVersion]);
 
   // Financial records are accounting-critical. Persist expenses and supplier payments quickly,
   // independently of the large 8-second full-state save. The previous supplier-only effect also
