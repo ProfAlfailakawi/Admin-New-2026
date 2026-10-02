@@ -6532,3 +6532,15 @@ aside.bg-slate-950 nav button:focus-visible { outline: 2px solid #fbbf24; outlin
 aside.bg-slate-950 nav button span.bg-white\/5 { background-color: rgb(255 255 255 / 0.1); }
 /* active sub-item: amber edge on the reading side so the current page is obvious */
 aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color: rgb(255 255 255 / 0.1); box-shadow: inset -3px 0 0 #f59e0b; }
+
+/* ===== r23 task 2: one page-header rule.
+   The intro panel that follows the page hero (title + "فتح") becomes a slim strip attached to the hero:
+   the duplicate kicker is hidden, title + hint share one line, the toggle stays a reachable button. ===== */
+.admin-page-hero + .smart-collapsible-panel{margin-top:-8px;border-radius:0 0 22px 22px!important;border-top-color:transparent!important;box-shadow:0 10px 24px rgba(15,23,42,.05)!important}
+.admin-page-hero:has(+ .smart-collapsible-panel){border-bottom-left-radius:22px;border-bottom-right-radius:22px}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle{padding:10px 16px!important;align-items:center}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle > div{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;min-width:0}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle > div > span{display:none}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle h2{font-size:15px!important;margin:0}
+.admin-page-hero + .smart-collapsible-panel .smart-panel-toggle p{font-size:12px!important}
+.admin-page-hero + .smart-collapsible-panel .toggle-pill{min-width:0;padding:6px 14px;box-shadow:none}
