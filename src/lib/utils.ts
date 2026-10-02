@@ -151,7 +151,7 @@ export const formatKuwaitiDate = (dateVal: any): { date: string; time: string; f
 
   const getPart = (type: string) => parts.find((part) => part.type === type)?.value || '';
   const date = `${getPart('day')}/${getPart('month')}/${getPart('year')}`;
-  const time = `${getPart('hour')}:${getPart('minute')} ${getPart('dayPeriod').toUpperCase()}`;
+  const time = `${getPart('hour')}:${getPart('minute')} ${getPart('dayPeriod').toLowerCase() === 'am' ? 'ص' : 'م'}`;
 
   return { date, time, full: `${date} ${time}` };
 };
@@ -222,7 +222,7 @@ export function formatDeliveryTimeDisplay(timeStr?: string): string {
     }
   }
   
-  return `${hh}:${formattedMm} ${period}`;
+  return `${hh}:${formattedMm} ${period === 'AM' ? 'ص' : 'م'}`;
 }
 
 export function formatTimeInput(value: string): string {

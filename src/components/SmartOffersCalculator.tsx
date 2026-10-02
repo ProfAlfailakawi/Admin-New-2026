@@ -108,7 +108,7 @@ export const SmartOffersCalculator: React.FC<SmartOffersCalculatorProps> = ({ da
  </div>
  <div>
  <h2 className="text-2xl md:text-3xl font-bold text-slate-800 tracking-tight">حاسبة عروض التراث</h2>
- <p className="text-slate-500 font-bold mt-1 text-sm md:text-base">صمم باقات عروضك (Combos) وحلل ربحيتها قبل إطلاقها بالسوق الكويتي.</p>
+ <p className="text-slate-500 font-bold mt-1 text-sm md:text-base">صمم باقات عروضك  وحلل ربحيتها قبل إطلاقها بالسوق الكويتي.</p>
  </div>
  </div>
 

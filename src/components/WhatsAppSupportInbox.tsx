@@ -79,7 +79,7 @@ const formatTime = (value?: string) => {
   return new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Kuwait',
     day: '2-digit', month: '2-digit', hour: 'numeric', minute: '2-digit', hour12: true
-  }).format(d);
+  }).format(d).replace(/\bAM\b/, 'ص').replace(/\bPM\b/, 'م');
 };
 
 const cleanPhone = (phone?: string) => String(phone || '').replace(/\D/g, '');
@@ -111,7 +111,7 @@ function matchesTab(c: { status?: string; mode?: string; unreadCount?: number },
 }
 
 type CustomerTemperature = {
-  label: 'بارد' | 'مستعجل' | 'غاضب' | 'VIP';
+  label: 'بارد' | 'مستعجل' | 'غاضب' | 'مميز';
   className: string;
   hint: string;
 };
@@ -126,7 +126,7 @@ const getCustomerTemperature = (c?: Conversation | null): CustomerTemperature =>
   const angry = hasAny(['زعل', 'غضب', 'غاضب', 'شكوى', 'سيء', 'حرام', 'تأخير', 'ما يصير', 'غلط', 'تعبت']);
   const urgent = needsHuman || unread > 0 || hasAny(['عاجل', 'ضروري', 'الحين', 'وين', 'توصيل', 'دفع', 'فاتورة']);
   if (angry) return { label: 'غاضب', className: 'bg-rose-50 text-rose-700 border border-rose-100', hint: 'في الرسالة نبرة غضب أو شكوى؛ يحتاج رد هادئ وسريع.' };
-  if (vip) return { label: 'VIP', className: 'bg-amber-50 text-amber-700 border border-amber-100', hint: 'عميل مهم أو له إشارة VIP؛ يستاهل متابعة راقية.' };
+  if (vip) return { label: 'مميز', className: 'bg-amber-50 text-amber-700 border border-amber-100', hint: 'عميل مهم أو له إشارة تميّز؛ يستاهل متابعة راقية.' };
   if (urgent) return { label: 'مستعجل', className: 'bg-orange-50 text-orange-700 border border-orange-100', hint: 'محادثة فيها استعجال أو تحتاج تدخل.' };
   return { label: 'بارد', className: 'bg-slate-100 text-slate-500 border border-slate-100', hint: 'محادثة هادئة ولا تحتاج تصعيد الآن.' };
 };
@@ -502,7 +502,7 @@ const getSmartRepliesForConversation = (c?: Conversation | null, data?: Partial<
   }
 
   if (tags.includes('vip_absent') || textIndex.includes('vip') || textIndex.includes('عميل مميز')) {
-    replies.push({ id: 'smart-vip-absent-context', title: 'عميل VIP غائب', meta: 'رد تقديري جاهز عند عودة العميل', tone: 'vip', score: 300, text: `يا هلا ${name} 🌿\nنورتنا من جديد، وجودك عندنا له تقدير خاص. أراجع لك التوفر الآن، وإذا تحب أرتب لك الطلب بأفضل خيار مناسب لك.` });
+    replies.push({ id: 'smart-vip-absent-context', title: 'عميل مميز غائب', meta: 'رد تقديري جاهز عند عودة العميل', tone: 'vip', score: 300, text: `يا هلا ${name} 🌿\nنورتنا من جديد، وجودك عندنا له تقدير خاص. أراجع لك التوفر الآن، وإذا تحب أرتب لك الطلب بأفضل خيار مناسب لك.` });
   }
   if (tags.includes('gold_customer') || textIndex.includes('ذهبي')) {
     replies.push({ id: 'smart-gold-context', title: 'عميل ذهبي', meta: 'رد ولاء مختصر وراقي', tone: 'loyalty', score: 290, text: `حياك الله ${name} 🤍\nأكيد، أراجع لك الطلب السابق والتوفر الحالي، وبما أنك من عملائنا المميزين بنرتب لك الاختيار الأنسب قبل التأكيد.` });
@@ -2093,7 +2093,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 <div key={i} className={cn('flex items-center justify-between gap-3 rounded-2xl border p-3', r.score <= 1 ? 'border-rose-200 bg-rose-50/50' : 'border-slate-100 bg-slate-50/40')}>
                   <div className="min-w-0">
                     <div className="font-black text-slate-800 text-[13px] truncate">{r.name || 'عميل'}</div>
-                    <div className="text-[10px] font-bold text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('ar-KW', { dateStyle: 'short', timeStyle: 'short' }) : ''}</div>
+                    <div className="text-[10px] font-bold text-slate-400">{r.createdAt ? new Date(r.createdAt).toLocaleString('ar-KW-u-nu-latn', { dateStyle: 'short', timeStyle: 'short' }) : ''}</div>
                   </div>
                   <span className={cn('shrink-0 rounded-xl px-3 py-1.5 text-[11px] font-black border', r.score >= 3 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : r.score === 2 ? 'bg-sky-100 text-sky-700 border-sky-200' : 'bg-rose-100 text-rose-700 border-rose-200')}>
                     {r.score >= 3 ? <><Star size={14} className="inline-block align-[-2px]" aria-hidden="true" /> ممتاز</> : r.score === 2 ? <><ThumbsUp size={14} className="inline-block align-[-2px]" aria-hidden="true" /> جيد</> : <><CircleAlert size={14} className="inline-block align-[-2px]" aria-hidden="true" /> يحتاج تحسين</>}

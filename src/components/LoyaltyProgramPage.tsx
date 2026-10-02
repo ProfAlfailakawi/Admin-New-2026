@@ -237,7 +237,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  { id: 'r1', name: 'خصم 1 د.ك', points: 100, desc: 'عرض أساسي مناسب للجميع', icon: <TrendingUp size={20}/> },
  { id: 'r2', name: 'توصيل مجاني', points: 250, desc: 'المكافأة الأكثر طلباً', icon: <Zap size={20}/> },
  { id: 'r3', name: 'منتج مجاني', points: 500, desc: 'يبرد الجبد ويعزز الولاء', icon: <Gift size={20}/> },
- { id: 'r4', name: 'خصم الـ VIP', points: 1000, desc: 'للعملاء الأكثر ولاءً"تبيض الوجه"', icon: <Award size={20}/> }
+ { id: 'r4', name: 'خصم كبار العملاء', points: 1000, desc: 'للعملاء الأكثر ولاءً"تبيض الوجه"', icon: <Award size={20}/> }
  ];
 
  if (!isDynamicRewardsEnabled) return baseRewards;
@@ -459,7 +459,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="text-xl md:text-2xl font-bold">{stats.active} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-amber-500/30">
- <span className="text-[10px] font-bold text-amber-200 block mb-1">الـ VIP"الكفو"</span>
+ <span className="text-[10px] font-bold text-amber-200 block mb-1">كبار العملاء "الكفو"</span>
  <div className="text-xl md:text-2xl font-bold">{stats.vipCount} <span className="text-[10px] opacity-70 font-bold">عميل</span></div>
  </div>
  <div className="bg-white/10 backdrop-blur-md p-2 md:p-3 rounded-2xl border border-white/10 transition-all hover:bg-orange-500/20">
@@ -478,7 +478,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="bg-white border text-right border-slate-200/60 rounded-2xl p-3 md:p-3 shadow-sm relative overflow-hidden">
  <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"/>
  <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 relative z-10">
- <h3 className="font-bold text-2xl text-slate-800 flex items-center gap-2 relative z-10">المكافآت الذكية (Rewards) <Gift className="text-amber-500" /></h3>
+ <h3 className="font-bold text-2xl text-slate-800 flex items-center gap-2 relative z-10">المكافآت الذكية <Gift className="text-amber-500" /></h3>
  <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl">
  <button 
  onClick={() => {
@@ -490,7 +490,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  isDynamicRewardsEnabled ?"bg-amber-500 text-white shadow-lg" :"text-slate-500"
 )}
  >
- مكافآت متكيفة آلياً (Pulse Mode)
+ مكافآت متكيفة آلياً (وضع النبض)
  </button>
  <button 
  onClick={() => {
@@ -537,7 +537,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div>
  <h3 className="text-xl md:text-3xl font-bold text-amber-400 flex flex-wrap items-center gap-2">
  <Trophy size={22} className="shrink-0" />أبطال الطلبات
- <span className="text-[10px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">Top 10</span>
+ <span className="text-[10px] md:text-sm font-bold bg-amber-500/20 text-amber-200 px-3 py-1 rounded-full border border-amber-500/30">أعلى 10</span>
  </h3>
  <p className="text-slate-400 font-bold mt-1 text-[11px] md:text-sm">مختصر مرتب؛ افتح أي بطل فقط عند الحاجة.</p>
  </div>
@@ -637,7 +637,7 @@ setSearchTerm(val);
  <div className="loyalty-segment-scroll flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-2xl p-1 overflow-x-auto w-full lg:w-auto max-w-full">
  {[
  { id: 'all', label: 'الكل' },
- { id: 'VIP', label: 'VIP', icon: <Crown size={13} /> },
+ { id: 'VIP', label: 'كبار العملاء', icon: <Crown size={13} /> },
  { id: 'نشط', label: 'نشط' },
  { id: 'جديد', label: 'جديد' },
  { id: 'ماشي بالخطر', label: 'تنبيه', icon: <AlertTriangle size={13} /> },
@@ -701,7 +701,7 @@ setSearchTerm(val);
  <div className="loyalty-mobile-meta-grid">
  <div>
  <small>التصنيف</small>
- <span className={cn("loyalty-mobile-chip", c.classificationColor)}>{c.classification}</span>
+ <span className={cn("loyalty-mobile-chip", c.classificationColor)}>{c.classification === 'VIP' ? 'مميز' : c.classification}</span>
  </div>
  <div>
  <small>آخر طلب</small>
@@ -784,7 +784,7 @@ setSearchTerm(val);
  <td className="p-2 md:p-3 text-center">
  <div className="flex flex-col items-center gap-1.5 md:gap-2">
  <span className={cn("px-2 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold", c.classificationColor)}>
- {c.classification}
+ {c.classification === 'VIP' ? 'مميز' : c.classification}
  </span>
  {c.daysSinceLastOrder !== Infinity && (
  <div className="text-[10px] md:text-[11px] text-slate-500 font-bold flex items-center gap-1">
@@ -991,7 +991,7 @@ setSearchTerm(val);
  <p className="text-slate-500 font-bold" dir="ltr">{selectedCustomer.phone}</p>
  <div className="flex items-center gap-2 mt-2">
  <span className={cn("px-3 py-1 rounded-lg text-[10px] font-bold", selectedCustomer.classificationColor)}>
- {selectedCustomer.classification}
+ {selectedCustomer.classification === 'VIP' ? 'مميز' : selectedCustomer.classification}
  </span>
  <span className="bg-white/10 px-3 py-1 rounded-lg text-[10px] font-bold text-amber-400">
  {selectedCustomer.points} نقطة ولاء

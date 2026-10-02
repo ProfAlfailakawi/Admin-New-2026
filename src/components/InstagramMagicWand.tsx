@@ -187,7 +187,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                   <>
                     <div className="flex justify-between items-center px-1">
                       <p className="text-[10px] font-black text-slate-500">
-                        ٧ أيام جاهزة — بتواريخ حقيقية وأصنافكم الفعلية
+                        7 أيام جاهزة — بتواريخ حقيقية وأصنافكم الفعلية
                       </p>
                       <button
                         onClick={() => { setRotation(r => r + 1); playSwoosh(); }}

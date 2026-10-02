@@ -12,23 +12,23 @@ type Thread = { ci: number; phone: string; name: string; mode: 'bot' | 'human'; 
 
 const RAW_THREADS: Thread[] = [
   { ci: 1, phone: '55502000', name: 'خالد المطيري', mode: 'human', status: 'needs_support', unread: 2, tags: ['VIP'], msgs: [
-    ['in', 'السلام عليكم، أبي أطلب وليمة غنم لـ ١٥ شخص يوم الخميس', 95], ['out', 'وعليكم السلام ورحمة الله، حياك الله. تأمر على شي ثاني؟', 92],
-    ['in', 'هل تقدرون توصلونها قبل الساعة ٧ مساءً؟', 40], ['in', 'وكم السعر الإجمالي مع التوصيل للجابرية؟', 38] ] },
+    ['in', 'السلام عليكم، أبي أطلب وليمة غنم لـ 15 شخص يوم الخميس', 95], ['out', 'وعليكم السلام ورحمة الله، حياك الله. تأمر على شي ثاني؟', 92],
+    ['in', 'هل تقدرون توصلونها قبل الساعة 7 مساءً؟', 40], ['in', 'وكم السعر الإجمالي مع التوصيل للجابرية؟', 38] ] },
   { ci: 2, phone: '55502013', name: 'سارة الكندري', mode: 'bot', status: 'open', unread: 0, tags: [], msgs: [
     ['in', 'منيو', 300], ['out', 'أهلاً بك في مطبخ التراث الكويتي 🌿 هذا منيونا الكامل، تفضل اختار وأرسلي طلبك.', 299],
-    ['in', 'تمام، أبغى ٢ مجبوس دجاج عائلي', 280], ['out', 'تم تسجيل طلبك ✅ رقم الطلب ORD-8120. رابط الدفع جاهز.', 279] ] },
+    ['in', 'تمام، أبغى 2 مجبوس دجاج عائلي', 280], ['out', 'تم تسجيل طلبك ✅ رقم الطلب ORD-8120. رابط الدفع جاهز.', 279] ] },
   { ci: 3, phone: '55502026', name: 'محمد العجمي', mode: 'bot', status: 'open', unread: 1, tags: [], msgs: [
-    ['in', 'وين طلبي؟ تأخر', 25], ['out', 'نعتذر عن التأخير، طلبك في الطريق وبيوصل خلال ١٥ دقيقة 🚚', 24], ['in', 'تمام شكراً', 20] ] },
+    ['in', 'وين طلبي؟ تأخر', 25], ['out', 'نعتذر عن التأخير، طلبك في الطريق وبيوصل خلال 15 دقيقة 🚚', 24], ['in', 'تمام شكراً', 20] ] },
   { ci: 4, phone: '55502039', name: 'نورة العتيبي', mode: 'human', status: 'open', unread: 0, tags: ['شكوى'], msgs: [
-    ['in', 'الطلب وصل ناقص سلطة التبولة', 1500], ['out', 'نعتذر منك، بنرسل لك السلطة مع خصم ٢ د.ك على الطلب القادم 🙏', 1490], ['in', 'جزاكم الله خير', 1480] ] },
+    ['in', 'الطلب وصل ناقص سلطة التبولة', 1500], ['out', 'نعتذر منك، بنرسل لك السلطة مع خصم 2 د.ك على الطلب القادم 🙏', 1490], ['in', 'جزاكم الله خير', 1480] ] },
   { ci: 5, phone: '55502052', name: 'يوسف الدوسري', mode: 'bot', status: 'open', unread: 0, tags: [], msgs: [
-    ['in', 'كم سعر المطبق الزبيدي؟', 2900], ['out', 'المطبق الزبيدي بلاتيني بسعر ٢٤.٥٠٠ د.ك ويكفي ٥-٦ أشخاص.', 2899] ] },
+    ['in', 'كم سعر المطبق الزبيدي؟', 2900], ['out', 'المطبق الزبيدي بلاتيني بسعر 24.500 د.ك ويكفي 5-6 أشخاص.', 2899] ] },
   { ci: 6, phone: '55502065', name: 'مريم الشمري', mode: 'bot', status: 'closed', unread: 0, tags: ['تم التقييم'], msgs: [
-    ['in', 'شكراً الأكل كان ممتاز', 4300], ['out', 'الشكر لك! نرجو تقييم تجربتك من ١ إلى ٣ ⭐', 4290], ['in', '3', 4285] ] },
+    ['in', 'شكراً الأكل كان ممتاز', 4300], ['out', 'الشكر لك! نرجو تقييم تجربتك من 1 إلى 3 ⭐', 4290], ['in', '3', 4285] ] },
   { ci: 8, phone: '55502078', name: 'مجموعة الضيافة الكبرى', mode: 'human', status: 'needs_support', unread: 3, tags: ['شركات'], msgs: [
-    ['in', 'نحتاج عرض سعر لـ ٥٠ صندوق غداء للموظفين أسبوعياً', 130], ['in', 'ونبي فاتورة شهرية', 128], ['in', 'متى نقدر نتواصل مع المسؤول؟', 120] ] },
+    ['in', 'نحتاج عرض سعر لـ 50 صندوق غداء للموظفين أسبوعياً', 130], ['in', 'ونبي فاتورة شهرية', 128], ['in', 'متى نقدر نتواصل مع المسؤول؟', 120] ] },
   { ci: 9, phone: '55502091', name: 'عبدالرحمن الظفيري', mode: 'bot', status: 'open', unread: 0, tags: [], msgs: [
-    ['in', 'هل عندكم توصيل للفحيحيل؟', 5800], ['out', 'نعم، نوصل لجميع مناطق الكويت. رسوم التوصيل ١.٥٠٠ د.ك.', 5799] ] },
+    ['in', 'هل عندكم توصيل للفحيحيل؟', 5800], ['out', 'نعم، نوصل لجميع مناطق الكويت. رسوم التوصيل 1.500 د.ك.', 5799] ] },
 ];
 
 // Names/phones come from the demo customers so every screen tells the same story.
@@ -42,11 +42,11 @@ const threads = (): Thread[] => {
 
 const RULES_SEED = [
   { id: 'r1', title: 'طلب المنيو', enabled: true, priority: 1, keywords: ['منيو', 'قائمة', 'menu'], matchMode: 'any', action: 'products', response: 'أهلاً بك في مطبخ التراث الكويتي 🌿 هذا منيونا:' },
-  { id: 'r2', title: 'ساعات العمل', enabled: true, priority: 2, keywords: ['دوام', 'مواعيد', 'ساعات'], matchMode: 'any', action: 'reply', response: 'نعمل يومياً من ٩ صباحاً حتى ١١ مساءً.' },
-  { id: 'r3', title: 'رسوم التوصيل', enabled: true, priority: 3, keywords: ['توصيل', 'رسوم'], matchMode: 'any', action: 'reply', response: 'رسوم التوصيل ١.٥٠٠ د.ك داخل الكويت، ومجاناً للطلبات فوق ٦٠ د.ك.' },
+  { id: 'r2', title: 'ساعات العمل', enabled: true, priority: 2, keywords: ['دوام', 'مواعيد', 'ساعات'], matchMode: 'any', action: 'reply', response: 'نعمل يومياً من 9 صباحاً حتى 11 مساءً.' },
+  { id: 'r3', title: 'رسوم التوصيل', enabled: true, priority: 3, keywords: ['توصيل', 'رسوم'], matchMode: 'any', action: 'reply', response: 'رسوم التوصيل 1.500 د.ك داخل الكويت، ومجاناً للطلبات فوق 60 د.ك.' },
   { id: 'r4', title: 'التحدث مع موظف', enabled: true, priority: 4, keywords: ['موظف', 'مسؤول', 'شكوى'], matchMode: 'any', action: 'human', response: 'جاري تحويلك لأحد موظفينا، لحظات 🙏' },
   { id: 'r5', title: 'الدفع', enabled: true, priority: 5, keywords: ['دفع', 'كي نت', 'knet'], matchMode: 'any', action: 'reply', response: 'نقبل الدفع عبر كي نت والرابط الإلكتروني والتحويل البنكي والكاش عند الاستلام.' },
-  { id: 'r6', title: 'عروض الولائم', enabled: false, priority: 6, keywords: ['وليمة', 'عزيمة'], matchMode: 'any', action: 'reply', response: 'ولائمنا تبدأ من ٢٨ د.ك وتكفي ١٠ أشخاص، اطلبها قبل ٢٤ ساعة.' },
+  { id: 'r6', title: 'عروض الولائم', enabled: false, priority: 6, keywords: ['وليمة', 'عزيمة'], matchMode: 'any', action: 'reply', response: 'ولائمنا تبدأ من 28 د.ك وتكفي 10 أشخاص، اطلبها قبل 24 ساعة.' },
 ];
 
 const BOT_TEXTS_SEED = [
@@ -54,7 +54,7 @@ const BOT_TEXTS_SEED = [
   { key: 'order_received', label: 'تأكيد استلام الطلب', hint: 'بعد تسجيل الطلب', defaultText: 'تم تسجيل طلبك ✅', value: 'تم تسجيل طلبك ✅ وبنبلغك أول ما يجهز.' },
   { key: 'payment_link', label: 'رسالة رابط الدفع', hint: 'عند إرسال الرابط', defaultText: 'رابط الدفع الآمن:', value: 'رابط الدفع الآمن الخاص بطلبك:' },
   { key: 'out_for_delivery', label: 'الطلب في الطريق', hint: 'عند خروج السائق', defaultText: 'طلبك في الطريق 🚚', value: 'طلبك في الطريق 🚚 وبيوصلك قريب.' },
-  { key: 'rating_request', label: 'طلب التقييم', hint: 'بعد التسليم', defaultText: 'قيّم تجربتك من ١ إلى ٣', value: 'نرجو تقييم تجربتك: ٣ ممتاز، ٢ جيد، ١ يحتاج تحسين ⭐' },
+  { key: 'rating_request', label: 'طلب التقييم', hint: 'بعد التسليم', defaultText: 'قيّم تجربتك من 1 إلى 3', value: 'نرجو تقييم تجربتك: 3 ممتاز، 2 جيد، 1 يحتاج تحسين ⭐' },
 ];
 
 // In-memory copies so edits made during a presentation show up immediately (and vanish on reload).
@@ -111,7 +111,7 @@ export function demoApiResponse(pathname: string, search: string, method: string
     } else if (act === 'read') {
       t.unread = 0;
     } else if (act === 'request-rating') {
-      t.msgs.push(['out', 'نرجو تقييم تجربتك: ٣ ممتاز، ٢ جيد، ١ يحتاج تحسين ⭐', 0]);
+      t.msgs.push(['out', 'نرجو تقييم تجربتك: 3 ممتاز، 2 جيد، 1 يحتاج تحسين ⭐', 0]);
     }
     return { success: true, demo: true };
   }
@@ -131,7 +131,7 @@ export function demoApiResponse(pathname: string, search: string, method: string
       messages: t.msgs.map((x, i) => ({ id: `${t.phone}-${i}`, direction: x[0] === 'in' ? 'inbound' : 'outbound', text: x[1], type: 'text', sentBy: x[0] === 'in' ? 'customer' : (t.mode === 'human' ? 'agent' : 'bot'), status: 'read', createdAt: ago(x[2]) })),
       quickReplies: [
         { id: 'q1', title: 'شكر', text: 'الشكر لك، تأمر على شي ثاني؟' },
-        { id: 'q2', title: 'وقت التوصيل', text: 'التوصيل خلال ٤٥-٦٠ دقيقة من تأكيد الطلب.' },
+        { id: 'q2', title: 'وقت التوصيل', text: 'التوصيل خلال 45-60 دقيقة من تأكيد الطلب.' },
         { id: 'q3', title: 'اعتذار تأخير', text: 'نعتذر عن التأخير، طلبك في الطريق.' },
       ] };
   }

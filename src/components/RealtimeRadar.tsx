@@ -159,7 +159,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
           <div className="flex gap-2">
              {['1:1', '9:16', '4:3'].map(f => (
                <button key={f} onClick={() => setSelectedFormat(f)} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${selectedFormat === f ? 'bg-rose-50 border-rose-500 text-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                 {f === '1:1' ? 'Instagram' : f === '9:16' ? 'Story / TikTok' : 'إعلان 4:3'}
+                 {f === '1:1' ? 'Instagram' : f === '9:16' ? 'ستوري / TikTok' : 'إعلان 4:3'}
                </button>
              ))}
           </div>
@@ -180,7 +180,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
              textPosition={textPosition}
              setTextPosition={setTextPosition}
              colorClass="rose"
-             title="4. هوية العلامة (Logo)"
+             title="4. هوية العلامة (الشعار)"
           />
         </div>
 

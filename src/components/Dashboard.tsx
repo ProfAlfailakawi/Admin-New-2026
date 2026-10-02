@@ -556,7 +556,7 @@ const BusinessStatusMirror: React.FC<{
                   },
                   {
                     id: "vip",
-                    label: "VIP",
+                    label: "كبار العملاء",
                     section: "vip-missions-section",
                     tab: "intelligence-decisions",
                   },
@@ -652,7 +652,7 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
         <div className="flex flex-col justify-between gap-5">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black text-emerald-200 backdrop-blur-xl">
-              <CloudRain size={14} /> Seasonal Admin Engine
+              <CloudRain size={14} /> محرك الموسم الإداري
             </div>
             <h3 className="mt-3 text-xl md:text-2xl font-black tracking-tight leading-tight">التوقع الموسمي والمناخي لمطبخ التراث</h3>
             <p className="mt-3 max-w-2xl text-xs md:text-sm font-bold leading-7 text-slate-300">{activationText}</p>
@@ -861,7 +861,7 @@ const [isPending, startTransition] = useTransition();
     const localOnboardingSteps = useMemo(() => [
       {
         title: "أهلاً بك في النسخة التجريبية",
-        body: "هذه الجولة تظهر في وضع Local فقط ولمرة واحدة. الهدف منها تعريفك بأهم أماكن التحكم بدون التأثير على بياناتك أو منطق النظام.",
+        body: "هذه الجولة تظهر في الوضع المحلي فقط ولمرة واحدة. الهدف منها تعريفك بأهم أماكن التحكم بدون التأثير على بياناتك أو منطق النظام.",
         icon: <Sparkles size={20} className="text-amber-500" />,
       },
       {
@@ -2253,7 +2253,7 @@ const [isPending, startTransition] = useTransition();
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     {appMode === 'cloud' || hasActiveBackup 
                       ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً ☁️" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻") 
-                      : "تقدر تحمل بيانات تجريبية (Demo) شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
+                      : "تقدر تحمل بيانات تجريبية شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
                   </p>
                 </div>
               </div>
@@ -2301,7 +2301,7 @@ const [isPending, startTransition] = useTransition();
                         {localOnboardingSteps[localOnboardingStep]?.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-black text-amber-600 mb-1">الدليل السريع · نسخة Local</p>
+                        <p className="text-[11px] font-black text-amber-600 mb-1">الدليل السريع · النسخة المحلية</p>
                         <h3 className="text-xl font-black text-slate-900 leading-tight">
                           {localOnboardingSteps[localOnboardingStep]?.title}
                         </h3>
@@ -2491,7 +2491,7 @@ const [isPending, startTransition] = useTransition();
                       <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center border border-amber-500/30">
                         <Activity className="text-amber-400" size={20} />
                       </div>
-                      <span className="text-amber-500 text-xs font-black uppercase tracking-[0.3em]">Operational Pulse</span>
+                      <span className="text-amber-500 text-xs font-black uppercase tracking-[0.3em]">النبض التشغيلي</span>
                     </div>
                     <h2 className="text-2xl md:text-3xl md:text-4xl font-black text-white tracking-tighter leading-tight">
                       {isGrowthPos ? "الأداء اليوم ممتاز." : "أداء اليوم يحتاج انتباه."}
@@ -2673,7 +2673,7 @@ const [isPending, startTransition] = useTransition();
                                 className="group-hover:animate-spin"
                               />
                               <h4 className="font-bold text-lg">
-                                النجوم (Stars)
+                                النجوم
                               </h4>
                             </div>
                             <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">
@@ -2710,7 +2710,7 @@ const [isPending, startTransition] = useTransition();
                                 className="group-hover:-translate-x-1 transition-transform"
                               />
                               <h4 className="font-bold text-lg">
-                                أحصنة الحرث (Plowhorses)
+                                أحصنة الحرث
                               </h4>
                             </div>
                             <span className="text-[10px] text-white/50 font-bold bg-white/5 px-2 py-1 rounded-md">
@@ -2989,7 +2989,7 @@ const [isPending, startTransition] = useTransition();
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
-                        <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">Strategic Intelligence Laboratory</span>
+                        <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">مختبر الذكاء الاستراتيجي</span>
                       </div>
                       <h1 className="text-2xl md:text-3xl xl:text-4xl font-black text-slate-900 tracking-tighter">
                         مختبر التراث الذكي
@@ -3031,7 +3031,7 @@ const [isPending, startTransition] = useTransition();
                              </div>
                              <div>
                                <h3 className="font-black text-xl md:text-3xl text-slate-900 tracking-tighter break-words">محاكي القرارات الافتراضي</h3>
-                               <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 uppercase tracking-wide md:tracking-[0.2em] break-words">Quantum-Probabilistic Scenario Mapping</p>
+                               <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 break-words">خرائط السيناريوهات الاحتمالية</p>
                              </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -3040,7 +3040,7 @@ const [isPending, startTransition] = useTransition();
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-rose-100" />
                                <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100" />
                              </div>
-                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">Alturath Smart Analytics</div>
+                             <div className="text-[10px] font-black text-slate-400 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">تحليلات التراث الذكية</div>
                           </div>
                         </div>
                         <div className="p-4 h-full">
@@ -3061,7 +3061,7 @@ const [isPending, startTransition] = useTransition();
                              </div>
                              <span className="font-black text-white text-lg tracking-tight">خريطة النبض الجغرافي</span>
                           </div>
-                          <div className="px-3 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/30 uppercase tracking-widest">Geo Intel</div>
+                          <div className="px-3 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/30">الاستخبارات الجغرافية</div>
                         </div>
                         <div className="geo-heatmap-mobile-body p-2 flex-grow">
                           <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-800 rounded-2xl" />}>
@@ -3099,8 +3099,8 @@ const [isPending, startTransition] = useTransition();
                                 <Award size={28} />
                              </div>
                              <div>
-                               <h3 className="font-black text-xl md:text-3xl text-slate-900 tracking-tighter break-words">مهام كبار العملاء (VIP)</h3>
-                               <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 uppercase tracking-wide md:tracking-[0.2em] break-words">Tier-1 Retention & Loyalty Optimization</p>
+                               <h3 className="font-black text-xl md:text-3xl text-slate-900 tracking-tighter break-words">مهام كبار العملاء</h3>
+                               <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 break-words">تحسين الاحتفاظ والولاء للشريحة الأولى</p>
                              </div>
                           </div>
                         </div>
@@ -3137,7 +3137,7 @@ const [isPending, startTransition] = useTransition();
                                 </h2>
                                 <div className="flex items-center gap-2">
                                   <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                                  <span className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-[0.3em]">ALTURATH OPERATING MIND</span>
+                                  <span className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-[0.3em]">عقل التراث التشغيلي</span>
                                 </div>
                               </div>
                             </div>
@@ -3407,7 +3407,7 @@ const [isPending, startTransition] = useTransition();
                               </h2>
                               <div className="flex items-center gap-2">
                                 <div className="h-1 w-6 lg:w-10 bg-rose-500 rounded-full" />
-                                <span className="text-rose-400 text-[10px] lg:text-xs font-bold uppercase tracking-[0.1em] lg:tracking-[0.3em]">Real-Time Risk Guardian</span>
+                                <span className="text-rose-400 text-[10px] lg:text-xs font-bold uppercase tracking-[0.1em] lg:tracking-[0.3em]">حارس المخاطر اللحظي</span>
                               </div>
                             </div>
                           </div>
@@ -3709,7 +3709,7 @@ const [isPending, startTransition] = useTransition();
                             </div>
                             <div className="bg-amber-50/50 p-3 rounded-2xl border border-amber-100/50">
                               <h4 className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-2 justify-end">
-                                <Map size={14} /> السبب الجذري (Root Cause)
+                                <Map size={14} /> السبب الجذري
                               </h4>
                               <p className="text-sm text-amber-900 font-medium leading-relaxed text-right">
                                 {strat.rootCause}
@@ -4168,7 +4168,7 @@ const [isPending, startTransition] = useTransition();
                             اقتصاديات العملاء والنمو
                           </h3>
                           <p className="text-[10px] text-slate-500 font-bold">
-                            التدفق النقدي، LTV، وتكلفة الاستحواذ
+                            التدفق النقدي، قيمة العميل، وتكلفة الاستحواذ
                           </p>
                         </div>
                       </div>
@@ -4199,21 +4199,21 @@ const [isPending, startTransition] = useTransition();
                                 index={8}
                               />
                               <GlobalStatBox
-                                label="القيمة الحياتية (LTV)"
+                                label="القيمة الحياتية للعميل"
                                 value={ltv}
                                 color="indigo"
                                 icon={Users}
                                 index={9}
                               />
                               <GlobalStatBox
-                                label="تكلفة الاستحواذ (CAC)"
+                                label="تكلفة اكتساب العميل"
                                 value={cac}
                                 color="amber"
                                 icon={User}
                                 index={10}
                               />
                               <GlobalStatBox
-                                label="كفاءة الاستحواذ (LTV:CAC)"
+                                label="كفاءة اكتساب العميل"
                                 value={ltvCacRatio}
                                 color="blue"
                                 icon={BarChart3}
@@ -4649,7 +4649,7 @@ const [isPending, startTransition] = useTransition();
                               المستشار الشامل
                             </h3>
                             <p className="text-[10px] text-indigo-500 font-bold uppercase mt-0.5">
-                              Smart Archive v4.0
+                              الأرشيف الذكي الإصدار 4.0
                             </p>
                           </div>
                         </div>
@@ -4900,15 +4900,15 @@ const [isPending, startTransition] = useTransition();
                                 النمو الاستراتيجي
                               </div>
                               <span className="text-[10px] text-white/65 font-bold italic">
-                                LTV:CAC = {ltvCacRatio.toFixed(1)}
+                                نسبة القيمة إلى التكلفة = {ltvCacRatio.toFixed(1)}
                               </span>
                             </div>
                             <p className="text-xs font-semibold leading-relaxed text-white/90">
                               {ltvCacRatio >= 3
-                                ? `بناءً على LTV:CAC = ${ltvCacRatio.toFixed(1)} (أعلى من الحد المثالي 3.0)، نوصي بمضاعفة ميزانية التسويق بأمان لجذب شريحة أكبر نظراً لارتفاع كفاءة الاستحواذ.`
+                                ? `بناءً على نسبة القيمة الحياتية إلى تكلفة الاكتساب = ${ltvCacRatio.toFixed(1)} (أعلى من الحد المثالي 3.0)، نوصي بمضاعفة ميزانية التسويق بأمان لجذب شريحة أكبر نظراً لارتفاع كفاءة الاستحواذ.`
                                 : ltvCacRatio < 1
-                                  ? `بناءً على LTV:CAC = ${ltvCacRatio.toFixed(1)} (أقل من 1.0)، تكلفة الاستحواذ (${cac.toFixed(2)} د.ك) أعلى من القيمة المستردة. نوصي بتقليل الإنفاق الإعلاني فوراً ومراجعة التسعير.`
-                                  : `بناءً على LTV:CAC = ${ltvCacRatio.toFixed(1)} (أقل من الحد المثالي 3.0)، نوصي بتحسين الاستهداف في مناطق التوصيل القريبة لرفع كفاءة الاستحواذ وتقليل تكلفة العميل (${cac.toFixed(2)} د.ك).`}
+                                  ? `بناءً على نسبة القيمة الحياتية إلى تكلفة الاكتساب = ${ltvCacRatio.toFixed(1)} (أقل من 1.0)، تكلفة الاستحواذ (${cac.toFixed(2)} د.ك) أعلى من القيمة المستردة. نوصي بتقليل الإنفاق الإعلاني فوراً ومراجعة التسعير.`
+                                  : `بناءً على نسبة القيمة الحياتية إلى تكلفة الاكتساب = ${ltvCacRatio.toFixed(1)} (أقل من الحد المثالي 3.0)، نوصي بتحسين الاستهداف في مناطق التوصيل القريبة لرفع كفاءة الاستحواذ وتقليل تكلفة العميل (${cac.toFixed(2)} د.ك).`}
                             </p>
                           </div>
                         )}
@@ -5310,7 +5310,7 @@ const [isPending, startTransition] = useTransition();
                       )}
                       <div className="flex justify-between items-start mb-6 flex-row-reverse relative z-10">
                         <h3 className="font-bold text-xl text-[#b33a3a] flex items-center gap-2">
-                          نخبة VIP الغائبين{" "}
+                          نخبة كبار العملاء الغائبين{" "}
                           <Zap size={24} className="text-rose-500" />
                         </h3>
                         <span className="bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-1 rounded-full border border-rose-200">
@@ -5430,7 +5430,7 @@ const [isPending, startTransition] = useTransition();
                         <div className="flex-1 flex flex-col items-center justify-center py-5 md:py-10 relative z-10">
                           <Users size={64} className="text-rose-100 mb-4" />
                           <p className="text-xs font-bold text-slate-500 text-center mb-6">
-                            اكتشف العملاء VIP الغائبين لعودتهم مرة أخرى.
+                            اكتشف كبار العملاء الغائبين لعودتهم مرة أخرى.
                           </p>
                           <button
                             onClick={handleLoyaltyAnalyze}

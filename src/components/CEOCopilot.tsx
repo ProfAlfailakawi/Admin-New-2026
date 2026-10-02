@@ -102,7 +102,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
       const payload = await res.json().catch(() => null);
       if (!res.ok || !payload?.copy) throw new Error('flow failed');
       setFlowPayload(payload);
-      toast.success('payload الحملة جاهز لتسليمه إلى Flow');
+      toast.success('بيانات الحملة جاهزة لتسليمه إلى Flow');
     } catch {
       toast.info('تعذّر توليد الحملة الآن، جرّب مرة ثانية');
     } finally {
@@ -132,7 +132,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
   const copyFlowPayload = () => {
     if (!flowPayload) return;
     navigator.clipboard?.writeText(JSON.stringify({ ...flowPayload, flowTrigger: snapshot.campaignPipeline.flowTrigger }, null, 2)).catch(() => undefined);
-    toast.success('تم نسخ payload الحملة — الصقه في Flow');
+    toast.success('تم نسخ بيانات الحملة الحملة — الصقه في Flow');
   };
 
   React.useEffect(() => {
@@ -150,7 +150,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
       const payload = await res.json().catch(() => null);
       if (!res.ok) throw new Error(payload?.error || `CEO Copilot failed: ${res.status}`);
       setNarrative(coerceCopilotNarrative(payload?.narrative, snapshot));
-      toast.success('تم ترتيب قرارات CEO Copilot من Gemini بدون فتح باب الأرقام');
+      toast.success('تم ترتيب قرارات مساعد الرئيس التنفيذي من Gemini بدون فتح باب الأرقام');
     } catch (error) {
       console.warn('CEO Copilot narrative fallback:', error);
       toast.info('تم استخدام الترتيب المحلي لأن شرح Gemini غير متاح الآن');
@@ -174,7 +174,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
     : snapshot.metrics.filter((m) => ['orders.failed_payment', 'orders.pending_payment', 'suppliers.outstanding', 'cash.available'].includes(m.id));
 
   return (
-    <section className="w-full space-y-5 md:space-y-6" dir="rtl" aria-label="CEO Copilot">
+    <section className="w-full space-y-5 md:space-y-6" dir="rtl" aria-label="مساعد الرئيس التنفيذي">
       <div className="rounded-[28px] border border-slate-200 bg-white p-4 md:p-6 shadow-[0_20px_60px_-42px_rgba(15,23,42,0.55)]">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
@@ -184,13 +184,13 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
             <div className="min-w-0 text-right">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700">
-                  <Lock size={12} /> Numbers locked
+                  <Lock size={12} /> الأرقام مقفلة
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black text-slate-600">
-                  <ShieldCheck size={12} /> Gemini explains only
+                  <ShieldCheck size={12} /> Gemini يشرح فقط
                 </span>
               </div>
-              <h2 className="text-2xl font-black tracking-normal text-slate-950 md:text-3xl">CEO Copilot</h2>
+              <h2 className="text-2xl font-black tracking-normal text-slate-950 md:text-3xl">مساعد الرئيس التنفيذي</h2>
               <p className="mt-2 max-w-3xl text-sm font-bold leading-7 text-slate-500">
                 {snapshot.integrity.rule}
               </p>
@@ -223,7 +223,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
           <section className="rounded-[28px] border border-slate-200 bg-white p-4 md:p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="flex items-center gap-2 text-lg font-black text-slate-900"><ClipboardCheck size={20} /> ترتيب القرارات</h3>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">Function calling ready</span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black text-slate-500">استدعاء الدوال جاهز</span>
             </div>
             {narrative.summary && (
               <p className="mb-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-3 text-sm font-bold leading-7 text-indigo-900">
@@ -366,7 +366,7 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-4 md:p-5 shadow-sm">
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h3 className="flex items-center gap-2 text-lg font-black text-slate-900"><Workflow size={20} /> Content campaign pipeline جاهز لـFlow</h3>
+          <h3 className="flex items-center gap-2 text-lg font-black text-slate-900"><Workflow size={20} /> مسار حملة المحتوى جاهز لـFlow</h3>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-black text-indigo-700">{snapshot.campaignPipeline.flowTrigger}</span>
             <button
@@ -400,15 +400,15 @@ export const CEOCopilot: React.FC<CEOCopilotProps> = ({ data, onNavigate }) => {
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black text-amber-700">اعتماد بشري قبل النشر</span>
                 <button type="button" onClick={copyFlowPayload} className="inline-flex min-h-[36px] items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white">
-                  <ClipboardCheck size={14} /> نسخ payload
+                  <ClipboardCheck size={14} /> نسخ بيانات الحملة
                 </button>
               </div>
             </div>
             <p className="text-sm font-bold text-slate-700">{flowPayload.idea}</p>
             <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
-              <div className="rounded-xl bg-white p-3"><span className="text-[10px] font-black text-slate-400">HOOK</span><p className="mt-1 text-xs font-bold text-slate-800">{flowPayload.copy?.hook}</p></div>
-              <div className="rounded-xl bg-white p-3"><span className="text-[10px] font-black text-slate-400">BODY</span><p className="mt-1 text-xs font-bold text-slate-800">{flowPayload.copy?.body}</p></div>
-              <div className="rounded-xl bg-white p-3"><span className="text-[10px] font-black text-slate-400">CTA</span><p className="mt-1 text-xs font-bold text-slate-800">{flowPayload.copy?.cta}</p></div>
+              <div className="rounded-xl bg-white p-3"><span className="text-[10px] font-black text-slate-400">الجذب</span><p className="mt-1 text-xs font-bold text-slate-800">{flowPayload.copy?.hook}</p></div>
+              <div className="rounded-xl bg-white p-3"><span className="text-[10px] font-black text-slate-400">النص</span><p className="mt-1 text-xs font-bold text-slate-800">{flowPayload.copy?.body}</p></div>
+              <div className="rounded-xl bg-white p-3"><span className="text-[10px] font-black text-slate-400">الدعوة</span><p className="mt-1 text-xs font-bold text-slate-800">{flowPayload.copy?.cta}</p></div>
             </div>
             {Array.isArray(flowPayload.storyboard) && flowPayload.storyboard.length > 0 && (
               <div className="mt-3 space-y-2">

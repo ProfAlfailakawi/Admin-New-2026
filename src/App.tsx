@@ -524,7 +524,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
         if (status === 'success') {
             setStatusMsg({ title: "تمت العملية", sub: "الدفع تم بنجاح", isError: false });
         } else {
-            setStatusMsg({ title: "لم تكتمل العملية", sub: "Payment was not completed, you can try again", isError: true });
+            setStatusMsg({ title: "لم تكتمل العملية", sub: "لم تكتمل عملية الدفع، يمكنك المحاولة مرة أخرى", isError: true });
         }
 
         try {
@@ -770,7 +770,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     {
       id: 'loyalty',
       label: 'مملكة الولاء',
-      subtitle: 'مستويات العملاء ونقاط الذهبي والـ VIP',
+      subtitle: 'مستويات العملاء ونقاط الذهبي وكبار العملاء',
       icon: <Sparkles size={18} />,
       tone: 'purple',
       value: `مملكة الولاء`,
@@ -862,7 +862,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     <section dir="rtl" className={`heritage-command-brief heritage-command-brief-${tone} is-open`} aria-label="مركز القيادة">
       <div className="executive-morning-brief pb-2 mb-2">
         <div>
-          <span>Executive Morning Brief</span>
+          <span>موجز الصباح التنفيذي</span>
           <strong>مركز القيادة</strong>
         </div>
         <ul>
@@ -1288,28 +1288,28 @@ const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || 
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
-    dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'Daily Command Brief' },
-    'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'معرض أدوات للقرارات التنفيذية بدون لمس منطق التراث الذكي.', tag: 'Smart Lab Gallery' },
-    'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'Receipt Builder' },
-    'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'Invoice Ledger' },
-    orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'Operations Board' },
-    customers: { title: 'لوحة العملاء', subtitle: 'VIP، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'Customer Intelligence Board' },
-    products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'Product Score' },
-    expenses: { title: 'المصروفات العامة', subtitle: 'صفحة مالية هادئة توضّح المصروفات والنزيف بدون صراخ بصري.', tag: 'Expense Control' },
-    suppliers: { title: 'سجل الموردين المعتمدين', subtitle: 'إدارة المديونيات، الاعتمادات، والمخاطر التشغيلية للموردين.', tag: 'Supplier Radar' },
-    'suppliers-audit': { title: 'كشف الحساب المالي التفصيلي', subtitle: 'سجل مراجعة شامل للتوريد، السداد، والتدقيق المالي.', tag: 'Supplier Audit Ledger' },
-    reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'Executive Reports' },
-    ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'Executive Assistant' },
-    'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'Creative Suite' },
-    loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وVIP مع شارات وترقيات.', tag: 'Loyalty Kingdom' },
-    coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'Smart Offers Theater' },
-    'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'Growth Simulator Pro' },
-    'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'Profit Shield' },
-    diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'Tournament Board' },
-    'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'WhatsApp Center' },
-    settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'General Settings' },
+    dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'الموجز اليومي' },
+    'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'معرض أدوات للقرارات التنفيذية بدون لمس منطق التراث الذكي.', tag: 'معرض المختبر الذكي' },
+    'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'منشئ الفواتير' },
+    'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'دفتر الفواتير' },
+    orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'لوحة التشغيل' },
+    customers: { title: 'لوحة العملاء', subtitle: 'كبار العملاء، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'لوحة ذكاء العملاء' },
+    products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'مؤشر المنتجات' },
+    expenses: { title: 'المصروفات العامة', subtitle: 'صفحة مالية هادئة توضّح المصروفات والنزيف بدون صراخ بصري.', tag: 'ضبط المصروفات' },
+    suppliers: { title: 'سجل الموردين المعتمدين', subtitle: 'إدارة المديونيات، الاعتمادات، والمخاطر التشغيلية للموردين.', tag: 'رادار الموردين' },
+    'suppliers-audit': { title: 'كشف الحساب المالي التفصيلي', subtitle: 'سجل مراجعة شامل للتوريد، السداد، والتدقيق المالي.', tag: 'سجل تدقيق الموردين' },
+    reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'التقارير التنفيذية' },
+    ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'المساعد التنفيذي' },
+    'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'الحزمة الإبداعية' },
+    loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وكبار العملاء مع شارات وترقيات.', tag: 'برنامج الولاء' },
+    coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'مسرح العروض الذكي' },
+    'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'محاكي النمو' },
+    'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'درع الربح' },
+    diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'لوحة البطولات' },
+    'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'مركز واتساب' },
+    settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'الإعدادات العامة' },
   };
-  return map[page] || { title: 'مركز الإدارة', subtitle: 'واجهة موحدة وقرارات واضحة.', tag: 'Admin System' };
+  return map[page] || { title: 'مركز الإدارة', subtitle: 'واجهة موحدة وقرارات واضحة.', tag: 'نظام الإدارة' };
 };
 
 const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page: string) => void; children: React.ReactNode}> = ({ page, data, onNavigate, children }) => {
@@ -1377,11 +1377,11 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
           <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
         </section>
       )}
-      {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>Product Score</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
-      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>Customer Board</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
-      {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>Supplier Radar</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {(Number(sup.debt) || 0).toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
-      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Smart Offers Theater</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
-      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>Smart Lab Gallery</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
+      {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>مؤشر المنتجات</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
+      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>لوحة العملاء</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{c.label}</span></div>)}</div></div>}</section>}
+      {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>رادار الموردين</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {(Number(sup.debt) || 0).toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
+      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>مسرح العروض الذكي</span><h2>مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
+      {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>معرض المختبر الذكي</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
         { label: 'تحليل الموردين', page: 'suppliers-audit' },
@@ -1389,7 +1389,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
         { label: 'تحليل العروض', page: 'coupons' },
         { label: 'تحليل المخاطر', page: 'expenses' },
       ].map((item)=><button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="lab-tool-card"><Bot size={18}/><strong>{item.label}</strong><small>يفتح الأداة مباشرة بدون شاشة بيضاء</small></button>)}</div></section>}
-      {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>Growth Simulator Pro</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على VIP؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
+      {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span>محاكي النمو</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على كبار العملاء؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
       <div className="admin-content-polish" dir="rtl">{children}</div>
     </div>
   );
@@ -2311,7 +2311,7 @@ const MainApp: React.FC = () => {
                 insightType: 'خطر',
                 explanation: `إجمالي مبيعات الأسبوع الحالي (${last7DaysTotal.toFixed(3)} د.ك) يقل بشكل خطير وملحوظ عن إجمالي الأسبوع السابق (${prev7DaysTotal.toFixed(3)} د.ك). هذا الانخفاض الحاد قد يعود لأسباب تسويقية أو تشغيلية.`,
                 dataReference: `تحليل لعدد ${last7DaysInvoices.length + previous7DaysInvoices.length} فواتير مسجلة خلال آخر 14 يوم فعلية.`,
-                recommendedAction: 'نقترح إطلاق عرض مؤقت فوراً، أو التواصل مع قائمة عملاء VIP لتحفيزهم على الطلب باستخدام (مختبر الحملات التسويقية).',
+                recommendedAction: 'نقترح إطلاق عرض مؤقت فوراً، أو التواصل مع قائمة كبار العملاء لتحفيزهم على الطلب باستخدام (مختبر الحملات التسويقية).',
                 date: new Date().toISOString(),
                 read: false,
                 isPopupShown: false
@@ -2385,13 +2385,13 @@ const MainApp: React.FC = () => {
             if (lastActive > 0 && lastActive < thirtyDaysAgoMs) {
                  newNotifications.push({
                     id: `vip-churn-${cust.id}-${todayStr}`,
-                    title: `خطر فقدان عميل VIP: ${cust.name}`,
+                    title: `خطر فقدان أحد كبار العملاء: ${cust.name}`,
                     message: `العميل ذو القيمة العالية توقف عن الطلب فجأة.`,
                     type: 'warning',
                     insightType: 'خطر',
                     explanation: `هذا العميل (إجمالي مشترياته ${cust.totalSpent.toFixed(3)} د.ك) اختفى ولم يجرِ أي عملية تسوق رغم أنه كان معتاداً على الطلب المتكرر.`,
-                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا الـVIP كان بتاريخ ${formatKuwaitiDateOnly(cust.lastActive!)}.`,
-                    recommendedAction: 'توليد رسالة استعادة فورية عبر الواتساب وتقديم خصم شخصي له باستخدام لوحة (نخبة VIP الغائبين).',
+                    dataReference: `قاعدة بيانات العملاء توضح أن آخر طلب لهذا العميل المميز كان بتاريخ ${formatKuwaitiDateOnly(cust.lastActive!)}.`,
+                    recommendedAction: 'توليد رسالة استعادة فورية عبر الواتساب وتقديم خصم شخصي له باستخدام لوحة (نخبة كبار العملاء الغائبين).',
                     date: new Date().toISOString(),
                     read: false,
                     isPopupShown: false
@@ -2481,7 +2481,7 @@ const MainApp: React.FC = () => {
               message: `هامش الربح تقلص إلى ${(margin * 100).toFixed(0)}%.`,
               type: 'warning',
               insightType: 'خطر',
-              explanation: `رصد نظام (Profit Guard) أن تكلفة توريد "${prod.name}" من المورد (${supplier?.name || 'غير معروف'}) مرتفعة جداً مقارنة بسعر البيع، مما يهدد استدامة هذا الصنف.`,
+              explanation: `رصد نظام حماية الأرباح أن تكلفة توريد "${prod.name}" من المورد (${supplier?.name || 'غير معروف'}) مرتفعة جداً مقارنة بسعر البيع، مما يهدد استدامة هذا الصنف.`,
               dataReference: `سعر البيع: ${prod.price.toFixed(3)} د.ك | التكلفة: ${prod.cost.toFixed(3)} د.ك.`,
               recommendedAction: 'نقترح مراجعة المورد للتفاوض أو رفع سعر البيع بـ 200 فلس على الأقل لاستعادة التوازن المالي.',
               date: new Date().toISOString(),
@@ -4118,7 +4118,7 @@ const MainApp: React.FC = () => {
               <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
                   <span className="text-3xl">⚠️</span>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة الاستخدام (Firestore Quota Exceeded)</h2>
+              <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة استخدام Firestore</h2>
               
               <div className="text-slate-600 leading-relaxed text-sm flex flex-col gap-3">
                   <p className="font-semibold text-slate-800">
@@ -4865,7 +4865,7 @@ const MainApp: React.FC = () => {
                 <div className="text-[9px] text-slate-500 truncate">{user?.email || (IS_DEMO_MODE ? 'demo@example.com' : 'volcanokw@gmail.com')}</div>
               </div>
               {user?.photoURL ? (
-                <img src={user.photoURL} alt="User" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-250 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
+                <img src={user.photoURL} alt="المستخدم" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-250 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
               ) : (
                 <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary/10 rounded-full border-2 border-primary/20 flex items-center justify-center font-bold text-primary text-xs shrink-0 shadow-sm">
                   {user?.displayName?.charAt(0) || 'أ'}

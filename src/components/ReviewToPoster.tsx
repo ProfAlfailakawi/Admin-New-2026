@@ -90,7 +90,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
           <div className="flex gap-2">
              {['1:1', '9:16', '4:3'].map(f => (
                <button key={f} onClick={() => setSelectedFormat(f)} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${selectedFormat === f ? 'bg-purple-50 border-purple-500 text-purple-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-                 {f === '1:1' ? 'Instagram' : f === '9:16' ? 'Story / TikTok' : 'بوستر أطول 4:3'}
+                 {f === '1:1' ? 'Instagram' : f === '9:16' ? 'ستوري / TikTok' : 'بوستر أطول 4:3'}
                </button>
              ))}
           </div>
@@ -111,7 +111,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
              textPosition={textPosition}
              setTextPosition={setTextPosition}
              colorClass="purple"
-             title="4. هوية العلامة (Logo)"
+             title="4. هوية العلامة (الشعار)"
           />
         </div>
         
@@ -199,7 +199,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
             
             <div className="relative z-10 w-full max-w-2xl rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 group flex flex-col">
                <div className="relative w-full">
-                  <img src={resultImage} alt="Cinematic Review" className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-1000" />
+                  <img src={resultImage} alt="مراجعة سينمائية" className="w-full h-auto object-contain group-hover:scale-105 transition-transform duration-1000" />
                   
                   <div className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none flex items-end justify-center pb-8 px-4">
                     <div className="text-center">
@@ -209,7 +209,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
                       <h3 className="text-xl md:text-2xl font-bold text-white mb-2 font-serif leading-relaxed" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
                         "{review}"
                       </h3>
-                      <p className="text-purple-300 font-medium tracking-widest uppercase text-xs mt-2 opacity-80" style={{ letterSpacing: '4px' }}>A Masterpiece</p>
+                      <p className="text-purple-300 font-medium tracking-widest text-xs mt-2 opacity-80">تحفة فنية</p>
                     </div>
                   </div>
                </div>

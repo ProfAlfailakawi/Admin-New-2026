@@ -144,7 +144,7 @@ export async function generateQuickInstagramMessages(data: AppState, category: '
       },
       {
         title: 'اختار الإضافة', cost: 'صفر', target: 'استطلاع رغبة العملاء', prize: 'اسم الفائز في النتيجة', channel: 'ستوري تصويت', duration: 'ساعتين',
-        text: `لو بنضيف لمسة جديدة على ${hiddenProduct}، شنو تختارون؟\n١) صوص خفيف\n٢) لمسة حارة\n٣) قرمشة زيادة\nصوّتوا وخلّوا القرار لكم.`
+        text: `لو بنضيف لمسة جديدة على ${hiddenProduct}، شنو تختارون؟\n1) صوص خفيف\n2) لمسة حارة\n3) قرمشة زيادة\nصوّتوا وخلّوا القرار لكم.`
       },
       {
         title: 'تعليق يكمل الجملة', cost: 'صفر', target: 'كومنتات كثيرة', prize: 'أفضل تكملة بالستوري', channel: 'بوست', duration: '24 ساعة',
@@ -551,7 +551,7 @@ export function generateSupplierNegotiationAnalysis(data: AppState): SupplierNeg
       } else if (recentCost < initialCost * 0.95) {
         trend = 'decreasing';
         explanation = `المورد قام بتخفيض التكلفة لاحقاً.`;
-        negotiationApproach = `استغل فترة الانخفاض واطلب عروض أسعار للكميات الكبيرة (Bulk) لتأمين هذا السعر المنخفض لفترة أطول.`;
+        negotiationApproach = `استغل فترة الانخفاض واطلب عروض أسعار للكميات الكبيرة لتأمين هذا السعر المنخفض لفترة أطول.`;
       } else {
         // stable, check if margin is too low
         if (product.price > 0 && (product.price - product.cost) / product.price < 0.2) {
@@ -888,7 +888,7 @@ export function generateAIBusinessRecommendation(data: AppState): {
   if (vipChurn.length > 0) {
     finalResult = {
       title: 'استرجاع كبار العملاء',
-      recommendation: `لديك ${vipChurn.length} عملاء VIP لم يطلبوا منذ 30 يوماً. أطلق حملة خصم مخصصة لاستعادتهم فوراً.`,
+      recommendation: `لديك ${vipChurn.length} من كبار العملاء لم يطلبوا منذ 30 يوماً. أطلق حملة خصم مخصصة لاستعادتهم فوراً.`,
       type: 'growth',
       iconType: 'target',
       fullStrategyIds: ['strat-churn']
@@ -1081,7 +1081,7 @@ export function generateHiddenRisks(data: AppState): HiddenRisk[] {
   
   if (invoices.length === 0) return risks;
 
-  // 1. Products that sell but reduce profit (Vanity Volume)
+  // 1. Products that sell but reduce profit
   const productStats = products.map(p => {
        const soldItems = invoices.flatMap(inv => inv.items || []).filter(i => i.productId === p.id);
        const qty = soldItems.reduce((s, i) => s + (i.quantity || 0), 0);
@@ -1100,17 +1100,17 @@ export function generateHiddenRisks(data: AppState): HiddenRisk[] {
       const worst = dangerousProducts.sort((a,b) => a.margin - b.margin)[0];
       risks.push({
           id: `risk-prod-${worst.id}`,
-          title: 'تآكل الربحية بسبب منتج عالي المبيعات (Vanity Volume)',
+          title: 'تآكل الربحية بسبب منتج عالي المبيعات',
           explanation: `المنتج "${worst.name}" يحقق مبيعات عالية ولكنه يستنزف الموارد والجهد التشغيلي بهامش ربح متدنٍ، مما يجعله عبئاً خفياً يستهلك السيولة بدلاً من زيادتها. هذه الظاهرة تسمى بالنمو الوهمي.`,
           supportingData: `تم بيع ${worst.qty} وحدة بإجمالي إيراد ${worst.revenue.toFixed(3)} د.ك، بينما التكلفة المباشرة بلغت ${worst.cost.toFixed(3)} د.ك (هامش الربح ${worst.margin.toFixed(1)}% فقط).`,
           impactLevel: worst.margin <= 5 ? 'high' : 'medium',
-          recommendedAction: `رفع سعر "${worst.name}" تدريجياً، أو تقليل تكلفة مكوناته فوراً، أو حزمه (Bundling) مع منتج آخر ذو هامش ربح عالي لتعويض التكلفة المخفية.`,
+          recommendedAction: `رفع سعر "${worst.name}" تدريجياً، أو تقليل تكلفة مكوناته فوراً، أو حزمه مع منتج آخر ذو هامش ربح عالي لتعويض التكلفة المخفية.`,
           iconType: 'product',
           affectedProductNames: [worst.name]
       });
   }
 
-  // 2. Customers that generate revenue but cost too much (Toxic Revenue)
+  // 2. Customers that generate revenue but cost too much
   const customerStats = customers.map(c => {
        const custInvoices = invoices.filter(inv => inv.customerId === c.id);
        const revenue = custInvoices.reduce((s, inv) => s + (inv.totalAmount || 0), 0);
@@ -1130,7 +1130,7 @@ export function generateHiddenRisks(data: AppState): HiddenRisk[] {
       const worstCust = toxicCustomers.sort((a,b) => a.margin - b.margin)[0];
       risks.push({
           id: `risk-cust-${worstCust.id}`,
-          title: 'تسرب الأرباح عبر العملاء ذوي الإنفاق العالي (Toxic Revenue)',
+          title: 'تسرب الأرباح عبر العملاء ذوي الإنفاق العالي',
           explanation: `العميل "${worstCust.name}" يخدع المؤشرات العامة للإيرادات؛ فهو يشتري بمبالغ عالية، لكنه يركز مشترياته على المنتجات ذات التكلفة العالية جداً، مما يعني أن خدمته لا تترك سيولة نقدية حقيقية للشركة.`,
           supportingData: `حجم مشترياته بلغ ${worstCust.revenue.toFixed(3)} د.ك، ولكن التكلفة الفعلية لطلباته هي ${worstCust.cogs.toFixed(3)} د.ك (هامش الربح المتبقي ${worstCust.margin.toFixed(1)}%).`,
           impactLevel: 'high',
@@ -1158,7 +1158,7 @@ export function generateHiddenRisks(data: AppState): HiddenRisk[] {
   if (revRecent > revPrev && marginRecent < (marginPrev - 5) && revPrev > 0) {
       risks.push({
           id: `risk-trend-${now.getTime()}`,
-          title: 'تضخم الإيرادات الوهمي (Vanity Growth Indicator)',
+          title: 'تضخم الإيرادات الوهمي',
           explanation: `قد تعتقد أن مبيعاتك في حالة ازدهار بسبب ارتفاع الدخل هذا الشهر، ولكن في الحقيقة تكلفة المنتجات ترتفع أسرع من نمو المبيعات. المديونية التشغيلية تتزايد (تعمل أكثر وتربح أقل).`,
           supportingData: `نمت المبيعات بقيمة ${(revRecent - revPrev).toFixed(0)} د.ك مقارنة بالشهر الماضي، إلا أن هامش الربح الإجمالي انهار من ${marginPrev.toFixed(1)}% إلى ${marginRecent.toFixed(1)}%.`,
           impactLevel: 'high',
@@ -1167,7 +1167,7 @@ export function generateHiddenRisks(data: AppState): HiddenRisk[] {
       });
   }
 
-  // 4. Suppliers that slowly increase cost (Supplier Squeeze)
+  // 4. Suppliers that slowly increase cost
   if (suppliers.length > 0) {
       const supplierStats = suppliers.map(s => {
           const sProducts = products.filter(p => p.supplierId === s.id);
@@ -1184,7 +1184,7 @@ export function generateHiddenRisks(data: AppState): HiddenRisk[] {
           const worstSup = toxicSuppliers.sort((a,b) => a.sMargin - b.sMargin)[0];
           risks.push({
               id: `risk-sup-${worstSup.id}`,
-              title: 'اختناق مستتر في سلاسل الإمداد (Supplier Squeeze)',
+              title: 'اختناق مستتر في سلاسل الإمداد',
               explanation: `المورد "${worstSup.name}" يورد لك بضائع تستحوذ على نسبة بيع عالية، لكنها تضغط بشكل مميت على أرباحك الصافية. أنت تبذل جهد المبيعات، بينما المورد يحصد الفائدة الأكبر بمفرده.`,
               supportingData: `بلغت إيرادات منتجاته ${worstSup.sRev.toFixed(3)} د.ك، ولكن بهامش ربح متدنٍ للمتجر لا يتجاوز ${worstSup.sMargin.toFixed(1)}%.`,
               impactLevel: worstSup.sMargin < 10 ? 'high' : 'medium',
@@ -1270,7 +1270,7 @@ export function calculateCustomerSentiment(customer: Customer, invoices: Invoice
     let color = 'text-slate-500 bg-slate-50';
 
     if (score >= 85) {
-      label = 'سعيد جداً (VIP)';
+      label = 'سعيد جداً (مميز)';
       color = 'text-emerald-700 bg-emerald-50 border-emerald-100';
     } else if (score >= 70) {
       label = 'راضي ومستقر';
@@ -1324,7 +1324,7 @@ export function generateCustomerSmartMessage(customer: Customer, invoices: Invoi
       // VIP
       const variants = [
         `يا هلا بـ ${firstName} الغالي.. ✨\n\nأنت من أعمدة "مطبخ التراث الكويتي" ونقدر جداً ثقتك. حبينا نهديك (توصيل مجاني لطلبك الياي) تقديراً لمكانتك عندنا. لا تنسى تطلب ${favProductName} تره ناطرك!\n\nكود الخصم: VIP_DELIVERY 🏠`,
-        `أحلى مسا على ${firstName}.. 😊\n\nبما إنك من الـ VIP، جهزنا لك مفاجأة خاصة المرة الجاية. اطلب طبقك المفضل ${favProductName} وخلي التوصيل علينا كإهداء بسيط.\n\nمطبخ التراث الكويتي - طعم الكويت الأصيل 🏠`
+        `أحلى مسا على ${firstName}.. 😊\n\nبما إنك من كبار عملائنا، جهزنا لك مفاجأة خاصة المرة الجاية. اطلب طبقك المفضل ${favProductName} وخلي التوصيل علينا كإهداء بسيط.\n\nمطبخ التراث الكويتي - طعم الكويت الأصيل 🏠`
       ];
       return variants[Math.floor(Math.random() * variants.length)];
     } else if (sentiment.score < 30) {
@@ -1419,7 +1419,7 @@ export function generateBusinessInsights(data: AppState): {
               id: 'opp-vip-recovery',
               type: 'opportunity',
               priority: 'high',
-              title: 'استرجاع عملاء النخبة (VIP Recovery)',
+              title: 'استرجاع عملاء النخبة',
               cause: `توقف ${inactiveVIPs.length} من كبار العملاء عن الطلب منذ 25 يوماً. إجمالي إنفاقهم السابق يبلغ ${lostRevenue.toFixed(3)} د.ك.`,
               impact: `خسارة هؤلاء العملاء تعني تراجعاً مباشراً في التدفق النقدي بقيمة إنفاقهم المعتاد.`,
               actionText: `توجيه رسائل ترويجية لـ ${inactiveVIPs.length} عميل`,
@@ -1576,8 +1576,8 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
     const lostRev = inactiveVIPs.reduce((sum, c) => sum + c.totalSpent, 0);
     strategies.push({
       id: `strat-churn-${now.getTime()}`,
-      title: 'استراتيجية الاحتفاظ التكتيكي بالعملاء الاستراتيجيين (VIP Churn Recovery)',
-      problem: `توقف مفاجئ لعدد ${inactiveVIPs.length} عميل من فئة الـ VIP عن الطلب (انقطعوا لأكثر من 30 يوماً).`,
+      title: 'استراتيجية الاحتفاظ التكتيكي بالعملاء الاستراتيجيين',
+      problem: `توقف مفاجئ لعدد ${inactiveVIPs.length} عميل من فئة كبار العملاء عن الطلب (انقطعوا لأكثر من 30 يوماً).`,
       rootCause: `إهمال المتابعة الشخصية لكبار العملاء أو وجود تجربة سلبية غير معلنة أدت لانسحابهم الهادئ صانعين فجوة إيرادات بقيمة ${lostRev.toFixed(0)} د.ك.`,
       priority: 'high',
       impact: `استعادة 30% من هؤلاء سيعيد ضخ أكثر من ${(lostRev * 0.3).toFixed(0)} د.ك كعائد فوري للشركة.`,
@@ -1587,7 +1587,7 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
           expectedOutcome: 'تجهيز داتا فعلية للاستهداف'
         },
         {
-          task: 'توجيه رسالة اتصال شخصي (Care Call) أو رسالة واتساب مخصصة وغير اعتيادية',
+          task: 'توجيه رسالة اتصال شخصي أو رسالة واتساب مخصصة وغير اعتيادية',
           expectedOutcome: 'كسر الحاجز الجليدي ومعرفة سبب الانقطاع الحقيقي'
         },
         {
@@ -1613,18 +1613,18 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
     const targetProduct = highMarginLowSales.sort((a, b) => b.margin - a.margin)[0];
     strategies.push({
       id: `strat-margin-${now.getTime()}`,
-      title: 'خطة إغراق السوق بالمنتج الاستراتيجي (Market Penetration)',
+      title: 'خطة إغراق السوق بالمنتج الاستراتيجي',
       problem: `المنتج " ${targetProduct.name} " يحمل هامش ربح ممتاز جدًا (${targetProduct.margin.toFixed(0)}%) ولكنه يعاني من ركود حاد في المبيعات (تم بيع ${targetProduct.sold} فقط).`,
       rootCause: `المنتج غير ظاهر للعملاء بشكل كافي في قنوات العرض، أو لم يتم إقرانه بوجبات أساسية تشجع العميل على إضافته لطلبه.`,
       priority: 'medium',
       impact: `دفع هذا الصنف ليكون ضمن الخيارات الأساسية سيرفع صافي الربح للفاتورة الواحدة بنسبة 15-20% بدون رفع التكاليف الأساسية.`,
       steps: [
         {
-          task: `إضافة "${targetProduct.name}" كمقترح تسويقي إجباري (Up-selling) عند كل طلب للوجبات الشعبية`,
+          task: `إضافة "${targetProduct.name}" كمقترح تسويقي إجباري عند كل طلب للوجبات الشعبية`,
           expectedOutcome: 'زيادة عدد مرات بيع الصنف'
         },
         {
-          task: 'تخصيص تصوير احترافي للصنف ونشره كقصة (Story) ترويجية خلال أوقات الذروة',
+          task: 'تخصيص تصوير احترافي للصنف ونشره كقصة ترويجية خلال أوقات الذروة',
           expectedOutcome: 'دفع المنتج للواجهة وصنع رغبة لحظية'
         },
         {
@@ -1651,15 +1651,15 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
     const dropPercent = ((previousSales - recentSales) / previousSales) * 100;
     strategies.push({
       id: `strat-drop-${now.getTime()}`,
-      title: 'استراتيجية الطوارئ التنشيطية (Emergency Revenue Push)',
+      title: 'استراتيجية الطوارئ التنشيطية',
       problem: `اكتشف النظام انحساراً خطيراً في المبيعات بنسبة ${dropPercent.toFixed(1)}% خلال آخر 30 يوماً مقارنة بالشهر الماضي.`,
       rootCause: `تراجع وتيرة التسويق، أو تأثر الطلب بعوامل خارجية (نهاية شهر، مواسم ركود)، أو انخفاض معدل الاحتفاظ بالعملاء النشطين بنظام الـ Repeat.`,
       priority: 'high',
       impact: `حقن السيولة فوراً وإيقاف النزيف المالي قبل إقفال الربع المالي. المستهدف استعادة مبيعات تتجاوز ${(previousSales - recentSales).toFixed(0)} د.ك.`,
       steps: [
         {
-          task: 'إطلاق عروض (Flash Sale) لمدة 48 ساعة فقط على الأصناف الأكثر مبيعاً.',
-          expectedOutcome: 'صنع حالة ملحة للطلب (FOMO) وإعادة تنشيط الحركة'
+          task: 'إطلاق عروض لمدة 48 ساعة فقط على الأصناف الأكثر مبيعاً.',
+          expectedOutcome: 'صنع حالة ملحة للطلب وإعادة تنشيط الحركة'
         },
         {
           task: 'إرسال نشرة لمختبر التسويق واستهداف شريحة "العملاء المترددين" برسالة ترويجية مسائية.',
@@ -1682,8 +1682,8 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
   if (totalRevOverall > 0 && (totalCostOverall / totalRevOverall) > 0.6) {
     strategies.push({
         id: `strat-cost-${now.getTime()}`,
-        title: 'خطة إعادة الهيكلة التشغيلية وخفض التكاليف (Cost Optimization)',
-        problem: `نسبة تكلفة البضاعة المباعة (COGS) التهمت أكثر من ${((totalCostOverall / totalRevOverall)*100).toFixed(0)}% من الإيراد الفعلي!`,
+        title: 'خطة إعادة الهيكلة التشغيلية وخفض التكاليف',
+        problem: `نسبة تكلفة البضاعة المباعة التهمت أكثر من ${((totalCostOverall / totalRevOverall)*100).toFixed(0)}% من الإيراد الفعلي!`,
         rootCause: `احتمالية ارتفاع تكاليف الموردين، أو تسعير المنتجات بشكل خاطئ جداً، أو هدر مالي وتشغيلي غير مدروس في كميات الطلبات.`,
         priority: 'high',
         impact: `تخفيض التكاليف بنسبة 10% فقط سينعكس إيجاباً كـ "صافي ربح نقي" يودع مباشرة بالخزينة.`,
@@ -1694,7 +1694,7 @@ export function generateAutoStrategies(data: AppState): AIStrategy[] {
             },
             {
                 task: 'رفع أسعار بعض المنتجات الأقل حساسية بمقدار تدريجي لتصحيح الهامش التشغيلي.',
-                expectedOutcome: 'تحقيق التوازن والمحافظة على الـ Margin المطلوب'
+                expectedOutcome: 'تحقيق التوازن والمحافظة على الهامش المطلوب'
             },
             {
                 task: 'التخلص من الموردين ذوي التسعير المتغير أو المبالغ به فوراً واستبدالهم.',

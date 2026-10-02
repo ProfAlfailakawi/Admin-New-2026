@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { playMetallicSettlementChime } from '../lib/sonic';
 import { getSupplierLedgerForState, getSupplierLiveBalanceForState, getSupplierSettlementForState, getInvoiceDeliverySettlementForSupplier, recalculateStateBalances } from '../lib/business-logic';
 import { computeAddonCost, computeAddonRevenue, computeInvoiceCost, computeInvoiceItemBaseCost, computeInvoiceProfit, computeInvoiceTotal, getInvoiceItemAddons } from '../lib/invoice-calculations';
+import { arLabel } from '../lib/arabicLabels';
 
 interface SupplierAuditProps {
  data: AppState;
@@ -483,7 +484,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 "px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase whitespace-nowrap bg-white",
  isInvoice ?"border-slate-200 text-slate-600" :"border-emerald-200 text-emerald-700"
 )}>
- {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : transaction.method}
+ {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : arLabel(transaction.method)}
  </span>
  </td>
  <td data-mobile-label="آخر حركة" className="p-3 md:p-3 text-slate-500 text-xs font-bold">
@@ -782,7 +783,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
  <div className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">طريقة الدفع والحالة</div>
  <div className="font-black text-slate-900 text-lg">
- {inv.paymentMethod === 'BankTransfer' ? 'حوالة بنكية' : inv.paymentMethod === 'Cash' ? 'نقدي' : inv.paymentMethod === 'KNet' ? 'كي-نت' : inv.paymentMethod}
+ {inv.paymentMethod === 'BankTransfer' ? 'حوالة بنكية' : inv.paymentMethod === 'Cash' ? 'نقدي' : inv.paymentMethod === 'KNet' ? 'كي-نت' : arLabel(inv.paymentMethod)}
  </div>
  <div className="flex items-center gap-1.5 mt-1">
  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

@@ -725,11 +725,11 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
 
             <div className="mt-3 grid gap-3 sm:grid-cols-[10rem_10rem_minmax(0,1fr)] sm:items-end">
               <label className="block">
-                <span className="mb-1 block text-[.7rem] text-soft">الوقفة بعدها (ms)</span>
+                <span className="mb-1 block text-[.7rem] text-soft">الوقفة بعدها (مللي ثانية)</span>
                 <input className={input} type="number" min="0" max="3000" step="10" value={turn.pauseAfterMs} onChange={(event) => update(index, { pauseAfterMs: Math.max(0, Math.min(3000, Number(event.target.value) || 0)) })} />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[.7rem] text-soft">التداخل (ms)</span>
+                <span className="mb-1 block text-[.7rem] text-soft">التداخل (مللي ثانية)</span>
                 <input className={input} type="number" min="0" max="150" step="10" value={turn.overlapMs} onChange={(event) => update(index, { overlapMs: Math.max(0, Math.min(150, Number(event.target.value) || 0)) })} />
               </label>
               <label className="col-span-2 flex min-h-[42px] items-center gap-2 rounded-xl border border-hair bg-wash px-3 text-[.76rem] text-soft sm:col-span-1">

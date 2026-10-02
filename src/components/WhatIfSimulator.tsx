@@ -81,7 +81,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  
  المطلوب إنشاء خطة حملة ترويجية شاملة تتضمن:
  1. نوع الحملة (campaignType)
- 2. فكرة العرض (Idea)
+ 2. فكرة العرض 
  3. رسالة إعلانية قصيرة (Message)
  4. الجمهور المستهدف بدقة (Target Audience)
  5. التوقيت المناسب (Timing)
@@ -394,7 +394,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.targetAudience}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm hover:border-indigo-500/30 transition-all md:col-span-2">
- <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Sparkles size={14}/> الفكرة الإبداعية (Idea)</p>
+ <p className="text-[10px] md:text-xs font-bold text-indigo-400 uppercase mb-2 flex items-center gap-2"><Sparkles size={14}/> الفكرة الإبداعية </p>
  <p className="text-slate-200 font-bold text-sm md:text-base leading-relaxed whitespace-pre-wrap">{campaignPlan.idea}</p>
  </div>
  <div className="bg-slate-900/50 p-3 md:p-4 md:p-3 rounded-2xl border border-slate-800 shadow-sm md:col-span-2 relative hover:border-indigo-500/30 transition-all">

@@ -168,7 +168,7 @@ const TeslaSeasonalEngine: React.FC<{ data: AppState }> = ({ data }) => {
     <div className="flex flex-col justify-between gap-5">
      <div>
       <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black text-emerald-200 backdrop-blur-xl">
-       <CloudSun size={14} /> Tesla Predictive Engine
+       <CloudSun size={14} /> محرك التنبؤ
       </div>
       <h3 className="mt-3 text-2xl md:text-3xl font-black tracking-tight leading-tight">التوقع الموسمي والمناخي لمطبخ التراث</h3>
       <p className="mt-3 max-w-2xl text-sm md:text-[15px] font-bold leading-8 text-slate-300">{activationText}</p>
@@ -782,7 +782,7 @@ const {
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-emerald-400">
        <Sparkles size={20} className="group-hover:animate-spin" />
-       <h4 className="font-black text-emerald-800 text-lg">النجوم (Stars)</h4>
+       <h4 className="font-black text-emerald-800 text-lg">النجوم</h4>
        </div>
        <span className="text-[10px] text-emerald-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-emerald-100 shadow-sm block w-fit">ربح عالي</span>
        </div>
@@ -800,7 +800,7 @@ const {
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-amber-400">
        <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
-       <h4 className="font-black text-amber-800 text-lg">أحصنة الحرث (Plowhorses)</h4>
+       <h4 className="font-black text-amber-800 text-lg">أحصنة الحرث</h4>
        </div>
        <span className="text-[10px] text-amber-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-amber-100 shadow-sm block w-fit">مستقر</span>
        </div>
@@ -818,7 +818,7 @@ const {
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-blue-400">
        <Search size={20} className="group-hover:scale-110 transition-transform" />
-       <h4 className="font-black text-indigo-800 text-lg">الألغاز (Puzzles)</h4>
+       <h4 className="font-black text-indigo-800 text-lg">الألغاز</h4>
        </div>
        <span className="text-[10px] text-indigo-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-indigo-100 shadow-sm block w-fit">عالي الربح</span>
        </div>
@@ -836,7 +836,7 @@ const {
        <div className="flex items-center justify-between mb-4">
        <div className="flex items-center gap-2 text-rose-400">
        <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
-       <h4 className="font-black text-rose-800 text-lg">سلحفاة (Turtles)</h4>
+       <h4 className="font-black text-rose-800 text-lg">سلحفاة</h4>
        </div>
        <span className="text-[10px] text-rose-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-rose-100 shadow-sm block w-fit">ميت</span>
        </div>

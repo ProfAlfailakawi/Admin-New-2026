@@ -91,7 +91,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         return;
       }
       if (errString.includes('popup-blocked')) {
-        setError('النافذة مفتوحة بوضع مقيّد. اضغط "Open in new tab" فوق باليمين أو اسمح بالنوافذ المنبثقة.');
+        setError('النافذة مفتوحة بوضع مقيّد. اضغط «فتح في نافذة جديدة» فوق باليمين أو اسمح بالنوافذ المنبثقة.');
         return;
       }
       if (errString.includes('network-request-failed')) {
@@ -193,7 +193,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">3</span>
-                    <span>اضغط "إضافة" (Add) في الأعلى</span>
+                    <span>اضغط "إضافة" في الأعلى</span>
                   </li>
                 </ul>
               </div>

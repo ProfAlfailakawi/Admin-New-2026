@@ -58,7 +58,7 @@ const LogoEngine: React.FC<LogoEngineProps> = ({
  src={src} 
  className="max-w-full max-h-full object-contain app-icon-logo"
  referrerPolicy="no-referrer" 
- alt="Brand Logo"
+ alt="شعار العلامة"
  />
  </div>
 ) : (

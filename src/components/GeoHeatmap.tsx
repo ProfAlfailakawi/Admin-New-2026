@@ -428,7 +428,7 @@ const GeoHeatmap: React.FC<GeoHeatmapProps> = ({ data }) => {
   {areaData.markers.length > 0 && (
    <div className="geo-zone-panel rounded-3xl border border-white/10 bg-white/[0.05] overflow-hidden">
     <div className="geo-zone-panel-head px-3 py-3">
-     <span className="geo-zone-top-badge rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300 whitespace-nowrap">Top 3</span>
+     <span className="geo-zone-top-badge rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-300 whitespace-nowrap">أعلى 3</span>
      <div className="text-right min-w-0">
       <div className="text-xs font-black text-white">أقوى المناطق الآن</div>
       <div className="text-[10px] font-bold text-slate-400">قائمة مختصرة؛ افتح المنطقة لمشاهدة التفاصيل بدون زحمة.</div>

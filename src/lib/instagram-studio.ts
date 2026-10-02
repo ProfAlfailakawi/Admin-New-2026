@@ -94,7 +94,7 @@ export interface ContestKit {
   prizeNote?: string;
 }
 
-/** جدول مسابقة حقيقي: الإغلاق خميس قادم (نافذة ٤ أيام على الأقل) والسحب الجمعة التالية */
+/** جدول مسابقة حقيقي: الإغلاق خميس قادم (نافذة 4 أيام على الأقل) والسحب الجمعة التالية */
 export function contestSchedule(now: Date = new Date()) {
   const close = new Date(now);
   do {
@@ -103,7 +103,7 @@ export function contestSchedule(now: Date = new Date()) {
   const draw = new Date(close);
   draw.setDate(draw.getDate() + 1);
   const fmt = (d: Date) =>
-    new Intl.DateTimeFormat('ar', { weekday: 'long', day: 'numeric', month: 'long' }).format(d);
+    new Intl.DateTimeFormat('ar-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' }).format(d);
   return { closeLabel: fmt(close), drawLabel: fmt(draw) };
 }
 
@@ -136,22 +136,22 @@ export function buildContestKits(data: AppState, rotation = 0): ContestKit[] {
     mechanics: [
       `تابعونا هني ${IG_HANDLE}`,
       'حطوا لايك ع البوست',
-      'منشنوا ٢ من ربعكم بتعليق — كل منشن يزيد حظكم',
+      'منشنوا 2 من ربعكم بتعليق — كل منشن يزيد حظكم',
       'وإذا سويتوا شير بالستوري وحطيتوا منشننا = حظين بعد'
     ],
-    scheduleLine: `المشاركة من الحين لين ${closeLabel} الساعة ٩ بالليل — والسحب ${drawLabel}`,
+    scheduleLine: `المشاركة من الحين لين ${closeLabel} الساعة 9 بالليل — والسحب ${drawLabel}`,
     winnerMethod: 'سحب عشوائي بين كل اللي كمّلوا الشروط، والفايز ننزله بالستوري وبتعليق مثبّت',
     post: `🎉 مسابقة ربع التراث!
 
 الجايزة: وجبة ${n1} علينا وببلاش 😍
 
 شلون تدخل السحب:
-١) تابعنا ${IG_HANDLE}
-٢) حط لايك ع البوست
-٣) منشن ٢ من ربعك بالكومنت (كل منشن حظ زياده)
+1) تابعنا ${IG_HANDLE}
+2) حط لايك ع البوست
+3) منشن 2 من ربعك بالكومنت (كل منشن حظ زياده)
 ✨ وإذا سويت شير بالستوري وحطيت منشننا = حظين بعد
 
-⏰ باب المشاركة لين ${closeLabel} الساعة ٩ بالليل
+⏰ باب المشاركة لين ${closeLabel} الساعة 9 بالليل
 🎁 والسحب ${drawLabel} ننزل الفايز بالستوري
 
 الحسابات المسكّره والوهميه ما تدخل ترى.
@@ -160,12 +160,12 @@ export function buildContestKits(data: AppState, rotation = 0): ContestKit[] {
 ${CONTEST_HASHTAGS}`,
     reminderStory: `⏳ باجي شوي ويسكّر باب المشاركة!
 
-مسابقة وجبة ${n1} ببلاش تخلص ${closeLabel} الساعة ٩ بالليل.
+مسابقة وجبة ${n1} ببلاش تخلص ${closeLabel} الساعة 9 بالليل.
 اللي ما شارك بعد — الشروط بالبوست اللي طاف 👇`,
     winnerAnnouncement: `🎉 مبروووك!
 
 الفايز بسحب الديوانية: @________
-دزلنا ع الخاص خلال ٤٨ ساعه عشان تستلم وجبة ${n1} 🎁
+دزلنا ع الخاص خلال 48 ساعه عشان تستلم وجبة ${n1} 🎁
 
 من قلبنا نشكر كل اللي شارك — والمسابقة الياي أقرب مما تتوقعون 🤍`,
     hashtags: CONTEST_HASHTAGS,
@@ -408,15 +408,15 @@ ${DEFAULT_HASHTAGS}`,
     {
       id: 'rate-it',
       emoji: '🔟',
-      title: 'قيّمه من ١٠',
+      title: 'قيّمه من 10',
       why: 'التقييم يعطي المتابع رأياً يدافع عنه — وردودكم على التقييمات تضاعف التعليقات',
-      caption: `بصراحه وبدون مجامله... قيّموا ${n1} من ١٠ 👀
+      caption: `بصراحه وبدون مجامله... قيّموا ${n1} من 10 👀
 
-واللي يعطيه أقل من ٧ يقولنا ليش 😅
+واللي يعطيه أقل من 7 يقولنا ليش 😅
 
 ${DEFAULT_HASHTAGS}`,
       story: `ستيكر سلايدر ع صورة ${n1}:
-"قيّمه من ١٠ 🔥"`
+"قيّمه من 10 🔥"`
     },
     {
       id: 'first-order',
@@ -502,7 +502,7 @@ export interface WeekPlanDay {
   tip: string;           // توجيه تنفيذي قصير
 }
 
-/** خطة ٧ أيام من تاريخ اليوم الفعلي — أصناف حقيقية وتوزيع مدروس على أيام الأسبوع */
+/** خطة 7 أيام من تاريخ اليوم الفعلي — أصناف حقيقية وتوزيع مدروس على أيام الأسبوع */
 export function buildWeekPlan(data: AppState, rotation = 0): WeekPlanDay[] {
   const s = computeStudioInsights(data);
   const dishes = s.topProducts.filter(p => p.name).map(p => p.name);
@@ -511,7 +511,7 @@ export function buildWeekPlan(data: AppState, rotation = 0): WeekPlanDay[] {
   const kits = buildContestKits(data);
   const contest = kits[rotation % kits.length] || kits[0];
 
-  const fmt = new Intl.DateTimeFormat('ar', { weekday: 'long', day: 'numeric', month: 'long' });
+  const fmt = new Intl.DateTimeFormat('ar-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
   const days: WeekPlanDay[] = [];
 
   for (let i = 0; i < 7; i += 1) {
@@ -561,7 +561,7 @@ ${DEFAULT_HASHTAGS}`,
 هذا اللي يوصلكم حار وطازج.
 
 ${DEFAULT_HASHTAGS}`,
-        tip: 'مقطع ١٥-٣٠ ثانيه عمودي — أول ثانيتين لازم تكون أقوى لقطه'
+        tip: 'مقطع 15-30 ثانيه عمودي — أول ثانيتين لازم تكون أقوى لقطه'
       };
     } else if (dow === 1) {
       d = {
