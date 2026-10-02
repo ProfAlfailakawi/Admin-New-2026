@@ -4320,7 +4320,7 @@ const [isPending, startTransition] = useTransition();
                     </div>
 
                     {/* Metrics below (grid 2 columns) */}
-                    <div className="flex flex-col w-full ">
+                    <div className="grid grid-cols-2 gap-3 w-full ">
                       <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center items-center text-center">
                         <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
                           <TrendingUp size={10} /> مبيعات الفترة
@@ -4344,6 +4344,10 @@ const [isPending, startTransition] = useTransition();
                         >
                           {profitMargin.toFixed(1)}%
                         </span>
+                        <svg viewBox="0 0 36 36" className="mt-1 h-9 w-9 -rotate-90" aria-hidden="true">
+                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" className="stroke-slate-100" />
+                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0, Math.min(100, profitMargin))} 100`} className={profitMargin >= 10 ? "stroke-emerald-500" : "stroke-amber-500"} />
+                        </svg>
                       </div>
                     </div>
                   </div>
