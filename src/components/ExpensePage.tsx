@@ -146,12 +146,14 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  {categoryTotals.length > 0 && (
  <div className="bg-white rounded-3xl p-4 md:p-5 border border-slate-200/60 shadow-sm text-right">
  <h3 className="text-sm font-bold text-slate-700 mb-3">المصروفات حسب الفئة</h3>
+ <div className="flex justify-center">
  <DnaDonut
  ariaLabel="توزيع المصروفات حسب الفئة"
  centerLabel={Number(totalExpenses || 0).toFixed(3)}
  centerSub="د.ك"
  slices={categoryTotals.map(([cat, amt]) => ({ key: cat, label: cat, value: amt, valueLabel: `${amt.toFixed(3)} د.ك` }))}
  />
+ </div>
  </div>
  )}
 
