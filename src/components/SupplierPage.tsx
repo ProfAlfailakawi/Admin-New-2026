@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { displayLabel } from '../lib/displayLabels';
 import { Truck, Search, Plus, Trash2, Edit2, Phone, AlertCircle, Wallet, History, CreditCard, ArrowUpRight, PlusCircle, Package, Users, X, CheckCircle2, Clock3, ArrowLeftRight, Receipt } from 'lucide-react';
 import { AppState, Supplier, PaymentMethod, Product } from '../types';
 import { cn, normalizeArabic, normalizeArabicNumerals, formatKuwaitiDateOnly } from '../lib/utils';
@@ -469,7 +470,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  {toPaymentMethodsArray(supplier.paymentMethods).map(method => (
  <span key={method} className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1">
  <CreditCard size={12} />
- {method === 'BankTransfer' ? 'حوالة' : method === 'KNet' ? 'KNET' : 'رابط'}
+ {method === 'BankTransfer' ? 'حوالة' : method === 'KNet' ? displayLabel('KNET') : 'رابط'}
  </span>
 ))}
  </div>

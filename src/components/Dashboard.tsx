@@ -1,4 +1,5 @@
 // invalidated cache 2026-05-07 14:18
+import { displayLabel } from "../lib/displayLabels";
 import { MiniRing } from "./ui/MiniRing";
 import { getUnifiedInvoices, formatKuwaitiDate, formatKuwaitiTimeOnly } from '../lib/utils';
 import { LAYER } from '../lib/floatingLayers';
@@ -5367,7 +5368,7 @@ const [isPending, startTransition] = useTransition();
                             <div className="text-center p-3 md:p-4 bg-slate-50 rounded-2xl border border-slate-100">
                               <p className="text-xs font-bold text-slate-500 leading-relaxed">
                                 ماكو بيانات كافية للتحليل، أو ماكو عملاء
-                                VIP تنطبق عليهم شروط الغياب (أكثر من 15 يوم).
+                                {displayLabel("VIP")} تنطبق عليهم شروط الغياب (أكثر من 15 يوم).
                               </p>
                             </div>
                           ) : (
@@ -5381,7 +5382,7 @@ const [isPending, startTransition] = useTransition();
                                     {v.name}
                                     {v.totalSpent > 100 && (
                                       <span className="text-[10px] text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-full">
-                                        VIP
+                                        {displayLabel("VIP")}
                                       </span>
                                     )}
                                   </div>
