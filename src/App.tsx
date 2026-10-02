@@ -4488,7 +4488,7 @@ const MainApp: React.FC = () => {
           <div className="absolute bottom-0 left-0 w-full h-[30%] bg-gradient-to-t from-indigo-500/10 to-transparent" />
         </div>
 
-        <div className="p-4 flex items-center justify-between border-b border-white/5 shrink-0 h-24 relative z-10">
+        <div className="admin-drawer-header p-4 flex items-center justify-between border-b border-white/5 shrink-0 h-24 relative z-10">
            <div className="flex items-center gap-4 w-full justify-center lg:justify-start">
             <LogoEngine src={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO} variant="royal" />
             {(sidebarOpen || isMobile) && (

@@ -6384,6 +6384,11 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
     padding-left:max(.75rem, env(safe-area-inset-left,0px))!important;
     padding-right:max(.75rem, env(safe-area-inset-right,0px))!important;
   }
+  /* Mobile drawer runs top:0 under the status bar: push its logo row below it. */
+  .admin-drawer-header{
+    height:calc(6rem + env(safe-area-inset-top,0px))!important;
+    padding-top:calc(1rem + env(safe-area-inset-top,0px))!important;
+  }
   .admin-app-main{
     padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
     scroll-padding-top:12px;
