@@ -4334,20 +4334,22 @@ const [isPending, startTransition] = useTransition();
                         <span className="text-[10px] font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
                           <Target size={10} /> كفاءة الأرباح
                         </span>
-                        <span
-                          className={cn(
-                            "text-lg font-bold",
-                            profitMargin >= 10
-                              ? "text-emerald-500"
-                              : "text-amber-500",
-                          )}
-                        >
-                          {profitMargin.toFixed(1)}%
-                        </span>
-                        <svg viewBox="0 0 36 36" className="mt-1 h-9 w-9 -rotate-90" aria-hidden="true">
-                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" className="stroke-slate-100" />
-                          <circle cx="18" cy="18" r="15" fill="none" strokeWidth="2" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0, Math.min(100, profitMargin))} 100`} className={profitMargin >= 10 ? "stroke-emerald-500" : "stroke-amber-500"} />
-                        </svg>
+                        <div className="relative mt-1 h-16 w-16">
+                          <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90" role="img" aria-label={`كفاءة الأرباح ${profitMargin.toFixed(1)}%`}>
+                            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3.5" className="stroke-slate-200" />
+                            <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3.5" strokeLinecap="round" pathLength={100} strokeDasharray={`${Math.max(0, Math.min(100, profitMargin))} 100`} className={profitMargin >= 10 ? "stroke-emerald-500" : "stroke-amber-500"} />
+                          </svg>
+                          <span
+                            className={cn(
+                              "absolute inset-0 flex items-center justify-center text-[11px] font-bold",
+                              profitMargin >= 10
+                                ? "text-emerald-600"
+                                : "text-amber-600",
+                            )}
+                          >
+                            {profitMargin.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
