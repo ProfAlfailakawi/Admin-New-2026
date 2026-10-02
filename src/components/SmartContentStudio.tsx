@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw, Video, Package, Utensils, LayoutGrid, ArrowDownToLine, Flame, Search } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -187,13 +187,13 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
   ];
 
   const reelShots = [
-    { id: 'hero-push', label: 'اقتراب على الطلب', desc: 'الكاميرا تدخل بهدوء على الطبق مع ثبات كامل للأكل', icon: '🎥' },
-    { id: 'box-open', label: 'فتح علبة التوصيل', desc: 'كشف واقعي لعلبة طلب نظيفة بدون يد معقدة', icon: '📦' },
-    { id: 'table-pass', label: 'مرور على السفرة', desc: 'حركة جانبية هادئة على صينية أو عدة أطباق', icon: '🍽️' },
-    { id: 'floor-spread-overhead', label: 'سفرة أرضية من فوق', desc: 'لقطة علوية مستوحاة من اليمعة: المنتج بالوسط وأطراف الجالسين فقط بدون وجوه', icon: '▦' },
-    { id: 'top-spread', label: 'من فوق السفرة', desc: 'لقطة top shot مرتبة للبيت أو الزوارة أو الطلبات الجماعية', icon: '⬇️' },
-    { id: 'steam-close', label: 'بخار خفيف واقعي', desc: 'للطبق الحار فقط: بخار بسيط ولمعة طبيعية بدون مبالغة', icon: '♨️' },
-    { id: 'texture-close', label: 'تفاصيل شهية قريبة', desc: 'قوام الرز/اللحم/السمك/ورق العنب بدون صوص طائر أو حركة غريبة', icon: '🔎' },
+    { id: 'hero-push', label: 'اقتراب على الطلب', desc: 'الكاميرا تدخل بهدوء على الطبق مع ثبات كامل للأكل', Icon: Video },
+    { id: 'box-open', label: 'فتح علبة التوصيل', desc: 'كشف واقعي لعلبة طلب نظيفة بدون يد معقدة', Icon: Package },
+    { id: 'table-pass', label: 'مرور على السفرة', desc: 'حركة جانبية هادئة على صينية أو عدة أطباق', Icon: Utensils },
+    { id: 'floor-spread-overhead', label: 'سفرة أرضية من فوق', desc: 'لقطة علوية مستوحاة من اليمعة: المنتج بالوسط وأطراف الجالسين فقط بدون وجوه', Icon: LayoutGrid },
+    { id: 'top-spread', label: 'من فوق السفرة', desc: 'لقطة top shot مرتبة للبيت أو الزوارة أو الطلبات الجماعية', Icon: ArrowDownToLine },
+    { id: 'steam-close', label: 'بخار خفيف واقعي', desc: 'للطبق الحار فقط: بخار بسيط ولمعة طبيعية بدون مبالغة', Icon: Flame },
+    { id: 'texture-close', label: 'تفاصيل شهية قريبة', desc: 'قوام الرز/اللحم/السمك/ورق العنب بدون صوص طائر أو حركة غريبة', Icon: Search },
   ];
 
   const themes = [
@@ -3252,14 +3252,14 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   return (
                     <div className="rounded-[1.7rem] border border-slate-100 bg-slate-50 p-3 space-y-3">
                       <button type="button" onClick={() => setShowReelShotList((v) => !v)} className="w-full rounded-3xl bg-white border border-slate-100 p-4 text-right flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-3"><span className="text-2xl">{activeShot.icon}</span><span><span className="block text-xs font-black text-slate-500">اللقطة المختارة</span><span className="block text-sm font-black text-slate-950 mt-1">{activeShot.label}</span></span></span>
+                        <span className="flex items-center gap-3"><span className="text-violet-600" aria-hidden="true"><activeShot.Icon size={24} /></span><span><span className="block text-xs font-black text-slate-500">اللقطة المختارة</span><span className="block text-sm font-black text-slate-950 mt-1">{activeShot.label}</span></span></span>
                         <ChevronLeft className={cn("transition-transform text-slate-400", showReelShotList ? "-rotate-90" : "")} size={20} />
                       </button>
                       {showReelShotList && (
                         <div className="grid grid-cols-1 gap-2">
                           {reelShots.map((shot) => (
                             <button key={shot.id} type="button" onClick={() => { setReelShot(shot.id); setShowReelShotList(false); }} className={cn("rounded-2xl border p-4 text-right transition-all flex items-center gap-3", reelShot === shot.id ? "bg-violet-50 border-violet-400 shadow-sm" : "bg-white border-slate-100 hover:bg-slate-50")}>
-                              <span className="text-2xl">{shot.icon}</span><span><span className="block text-sm font-black text-slate-900">{shot.label}</span><span className="block text-[11px] font-bold text-slate-400 mt-1">{shot.desc}</span></span>
+                              <span className="text-violet-600 shrink-0" aria-hidden="true"><shot.Icon size={24} /></span><span><span className="block text-sm font-black text-slate-900">{shot.label}</span><span className="block text-[11px] font-bold text-slate-400 mt-1">{shot.desc}</span></span>
                             </button>
                           ))}
                         </div>
@@ -3291,7 +3291,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black group-open:hidden">تفاصيل</span>
                     <span className="shrink-0 whitespace-nowrap min-w-fit rounded-2xl bg-white/10 px-3 py-1 text-[10px] font-black hidden group-open:inline-flex">إخفاء</span>
                   </summary>
-                  <div className="px-5 pb-5"><div className="text-lg font-black">{customThemeQuery.trim() || selectedStudioProductName || `${reelShots.find(s => s.id === reelShot)?.icon} ${reelShots.find(s => s.id === reelShot)?.label}`}</div><div className="mt-2 text-sm font-bold text-white/60">{reelShots.find(s => s.id === reelShot)?.label} · 9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>{!hasValidReelSource() && <div className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-[11px] font-black text-amber-100">ناقص فقط: اختر صورة أو اكتب فكرة. زر التوليد سيرجعك مباشرة للبداية بدون ضياع.</div>}{reelSource === 'image' && selectedImage && <img src={selectedImage} alt="مصدر الريل" className="mt-4 h-28 w-full rounded-2xl object-cover border border-white/10" />}</div>
+                  <div className="px-5 pb-5"><div className="text-lg font-black">{customThemeQuery.trim() || selectedStudioProductName || reelShots.find(s => s.id === reelShot)?.label}</div><div className="mt-2 text-sm font-bold text-white/60">{reelShots.find(s => s.id === reelShot)?.label} · 9:16 · {reelDuration} ثواني · {KUWAIT_PLACES[selectedOrderPlace]?.label}</div>{!hasValidReelSource() && <div className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-[11px] font-black text-amber-100">ناقص فقط: اختر صورة أو اكتب فكرة. زر التوليد سيرجعك مباشرة للبداية بدون ضياع.</div>}{reelSource === 'image' && selectedImage && <img src={selectedImage} alt="مصدر الريل" className="mt-4 h-28 w-full rounded-2xl object-cover border border-white/10" />}</div>
                 </details>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2"><button type="button" onClick={goBackFromReelFinalStep} className="p-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-black">رجوع</button><button type="button" onClick={generateReel} disabled={isGeneratingReel} className="p-4 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap">{isGeneratingReel ? <Loader2 className="animate-spin shrink-0" size={18} /> : <PlayCircle className="shrink-0" size={18} />} أطلق الإبداع</button></div>
               </div>

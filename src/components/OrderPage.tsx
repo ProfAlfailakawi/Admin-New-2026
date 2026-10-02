@@ -1,6 +1,6 @@
 import { IS_DEMO_MODE } from '../lib/demoMode';
 import React, { useState, useEffect } from "react";
-import { DnaSegmented } from "./dna/DnaKit";
+import { DnaSegmented, DnaStepper } from "./dna/DnaKit";
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import {
   ClipboardList,
@@ -1588,6 +1588,35 @@ Alturath.kw`;
                         </div>
                       </div>
                     </div>
+
+                    <DnaStepper
+                      size="xs"
+                      className="mb-3"
+                      ariaLabel="مراحل الطلب"
+                      steps={[
+                        { key: "received", label: "استلام الطلب", state: "done" },
+                        {
+                          key: "payment",
+                          label: getStatusLabel(order.status, order),
+                          state: isCancelledStatus(order.status as string)
+                            ? "returned"
+                            : isPaidStatus(order.status as string)
+                              ? "done"
+                              : isFailedStatus(order.status as string)
+                                ? "blocked"
+                                : "current",
+                        },
+                        {
+                          key: "invoice",
+                          label: "تحويل لفاتورة",
+                          state: order.isConvertedToInvoice
+                            ? "done"
+                            : isPaidStatus(order.status as string)
+                              ? "current"
+                              : "pending",
+                        },
+                      ]}
+                    />
 
                     <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-4">
                       <div className="flex items-center text-[10px] md:text-[11px] text-slate-500 font-bold gap-1.5 md:gap-2">

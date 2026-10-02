@@ -8,6 +8,8 @@ import { NumericInput } from './ui/NumericInput';
 import { toast } from 'sonner';
 import { StatCardComponent as StatCard } from './StatCard';
 
+import { DnaEmpty } from './dna/DnaKit';
+import { DnaDonut } from './dna/DnaDonut';
 interface ExpensePageProps {
  data: AppState;
  setData: React.Dispatch<React.SetStateAction<AppState>>;
@@ -55,6 +57,14 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  const todayExpenses = (data?.expenses || [])
  .filter(exp => (exp.date || '').startsWith(today))
  .reduce((acc, exp) => acc + Math.abs(exp.amount || 0), 0);
+
+ const categoryTotals = Object.entries(
+ (data?.expenses || []).reduce((acc: Record<string, number>, exp) => {
+ const key = String(exp.category || 'General');
+ acc[key] = (acc[key] || 0) + Math.abs(exp.amount || 0);
+ return acc;
+ }, {})
+ ).sort((x, y) => y[1] - x[1]);
 
  const handleSaveExpense = () => {
  const rawAmount = parseFloat(expenseForm.amount as any);
@@ -131,6 +141,18 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <StatCard label="إجمالي المصروفات" value={Number(totalExpenses || 0).toFixed(3)} icon={<Wallet />} color="red" description="كامل المصاريف المسجلة" />
  <StatCard label="مصروف اليوم" value={Number(todayExpenses || 0).toFixed(3)} icon={<ArrowDownRight />} color="amber" description="إجمالي الصرف لليوم الحالي" />
  </div>
+
+ {categoryTotals.length > 0 && (
+ <div className="bg-white rounded-3xl p-4 md:p-5 border border-slate-200/60 shadow-sm text-right">
+ <h3 className="text-sm font-bold text-slate-700 mb-3">المصروفات حسب الفئة</h3>
+ <DnaDonut
+ ariaLabel="توزيع المصروفات حسب الفئة"
+ centerLabel={Number(totalExpenses || 0).toFixed(3)}
+ centerSub="د.ك"
+ slices={categoryTotals.map(([cat, amt]) => ({ key: cat, label: cat, value: amt, valueLabel: `${amt.toFixed(3)} د.ك` }))}
+ />
+ </div>
+ )}
 
  <div className="bg-white rounded-3xl p-3 md:p-3 border border-slate-200/60 shadow-sm text-right">
  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-10">
@@ -225,21 +247,20 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
 ))}
  {(filteredExpenses || []).length === 0 && (
  <tr key="empty-state"><td colSpan={5} className="py-20 px-4 text-center">
- <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
- <div className="w-24 h-24 mb-6 rounded-3xl bg-primary/5 flex items-center justify-center text-primary/40 relative">
- <div className="absolute inset-0 bg-primary/10 rounded-3xl animate-ping opacity-20" />
- <Wallet size={48} />
- </div>
- <h3 className="text-xl md:text-3xl font-bold text-slate-800 mb-3 tracking-tight">ماكو مصاريف!</h3>
- <p className="text-slate-500 font-bold mb-8 leading-relaxed">لم تسجل أي مصروفات حتى الآن. أضف أول مصروف لتبدأ بتتبع تدفقاتك النقدية بدقة.</p>
+ <DnaEmpty
+ icon={<Wallet />}
+ title="ماكو مصاريف!"
+ hint="لم تسجل أي مصروفات حتى الآن. أضف أول مصروف لتبدأ بتتبع تدفقاتك النقدية بدقة."
+ action={
  <button 
  onClick={() => { setShowModal(true); }} 
- className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 hover:-translate-y-1 transition-all active:scale-95 hover:rotate-1 mx-auto"
+ className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95 mx-auto"
  >
  <Plus size={24} />
  <span>سجل أول مصروف!</span>
  </button>
- </div>
+ }
+ />
  </td>
  </tr>
 )}

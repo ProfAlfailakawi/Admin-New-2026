@@ -15,7 +15,7 @@ interface Props {
 export function CommandBrief({ data, dateFilter = 'day', onNavigate, partnerMode = false }: Props) {
   const hour = new Date().getHours();
   const greeting = hour >= 17 && hour < 22
-    ? { Icon: Coffee, title: 'تحية مسائية هادئة', sub: 'النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.' }
+    ? { Icon: Coffee, title: 'تحية مسائية هادئة', sub: 'وقت مناسب لمراجعة أرقامك والتحضير للغد.' }
     : hour >= 5 && hour < 12
       ? { Icon: Sun, title: 'صباح الخير، يوم جديد وفرص جديدة', sub: 'مركز القيادة جاهز لقراءة نبض اليوم ومتابعة أهم المؤشرات.' }
       : hour >= 12 && hour < 17

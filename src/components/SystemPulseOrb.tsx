@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppState } from '../types';
-import { Activity, Waves, Coffee } from 'lucide-react';
+import { Activity, Waves, Coffee, Flame, Coins, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface Props {
@@ -358,7 +358,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                   <Coffee size={36} className="animate-bounce" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold text-slate-800 tracking-tight mb-2">تقدر تريح الحين ☕️</h2>
+                  <h2 className="text-3xl font-bold text-slate-800 tracking-tight mb-2"><Coffee size={26} className="inline-block align-[-4px] ms-2" aria-hidden="true" />تقدر تريح الحين</h2>
                   <p className="text-sm font-bold text-slate-500">شطبت كل التزاماتك بنجاح، بطل!</p>
                 </div>
               </motion.div>
@@ -445,16 +445,17 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                   className="absolute pointer-events-auto flex flex-col items-center justify-center p-8 rounded-2xl bg-white border border-slate-200 text-slate-900/95 border-2 border-amber-400 shadow-[0_25px_80px_rgba(245,158,11,0.4)] backdrop-blur-2xl text-center min-w-[320px] max-w-sm"
                 >
                   <div className="absolute -top-3.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-[10px] font-black px-6 py-1 rounded-full shadow-[0_8px_20px_rgba(245,158,11,0.3)] tracking-widest">
-                    ✦ مبيعات جديدة دخلت الخزينة ✦
+                    <Sparkles size={12} className="inline-block align-[-2px] mx-1" aria-hidden="true" />مبيعات جديدة دخلت الخزينة<Sparkles size={12} className="inline-block align-[-2px] mx-1" aria-hidden="true" />
                   </div>
 
                   <div className="w-14 h-14 rounded-full bg-amber-500/10 border-2 border-amber-400 flex items-center justify-center mb-3 mt-1 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
                     <motion.span 
                       animate={{ scale: [1, 1.2, 1] }} 
                       transition={{ repeat: Infinity, duration: 1.5 }}
-                      className="text-2xl"
+                      className="text-amber-500"
+                      aria-hidden="true"
                     >
-                      💰
+                      <Coins size={26} />
                     </motion.span>
                   </div>
 
@@ -484,12 +485,12 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
               >
                 {isBusy ? (
                    <div className="space-y-0.5 font-light tracking-wide">
-                     <div className="text-slate-100 text-xs font-bold">🔥 وقت الذروة</div>
+                     <div className="text-slate-100 text-xs font-bold"><Flame size={13} className="inline-block align-[-2px] me-1" aria-hidden="true" />وقت الذروة</div>
                      <div className="text-[11px] font-medium text-amber-500">{pendingCount} بانتظار الإجراء</div>
                    </div>
                 ) : (
                    <div className="space-y-0.5 font-light tracking-wide">
-                     <div className="text-slate-100 text-xs font-bold">🌊 هدوء ومستقر</div>
+                     <div className="text-slate-100 text-xs font-bold"><Waves size={13} className="inline-block align-[-2px] me-1" aria-hidden="true" />هدوء ومستقر</div>
                      <div className="text-[11px] font-medium text-emerald-400">لا توجد عمليات معلقة</div>
                    </div>
                 )}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Package } from 'lucide-react';
 import { cn, formatKuwaitiDate } from '../lib/utils';
 import { Toaster, toast } from 'sonner';
 import { db } from '../firebase';
@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, orderBy, doc, getDoc, limit } from '
 import { IS_DEMO_MODE } from '../lib/demoMode';
 import { GET_DEMO_DATA } from '../data';
 import { isPendingStatus, isFailedStatus, isPaidStatus, isCancelledStatus } from '../lib/status-utils';
+import { DnaEmpty, DnaStepper } from './dna/DnaKit';
 
 export default function TrackPage() {
  const [phoneNumber, setPhoneNumber] = useState('');
@@ -302,10 +303,7 @@ export default function TrackPage() {
  {hasSearched && !loading && (
  <div className="mt-8 space-y-4">
  {orders.length === 0 ? (
- <div className="bg-slate-50 border border-slate-100 p-3 md:p-4 rounded-2xl text-center">
- <h3 className="font-bold text-slate-800 mb-2">ماكو طلبات نشطة</h3>
- <p className="text-xs text-slate-500">ما لقينا طلبات حالية على رقم التلفون اللي دخلته.</p>
- </div>
+ <DnaEmpty icon={<Package />} title="ماكو طلبات نشطة" hint="ما لقينا طلبات حالية على رقم التلفون اللي دخلته." />
 ) : (
  orders.map((order: any) => {
  const isZeroOrder = Number(order.totalAmount || order.finalPrice || order.total || order.total_amount || 0) === 0;
@@ -333,6 +331,15 @@ export default function TrackPage() {
  </div>
  </div>
  
+ <DnaStepper
+ size="sm"
+ ariaLabel="مراحل الطلب"
+ steps={[
+ { key: 'received', label: 'استلام الطلب', state: 'done' },
+ { key: 'payment', label: isPaidOrCompleted ? 'تم الدفع' : isCancelled ? 'ملغي' : isFailed ? 'فشل الدفع' : 'بانتظار الدفع', state: isPaidOrCompleted ? 'done' : isCancelled ? 'returned' : isFailed ? 'blocked' : 'current' },
+ ]}
+ />
+
  {/* Order Details List */}
  <div className="space-y-2">
  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">تفاصيل الطلب:</h4>
@@ -347,7 +354,7 @@ export default function TrackPage() {
  </div>
 ))
 ) : (
- <div className="text-sm text-slate-500 text-center py-2">ماكو تفاصيل للمنتجات</div>
+ <DnaEmpty icon={<Package />} title="ماكو تفاصيل للمنتجات" />
 )}
  </div>
 

@@ -32,6 +32,7 @@ import {
   Clock,
   Check,
   ClipboardList,
+  EyeOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { playTing } from "../lib/sounds";
@@ -88,6 +89,7 @@ import { isPaidStatus } from "../lib/status-utils";
 import { toast } from "sonner";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
+import { DnaEmpty } from "./dna/DnaKit";
 
 // Default product categories shown in the invoice form.  The categories
 // "المشويات" and "المشروبات" were removed based on new requirements.  If
@@ -1300,8 +1302,8 @@ Alturath.kw`;
                   )}
                 >
                   {p.isActive === false && (
-                    <div className="absolute top-2 right-2 text-amber-700 bg-gradient-to-br from-amber-500/10 to-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm font-black text-[10px] flex items-center gap-1 z-10 select-none animate-pulse">
-                      <span>مخفي 👁️✖️</span>
+                    <div className="absolute top-2 right-2 text-amber-700 bg-gradient-to-br from-amber-500/10 to-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm font-black text-xs flex items-center gap-1 z-10 select-none animate-pulse motion-reduce:animate-none">
+                      <EyeOff size={12} aria-hidden="true" /><span>مخفي</span>
                     </div>
                   )}
                   {p.isOutOfStock && (
@@ -1415,7 +1417,7 @@ Alturath.kw`;
             return (
               <div className="space-y-3 overflow-y-auto max-h-[70vh] pr-2">
                 {groupedProducts.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400 font-bold border border-dashed rounded-2xl">ماكو منتجات</div>
+                  <DnaEmpty icon={<Package />} title="ماكو منتجات" />
                 ) : groupedProducts.map((group) => {
                   const isOpen = activeInvoiceCategory === group.category;
                   return (
@@ -1829,8 +1831,8 @@ Alturath.kw`;
                           <div className="text-right font-bold text-sm w-40">
                             <div className="truncate">{it.product!.name}</div>
                             {it.product!.isActive === false && (
-                              <div className="text-[9px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 mt-0.5 select-none hover:bg-amber-100/50 transition-colors">
-                                <span>👁️ منتج مخفي بالمنيو</span>
+                              <div className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 mt-0.5 select-none hover:bg-amber-100/50 transition-colors">
+                                <EyeOff size={11} aria-hidden="true" /><span>منتج مخفي بالمنيو</span>
                               </div>
                             )}
                             <div className="text-[9px] font-extralight text-slate-400 opacity-60 mt-0.5 tracking-tighter">

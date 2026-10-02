@@ -79,6 +79,7 @@ import {
   Download,
 } from "lucide-react";
 import { DnaHubMap } from "./dna/DnaKit";
+import { DailySalesArea, ExpensePie } from "./DashboardCharts";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -186,6 +187,7 @@ import {
 import {
   isPendingStatus,
   isFailedStatus,
+  isCancelledStatus,
   isPaidStatus,
 } from "../lib/status-utils";
 import { GET_DEMO_DATA } from "../data";
@@ -1307,6 +1309,7 @@ const [isPending, startTransition] = useTransition();
       recordedCashMovement,
       orphanOutflows,
       cashAnchorNeeded,
+      filteredExpenses: periodExpenses,
     } = useMemo(() => {
       const invoices = activeInvoices.filter((inv) => {
         const isPaid = isPaidStatus(inv.paymentStatus);
@@ -1486,6 +1489,7 @@ const [isPending, startTransition] = useTransition();
         recordedCashMovement,
         orphanOutflows,
         cashAnchorNeeded,
+        filteredExpenses,
         totalDiscountsVal,
         allTimeFoodSales,
         allTimeCollectedDeliveryFees,
@@ -2109,28 +2113,28 @@ const [isPending, startTransition] = useTransition();
       if (hour >= 5 && hour < 12) {
         if (yesterdaySales > 0) {
           return {
-            title: `صباح الخير، مبيعات أمس بلغت ${yesterdaySales.toFixed(3)} د.ك ☀️`,
+            title: `صباح الخير، مبيعات أمس بلغت ${yesterdaySales.toFixed(3)} د.ك`,
             sub: "بداية يوم موفق. كل تفاصيل الإيرادات جاهزة.",
           };
         } else {
           return {
-            title: "صباح الخير، يوم جديد وفرص جديدة ☀️",
+            title: "صباح الخير، يوم جديد وفرص جديدة",
             sub: "بانتظار وصول أول طلبات اليوم. بالتوفيق!",
           };
         }
       } else if (hour >= 12 && hour < 17) {
         return {
-          title: "مرحباً، وقت الغداء والتركيز! 🍽️",
-          sub: "تتبع حركة المبيعات في فترة الذروة الممتازة",
+          title: "مرحباً، وقت الغداء والتركيز!",
+          sub: "تتبع حركة المبيعات في فترة الذروة",
         };
       } else if (hour >= 17 && hour < 22) {
         return {
-          title: "تحية مسائية هادئة ☕",
-          sub: "النظام مستقر ويعمل بهدوء. وقت ممتاز لمراجعة أرقامك والتحضير للغد.",
+          title: "تحية مسائية هادئة",
+          sub: "وقت مناسب لمراجعة أرقامك والتحضير للغد.",
         };
       } else {
         return {
-          title: "نظرة هادية على الأرقام.. عساك على القوة! ☕",
+          title: "نظرة هادية على الأرقام.. عساك على القوة!",
           sub: "هدوء الليل أفضل وقت للتخطيط الاستراتيجي",
         };
       }
@@ -2566,8 +2570,8 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "financials" && (
               <div className="space-y-8" dir="rtl">
-                <div id="supplier-negotiation-duplicate" className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl p-4 md:p-5 shadow-xl relative overflow-hidden flex flex-col items-start">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-indigo-500 to-amber-400" />
+                <div id="supplier-negotiation-duplicate" className="bg-[var(--dna-core)] rounded-3xl p-4 md:p-5 shadow-xl relative overflow-hidden flex flex-col items-start">
+                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-[var(--dna-accent)] to-amber-400" />
                   <div className="absolute top-3 left-6 opacity-10 text-white rotate-12">
                     <DollarSign size={200} />
                   </div>
@@ -2576,10 +2580,8 @@ const [isPending, startTransition] = useTransition();
                     تحليل الربحية الحقيقية{" "}
                     <Activity className="text-emerald-400" />
                   </h2>
-                  <p className="text-indigo-100 text-lg font-medium leading-relaxed max-w-2xl relative z-10 mb-4">
-                    هل تربح فعلاً؟ أم أنك ترى"وهم الربح"؟ هذا النظام يحلل
-                    التكاليف الخفية التي تلتهم أرباحك بصمت: رسوم بوابات الدفع،
-                    خسائر التوصيل المجمعة، والهدر التشغيلي الموزع.
+                  <p className="text-white/80 text-base font-medium leading-relaxed max-w-2xl relative z-10 mb-4">
+                    هل تربح فعلاً؟ التكاليف الخفية تظهر هنا.
                   </p>
 
                   <div className="flex gap-4 relative z-10">
@@ -2591,6 +2593,18 @@ const [isPending, startTransition] = useTransition();
                     </div>
                   </div>
                 </div>
+
+                <ExpensePie
+                  slices={Object.entries(
+                    periodExpenses.reduce((acc: Record<string, number>, e: any) => {
+                      const k = String(e?.category || "General");
+                      acc[k] = (acc[k] || 0) + Math.abs(Number(e?.amount) || 0);
+                      return acc;
+                    }, {}),
+                  )
+                    .sort((x, y) => y[1] - x[1])
+                    .map(([name, value]) => ({ name, value }))}
+                />
 
                 <React.Suspense
                   fallback={
@@ -3839,6 +3853,29 @@ const [isPending, startTransition] = useTransition();
                     </div>
                   </motion.div>
                 )}
+                <DailySalesArea
+                  points={(() => {
+                    const days: Array<{ key: string; label: string; value: number }> = [];
+                    for (let i = 13; i >= 0; i--) {
+                      const d = new Date();
+                      d.setHours(0, 0, 0, 0);
+                      d.setDate(d.getDate() - i);
+                      days.push({ key: d.toDateString(), label: `${d.getDate()}/${d.getMonth() + 1}`, value: 0 });
+                    }
+                    const idx: Record<string, number> = {};
+                    days.forEach((d, i) => { idx[d.key] = i; });
+                    (unifiedInvoices || []).forEach((inv) => {
+                      if (inv.isDeleted) return;
+                      const isPaid = (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus(inv.status) && !isFailedStatus(inv.status))) && !String(inv.status).includes("تجميع القطية") && inv.paymentStatus !== "split_pending" && inv.status !== "split_pending";
+                      if (!isPaid) return;
+                      const t = new Date(inv.date);
+                      if (isNaN(t.getTime())) return;
+                      const i = idx[t.toDateString()];
+                      if (i !== undefined) days[i].value += computeInvoiceTotal(inv, data?.products || []);
+                    });
+                    return days.map(({ label, value }) => ({ label, value }));
+                  })()}
+                />
                 {/* Quick Access Tasks Hidden as requested */}
                 {/* 
                 <div className="mb-4" dir="rtl">
