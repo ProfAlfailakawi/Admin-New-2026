@@ -6367,6 +6367,15 @@ body[data-install-sheet='open'] [data-floating='secondary'] {
    Mobile UX pass (phones ≤767px, tablets ≤1023px). Desktop (≥1024px) untouched.
    ========================================================================== */
 
+/* iOS paints the status-bar and home-indicator strips from the html/body
+   background (not from fixed overlays), so a dark full-screen overlay (intro
+   splash, mobile drawer) leaves a light band at the top and bottom. While one
+   is mounted, repaint those edges with the overlay's own colour. */
+html:has(.safe-area-dark-overlay),
+html:has(.safe-area-dark-overlay) body{background:#080d12!important;color-scheme:dark}
+html:has(.safe-area-drawer-overlay),
+html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-scheme:dark}
+
 /* iPhone notch / home indicator: the PWA uses black-translucent + viewport-fit=cover. */
 @media (max-width: 1023px) {
   .admin-app-header{

@@ -4410,7 +4410,7 @@ const MainApp: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[1000] lg:hidden"
+            className="safe-area-drawer-overlay fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-[1000] lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -5181,7 +5181,7 @@ const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ 
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.01, transition: { duration: reduceMotion ? 0 : 0.7, ease: 'easeInOut' } }}
-          className="fixed inset-0 z-[99999] flex items-center-safe justify-center overflow-x-hidden overflow-y-auto bg-[#080d12] px-5"
+          className="safe-area-dark-overlay fixed inset-0 z-[99999] flex items-center-safe justify-center overflow-x-hidden overflow-y-auto bg-[#080d12] px-5"
           dir="rtl"
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(245,184,74,.24),transparent_28%),radial-gradient(circle_at_16%_84%,rgba(16,185,129,.18),transparent_32%),linear-gradient(135deg,#070b10_0%,#111827_52%,#0b1115_100%)]" />
