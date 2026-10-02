@@ -6576,3 +6576,12 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 @media (max-width:767px){.page-skeleton-grid{grid-template-columns:1fr}.page-skeleton-hero{height:96px}}
 @media (prefers-reduced-motion:reduce){.page-skeleton .admin-skeleton:after{animation:none}}
 .page-skeleton .admin-skeleton{background:#e8edf4!important;border:1px solid #dde4ee}
+
+/* ===== r23 task 10: shared tokens — one thin icon stroke, one card radius, one card shadow ===== */
+:root{--r23-card-radius:26px;--r23-card-shadow:0 14px 36px -22px rgba(15,23,42,.30);--r23-icon-stroke:1.6}
+/* default-weight lucide icons (stroke-width="2") get the thin shared weight; explicit custom weights are left alone */
+:where(svg.lucide[stroke-width="2"]){stroke-width:var(--r23-icon-stroke)}
+.admin-page-hero,.admin-smart-panel,.smart-collapsible-panel,.heritage-dark-card{border-radius:var(--r23-card-radius)!important}
+.admin-page-hero,.admin-smart-panel,.smart-collapsible-panel{box-shadow:var(--r23-card-shadow)!important}
+.heritage-dark-card{box-shadow:0 18px 40px -22px rgba(15,23,42,.5)!important}
+.admin-page-hero + .smart-collapsible-panel{border-radius:0 0 var(--r23-card-radius) var(--r23-card-radius)!important}
