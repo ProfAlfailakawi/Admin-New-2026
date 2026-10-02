@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
+import { MiniBar } from "./ui/MiniRing";
 import {
   Package,
   Slash,
@@ -1494,8 +1495,11 @@ const ProductPage: React.FC<ProductPageProps> = ({
                         <span className="text-[10px] sm:text-xs font-black text-emerald-600 uppercase title-premium">
                           هامش الربح
                         </span>
+                        <span className="flex flex-col items-end gap-1 min-w-[56px]">
                         <span className="text-[11px] sm:text-lg font-bold text-emerald-600 tracking-wide num-premium">
                           %{Number(marginPercent || 0).toFixed(0)}
+                        </span>
+                        <MiniBar percent={Number(marginPercent)} tone="#059669" label="هامش الربح" />
                         </span>
                       </div>
                     </div>
