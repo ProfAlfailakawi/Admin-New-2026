@@ -691,7 +691,7 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
                   <div className="line-clamp-2 sm:truncate text-sm font-black leading-6 text-white">{p.name}</div>
                   <div className="text-[10px] font-bold leading-5 text-slate-400">{p.category || "منتج"} · {Number(p.price || 0).toFixed(3)} د.ك</div>
                 </div>
-                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[9px] sm:text-[10px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
+                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[10px] sm:text-[10px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
               </div>
             )) : (
               <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>

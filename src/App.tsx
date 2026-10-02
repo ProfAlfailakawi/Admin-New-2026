@@ -4496,7 +4496,7 @@ const MainApp: React.FC = () => {
               <div className="flex flex-col">
                 <div className="text-right whitespace-nowrap overflow-hidden">
                     <div className="font-bold text-xl tracking-tight bg-gradient-to-l from-white via-amber-200 to-amber-500 bg-clip-text text-transparent">التراث الكويتي</div>
-                    <div className="text-[10px] text-amber-500/80 font-bold uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
+                    <div className="text-[11px] text-amber-500/80 font-bold uppercase tracking-[0.2em] leading-none mt-1">المحرك الذهبي</div>
                 </div>
               </div>
             )}
@@ -4915,7 +4915,7 @@ const MainApp: React.FC = () => {
             >
               <div className="text-right hidden md:flex flex-col overflow-hidden leading-tight min-w-0">
                 <div className="text-[11px] sm:text-xs font-bold truncate text-slate-800">{user?.displayName || (IS_DEMO_MODE ? 'مدير النظام (نسخة تجريبية)' : 'د. أحمد الفيلكاوي')}</div>
-                <div className="text-[9px] text-slate-500 truncate">{user?.email || (IS_DEMO_MODE ? 'demo@example.com' : 'volcanokw@gmail.com')}</div>
+                <div className="text-[11px] text-slate-500 truncate">{user?.email || (IS_DEMO_MODE ? 'demo@example.com' : 'volcanokw@gmail.com')}</div>
               </div>
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="المستخدم" className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-slate-250 shrink-0 shadow-sm" referrerPolicy="no-referrer" />
