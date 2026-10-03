@@ -484,7 +484,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 "px-2.5 py-0.5 rounded-full border text-[11px] font-bold uppercase whitespace-nowrap bg-white",
  isInvoice ?"border-slate-200 text-slate-600" :"border-emerald-200 text-emerald-700"
 )}>
- {transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : arLabel(transaction.method)}
+ {(transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : arLabel(transaction.method)) || '—'}
  </span>
  </td>
  <td data-mobile-label="آخر حركة" className="p-3 md:p-3 text-slate-500 text-xs font-bold">

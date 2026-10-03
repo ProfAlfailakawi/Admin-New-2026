@@ -3007,7 +3007,7 @@ const [isPending, startTransition] = useTransition();
                         <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
                         <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">مختبر الذكاء الاستراتيجي</span>
                       </div>
-                      <h1 className="text-2xl md:text-3xl xl:text-4xl font-black text-slate-900 tracking-tighter">
+                      <h1 className="intel-dup-title text-2xl md:text-3xl xl:text-4xl font-black text-slate-900 tracking-tighter">
                         مختبر التراث الذكي
                       </h1>
                       <p className="text-slate-500 font-bold text-sm md:text-base max-w-2xl">المركز الاستراتيجي لاتخاذ القرارات وتحسين كفاءة المطبخ.</p>
@@ -4506,7 +4506,7 @@ const [isPending, startTransition] = useTransition();
                                     }
                                   }}
                                   className={cn(
-                                    "px-5 py-2.5 rounded-xl text-[10px] font-bold text-white shadow-lg transition-all active:scale-90",
+                                    "px-5 py-2.5 min-h-[44px] rounded-xl text-[10px] font-bold text-white shadow-lg transition-all active:scale-90",
                                     colors.btn,
                                   )}
                                 >
