@@ -279,7 +279,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  <span>تحليل الهوامش والنزيف</span>
  </div>
 
- <div className="overflow-y-auto grid grid-cols-1 gap-3 pl-2 custom-scrollbar" style={{ maxHeight: '332px' }}>
+ <div className="overflow-y-auto grid grid-cols-1 gap-3 pl-2 custom-scrollbar" style={{ maxHeight: 'min(68dvh, 640px)' }}>
  {filteredInsights.length === 0 && (
  <div className="bg-white p-4 rounded-2xl border border-[#f0e6d2] text-center shadow-sm">
  <p className="text-slate-500 font-bold text-sm">لا توجد منتجات مطابقة للبحث.</p>
