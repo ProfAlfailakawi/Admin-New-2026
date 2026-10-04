@@ -6206,6 +6206,20 @@ html body .login-brand-stage h1 {
   color: rgba(255,255,255,.94) !important;
 }
 
+/* The Instagram drawer is a full-height PWA surface on phones. Keep its
+   controls inside the visual viewport and clear iOS status/home-indicator areas. */
+.instagram-magic-panel{
+  height:100vh;
+  height:100dvh;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.instagram-magic-panel > :last-child{padding-bottom:max(.625rem,env(safe-area-inset-bottom,0px))}
+@media(max-width:767px){
+  .instagram-magic-panel{max-width:none!important;overscroll-behavior:contain}
+  .instagram-magic-panel > .overflow-y-auto{-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0}
+}
+
 
 /* Ahmad hotfix 2026-07-01: stabilize New Invoice catalog in admin/partner without touching business logic. */
 @media (min-width: 1024px) {
