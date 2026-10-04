@@ -5540,7 +5540,7 @@ const [isPending, startTransition] = useTransition();
                   <div
                     className={cn(
                       glassCardStyle,
-                      "bg-slate-900 border-indigo-500/30 text-white overflow-visible",
+                      "heritage-ai-suggestions-card bg-slate-900 border-indigo-500/30 text-white overflow-visible",
                     )}
                   >
                     <div className="flex justify-between items-start mb-4 flex-row-reverse relative z-10">

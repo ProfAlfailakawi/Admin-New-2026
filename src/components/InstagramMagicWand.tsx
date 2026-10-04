@@ -105,7 +105,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 bg-slate-950/60"
+              className="fixed inset-0 bg-slate-950/60 safe-area-dark-overlay"
               style={{ zIndex: LAYER.panel }}
             />
             <motion.div
@@ -113,7 +113,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-              className="fixed left-0 top-0 bottom-0 w-full max-w-sm bg-slate-50 shadow-xl overflow-hidden flex flex-col"
+              className="instagram-magic-panel fixed left-0 top-0 bottom-0 w-full max-w-sm bg-slate-50 shadow-xl overflow-hidden flex flex-col"
               style={{ zIndex: LAYER.panel + 1 }}
               dir="rtl"
             >
