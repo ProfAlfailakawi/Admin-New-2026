@@ -599,14 +599,15 @@ export function DnaHubMap({
   // minHeight adds air above and below instead of an empty band at the bottom.
   const my = topPad + (height - topPad - bottomPad) / 2;
   const maxOffset = ((rows - 1) / 2) * rowGap || 1;
-  const rx = Math.max(tiny ? hub / 2 + tile / 2 + 15 : hub / 2 + tile + 12, w / 2 - nodeW / 2 - (narrow ? 8 : 26));
+  const rx = Math.max(tiny ? hub / 2 + tile / 2 + 11 : hub / 2 + tile + 12, w / 2 - nodeW / 2 - (narrow ? 8 : 26));
   const startSide = box.rtl ? 1 : -1;
 
   const column = (count: number, side: number) =>
     Array.from({ length: count }, (_, i) => {
       const offset = (i - (count - 1) / 2) * rowGap;
       const f = offset / maxOffset;
-      const bulge = 0.8 + 0.2 * Math.sqrt(Math.max(0, 1 - f * f));
+      // Tiny: no bulge, so the outer rows keep their distance from the centre ring (values touched it at 320px).
+      const bulge = tiny ? 1 : 0.8 + 0.2 * Math.sqrt(Math.max(0, 1 - f * f));
       return { x: mx + side * rx * bulge, y: my + offset, side };
     });
   const points = [...column(startCount, startSide), ...column(endCount, -startSide)];
