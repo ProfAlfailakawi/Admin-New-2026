@@ -564,7 +564,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-300 flex items-center justify-center text-base font-bold border border-amber-500/20 shrink-0">{hero.name?.charAt(0) || '?'}</div>
  <div className="min-w-0">
  <h4 className="font-bold text-xs md:text-sm text-slate-100 truncate">{hero.name || 'عميلنا الكفو'}</h4>
- <p className="text-[11px] text-slate-400 font-bold truncate">{hero.totalSpent.toFixed(2)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
+ <p className="text-[11px] text-slate-400 font-bold truncate">{hero.totalSpent.toFixed(3)} د.ك · {isMissing ? `غائب ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط'}</p>
  </div>
  </div>
  <div className="flex items-center gap-2 shrink-0">
@@ -574,7 +574,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
  </button>
  {isOpen && (
  <div className="border-t border-slate-700 p-3 grid grid-cols-1 md:grid-cols-3 gap-2">
- <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[11px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-white">{hero.totalSpent.toFixed(2)} د.ك</b></div>
+ <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[11px] text-slate-500 font-black">المحفظة</span><b className="text-[11px] text-white">{hero.totalSpent.toFixed(3)} د.ك</b></div>
  <div className="rounded-xl bg-slate-900/60 border border-slate-700 p-2"><span className="block text-[11px] text-slate-500 font-black">الحالة</span><b className={cn('text-[11px]', isMissing ? 'text-rose-200' : 'text-emerald-200')}>{isMissing ? `غائب من ${hero.daysSinceLastOrder} يوم` : 'في قمة النشاط 🔥'}</b></div>
  <button
  onClick={() => {

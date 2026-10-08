@@ -77,15 +77,15 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  >
  <div 
  onClick={onToggle}
- className="p-3 md:p-4 cursor-pointer flex items-center justify-between flex-row-reverse w-full"
+ className="p-3 md:p-4 cursor-pointer flex items-center justify-between flex-row-reverse w-full gap-2"
  >
- <div className="flex items-center gap-3">
- {insight.riskLevel === 'high' && <AlertTriangle className="text-rose-500" size={16} />}
- {insight.riskLevel === 'medium' && <Info className="text-amber-500" size={16} />}
- {insight.riskLevel === 'low' && <CheckCircle2 className="text-emerald-500" size={16} />}
+ <div className="flex items-center gap-3 min-w-0">
+ {insight.riskLevel === 'high' && <AlertTriangle className="text-rose-500 shrink-0" size={16} />}
+ {insight.riskLevel === 'medium' && <Info className="text-amber-500 shrink-0" size={16} />}
+ {insight.riskLevel === 'low' && <CheckCircle2 className="text-emerald-500 shrink-0" size={16} />}
  <h4 className="font-bold text-sm md:text-base text-slate-800">{insight.productName}</h4>
  </div>
- <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+ <div className="flex items-center gap-2 sm:gap-4 justify-end shrink-0">
  <span className={cn(
 "text-[11px] md:text-[11px] font-bold uppercase tracking-tighter sm:block hidden",
  insight.riskLevel === 'high' ? 'text-rose-600' : insight.riskLevel === 'medium' ? 'text-amber-600' : 'text-emerald-600'
@@ -93,7 +93,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.riskLevel === 'high' ? 'خطورة عالية' : insight.riskLevel === 'medium' ? 'تآكل هوامش' : 'أداء مستقر'}
  </span>
  <span className={cn(
-"text-sm font-bold", 
+"text-sm font-bold whitespace-nowrap", 
  insight.realProfitValue < 0 ? 'text-rose-500' : insight.riskLevel === 'high' ? 'text-amber-500' : 'text-emerald-500'
 )}>
  {safeFormatCurrency(insight.realProfitValue)} د.ك
@@ -256,7 +256,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  </div>
  <div className="flex items-center justify-center gap-2 bg-transparent px-3 py-1 rounded-full border border-rose-500/20 relative z-10 shrink-0 w-fit self-start md:self-center">
  <ShieldAlert className="text-rose-400 animate-pulse" size={14} strokeWidth={1.6} />
- <span className="text-[11px] font-bold text-rose-300/80 uppercase whitespace-nowrap">الدرع نشط</span>
+ <span className="text-[11px] font-bold text-rose-300/80 uppercase whitespace-nowrap">حماية نشطة</span>
  </div>
  </div>
 
