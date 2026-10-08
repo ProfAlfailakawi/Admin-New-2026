@@ -1664,7 +1664,7 @@ Alturath.kw`;
                       })()}
                     </div>
 
-                    <details className="order-card-more mb-2" data-order-more>
+                    <details className="order-card-more" data-order-more>
                       <summary onClick={(e) => e.stopPropagation()}>العنوان والأصناف</summary>
                       <div className="space-y-1.5 md:space-y-2 pt-1.5">
                       <div className="flex items-start text-[11px] md:text-[11px] text-slate-700 font-extrabold gap-1.5 md:gap-2 bg-slate-100/70 border border-slate-200/50 px-2 py-1 rounded-lg my-1 w-full">
@@ -1795,7 +1795,7 @@ Alturath.kw`;
                     </details>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center bg-slate-50/50 -mx-4 -mb-4 px-4 py-2 rounded-b-2xl">
+                  <div className="mt-2 pt-2 border-t border-slate-50 flex justify-between items-center bg-slate-50/50 -mx-3 -mb-3 px-4 py-2 rounded-b-2xl">
                     <div className="text-base font-bold text-slate-900">
                       {Number(
                         getOrderSubtotal(order) +

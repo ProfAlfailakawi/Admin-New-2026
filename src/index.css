@@ -3565,6 +3565,7 @@ body:not(.dashboard-page-active) .instagram-magic-wand-mobile{
 .pulse-live-line{position:relative;height:74px;margin-bottom:14px;border-radius:22px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(248,217,141,.12),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.08)}
 .pulse-live-line:before{content:"";position:absolute;left:6%;right:6%;top:34px;height:3px;border-radius:99px;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444)}
 .pulse-live-node{position:absolute;top:21px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;max-width:110px}.pulse-live-node span{width:18px;height:18px;border-radius:999px;background:#f8d98d;border:3px solid #0f172a;box-shadow:0 0 0 8px rgba(248,217,141,.13);animation:opsPulse 1.8s ease-in-out infinite}.pulse-live-node small{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:900;color:rgba(255,255,255,.72)}
+html[dir="rtl"] .pulse-live-node{transform:translateX(50%)}
 
 @media(max-width:720px){.studio-production-desk{width:min(220px,76vw)}.pulse-live-head{align-items:flex-start;flex-direction:column}.pulse-live-line{height:88px}.whatsapp-ops-lane{min-height:86px}}
 
