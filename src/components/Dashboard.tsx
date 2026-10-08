@@ -2956,7 +2956,7 @@ const [isPending, startTransition] = useTransition();
                               </td>
                               <td className="p-3 md:p-4 text-left">
                                 <div className="flex flex-col items-start gap-1">
-                                  <span className="font-bold text-lg text-slate-800">
+                                  <span className="font-bold text-lg whitespace-nowrap text-slate-800">
                                     {Number(s.balance).toFixed(3)} د.ك
                                   </span>
                                   <span className="text-[10px] text-slate-500 font-bold uppercase">
@@ -3759,14 +3759,14 @@ const [isPending, startTransition] = useTransition();
                             </div>
                           </div>
 
-                          <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500 font-bold">
-                            <span className="flex items-center gap-1">
+                          <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center gap-3 text-[10px] text-slate-500 font-bold">
+                            <span className="flex items-center gap-1 shrink-0 whitespace-nowrap">
                               توليد تلقائي:{" "}
                               <span dir="ltr" className="inline-block text-left">
                                 {formatKuwaitiTimeOnly(strat.createdAt)}
                               </span>
                             </span>
-                            <span>{strat.dataReference}</span>
+                            <span className="min-w-0">{strat.dataReference}</span>
                           </div>
                         </motion.div>
                       ))
