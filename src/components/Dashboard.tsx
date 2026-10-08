@@ -693,16 +693,16 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
         <div className="rounded-[1.5rem] border border-white/10 bg-white/[.07] p-3 md:p-4 backdrop-blur-xl min-w-0">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <span className="text-[11px] font-black leading-5 text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
-            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black text-emerald-200 whitespace-nowrap">جاهزة للقنص</span>
+            <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-black text-emerald-200 whitespace-nowrap">جاهزة للقنص</span>
           </div>
           <div className="space-y-2">
             {suggestions.length > 0 ? suggestions.map((p: any) => (
               <div key={p.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
                 <div className="min-w-0 text-right">
                   <div className="line-clamp-2 sm:truncate text-sm font-black leading-6 text-white">{p.name}</div>
-                  <div className="text-[10px] font-bold leading-5 text-slate-400">{p.category || "منتج"} · {Number(p.price || 0).toFixed(3)} د.ك</div>
+                  <div className="text-[11px] font-bold leading-5 text-slate-400">{p.category || "منتج"} · <span className="whitespace-nowrap">{Number(p.price || 0).toFixed(3)} د.ك</span></div>
                 </div>
-                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[10px] sm:text-[10px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
+                <div className="shrink-0 rounded-xl bg-white/10 px-2.5 sm:px-3 py-2 text-[11px] leading-4 font-black text-amber-200 text-center whitespace-nowrap">اقترح قبلها بيومين</div>
               </div>
             )) : (
               <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>
@@ -5348,16 +5348,16 @@ const [isPending, startTransition] = useTransition();
                             {c.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="text-right flex-1 min-w-0">
-                            <div className="font-bold text-sm text-slate-100 truncate w-full">
+                            <div className="font-bold text-sm text-slate-100 w-full break-words leading-snug">
                               {c.name}
                             </div>
-                            <div className="text-[10px] text-slate-500 font-bold uppercase">
+                            <div className="text-[11px] text-slate-500 font-bold uppercase">
                               {c.totalOrders || 0} طلب
                             </div>
                           </div>
                           <div className="text-left shrink-0 pl-2 border-l border-slate-800/20 min-w-[108px]" dir="ltr">
                             <div className="font-black text-amber-400 text-[13px] min-[390px]:text-sm whitespace-nowrap tabular-nums leading-none">
-                              {Number(c.totalSpent || 0).toFixed(3)} <span className="text-[10px] text-amber-500/70 font-black inline-block align-baseline">د.ك</span>
+                              {Number(c.totalSpent || 0).toFixed(3)} <span className="text-[11px] text-amber-500/70 font-black inline-block align-baseline">د.ك</span>
                             </div>
                           </div>
                         </div>
