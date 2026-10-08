@@ -256,7 +256,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  </div>
  <div className="flex items-center justify-center gap-2 bg-transparent px-3 py-1 rounded-full border border-rose-500/20 relative z-10 shrink-0 w-fit self-start md:self-center">
  <ShieldAlert className="text-rose-400 animate-pulse" size={14} strokeWidth={1.6} />
- <span className="text-[11px] font-bold text-rose-300/80 uppercase whitespace-nowrap">الدرع نشط</span>
+ <span className="text-[11px] font-bold text-rose-300/80 uppercase whitespace-nowrap">حماية نشطة</span>
  </div>
  </div>
 
