@@ -577,9 +577,11 @@ export function DnaHubMap({
 
   const w = box.w;
   const narrow = w > 0 && w < 520;
+  // Very narrow (320px phones inside nested cards): narrower labels and a tighter orbit so the nodes stay inside the card.
+  const tiny = w > 0 && w < 215;
   const tile = narrow ? 44 : 54;
   const hub = narrow ? 66 : 84;
-  const nodeW = narrow ? 92 : 116;
+  const nodeW = tiny ? 80 : narrow ? 92 : 116;
   // Narrow: the count badge sits 8px above each tile, so 32px left it touching the
   // label of the node above. 44px keeps a clear gap on phones.
   const rowGap = tile + (narrow ? 44 : 36);
@@ -597,7 +599,7 @@ export function DnaHubMap({
   // minHeight adds air above and below instead of an empty band at the bottom.
   const my = topPad + (height - topPad - bottomPad) / 2;
   const maxOffset = ((rows - 1) / 2) * rowGap || 1;
-  const rx = Math.max(hub / 2 + tile + 12, w / 2 - nodeW / 2 - (narrow ? 8 : 26));
+  const rx = Math.max(tiny ? hub / 2 + tile / 2 + 15 : hub / 2 + tile + 12, w / 2 - nodeW / 2 - (narrow ? 8 : 26));
   const startSide = box.rtl ? 1 : -1;
 
   const column = (count: number, side: number) =>

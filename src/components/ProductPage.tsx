@@ -1133,14 +1133,14 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
         {/* Smart Filters Bar */}
         <div className="flex flex-col md:flex-row flex-wrap items-stretch md:items-center justify-end gap-2 mb-10 pb-6 border-b border-slate-100 md:flex-row-reverse">
-          <div className="bg-slate-50 p-2 rounded-2xl flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-500 uppercase mr-2 text-right">
+          <div className="bg-slate-50 p-2 rounded-2xl flex items-center gap-2 min-w-0 max-w-full">
+            <span className="text-[11px] font-bold text-slate-500 uppercase mr-2 text-right shrink-0">
               المورد:
             </span>
             <select
               value={selectedSupplierId}
               onChange={(e) => setSelectedSupplierId(e.target.value)}
-              className="bg-white border border-slate-200/60 rounded-xl px-4 py-2 font-bold text-xs text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-right"
+              className="min-w-0 flex-1 max-w-full bg-white border border-slate-200/60 rounded-xl px-4 py-2 font-bold text-xs text-slate-700 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-right"
             >
               <option value="all">الكل</option>
               {(data?.suppliers || []).map((s) => (

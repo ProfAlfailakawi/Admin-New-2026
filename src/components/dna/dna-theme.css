@@ -106,6 +106,10 @@ button.dna-segb {
 .wa-bridge-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
 .wa-bridge-meta b { color: var(--dna-ink); font-weight: 800; }
 .bi-engine-hub .dna-hubn { gap: 4px; }
+@media (max-width: 359px) {
+  /* 320px phones: the hub card sits in several nested paddings; give the map the width back. */
+  #bi-engine-core-section.bi-engine-hub { padding: 6px !important; }
+}
 
 /* Push radar: the outer dark "radar" shell and its panels drawn light (scoped, visual only). */
 .push-health-pro .push-radar-light.push-radar-light,
