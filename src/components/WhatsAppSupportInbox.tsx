@@ -2167,7 +2167,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                 </div>
                 <div className="mt-3 flex items-center justify-between text-[11px]">
                   <span className={cn('px-2 py-1 rounded-full', c.mode === 'human' || c.status === 'needs_support' ? 'bg-amber-100 text-amber-700' : selectedPhone === (c.phone || c.id) ? 'bg-white/10 text-white' : 'bg-emerald-50 text-emerald-700')}>{statusLabel(c)}</span>
-                  <span className={selectedPhone === (c.phone || c.id) ? 'text-white/50' : 'text-slate-400'}>{formatTime(c.lastMessageAt)}</span>
+                  <span className={selectedPhone === (c.phone || c.id) ? 'text-white/50' : 'text-slate-400'}><bdi dir="ltr">{formatTime(c.lastMessageAt)}</bdi></span>
                 </div>
               </button>
               );
@@ -2248,7 +2248,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                       <div className={cn('max-w-[92%] md:max-w-[86%] rounded-[1.5rem] px-5 py-4 shadow-sm border', inbound ? 'bg-white text-slate-800 border-slate-100 rounded-tl-md' : 'bg-slate-900 text-white border-slate-900 rounded-tr-md')}>
                         <div className="whitespace-pre-wrap leading-8 text-[15px]">{m.text}</div>
                         <div className={cn('mt-3 flex flex-wrap items-center gap-2 text-[11px]', inbound ? 'text-slate-400' : 'text-white/60')}>
-                          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1', inbound ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-white/70')}><Clock size={11} /> {formatTime(m.createdAt)}</span>
+                          <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-1', inbound ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-white/70')}><Clock size={11} /> <bdi dir="ltr">{formatTime(m.createdAt)}</bdi></span>
                           {inbound ? <span className="inline-flex rounded-full bg-sky-50 text-sky-700 px-2 py-1 font-black">رسالة عميل</span> : <span className="inline-flex rounded-full bg-white/10 px-2 py-1 font-black">{m.sentBy === 'bot' ? 'رد تلقائي' : 'رد موظف'}</span>}
                         </div>
                       </div>

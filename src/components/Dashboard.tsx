@@ -104,6 +104,17 @@ import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { MagneticButton } from "./ui/MagneticButton";
 import { SpatialGlassCard } from "./ui/SpatialGlassCard";
+// Keeps the active tab fully inside its horizontally scrollable strip (display only).
+const keepTabInView = (el: HTMLElement | null) => {
+  const strip = el?.parentElement;
+  if (!el || !strip || strip.scrollWidth <= strip.clientWidth + 1) return;
+  const a = el.getBoundingClientRect();
+  const r = strip.getBoundingClientRect();
+  if (a.left < r.left + 32 || a.right > r.right - 32) {
+    strip.scrollLeft += (a.left + a.right) / 2 - (r.left + r.right) / 2;
+  }
+};
+
 const LoyaltyProgramPage = React.lazy(() =>
   import("./LoyaltyProgramPage").then((m) => ({
     default: m.LoyaltyProgramPage,
@@ -2397,6 +2408,7 @@ const [isPending, startTransition] = useTransition();
                 return (
                   <button
                     key={tab.id}
+                    ref={isActive ? keepTabInView : undefined}
                     title={tab.description}
                     data-login-target={tab.id === 'ops-suppliers-products' ? 'kitchen' : undefined}
                     onClick={() => startTransition(() => {
@@ -2446,6 +2458,7 @@ const [isPending, startTransition] = useTransition();
                     return (
                       <button
                         key={tabId}
+                        ref={isChildActive ? keepTabInView : undefined}
                         type="button"
                         onClick={() => startTransition(() => setActiveTab(tabId as DashboardTab))}
                         className={cn(

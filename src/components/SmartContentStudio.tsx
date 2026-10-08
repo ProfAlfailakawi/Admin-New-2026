@@ -2951,7 +2951,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           </button>
         </div>
         
-        <div className="relative z-10 mt-5 flex items-center justify-between gap-3">
+        <div className={cn("relative z-10 flex items-center justify-between gap-3", studioTab !== 'home' && "mt-5")}>
           {studioTab !== 'home' ? (
             <button onClick={changeStudioPath} className="h-10 w-10 sm:h-11 sm:w-11 rounded-[12px] text-xs sm:text-sm font-black bg-white hover:bg-slate-50 text-slate-600 transition-colors border border-slate-200 flex items-center justify-center shadow-sm active:scale-95" title="العودة للمنيو الرئيسي" aria-label="العودة للمنيو الرئيسي">
               <ChevronLeft size={20} strokeWidth={1.6} className="rotate-180" />
