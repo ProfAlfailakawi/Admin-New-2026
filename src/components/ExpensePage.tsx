@@ -218,9 +218,11 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="font-bold text-slate-800 text-lg">{expense.description}</div>
  </td>
  <td className="p-3 md:p-3 font-bold text-slate-900 text-lg tabular-nums whitespace-nowrap">
- {Number(Math.abs(expense.amount || 0)).toFixed(3)} د.ك
+ <div>
+ <span className="whitespace-nowrap">{Number(Math.abs(expense.amount || 0)).toFixed(3)} د.ك</span>
  <div className="mt-1 h-1 w-28 max-w-full rounded-full bg-slate-100 overflow-hidden" aria-hidden="true">
  <div className="h-full rounded-full bg-slate-400" style={{ width: `${Math.max(3, Math.min(100, (Math.abs(Number(expense.amount) || 0) / maxExpenseAmount) * 100))}%` }} />
+ </div>
  </div>
  </td>
  <td className="p-3 md:p-3">

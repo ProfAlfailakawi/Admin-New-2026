@@ -4744,6 +4744,9 @@ html body .login-brand-stage h1 {
   .geo-zone-rank{width:38px;height:38px;border-radius:14px!important;}
   .geo-zone-name{font-size:1.08rem;}
   .geo-meta-chip{font-size:11px;}
+  .geo-zone-meta{grid-template-columns:minmax(0,1fr);}
+  .geo-meta-money{border-radius:14px;padding-inline:.4rem;}
+  .geo-meta-money .geo-money-value{flex-wrap:wrap;justify-content:center;gap:.1rem .28rem;}
   .geo-stat-value{font-size:.88rem;}
 }
 

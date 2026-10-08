@@ -673,17 +673,17 @@ const AdminSeasonalWeatherEngine: React.FC<{ data: AppState }> = ({ data }) => {
             <p className="mt-3 max-w-2xl text-xs md:text-sm font-bold leading-7 text-slate-300">{activationText}</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+            <div className="rounded-2xl bg-white/10 p-2 min-[380px]:p-3 border border-white/10">
               <CloudRain size={18} className="text-amber-300 mb-2" />
-              <div className="text-lg md:text-xl font-black">{estimatedTemp <= 28 ? "بارد" : estimatedTemp <= 36 ? "معتدل" : "حار"}</div>
+              <div className="text-base min-[380px]:text-lg md:text-xl font-black whitespace-nowrap">{estimatedTemp <= 28 ? "بارد" : estimatedTemp <= 36 ? "معتدل" : "حار"}</div>
               <div className="text-[10px] font-bold text-slate-400">الموسم</div>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+            <div className="rounded-2xl bg-white/10 p-2 min-[380px]:p-3 border border-white/10">
               <Calendar size={18} className="text-emerald-300 mb-2" />
-              <div className="text-lg md:text-xl font-black">{isWeekendWindow ? "نشط" : "مراقبة"}</div>
+              <div className="text-base min-[380px]:text-lg md:text-xl font-black whitespace-nowrap">{isWeekendWindow ? "نشط" : "مراقبة"}</div>
               <div className="text-[10px] font-bold text-slate-400">عطلة الأسبوع</div>
             </div>
-            <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
+            <div className="rounded-2xl bg-white/10 p-2 min-[380px]:p-3 border border-white/10">
               <Sparkles size={18} className="text-indigo-300 mb-2" />
               <div className="text-xs md:text-sm font-black leading-6">{weatherMood}</div>
               <div className="text-[10px] font-bold text-slate-400">إشارة المناخ</div>
@@ -3083,14 +3083,14 @@ const [isPending, startTransition] = useTransition();
                     {/* Sidebar tools - Map is taller and smarter */}
                     <div className="xl:col-span-4 space-y-10 order-2 lg:order-1 flex flex-col">
                        <div id="geo-heatmap-section" className="geo-heatmap-mobile-card bg-slate-900 rounded-2xl p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
-                        <div className="geo-heatmap-mobile-head p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                        <div className="geo-heatmap-mobile-head p-6 border-b border-white/5 flex flex-wrap items-center justify-between gap-2 bg-white/[0.02]">
                           <div className="flex items-center gap-3">
                              <div className="p-2.5 bg-amber-500/10 rounded-xl">
                               <MapPin size={20} className="text-amber-500" />
                              </div>
                              <span className="font-black text-white text-lg tracking-tight">خريطة النبض الجغرافي</span>
                           </div>
-                          <div className="px-3 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/30">الاستخبارات الجغرافية</div>
+                          <div className="shrink-0 whitespace-nowrap px-3 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-full border border-amber-500/30">الاستخبارات الجغرافية</div>
                         </div>
                         <div className="geo-heatmap-mobile-body p-2 flex-grow">
                           <React.Suspense fallback={<div className="h-64 animate-pulse bg-slate-800 rounded-2xl" />}>
@@ -3914,11 +3914,11 @@ const [isPending, startTransition] = useTransition();
                       }
                       className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div data-login-target="payment" className="w-10 h-10 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center">
                           <TrendingUp size={20} />
                         </div>
-                        <div className="text-right">
+                        <div className="text-right min-w-0">
                           <h4 className="font-bold text-slate-800">
                             الأداء المالي
                           </h4>
@@ -4000,13 +4000,13 @@ const [isPending, startTransition] = useTransition();
                           prev === "liquidity" ? null : "liquidity",
                         )
                       }
-                      className="w-full flex items-center justify-between p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
+                      className="w-full flex flex-wrap items-center justify-between gap-y-2 p-4 md:p-6 hover:bg-slate-100/50 transition-colors"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-500 text-white rounded-xl flex items-center justify-center">
+                      <div className="flex items-center gap-3 min-w-0 flex-1 basis-[190px]">
+                        <div className="w-10 h-10 shrink-0 bg-blue-500 text-white rounded-xl flex items-center justify-center">
                           <Wallet size={20} />
                         </div>
-                        <div className="text-right">
+                        <div className="text-right min-w-0">
                           <h4 className="font-bold text-slate-800">
                             رصيد السيولة بالبنك والخزينة
                           </h4>
@@ -4015,8 +4015,8 @@ const [isPending, startTransition] = useTransition();
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <div className="text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
                           <span>{cumulativeBankBalance.toFixed(3)}</span>{" "}
                           <span className="text-sm">د.ك</span>
                         </div>

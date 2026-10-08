@@ -145,7 +145,7 @@ export const FutureForecast: React.FC<FutureForecastProps> = ({ data }) => {
         key={p}
         onClick={() => setPeriod(p)}
         className={cn(
-         'rounded-xl px-3 py-2.5 text-xs md:text-sm font-black transition-all',
+         'rounded-xl px-1 min-[380px]:px-3 py-2.5 text-[11px] min-[380px]:text-xs md:text-sm font-black whitespace-nowrap transition-all',
          period === p ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-100' : 'text-slate-500 hover:text-slate-800'
         )}
        >

@@ -369,7 +369,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
    setCurrentPage('suppliers-audit');
  }}
  className={cn(
-"flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center transition-all border-2",
+"flex-1 min-w-0 p-1.5 min-[380px]:p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center transition-all border-2",
  supplierLiveBalance > 0 ?"cursor-pointer bg-red-50 border-red-100 hover:border-red-300" :"cursor-default bg-emerald-50 border-emerald-100"
 )}
  >
@@ -380,7 +380,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
  <div 
  onClick={() => setShowLedgerSupplierId(supplier.id)}
- className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-blue-50 border-blue-100 hover:border-blue-300 hover:bg-blue-100 text-blue-600"
+ className="flex-1 min-w-0 p-1.5 min-[380px]:p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-blue-50 border-blue-100 hover:border-blue-300 hover:bg-blue-100 text-blue-600"
  >
  <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">كشف حساب</div>
  <ArrowLeftRight size={18} className="mb-1 mt-1" />
@@ -389,7 +389,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  {!isDeliveryOnlySupplier && (
  <div 
  onClick={() => setProductsToShow(supplierProducts)}
- className="flex-1 p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
+ className="flex-1 min-w-0 p-1.5 min-[380px]:p-3 md:p-3 rounded-3xl flex flex-col items-center justify-center cursor-pointer transition-all border-2 bg-slate-50 border-slate-100 hover:border-slate-300 hover:bg-slate-100"
  >
  <div className="text-[11px] font-bold text-slate-500 uppercase mb-1">المنتجات</div>
  <div className="text-xl font-bold text-slate-800">{supplierProducts.length}</div>

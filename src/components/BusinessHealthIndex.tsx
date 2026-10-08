@@ -94,7 +94,7 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  {factor.trend === 'stable' && <Minus className="text-slate-500" size={14} />}
  </span>
  </div>
- <div className="flex items-baseline gap-2">
+ <div className="flex items-baseline gap-2 shrink-0 whitespace-nowrap">
  <span className="text-[10px] text-slate-500 font-bold uppercase">النتيجة</span>
  <span className={cn(
 "text-xl",
