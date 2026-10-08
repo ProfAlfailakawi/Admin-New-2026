@@ -3051,7 +3051,7 @@ const [isPending, startTransition] = useTransition();
                   {isIntelligenceDecisions && <>
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-8 xl:gap-10 w-full items-start min-w-0">
                     {/* Main Simulator - Now Primary on Desktop */}
-                    <div className="xl:col-span-8 flex flex-col h-full order-1 lg:order-2">
+                    <div className="hidden xl:col-span-8 flex flex-col h-full order-1 lg:order-2">
                       <div id="what-if-section" className="bg-white rounded-[40px] p-2 border-2 border-slate-100 overflow-hidden shadow-[0_30px_70px_-20px_rgba(0,0,0,0.1)] flex-grow hover:shadow-[0_45px_100px_-25px_rgba(0,0,0,0.15)] transition-all duration-700">
                         <div className="p-4 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 bg-slate-50/30 min-w-0">
                           <div className="flex items-center gap-5">
@@ -3081,7 +3081,7 @@ const [isPending, startTransition] = useTransition();
                     </div>
 
                     {/* Sidebar tools - Map is taller and smarter */}
-                    <div className="xl:col-span-4 space-y-10 order-2 lg:order-1 flex flex-col">
+                    <div className="xl:col-span-6 xl:col-start-4 space-y-10 order-2 lg:order-1 flex flex-col">
                        <div id="geo-heatmap-section" className="geo-heatmap-mobile-card bg-slate-900 rounded-2xl p-1 border border-slate-800 overflow-hidden shadow-2xl group transition-all duration-500 h-full flex flex-col min-h-[500px]">
                         <div className="geo-heatmap-mobile-head p-6 border-b border-white/5 flex flex-wrap items-center justify-between gap-2 bg-white/[0.02]">
                           <div className="flex items-center gap-3">
