@@ -250,13 +250,9 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
  <div className="text-right relative z-10 w-full min-w-0">
  <div className="flex flex-col sm:flex-row sm:flex-row-reverse sm:items-center gap-2 sm:justify-start mb-2">
  <h3 className="font-black text-xl sm:text-2xl text-white leading-snug break-words">رادار الدرع المالي</h3>
- <span className="w-fit bg-rose-500/20 text-rose-400 text-[11px] font-black px-3 py-1 rounded-full border border-rose-500/30 whitespace-normal sm:whitespace-nowrap leading-relaxed">حماية نشطة</span>
+ <span className="w-fit inline-flex items-center gap-1.5 bg-rose-500/20 text-rose-400 text-[11px] font-black px-3 py-1 rounded-full border border-rose-500/30 whitespace-normal sm:whitespace-nowrap leading-relaxed"><ShieldAlert className="shrink-0 animate-pulse" size={13} strokeWidth={1.6} aria-hidden="true" />حماية نشطة</span>
  </div>
  <p className="text-slate-400 text-[11px] sm:text-[11px] font-bold leading-6 sm:leading-relaxed">نظام حماية يراقب هوامش الربح بدقة ويكشف تآكل الأرباح فورا</p>
- </div>
- <div className="flex items-center justify-center gap-2 bg-transparent px-3 py-1 rounded-full border border-rose-500/20 relative z-10 shrink-0 w-fit self-start md:self-center">
- <ShieldAlert className="text-rose-400 animate-pulse" size={14} strokeWidth={1.6} />
- <span className="text-[11px] font-bold text-rose-300/80 uppercase whitespace-nowrap">حماية نشطة</span>
  </div>
  </div>
 
