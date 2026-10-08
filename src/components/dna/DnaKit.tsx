@@ -606,9 +606,12 @@ export function DnaHubMap({
     Array.from({ length: count }, (_, i) => {
       const offset = (i - (count - 1) / 2) * rowGap;
       const f = offset / maxOffset;
-      // Tiny: no bulge, so the outer rows keep their distance from the centre ring (values touched it at 320px).
-      const bulge = tiny ? 1 : 0.8 + 0.2 * Math.sqrt(Math.max(0, 1 - f * f));
-      return { x: mx + side * rx * bulge, y: my + offset, side };
+      // Tiny: no bulge, so the outer rows keep their distance from the centre ring (values touched it at 320px),
+      // but never wider than the card allows (the node wrapper must stay inside) nor tighter than the old 0.8 orbit.
+      const orbit = tiny
+        ? Math.max(rx * 0.8, Math.min(rx, w / 2 - nodeW / 2))
+        : rx * (0.8 + 0.2 * Math.sqrt(Math.max(0, 1 - f * f)));
+      return { x: mx + side * orbit, y: my + offset, side };
     });
   const points = [...column(startCount, startSide), ...column(endCount, -startSide)];
 
