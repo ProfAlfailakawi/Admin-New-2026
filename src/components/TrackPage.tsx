@@ -8,6 +8,8 @@ import { IS_DEMO_MODE } from '../lib/demoMode';
 import { GET_DEMO_DATA } from '../data';
 import { isPendingStatus, isFailedStatus, isPaidStatus, isCancelledStatus } from '../lib/status-utils';
 import { DnaEmpty, DnaStepper } from './dna/DnaKit';
+import LogoEngine from './ui/LogoEngine';
+import { DEFAULT_GLOBAL_LOGO } from '../constants';
 
 export default function TrackPage() {
  const [phoneNumber, setPhoneNumber] = useState('');
@@ -242,40 +244,42 @@ export default function TrackPage() {
  };
 
  return (
- <div className="min-h-screen bg-slate-50 flex items-center justify-center p-3 md:p-4 arabic-font" dir="rtl">
- <Toaster position="top-center" richColors />
- <div className="bg-white rounded-3xl p-3 md:p-3 max-w-2xl w-full shadow-xl border border-slate-100">
- <div className="w-12 h-12 md:w-16 md:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/20">
- <Search size={32} />
- </div>
- 
- <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">تتبع الطلب</h1>
- <p className="text-slate-500 text-center text-sm mb-8">اكتب رقم التلفون المسجل أو رقم الطلب عشان تتابع الحالة</p>
+ <div className="pub-page pub-track arabic-font" dir="rtl">
+ <Toaster position="bottom-center" richColors offset={16} mobileOffset={12} />
+ <main className="pub-card pub-card--wide">
+ <header className="pub-brand">
+ <LogoEngine src={DEFAULT_GLOBAL_LOGO} size="md" variant="royal" className="pub-logo" />
+ <div className="pub-brand-name">مطبخ التراث</div>
+ </header>
+
+ <h1 className="pub-title">تتبع الطلب</h1>
+ <p className="pub-sub">اكتب رقم التلفون المسجل أو رقم الطلب عشان تتابع الحالة</p>
  
  {IS_DEMO_MODE && (() => {
  const d = GET_DEMO_DATA();
  const stable = [...d.orders].sort((a: any, b: any) => String(a.id).localeCompare(String(b.id)));
  const samples = [stable.find((o: any) => o.paymentStatus === 'paid'), stable.find((o: any) => o.status === 'pending'), stable.find((o: any) => o.status === 'failed')].filter(Boolean) as any[];
  return (
- <div className="mb-4 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-xs font-bold text-amber-800" data-testid="track-demo-hint">
- <div className="mb-2">نسخة تجريبية - جرّب أحد هذه الأرقام:</div>
- <div className="flex flex-wrap gap-2">
+ <div className="pub-demo" data-testid="track-demo-hint">
+ <div className="pub-demo-title">نسخة تجريبية - جرّب أحد هذه الأرقام:</div>
+ <div className="pub-demo-row">
  {samples.map((o: any) => (
- <button key={o.id} type="button" onClick={() => { setPhoneNumber(o.id); handleSearch(undefined, o.id); }} className="px-3 py-1 rounded-full bg-white border border-amber-300" dir="ltr">{o.id}</button>
+ <button key={o.id} type="button" onClick={() => { setPhoneNumber(o.id); handleSearch(undefined, o.id); }} className="pub-chip" dir="ltr">{o.id}</button>
  ))}
  </div>
  </div>
  );
  })()}
- <form onSubmit={handleSearch} className="space-y-4">
+ <form onSubmit={handleSearch} className="pub-form">
  <div>
- <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">رقم التلفون أو الفاتورة</label>
+ <label htmlFor="track-query" className="pub-label">رقم التلفون أو الفاتورة</label>
  <input
+ id="track-query"
  type="text"
  value={phoneNumber}
  onChange={(e) => setPhoneNumber(e.target.value)}
  placeholder="مثال: 90000000 أو INV-...."
- className="w-full bg-slate-50 text-slate-800 font-bold px-4 py-3 rounded-2xl border-2 border-slate-100 focus:outline-none focus:border-emerald-500 transition-colors text-left"
+ className="pub-input"
  dir="ltr"
  required
  />
@@ -284,13 +288,14 @@ export default function TrackPage() {
  <button
  type="submit"
  disabled={loading || !phoneNumber}
- className={cn(
-"w-full py-4 text-white font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2",
- loading || !phoneNumber ?"bg-slate-300 shadow-none" :"bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20 hover:scale-[1.02] active:scale-95"
-)}
+ className="pub-btn"
+ aria-busy={loading}
  >
  {loading ? (
- <span className="animate-pulse">ندور...</span>
+ <>
+ <span className="pub-spin" aria-hidden="true" />
+ <span>ندور...</span>
+ </>
 ) : (
  <>
  <span>البحث عن الطلب</span>
@@ -300,8 +305,17 @@ export default function TrackPage() {
  </button>
  </form>
 
+ {loading && (
+ <div className="pub-skel" aria-hidden="true">
+ <span className="pub-skel-line pub-skel-w40" />
+ <span className="pub-skel-line pub-skel-w100" />
+ <span className="pub-skel-line pub-skel-w70" />
+ <span className="pub-skel-line pub-skel-w100" />
+ </div>
+ )}
+
  {hasSearched && !loading && (
- <div className="mt-8 space-y-4">
+ <div className="pub-results">
  {orders.length === 0 ? (
  <DnaEmpty icon={<Package />} title="ماكو طلبات نشطة" hint="ما لقينا طلبات حالية على رقم التلفون اللي دخلته." />
 ) : (
@@ -313,19 +327,19 @@ export default function TrackPage() {
  const isPending = !isPaidOrCompleted && !isFailed && !isCancelled;
  const isTrulyFree = isZeroOrder && isPaidOrCompleted;
  return (
- <div key={order.id} className={cn("bg-white border-2 p-3 md:p-4 rounded-2xl shadow-sm text-right space-y-4 transition-all", isFailed ?"border-red-100 bg-red-50/5" : isCancelled ?"border-rose-100 bg-rose-50/5" :"border-emerald-100")}>
- <div className="flex justify-between items-center pb-4 border-b border-slate-100">
- <span className="text-sm font-bold text-slate-800">طلب #{IS_DEMO_MODE && /^(ORD|INV)-/.test(order.id) ? order.id : order.id.slice(-6)}</span>
- <div className="flex items-center gap-2">
+ <div key={order.id} className="pub-order" data-state={isPaidOrCompleted ? 'paid' : isCancelled ? 'cancelled' : isFailed ? 'failed' : 'pending'}>
+ <div className="pub-order-head">
+ <span className="pub-order-id">طلب #{IS_DEMO_MODE && /^(ORD|INV)-/.test(order.id) ? order.id : order.id.slice(-6)}</span>
+ <div className="pub-order-actions">
  {(isPending || isFailed) && order.paymentLink && !isCancelled && (
  <button 
  onClick={() => window.location.href = order.paymentLink}
- className="text-xs font-bold px-4 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg active:scale-95"
+ className="pub-retry"
  >
  إعادة محاولة الدفع
  </button>
  )}
- <span className={cn("text-xs font-bold px-3 py-1 rounded-full", isPaidOrCompleted ?"bg-emerald-100 text-emerald-800" : isFailed ?"bg-red-100 text-red-800" : isCancelled ?"bg-rose-100 text-rose-800" :"bg-violet-100 text-violet-800 animate-pulse")}>
+ <span className="pub-pill">
  {isTrulyFree ? 'طلب مجاني - جاري التجهيز' : (isPaidOrCompleted ? 'تم الدفع بنجاح' : isCancelled ? ((order.status === 'انتهى وقت القطية' || order.status === 'ملغي - انتهى وقت القطية') ? 'ملغي - انتهى وقت القطية' : 'طلب ملغي') : isFailed ? 'فشلت عملية الدفع' : 'بانتظار الدفع')}
  </span>
  </div>
@@ -342,13 +356,13 @@ export default function TrackPage() {
  />
 
  {/* Order Details List */}
- <div className="space-y-2">
- <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">تفاصيل الطلب:</h4>
+ <div className="pub-items">
+ <h4 className="pub-h4">تفاصيل الطلب:</h4>
  {order.items && order.items.length > 0 ? (
  order.items.map((item: any, idx: number) => (
- <div key={idx} className="flex justify-between items-center text-sm font-bold text-slate-700 bg-slate-50 p-2 rounded-lg">
- <div className="flex items-center gap-2">
- <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md text-xs">{item.quantity}x</span>
+ <div key={idx} className="pub-item">
+ <div className="pub-item-name">
+ <span className="pub-qty">{item.quantity}x</span>
  <span>{item.name || item.productId}</span>
  </div>
  <span>{((item.priceAtTime !== undefined ? item.priceAtTime : item.price || 0) * item.quantity).toFixed(3)} د.ك</span>
@@ -360,8 +374,8 @@ export default function TrackPage() {
  </div>
 
  {/* Order Summary */}
- <div className="bg-slate-50 p-3 rounded-xl space-y-2 border border-slate-100">
- <div className="flex justify-between text-xs font-bold text-slate-600">
+ <div className="pub-sum">
+ <div className="pub-row">
  <span>المجموع:</span>
  <span>{(() => {
  const subtotal = Number(order.items?.reduce((acc: number, item: any) => acc + ((item.priceAtTime !== undefined ? item.priceAtTime : item.price || 0) * item.quantity), 0) || 0);
@@ -372,39 +386,39 @@ export default function TrackPage() {
  })()} د.ك</span>
  </div>
  {Number(order.deliveryFee) > 0 && (
- <div className="flex justify-between text-xs font-bold text-slate-600">
+ <div className="pub-row">
  <span>رسوم التوصيل:</span>
  <span>{Number(order.deliveryFee).toFixed(3)} د.ك</span>
  </div>
 )}
  {Number(order.discount) > 0 && (
- <div className="flex justify-between text-xs font-bold text-red-500">
+ <div className="pub-row pub-row--disc">
  <span>الخصم:</span>
  <span>-{Number(order.discount).toFixed(3)} د.ك</span>
  </div>
 )}
- <div className="flex justify-between text-lg font-bold text-emerald-700 pt-2 border-t border-slate-200/60">
+ <div className="pub-total">
  <span>الإجمالي النهائي:</span>
  <span>{Number(order.totalAmount || order.finalPrice || order.total || order.total_amount || 0).toFixed(3)} د.ك</span>
  </div>
  </div>
 
  {/* Customer Information (optional snapshot) */}
- <div className="text-xs font-bold text-slate-500 flex flex-col gap-1 bg-slate-50 p-3 rounded-lg border border-slate-100">
- <div className="flex justify-between">
+ <div className="pub-meta">
+ <div className="pub-row">
  <span>التاريخ:</span>
  <span dir="ltr">{formatKuwaitiDate(order.date || order.createdAt).full}</span>
  </div>
  {order.customerPhone && (
- <div className="flex justify-between">
+ <div className="pub-row">
  <span>رقم التواصل:</span>
  <span dir="ltr">{maskPhoneForCustomer(order.customerPhone)}</span>
  </div>
 )}
  {order.address && (
- <div className="flex flex-col mt-1 pt-1 border-t border-slate-200/60">
- <span className="text-slate-500 mb-1">وصف العنوان:</span>
- <span className="text-slate-700">{typeof order.address === 'object' ? (order.fullAddress || [order.area, order.address?.block && `قطعة ${order.address.block}`, order.address?.street && `شارع ${order.address.street}`, order.address?.building && `منزل ${order.address.building}`].filter(Boolean).join('، ')) : order.address}</span>
+ <div className="pub-addr">
+ <span className="pub-addr-l">وصف العنوان:</span>
+ <span className="pub-addr-v">{typeof order.address === 'object' ? (order.fullAddress || [order.area, order.address?.block && `قطعة ${order.address.block}`, order.address?.street && `شارع ${order.address.street}`, order.address?.building && `منزل ${order.address.building}`].filter(Boolean).join('، ')) : order.address}</span>
  </div>
 )}
  </div>
@@ -415,7 +429,7 @@ export default function TrackPage() {
 )}
  </div>
 )}
- </div>
+ </main>
  </div>
 );
 }

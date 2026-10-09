@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { LAYER } from '../lib/floatingLayers';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig } from 'motion/react';
 import { 
  TrendingUp, Handshake, DollarSign, Target, Sparkles, Activity, Puzzle,
  Star, LineChart as LineChartIcon, FlaskConical, LayoutGrid, Filter, X, PlusCircle, 
@@ -32,13 +32,11 @@ interface PartnerDashboardProps {
 const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent = false, subtext = '', unit = '' }: any) => {
  const getGradient = (color: string) => {
  switch(color) {
- case 'blue': return 'from-blue-500/10 to-indigo-500/5 text-blue-600 border-blue-100 shadow-blue-500/5';
- case 'red': return 'from-rose-500/10 to-pink-500/5 text-rose-600 border-rose-100 shadow-rose-500/5';
- case 'emerald': return 'from-emerald-500/10 to-teal-500/5 text-emerald-600 border-emerald-100 shadow-emerald-500/5';
- case 'amber': return 'from-amber-500/10 to-yellow-500/5 text-amber-600 border-amber-100 shadow-amber-500/5';
- case 'purple': return 'from-purple-500/10 to-fuchsia-500/5 text-purple-600 border-purple-100 shadow-purple-500/5';
- case 'indigo': return 'from-indigo-500/10 to-blue-500/5 text-indigo-600 border-indigo-100 shadow-indigo-500/5';
- case 'rose': return 'from-rose-500/10 to-red-500/5 text-rose-600 border-rose-100 shadow-rose-500/5';
+ case 'blue': return 'from-[#0f3d1f]/10 to-[#0f3d1f]/[0.04] text-[#0f3d1f] border-[#0f3d1f]/15 shadow-[#0f3d1f]/5';
+ case 'emerald': return 'from-[#17602f]/10 to-[#17602f]/[0.04] text-[#17602f] border-[#17602f]/20 shadow-[#17602f]/5';
+ case 'red': case 'rose': return 'from-[#a2433d]/10 to-[#a2433d]/[0.04] text-[#a2433d] border-[#a2433d]/20 shadow-[#a2433d]/5';
+ case 'amber': case 'purple': return 'from-[#d4af37]/20 to-[#d4af37]/[0.06] text-[#7a5c0a] border-[#d4af37]/40 shadow-[#d4af37]/10';
+ case 'indigo': return 'from-[#0f3d1f]/10 to-[#d4af37]/10 text-[#0f3d1f] border-[#0f3d1f]/15 shadow-[#0f3d1f]/5';
  default: return 'from-slate-500/10 to-slate-500/5 text-slate-600 border-slate-100 shadow-slate-500/5';
  }
  }
@@ -71,14 +69,14 @@ const GlobalStatBox = React.memo(({ label, value, color, icon: Icon, isPercent =
  
  <div className="text-right relative z-10">
  <div className="flex items-baseline justify-end gap-1 mb-1">
- <span className="text-[10px] font-bold opacity-40 uppercase tracking-tighter">{unit}</span>
+ <span className="text-xs font-bold opacity-60 tracking-normal">{unit}</span>
  <div className="text-xl lg:text-3xl font-bold text-slate-800 tracking-tighter group-hover:scale-105 transition-transform origin-right">
  {isPercent ? `${value.toFixed(1)}%` : Number(value).toLocaleString('en-GB', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}
  </div>
  </div>
- <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.1em] group-hover:text-slate-600 transition-colors">{label}</div>
+ <div className="text-xs font-bold text-[#55625a] tracking-normal group-hover:text-slate-600 transition-colors">{label}</div>
  {subtext && (
- <div className={cn("text-[10px] lg:text-[10px] mt-2 font-bold px-2 py-1 rounded-full bg-current/10 inline-block", getGradient(color).split(' ')[2])}>
+ <div className={cn("text-xs lg:text-xs mt-2 font-bold px-2 py-1 rounded-full bg-current/10 inline-block", getGradient(color).split(' ')[2])}>
  {subtext}
  </div>
 )}
@@ -121,7 +119,7 @@ const SectionHeader = ({ title, icon: Icon, color ="indigo", subtitle }: { title
  animate={{ rotate: 0, scale: 1 }}
  transition={{ type:"spring", stiffness: 300, damping: 20 }}
  className={cn("p-3 md:p-3 rounded-[1.25rem] md:rounded-2xl shadow-xl ring-4 ring-opacity-20", 
- color ==="indigo" ?"bg-indigo-600 text-white ring-indigo-600 shadow-indigo-600/20" :"bg-amber-500 text-white ring-amber-500 shadow-amber-500/20"
+ color ==="indigo" ?"bg-[#0f3d1f] text-white ring-[#0f3d1f] shadow-[#0f3d1f]/20" :"bg-[#d4af37] text-[#14231a] ring-[#d4af37] shadow-[#d4af37]/20"
 )}>
  <Icon size={24} className="md:w-[28px] md:h-[28px]" strokeWidth={2.5} />
  </motion.div>
@@ -159,7 +157,7 @@ const TeslaSeasonalEngine: React.FC<{ data: AppState }> = ({ data }) => {
   <motion.section
    initial={{ opacity: 0, y: 18 }}
    animate={{ opacity: 1, y: 0 }}
-   className="tesla-seasonal-engine mb-10 relative overflow-hidden rounded-[2rem] border border-emerald-500/15 bg-gradient-to-br from-slate-950 via-[#13251d] to-slate-900 p-4 md:p-5 text-white shadow-[0_24px_80px_rgba(15,23,42,.18)]"
+   className="tesla-seasonal-engine mb-10 relative overflow-hidden rounded-[2rem] border border-[#d4af37]/40 bg-[#fbf7ee] p-4 md:p-5 text-[#14231a] shadow-[0_18px_48px_-24px_rgba(15,61,31,.35)]"
    dir="rtl"
   >
    <div className="absolute -top-16 -left-16 h-44 w-44 rounded-full bg-emerald-400/20 blur-3xl" />
@@ -167,7 +165,7 @@ const TeslaSeasonalEngine: React.FC<{ data: AppState }> = ({ data }) => {
    <div className="relative z-10 grid gap-5 lg:grid-cols-[1.05fr_.95fr] items-stretch">
     <div className="flex flex-col justify-between gap-5">
      <div>
-      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black text-emerald-200 backdrop-blur-xl">
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-black text-emerald-200 backdrop-blur-xl">
        <CloudSun size={14} /> محرك التنبؤ
       </div>
       <h3 className="mt-3 text-2xl md:text-3xl font-black tracking-tight leading-tight">التوقع الموسمي والمناخي لمطبخ التراث</h3>
@@ -177,33 +175,33 @@ const TeslaSeasonalEngine: React.FC<{ data: AppState }> = ({ data }) => {
       <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
        <ThermometerSun size={18} className="text-amber-300 mb-2" />
        <div className="text-xl font-black">{estimatedTemp}°</div>
-       <div className="text-[10px] font-bold text-slate-400">تقدير الكويت</div>
+       <div className="text-xs font-bold text-slate-400">تقدير الكويت</div>
       </div>
       <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
        <CalendarDays size={18} className="text-emerald-300 mb-2" />
        <div className="text-xl font-black">{isWeekendWindow ? 'نشط' : 'مراقبة'}</div>
-       <div className="text-[10px] font-bold text-slate-400">عطلة الأسبوع</div>
+       <div className="text-xs font-bold text-slate-400">عطلة الأسبوع</div>
       </div>
       <div className="rounded-2xl bg-white/10 p-3 border border-white/10">
        <Sparkles size={18} className="text-indigo-300 mb-2" />
        <div className="text-sm font-black leading-6">{weatherMood}</div>
-       <div className="text-[10px] font-bold text-slate-400">إشارة المناخ</div>
+       <div className="text-xs font-bold text-slate-400">إشارة المناخ</div>
       </div>
      </div>
     </div>
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[.07] p-3 md:p-4 backdrop-blur-xl">
      <div className="mb-3 flex items-center justify-between gap-3">
-      <span className="text-[11px] font-black text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
-      <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-[10px] font-black text-emerald-200">جاهزة للقنص</span>
+      <span className="text-xs font-black text-slate-300">اقتراحات تلقائية مرتبطة بالمنيو</span>
+      <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-black text-emerald-200">جاهزة للقنص</span>
      </div>
      <div className="space-y-2">
       {suggestions.length > 0 ? suggestions.map((p) => (
        <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3">
         <div className="min-w-0 text-right">
          <div className="truncate text-sm font-black text-white">{p.name}</div>
-         <div className="text-[10px] font-bold text-slate-400">{p.category || 'منتج'} · {Number(p.price || 0).toFixed(3)} د.ك</div>
+         <div className="text-xs font-bold text-slate-400">{p.category || 'منتج'} · {Number(p.price || 0).toFixed(3)} د.ك</div>
         </div>
-        <div className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-[10px] font-black text-amber-200">اقترح قبلها بيومين</div>
+        <div className="shrink-0 rounded-xl bg-white/10 px-3 py-2 text-xs font-black text-amber-200">اقترح قبلها بيومين</div>
        </div>
       )) : (
        <div className="rounded-2xl border border-white/10 bg-white/10 p-4 text-center text-xs font-bold text-slate-300">أضف منتجات فعالة ليبدأ الرادار بربط التوقعات بالمنيو.</div>
@@ -483,28 +481,29 @@ const {
   const bentoCardStyle ="bg-white/95 p-3 md:p-4 rounded-xl lg:rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 text-right relative overflow-hidden flex flex-col h-full hover:-translate-y-[1px] transition-transform";
   
   return (
-    <div className="partner-clean-shell min-h-full bg-slate-50/50 p-3 pb-28 md:p-4 md:pb-28 animate-in fade-in duration-500 transition-colors" dir="rtl">
+    <MotionConfig reducedMotion="user">
+    <div className="partner-clean-shell min-h-full p-3 pb-36 md:p-4 md:pb-36 animate-in fade-in duration-500 transition-colors" dir="rtl">
        <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="flex flex-col gap-3 mb-8">
 
         {isPushSupported && !pushEnabled && !pushDenied && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-indigo-50 border border-indigo-100 text-indigo-800 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto"
+            className="bg-[#f7efd2] border border-[#d4af37]/50 text-[#5e4605] p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 self-stretch xl:self-auto"
           >
             <div className="flex items-center gap-3 text-right">
-              <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
-                <Bell size={20} className="animate-pulse" />
+              <div className="bg-white p-2 rounded-xl text-[#0f3d1f]">
+                <Bell size={20} className="animate-pulse motion-reduce:animate-none" />
               </div>
               <div>
-                <h4 className="text-[12px] font-bold border-b border-indigo-200/50 pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
-                <p className="text-[10px] sm:text-[11px] font-bold text-indigo-600/80 mt-0.5">احصل على تنبيهات فورية عند وصول طلبات جديدة</p>
+                <h4 className="text-sm font-bold pb-1 mb-1 inline-block">تفعيل الإشعارات</h4>
+                <p className="text-xs font-bold text-[#5e4605] mt-0.5">احصل على تنبيهات فورية عند وصول طلبات جديدة</p>
               </div>
             </div>
             
             <button
               onClick={() => setShowPushModal(true)}
-              className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-indigo-700 hover:scale-[0.98] transition-all active:scale-95"
+              className="bg-[#0f3d1f] text-white px-5 min-h-11 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#0f3d1f]/20 flex items-center justify-center gap-2 w-full sm:w-auto hover:bg-[#17602f] hover:scale-[0.98] transition-all active:scale-95"
             >
               <Bell size={14} /> تفعيل الآن
             </button>
@@ -515,9 +514,9 @@ const {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
+            className="bg-[#f7e5e3] border border-[#a2433d]/25 text-[#8c2f29] p-3 rounded-2xl flex items-center justify-between gap-4 self-stretch xl:self-auto"
           >
-            <div className="flex items-center justify-between w-full h-full text-right text-[11px] font-bold">
+            <div className="flex items-center justify-between w-full h-full text-right text-xs font-bold">
                <span>الإشعارات موقوفة من إعدادات الجهاز</span>
             </div>
           </motion.div>
@@ -531,25 +530,25 @@ const {
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
-                    className="bg-white rounded-3xl p-6 shadow-xl max-w-sm w-full text-center"
+                    className="bg-[#fbf7ee] rounded-3xl p-6 shadow-xl max-w-sm w-full text-center border border-[#d4af37]/40"
                 >
-                    <div className="w-14 h-14 bg-indigo-50 border border-indigo-100/60 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm">
+                    <div className="w-14 h-14 bg-[#e3ece5] border border-[#0f3d1f]/10 text-[#0f3d1f] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm">
                         <Bell size={28} />
                     </div>
                     <h3 className="text-xl font-bold text-slate-800 mb-2">فعّل الإشعارات</h3>
-                    <p className="text-slate-600 text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
+                    <p className="text-[#55625a] text-sm font-bold mb-6">لتصلك طلباتك الجديدة أول بأول حتى والتطبيق مغلق.</p>
                     <div className="flex flex-col gap-3">
                         <button
                           onClick={handleEnablePush}
                           disabled={isActivatingPush}
-                          className="bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 transition-colors"
+                          className="bg-[#0f3d1f] text-white min-h-12 py-3 rounded-xl font-bold shadow-lg shadow-[#0f3d1f]/25 hover:bg-[#17602f] transition-colors"
                         >
                           {isActivatingPush ? 'نفعّلها...' : 'تفعيل الإشعارات الآن'}
                         </button>
                         <button
                           onClick={() => setShowPushModal(false)}
                           disabled={isActivatingPush}
-                          className="text-slate-500 py-2 text-xs font-bold hover:text-slate-800 transition-colors"
+                          className="text-[#55625a] min-h-11 py-2 text-sm font-bold hover:text-slate-800 transition-colors"
                         >
                           ليس الآن
                         </button>
@@ -572,7 +571,7 @@ const {
               ];
 
               return (
-                 <div className="partner-date-filter-elegant bg-slate-950/80 border border-white/5 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[190px] max-w-[90vw] h-7 shadow-[0_12px_28px_rgba(0,0,0,0.85),_inset_0_1px_0_rgba(255,255,255,0.03)] relative overflow-visible transform-gpu translate-z-0 backface-hidden">
+                 <div className="partner-date-filter-elegant bg-[#0f3d1f]/95 border border-[#d4af37]/40 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[240px] max-w-[90vw] h-10 shadow-[0_12px_28px_rgba(0,0,0,0.85),_inset_0_1px_0_rgba(255,255,255,0.03)] relative overflow-visible transform-gpu translate-z-0 backface-hidden">
                    
                    {options.map((opt) => {
                      const isActive = filter === opt.id;
@@ -582,8 +581,8 @@ const {
                          type="button"
                          onClick={() => startTransition(() => setFilter(opt.id as any))}
                          className={cn(
-                           "relative flex-1 text-center h-full text-[10px] font-bold transition-colors duration-200 z-10 select-none cursor-pointer outline-none flex flex-col items-center justify-center transform-gpu translate-z-0",
-                           isActive ? "text-amber-400 font-extrabold" : "text-slate-400 hover:text-white"
+                           "relative flex-1 text-center h-full text-xs font-bold transition-colors duration-200 z-10 select-none cursor-pointer outline-none flex flex-col items-center justify-center transform-gpu translate-z-0",
+                           isActive ? "text-[#f1d77a] font-extrabold" : "text-white/70 hover:text-white"
                          )}
                        >
                          {isActive && (
@@ -613,12 +612,12 @@ const {
         )}
 
         {!activeWidget && (
-          <div className="fixed bottom-[3.9rem] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform" style={{ zIndex: LAYER.bar + 1 }} data-floating="secondary">
+          <div className="fixed bottom-[4.75rem] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform" style={{ zIndex: LAYER.bar + 1 }} data-floating="secondary">
             <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-slate-200/65 bg-white/88 px-1.5 py-1.5 shadow-[0_10px_26px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
               <button
                 type="button"
                 onClick={() => onNavigate('new-invoice')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-white shadow-[0_6px_14px_rgba(15,23,42,0.16)] transition-transform active:scale-[0.98] active:scale-95"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#0f3d1f] text-white shadow-[0_6px_14px_rgba(15,61,31,0.3)] transition-transform active:scale-[0.98] active:scale-95"
                 aria-label="فاتورة جديدة"
                 title="فاتورة جديدة"
               >
@@ -627,7 +626,7 @@ const {
               <button
                 type="button"
                 onClick={() => onNavigate('invoices-list')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100/95 text-slate-800 shadow-[0_5px_12px_rgba(15,23,42,0.08)] transition-transform  active:scale-95"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-100/95 text-slate-800 shadow-[0_5px_12px_rgba(15,23,42,0.08)] transition-transform  active:scale-95"
                 aria-label="سجل الفواتير"
                 title="سجل الفواتير"
               >
@@ -649,14 +648,14 @@ const {
             className="w-full flex items-center justify-between p-3 md:p-0 group outline-none"
           >
             <div className="flex items-center gap-4 flex-row-reverse">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+              <div className="w-10 h-10 rounded-2xl bg-[#d4af37]/15 flex items-center justify-center text-[#7a5c0a]">
                 <Activity size={20} />
               </div>
               <div className="text-right">
                 <h3 className="font-bold text-slate-800 text-lg tracking-tight">
                   الأداء المالي
                 </h3>
-                <p className="text-[10px] text-slate-500 font-bold">
+                <p className="text-xs text-slate-500 font-bold">
                   المبيعات، التكاليف، والأرباح
                 </p>
               </div>
@@ -694,38 +693,38 @@ const {
        {/* Smart Tools Cards Section */}
        <div className="mb-12">
        <h3 className="text-xl font-bold text-slate-800 mb-6 tracking-tight flex items-center gap-2 flex-row-reverse justify-end pr-2">
-       أدوات الإدارة الذكية <Sparkles size={24} className="text-amber-500" />
+       أدوات الإدارة الذكية <Sparkles size={24} className="text-[#b8912a]" />
        </h3>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:p-4">
        <button onClick={() => onNavigate('smart-studio')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group active:scale-[0.98] transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
-       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+       <div className="w-12 h-12 bg-[#e3ece5] text-[#0f3d1f] rounded-xl flex items-center justify-center mb-3">
        <Camera size={28} className="group-hover:scale-110 transition-transform" />
        </div>
        <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">الاستوديو الذكي</h3>
-       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">توليد صور وإعلانات بالذكاء الاصطناعي</p>
+       <p className="text-xs font-bold text-[#55625a] leading-relaxed">توليد صور وإعلانات بالذكاء الاصطناعي</p>
        </button>
        <button onClick={() => setActiveWidget('campaign')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group  transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
-       <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-3">
+       <div className="w-12 h-12 bg-[#f7efd2] text-[#7a5c0a] rounded-xl flex items-center justify-center mb-3">
        <FlaskConical size={28} className="group-hover:scale-110 transition-transform" />
        </div>
        <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">مختبر الحملات</h3>
-       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
+       <p className="text-xs font-bold text-[#55625a] leading-relaxed">ابتكر حملات ذكية مبنية على أرصدتك</p>
        </button>
        
        <button onClick={() => setActiveWidget('forecast')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group hover:-translate-y-1 transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
-       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+       <div className="w-12 h-12 bg-[#e3ece5] text-[#0f3d1f] rounded-xl flex items-center justify-center mb-3">
        <LineChartIcon size={28} className="group-hover:scale-110 transition-transform" />
        </div>
        <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">التنبؤ المالي</h3>
-       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
+       <p className="text-xs font-bold text-[#55625a] leading-relaxed">رؤية مستقبلية دقيقة لأداء مبيعاتك</p>
        </button>
       
        <button onClick={() => setActiveWidget('menu')} className="bg-white border border-slate-200/60 p-3 md:p-4 rounded-[20px] text-right flex flex-col items-end group hover:-translate-y-1 transition-transform shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 relative overflow-hidden outline-none active:scale-95">
-       <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-3">
+       <div className="w-12 h-12 bg-[#f7efd2] text-[#7a5c0a] rounded-xl flex items-center justify-center mb-3">
        <Layers size={28} className="group-hover:scale-110 transition-transform" />
        </div>
        <h3 className="text-sm font-black text-slate-800 mb-1 tracking-tight">هندسة المنيو الذكية</h3>
-       <p className="text-[10px] font-bold text-slate-500 leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
+       <p className="text-xs font-bold text-[#55625a] leading-relaxed">تحليل ربحية وشعبية كل صنف</p>
        </button>
 
 
@@ -737,7 +736,7 @@ const {
        {/* Modals for Smart Tools */}
        <AnimatePresence>
        {activeWidget && (
-       <div className="fixed inset-0 z-[200] flex items-center justify-center p-3">
+       <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 pt-[5.5rem]">
        <motion.div 
        initial={{ opacity: 0 }}
        animate={{ opacity: 1 }}
@@ -757,19 +756,19 @@ const {
        {activeWidget === 'forecast' &&"التنبؤ المستقبلي الخوارزمي"}
        {activeWidget === 'menu' &&"مصفوفة هندسة المنيو الذكية"}
        </h2>
-       <button onClick={() => setActiveWidget(null)} className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-rose-50 hover:text-rose-600 rounded-full transition-all active:scale-90">
+       <button onClick={() => setActiveWidget(null)} className="w-11 h-11 flex items-center justify-center bg-slate-100 hover:bg-[#f7e5e3] hover:text-[#a2433d] rounded-full transition-all active:scale-90">
        <X size={24} />
        </button>
        </div>
       
-       <div className="p-3 md:p-4 md:p-3 max-h-[80vh] overflow-y-auto custom-scrollbar">
+       <div className="p-3 md:p-4 max-h-[calc(100dvh-12rem)] overflow-y-auto custom-scrollbar">
        {activeWidget === 'campaign' && <MarketingLab data={data} />}
        {activeWidget === 'forecast' && <FutureForecast data={data} />}
        {activeWidget === 'menu' && (
        <div id="products-matrix-section" className="bg-white rounded-[20px] p-4 md:p-6 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 border border-slate-200/60 relative overflow-hidden" dir="rtl">
        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
        <div>
-       <div className="flex items-center gap-2 text-emerald-500 mb-2">
+       <div className="flex items-center gap-2 text-[#0f3d1f] mb-2">
        <Layers size={20} />
        <h4 className="font-black text-xl">مصفوفة هندسة المنيو</h4>
        </div>
@@ -778,74 +777,74 @@ const {
        </div>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
        {/* Stars */}
-       <div className="bg-white/5 border border-emerald-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-[#e3ece5] border border-[#17602f]/40 rounded-2xl p-4 relative overflow-hidden group transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-emerald-400">
+       <div className="flex items-center gap-2 text-[#0f3d1f]">
        <Sparkles size={20} className="group-hover:animate-spin" />
-       <h4 className="font-black text-emerald-800 text-lg">النجوم</h4>
+       <h4 className="font-black text-[#0f3d1f] text-lg">النجوم</h4>
        </div>
-       <span className="text-[10px] text-emerald-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-emerald-100 shadow-sm block w-fit">ربح عالي</span>
+       <span className="text-xs text-[#0f3d1f] font-bold bg-white px-2.5 py-1 rounded-md border border-[#17602f]/30 shadow-sm block w-fit">ربح عالي</span>
        </div>
-       <p className="text-xs text-emerald-700/80 leading-relaxed mb-4 font-sans font-medium">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
+       <p className="text-xs text-[#3b463f] leading-relaxed mb-4 font-medium">حافظ على الترويج لها ولا تغير جودتها، هي مصدر أرباحك الرئيسي وتقود سمعة المطعم.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.stars.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-[#14231a] bg-white px-3 py-1.5 rounded-lg border border-[#17602f]/40 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.stars.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.stars.length === 0 && <span className="text-xs text-[#55625a] italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Plowhorses */}
-       <div className="bg-white/5 border border-amber-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-[#f7efd2] border border-[#d4af37]/40 rounded-2xl p-4 relative overflow-hidden group transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-amber-400">
+       <div className="flex items-center gap-2 text-[#7a5c0a]">
        <Zap size={20} className="group-hover:-translate-x-1 transition-transform" />
-       <h4 className="font-black text-amber-800 text-lg">أحصنة الحرث</h4>
+       <h4 className="font-black text-[#7a5c0a] text-lg">أحصنة الحرث</h4>
        </div>
-       <span className="text-[10px] text-amber-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-amber-100 shadow-sm block w-fit">مستقر</span>
+       <span className="text-xs text-[#7a5c0a] font-bold bg-white px-2.5 py-1 rounded-md border border-[#d4af37]/30 shadow-sm block w-fit">مستقر</span>
        </div>
-       <p className="text-xs text-amber-700/80 leading-relaxed mb-4 font-sans font-medium">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
+       <p className="text-xs text-[#3b463f] leading-relaxed mb-4 font-medium">منتجات محبوبة لكن أرباحها قليلة. ارفع سعرها تدريجياً أو أعد هندسة المكونات لتقليل تكلفتها.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.plowhorses.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-amber-500/20 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-[#14231a] bg-white px-3 py-1.5 rounded-lg border border-[#d4af37]/40 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.plowhorses.length === 0 && <span className="text-xs text-[#55625a] italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Puzzles */}
-       <div className="bg-white/5 border border-blue-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-[#eef0ec] border border-[#55625a]/40 rounded-2xl p-4 relative overflow-hidden group transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-blue-400">
+       <div className="flex items-center gap-2 text-[#3b463f]">
        <Search size={20} className="group-hover:scale-110 transition-transform" />
-       <h4 className="font-black text-indigo-800 text-lg">الألغاز</h4>
+       <h4 className="font-black text-[#3b463f] text-lg">الألغاز</h4>
        </div>
-       <span className="text-[10px] text-indigo-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-indigo-100 shadow-sm block w-fit">عالي الربح</span>
+       <span className="text-xs text-[#3b463f] font-bold bg-white px-2.5 py-1 rounded-md border border-[#55625a]/30 shadow-sm block w-fit">عالي الربح</span>
        </div>
-       <p className="text-xs text-indigo-700/80 leading-relaxed mb-4 font-sans font-medium">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
+       <p className="text-xs text-[#3b463f] leading-relaxed mb-4 font-sans font-medium">منتجات مربحة جداً لكن مبيعاتها نادرة. أعد صياغة وصفها وضعها في عروض لتنشيطها.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.puzzles.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-blue-500/20 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-[#14231a] bg-white px-3 py-1.5 rounded-lg border border-[#55625a]/40 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.puzzles.length === 0 && <span className="text-xs text-[#55625a] italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
       
        {/* Turtle */}
-       <div className="bg-white/5 border border-rose-500/30 rounded-2xl p-3 md:p-3 relative overflow-hidden group hover:bg-white/10 transition-all">
+       <div className="bg-[#f7e5e3] border border-[#a2433d]/40 rounded-2xl p-4 relative overflow-hidden group transition-all">
        <div className="flex items-center justify-between mb-4">
-       <div className="flex items-center gap-2 text-rose-400">
+       <div className="flex items-center gap-2 text-[#8c2f29]">
        <Turtle size={20} className="group-hover:rotate-12 transition-transform" />
-       <h4 className="font-black text-rose-800 text-lg">سلحفاة</h4>
+       <h4 className="font-black text-[#8c2f29] text-lg">سلحفاة</h4>
        </div>
-       <span className="text-[10px] text-rose-600/80 font-bold bg-white px-2.5 py-1 rounded-md border border-rose-100 shadow-sm block w-fit">ميت</span>
+       <span className="text-xs text-[#8c2f29] font-bold bg-white px-2.5 py-1 rounded-md border border-[#a2433d]/30 shadow-sm block w-fit">ميت</span>
        </div>
-       <p className="text-xs text-rose-700/80 leading-relaxed mb-4 font-sans font-medium">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
+       <p className="text-xs text-[#3b463f] leading-relaxed mb-4 font-medium">تستنزف مساحة وجهداً بلا عائد. فكّر بإزالتها أو تقديمها بأسلوب مختلف كلياً.</p>
        <div className="flex flex-wrap gap-2">
        {menuEngineering.turtles.slice(0, 5).map(s => (
-       <span key={s.product.id} className="text-xs font-bold text-white bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/20 shadow-sm">{s.product.name}</span>
+       <span key={s.product.id} className="text-xs font-bold text-[#14231a] bg-white px-3 py-1.5 rounded-lg border border-[#a2433d]/40 shadow-sm">{s.product.name}</span>
       ))}
-       {menuEngineering.turtles.length === 0 && <span className="text-xs text-white/30 italic">ماكو أصناف في هذه الفئة حالياً</span>}
+       {menuEngineering.turtles.length === 0 && <span className="text-xs text-[#55625a] italic">ماكو أصناف في هذه الفئة حالياً</span>}
        </div>
        </div>
        </div>
@@ -860,6 +859,7 @@ const {
        {/* Partner quick invoice actions moved to the compact floating dock above the date filter. */}
     </motion.div>
   </div>
+    </MotionConfig>
  );
 };
 

@@ -82,18 +82,18 @@
         padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
           max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
         overflow: hidden;
-        background-color: #080d12;
-        background-image: radial-gradient(circle at 50% 28%, rgba(245, 184, 74, 0.24), transparent 28%),
-          radial-gradient(circle at 16% 84%, rgba(16, 185, 129, 0.18), transparent 32%),
-          linear-gradient(135deg, #070b10 0%, #111827 52%, #0b1115 100%);
-        font-family: "Tajawal", "Cairo", system-ui, -apple-system, "Segoe UI", sans-serif;
+        background-color: #07140b;
+        background-image: radial-gradient(circle at 50% 28%, rgba(212, 175, 55, 0.26), transparent 30%),
+          radial-gradient(circle at 16% 84%, rgba(23, 96, 47, 0.38), transparent 36%),
+          linear-gradient(135deg, #050d07 0%, #0f3d1f 52%, #07120a 100%);
+        font-family: "Cairo", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
         -webkit-font-smoothing: antialiased;
       }
       /* iOS leaves the status/home-indicator safe areas outside fixed overlays.
          Keep those exposed edges on the same dark canvas for the whole preboot. */
       html:has(#preboot-splash),
       body:has(#preboot-splash) {
-        background: #080d12 !important;
+        background: #07140b !important;
         color-scheme: dark;
       }
       #preboot-splash .pb-card {
@@ -116,7 +116,7 @@
         right: 2rem;
         top: 0;
         height: 1px;
-        background: linear-gradient(to left, transparent, rgba(253, 230, 138, 0.8), transparent);
+        background: linear-gradient(to left, transparent, rgba(212, 175, 55, 0.9), transparent);
       }
       #preboot-splash .pb-logo {
         position: relative;
@@ -137,7 +137,7 @@
         position: absolute;
         inset: -16px;
         border-radius: 2.6rem;
-        border: 1px solid rgba(110, 231, 183, 0.28);
+        border: 1px solid rgba(212, 175, 55, 0.34);
         animation: pb-ring 1.8s ease-in-out infinite;
       }
       #preboot-splash .pb-logo img {
@@ -154,19 +154,19 @@
         gap: 8px;
         border-radius: 999px;
         border: 1px solid rgba(255, 241, 223, 0.15);
-        background: rgba(253, 230, 138, 0.1);
+        background: rgba(212, 175, 55, 0.12);
         padding: 8px 16px;
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 800;
-        color: #fde8b8;
+        color: #f6e7b0;
         animation: pb-fade 0.62s ease-out 0.24s both;
       }
       #preboot-splash .pb-dot {
         height: 8px;
         width: 8px;
         border-radius: 999px;
-        background: #6ee7b7;
-        box-shadow: 0 0 14px rgba(110, 231, 183, 0.85);
+        background: #d4af37;
+        box-shadow: 0 0 14px rgba(212, 175, 55, 0.85);
       }
       #preboot-splash .pb-title {
         margin: 16px 0 0;
@@ -189,7 +189,7 @@
         height: 100%;
         width: 40%;
         border-radius: 999px;
-        background: linear-gradient(to left, #6ee7b7, #fcd34d, #ffffff);
+        background: linear-gradient(to left, #fbf7ee, #d4af37, #17602f);
         box-shadow: 0 0 24px rgba(245, 184, 74, 0.42);
         animation: pb-shimmer 1.4s ease-in-out infinite;
       }
