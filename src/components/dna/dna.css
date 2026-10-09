@@ -993,7 +993,7 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   to { transform: scaleX(1); }
 }
 @keyframes dna-track-check {
-  from { stroke-dashoffset: 20; }
+  from { stroke-dashoffset: 24; }
   to { stroke-dashoffset: 0; }
 }
 @keyframes dna-track-pop {
@@ -1009,7 +1009,7 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   animation: dna-track-pop 0.45s var(--dna-ease) both;
 }
 .dna-steps-track .dna-stepi[data-state='done'] .dna-node > svg path {
-  stroke-dasharray: 20;
+  stroke-dasharray: 24;
   animation: dna-track-check 0.5s var(--dna-ease) 0.35s both;
 }
 @media (prefers-reduced-motion: reduce) {
