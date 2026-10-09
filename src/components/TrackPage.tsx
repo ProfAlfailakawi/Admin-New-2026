@@ -333,6 +333,7 @@ export default function TrackPage() {
  
  <DnaStepper
  size="sm"
+ className="dna-steps-track"
  ariaLabel="مراحل الطلب"
  steps={[
  { key: 'received', label: 'استلام الطلب', state: 'done' },

@@ -986,3 +986,34 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   .dna-ringv,
   .dna-stepi + .dna-stepi::before { transition: none !important; }
 }
+
+/* ---------- track page stepper: line eases to the current step, check draws in ---------- */
+@keyframes dna-track-line {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes dna-track-check {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes dna-track-pop {
+  from { transform: scale(0.8); }
+  to { transform: scale(1); }
+}
+.dna-steps-track .dna-stepi[data-link='done']::before {
+  transform-origin: left center;
+  animation: dna-track-line 0.7s var(--dna-ease) 0.1s both;
+}
+.dna-steps-track:dir(rtl) .dna-stepi[data-link='done']::before { transform-origin: right center; }
+.dna-steps-track .dna-stepi[data-state='done'] .dna-node {
+  animation: dna-track-pop 0.45s var(--dna-ease) both;
+}
+.dna-steps-track .dna-stepi[data-state='done'] .dna-node > svg path {
+  stroke-dasharray: 24;
+  animation: dna-track-check 0.5s var(--dna-ease) 0.35s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dna-steps-track .dna-stepi::before,
+  .dna-steps-track .dna-node,
+  .dna-steps-track .dna-node > svg path { animation: none !important; }
+}
