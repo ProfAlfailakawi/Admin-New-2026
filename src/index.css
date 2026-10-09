@@ -1358,6 +1358,22 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
   .ai-executive-inputbar{padding:10px;position:sticky;bottom:0;z-index:5;}
   .ai-suggestion-chip{font-size:11px;padding:7px 10px;}
 
+  .admin-login-showcase{width:100vw!important;min-height:100dvh!important;overflow-x:hidden!important;padding:12px!important;align-items:flex-start!important;}
+  .login-showcase-shell{width:100%!important;max-width:430px!important;display:flex!important;flex-direction:column!important;border-radius:28px!important;overflow:hidden!important;margin:0 auto!important;}
+  .login-brand-stage{min-height:auto!important;padding:24px 18px 18px!important;border-radius:0!important;}
+  .login-stage-content{width:100%!important;max-width:100%!important;text-align:center!important;}
+  .login-hero-logo{transform:scale(.78)!important;margin-inline:auto!important;}
+  .login-brand-stage h1{font-size:clamp(2.5rem,14vw,4rem)!important;line-height:.95!important;letter-spacing:-.05em!important;margin:10px auto!important;max-width:100%!important;}
+  .login-brand-stage p{font-size:12px!important;line-height:1.7!important;max-width:310px!important;margin-inline:auto!important;}
+  .login-metrics-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;margin-top:16px!important;width:100%!important;}
+  .login-metrics-row div{min-width:0!important;border-radius:18px!important;padding:9px 5px!important;overflow:hidden!important;}
+  .login-metrics-row strong{font-size:15px!important;line-height:1.1!important;word-break:normal!important;overflow-wrap:normal!important;}
+  .login-metrics-row span{font-size:11px!important;line-height:1.25!important;}
+  .login-form-stage{padding:18px!important;border-radius:0!important;}
+  .login-form-head h2{font-size:2.2rem!important;line-height:1!important;}
+  .login-google-btn,.login-local-btn{min-height:54px!important;border-radius:22px!important;font-size:15px!important;}
+  .login-field>div{min-height:54px!important;border-radius:20px!important;}
+  .login-field input{font-size:15px!important;}
 
   .admin-experience-stack{padding-top:12px!important;}
   .admin-content-polish{padding:8px!important;overflow:visible!important;}
