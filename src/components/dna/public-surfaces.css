@@ -243,18 +243,18 @@
    ========================================================================== */
 .partner-brand {
   /* every cool hue -> deep green family */
-  --color-indigo-50:#e8efe9; --color-indigo-100:#d6e3d9; --color-indigo-200:#b3cdb9; --color-indigo-300:#7fae8c; --color-indigo-400:#3f8553;
+  --color-indigo-50:#e8efe9; --color-indigo-100:#d6e3d9; --color-indigo-200:#b3cdb9; --color-indigo-300:#9fd6ae; --color-indigo-400:#5fbf7a;
   --color-indigo-500:#17602f; --color-indigo-600:#0f3d1f; --color-indigo-700:#0c3219; --color-indigo-800:#0a2915; --color-indigo-900:#08200f;
-  --color-violet-50:#e8efe9; --color-violet-100:#d6e3d9; --color-violet-200:#b3cdb9; --color-violet-300:#7fae8c; --color-violet-400:#3f8553;
+  --color-violet-50:#e8efe9; --color-violet-100:#d6e3d9; --color-violet-200:#b3cdb9; --color-violet-300:#9fd6ae; --color-violet-400:#5fbf7a;
   --color-violet-500:#17602f; --color-violet-600:#0f3d1f; --color-violet-700:#0c3219; --color-violet-800:#0a2915; --color-violet-900:#08200f;
-  --color-purple-50:#e8efe9; --color-purple-100:#d6e3d9; --color-purple-200:#b3cdb9; --color-purple-300:#7fae8c; --color-purple-400:#3f8553;
+  --color-purple-50:#e8efe9; --color-purple-100:#d6e3d9; --color-purple-200:#b3cdb9; --color-purple-300:#9fd6ae; --color-purple-400:#5fbf7a;
   --color-purple-500:#17602f; --color-purple-600:#0f3d1f; --color-purple-700:#0c3219; --color-purple-800:#0a2915; --color-purple-900:#08200f;
   --color-fuchsia-500:#17602f; --color-fuchsia-600:#0f3d1f; --color-blue-50:#e8efe9; --color-blue-100:#d6e3d9; --color-blue-200:#b3cdb9;
-  --color-blue-400:#3f8553; --color-blue-500:#17602f; --color-blue-600:#0f3d1f; --color-blue-700:#0c3219;
+  --color-blue-400:#5fbf7a; --color-blue-500:#17602f; --color-blue-600:#0f3d1f; --color-blue-700:#0c3219;
   --color-sky-50:#e8efe9; --color-sky-100:#d6e3d9; --color-sky-500:#17602f; --color-sky-600:#0f3d1f;
   --color-cyan-50:#e8efe9; --color-cyan-500:#17602f; --color-cyan-600:#0f3d1f;
   --color-teal-50:#e8efe9; --color-teal-100:#d6e3d9; --color-teal-500:#17602f; --color-teal-600:#0f3d1f; --color-teal-700:#0c3219;
-  --color-emerald-50:#e8efe9; --color-emerald-100:#d6e3d9; --color-emerald-200:#b3cdb9; --color-emerald-300:#7fae8c; --color-emerald-400:#3f8553;
+  --color-emerald-50:#e8efe9; --color-emerald-100:#d6e3d9; --color-emerald-200:#b3cdb9; --color-emerald-300:#9fd6ae; --color-emerald-400:#5fbf7a;
   --color-emerald-500:#17602f; --color-emerald-600:#0f3d1f; --color-emerald-700:#0c3219; --color-emerald-800:#0a2915;
   --color-green-50:#e8efe9; --color-green-100:#d6e3d9; --color-green-500:#17602f; --color-green-600:#0f3d1f; --color-green-700:#0c3219;
   /* warm accents -> gold */
@@ -303,3 +303,10 @@
 .partner-brand .ai-mission-card.is-opportunity .ai-mission-icon { background: #e3ece5; color: #0f3d1f; border-color: #b3cdb9; }
 .partner-brand .recharts-tooltip-wrapper [style*='rgb(79, 70, 229)'] { color: #0f3d1f !important; }
 .partner-brand .recharts-tooltip-wrapper [style*='rgb(16, 185, 129)'] { color: #7a5c0a !important; }
+
+/* partner sidebar: real account card (name/email already shown in the header) */
+.partner-side-card { display: grid; justify-items: center; gap: 6px; padding: 20px 14px; text-align: center; border-radius: 22px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(212, 175, 55, 0.3); }
+.partner-side-avatar { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: #d4af37; color: #0f3d1f; font-size: 24px; font-weight: 800; }
+.partner-side-name { font-size: 16px; font-weight: 800; color: #fff; word-break: break-word; }
+.partner-side-mail { max-width: 100%; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.72); word-break: break-all; }
+.partner-side-role { margin-top: 4px; padding: 3px 12px; font-size: 12px; font-weight: 800; color: #f1d77a; background: rgba(212, 175, 55, 0.14); border-radius: 999px; }

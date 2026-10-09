@@ -4526,6 +4526,15 @@ const MainApp: React.FC = () => {
           )}
         </div>
 
+        {userRole === 'partner' && (sidebarOpen || isMobile) && (
+          <div className="partner-side-card relative z-10 m-5" data-testid="partner-side-card">
+            <div className="partner-side-avatar" aria-hidden="true">{(user?.displayName || data?.settings?.companyName || 'ش').trim().charAt(0)}</div>
+            <div className="partner-side-name">{user?.displayName || data?.settings?.companyName || 'حساب الشريك'}</div>
+            {user?.email && <div className="partner-side-mail" dir="ltr">{user.email}</div>}
+            <div className="partner-side-role">حساب شريك</div>
+          </div>
+        )}
+
         {userRole !== 'partner' && (
           <nav className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar overflow-x-hidden relative z-10">
             <div className="pt-2">
