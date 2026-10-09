@@ -8,6 +8,7 @@ import App from './App.tsx';
 import './index.css';
 import './components/dna/dna.css';
 import './components/dna/dna-theme.css';
+import './components/dna/public-surfaces.css';
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 
