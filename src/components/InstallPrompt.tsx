@@ -61,8 +61,8 @@ export default function InstallPrompt() {
     if (!deferredPrompt) {
       // Elegant iOS fallback instructions
       toast.custom((t) => (
-        <div className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
-          <span className="text-slate-900">لتثبيت التطبيق على جهازك:</span>
+        <div className="bg-[#fbf7ee] p-4 rounded-2xl border border-[#d4af37]/50 shadow-xl flex flex-col gap-2 font-bold text-sm min-w-[300px]" dir="rtl">
+          <span className="text-[#0f3d1f]">لتثبيت التطبيق على جهازك:</span>
           <span className="text-slate-600 font-medium">1. اضغط على زر المشاركة  في المتصفح بالأسفل.</span>
           <span className="text-slate-600 font-medium">2. اختر "إضافة للشاشة الرئيسية" (Add to Home Screen).</span>
         </div>
@@ -110,20 +110,20 @@ export default function InstallPrompt() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 1 }}
-            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-white rounded-t-[32px] md:rounded-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-slate-100"
+            className="fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-[#fbf7ee] rounded-t-[32px] md:rounded-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-[#d4af37]/40"
             style={{ zIndex: LAYER.sheet }}
             dir="rtl"
           >
             {/* Elegant drag handle for mobile */}
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 md:hidden" />
+            <div className="w-12 h-1.5 bg-[#d4af37]/50 rounded-full mx-auto mb-6 md:hidden" />
             
             <div className="flex items-start gap-4 mb-8">
-              <div className="flex-shrink-0 w-[72px] h-[72px] bg-black rounded-[20px] flex items-center justify-center text-white shadow-xl">
+              <div className="flex-shrink-0 w-[72px] h-[72px] bg-[#0f3d1f] rounded-[20px] flex items-center justify-center text-[#d4af37] shadow-xl border border-[#d4af37]/50">
                 <span className="text-4xl font-bold mb-1">ت</span>
               </div>
               <div className="flex-1 mt-1.5">
-                <h3 className="text-[22px] font-bold text-slate-900 mb-1.5 tracking-tight">ثبّت تطبيق التراث</h3>
-                <p className="text-slate-500 text-[15px] font-bold leading-relaxed w-[90%]">
+                <h3 className="text-[22px] font-bold text-[#0f3d1f] mb-1.5 tracking-tight">ثبّت تطبيق التراث</h3>
+                <p className="text-[#55625a] text-[15px] font-bold leading-relaxed w-[90%]">
                   للوصول السريع وتجربة أسهل من الشاشة الرئيسية
                 </p>
               </div>
@@ -132,14 +132,14 @@ export default function InstallPrompt() {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleInstall}
-                className="flex-1 bg-black hover:bg-slate-900 text-white flex items-center justify-center gap-2 py-4 rounded-[20px] font-bold text-base shadow-lg shadow-black/10 active:scale-95 transition-all duration-300"
+                className="flex-1 bg-[#0f3d1f] hover:bg-[#17602f] text-white flex items-center justify-center gap-2 py-4 rounded-[20px] font-bold text-base shadow-lg shadow-[#0f3d1f]/20 active:scale-95 transition-all duration-300"
               >
                 <Download size={20} className="mb-0.5" />
                 <span>تثبيت التطبيق</span>
               </button>
               <button
                 onClick={handleDismiss}
-                className="px-8 py-4 text-slate-500 font-bold text-base bg-slate-50 hover:bg-slate-100 rounded-[20px] active:scale-95 transition-all duration-300"
+                className="px-8 py-4 text-[#55625a] font-bold text-base bg-[#f0eadf] hover:bg-[#e8dfce] rounded-[20px] active:scale-95 transition-all duration-300"
               >
                 لاحقاً
               </button>

@@ -166,14 +166,14 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-xl border border-slate-200/60 p-6 max-w-sm w-full relative"
+              className="bg-[#fbf7ee] rounded-3xl shadow-xl border border-[#d4af37]/40 p-6 max-w-sm w-full relative"
               dir="rtl"
             >
-              <button onClick={handleCloseIOSPrompt} className="absolute top-4 left-4 p-2 text-slate-500 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
+              <button onClick={handleCloseIOSPrompt} className="absolute top-3 left-3 p-3 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
                 <X size={20} />
               </button>
               <div className="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
-                <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 bg-[#e3ece5] rounded-full flex items-center justify-center text-[#0f3d1f]">
                   <DownloadCloud size={20} />
                 </div>
                 <h3 className="font-bold text-lg text-slate-800">تثبيت التطبيق</h3>
@@ -182,22 +182,22 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
                 <p className="text-slate-600 font-medium text-sm leading-relaxed">
                   لتثبيت التطبيق على جهازك للوصول السريع وتفعيل الإشعارات:
                 </p>
-                <ul className="text-sm font-medium text-slate-600 space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-2">
+                <ul className="text-sm font-medium text-slate-600 space-y-3 p-3 bg-white rounded-2xl border border-[#d4af37]/30 mt-2">
                   <li className="flex items-center gap-2">
-                    <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">1</span>
-                    <span>اضغط على زر المشاركة <Share size={14} className="inline text-blue-500 mx-0.5" /> المتصفح</span>
+                    <span className="w-7 h-7 shrink-0 bg-[#e3ece5] rounded-full flex items-center justify-center text-xs font-bold text-[#0f3d1f]">1</span>
+                    <span>اضغط على زر المشاركة <Share size={14} className="inline text-[#0f3d1f] mx-0.5" /> المتصفح</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">2</span>
+                    <span className="w-7 h-7 shrink-0 bg-[#e3ece5] rounded-full flex items-center justify-center text-xs font-bold text-[#0f3d1f]">2</span>
                     <span>اختر "إضافة إلى الشاشة الرئيسية"</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="w-6 h-6 shrink-0 bg-white rounded shadow-sm flex items-center justify-center text-xs font-bold text-slate-500">3</span>
+                    <span className="w-7 h-7 shrink-0 bg-[#e3ece5] rounded-full flex items-center justify-center text-xs font-bold text-[#0f3d1f]">3</span>
                     <span>اضغط "إضافة" في الأعلى</span>
                   </li>
                 </ul>
               </div>
-              <button onClick={handleCloseIOSPrompt} className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-sm active:scale-95">
+              <button onClick={handleCloseIOSPrompt} className="mt-6 w-full min-h-12 py-3 bg-[#0f3d1f] hover:bg-[#17602f] text-white font-bold rounded-xl transition-colors text-sm active:scale-95">
                 حسناً، فهمت
               </button>
             </motion.div>
