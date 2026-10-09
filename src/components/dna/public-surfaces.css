@@ -259,15 +259,18 @@
   --color-green-50:#e8efe9; --color-green-100:#d6e3d9; --color-green-500:#17602f; --color-green-600:#0f3d1f; --color-green-700:#0c3219;
   /* warm accents -> gold */
   --color-amber-50:#faf3d9; --color-amber-100:#f5e8b8; --color-amber-200:#ecd78a; --color-amber-300:#e3c660; --color-amber-400:#d4af37;
-  --color-amber-500:#c29b24; --color-amber-600:#9a7716; --color-amber-700:#7a5c0a; --color-amber-800:#5e4605;
+  --color-amber-500:#c29b24; --color-amber-600:#8c6a10; --color-amber-700:#7a5c0a; --color-amber-800:#5e4605;
   --color-yellow-50:#faf3d9; --color-yellow-100:#f5e8b8; --color-yellow-400:#d4af37; --color-yellow-500:#c29b24; --color-yellow-600:#9a7716;
   --color-orange-50:#faf3d9; --color-orange-100:#f5e8b8; --color-orange-400:#d4af37; --color-orange-500:#c29b24; --color-orange-600:#9a7716;
   /* danger stays red but in the brand's muted red */
   --color-red-50:#f7e5e3; --color-red-100:#f1d3d0; --color-red-500:#b04a43; --color-red-600:#a2433d; --color-red-700:#8c2f29;
   --color-rose-50:#f7e5e3; --color-rose-100:#f1d3d0; --color-rose-500:#b04a43; --color-rose-600:#a2433d; --color-rose-700:#8c2f29;
   /* navy slate -> warm green-grey, so no screen is blue-black */
-  --color-slate-50:#fbf9f3; --color-slate-100:#f3eee1; --color-slate-200:#e6dfce; --color-slate-300:#cfc8b6; --color-slate-400:#7a847c;
+  --color-slate-50:#fbf9f3; --color-slate-100:#f3eee1; --color-slate-200:#e6dfce; --color-slate-300:#cfc8b6; --color-slate-400:#69746c;
   --color-slate-500:#55625a; --color-slate-600:#3f4c44; --color-slate-700:#2c3a31; --color-slate-800:#1f2d24; --color-slate-900:#14231a; --color-slate-950:#0b1a10;
+  --color-blue-300:#9fd6ae; --color-sky-400:#5fbf7a; --color-cyan-300:#9fd6ae; --color-cyan-400:#5fbf7a; --color-orange-700:#7a5c0a;
+  --color-red-200:#e6bdb9; --color-rose-200:#e6bdb9; --color-rose-300:#d99a94; --color-rose-400:#c4655e; --color-rose-950:#3a1512;
+  --color-emerald-900:#08200f; --color-emerald-950:#04120a; --color-amber-900:#4a3704; --color-amber-950:#2e2203;
   --color-gray-500:#55625a; --color-gray-600:#3f4c44; --color-gray-700:#2c3a31; --color-gray-900:#14231a;
 }
 .partner-brand .smart-studio-hero { background-image: linear-gradient(135deg, #0f3d1f 0%, #17602f 60%, #0c2c17 100%) !important; }
@@ -310,3 +313,8 @@
 .partner-side-name { font-size: 16px; font-weight: 800; color: #fff; word-break: break-word; }
 .partner-side-mail { max-width: 100%; font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.72); word-break: break-all; }
 .partner-side-role { margin-top: 4px; padding: 3px 12px; font-size: 12px; font-weight: 800; color: #f1d77a; background: rgba(212, 175, 55, 0.14); border-radius: 999px; }
+
+/* partner: the invoice primary action and total follow the brand, not rose */
+.partner-brand .invoice-mobile-submit { background: #0f3d1f !important; box-shadow: 0 12px 24px -12px rgba(15, 61, 31, 0.6) !important; }
+.partner-brand .invoice-mobile-submit:hover { background: #17602f !important; }
+.partner-brand div.bg-rose-50.text-rose-600.p-3 { background: #e3ece5; color: #0f3d1f; border-color: #b3cdb9; }
