@@ -55,7 +55,7 @@ import {
   Clock,
   Command
 } from 'lucide-react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion, MotionConfig } from 'motion/react';
 import { heritageMotion } from './lib/heritageMotion';
 import { cn, normalizeArabic, formatKuwaitiDateOnly } from './lib/utils';
 const Dashboard = React.lazy(() => import('./components/Dashboard'));
@@ -664,31 +664,35 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   }, [invoiceId]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 md:p-6 arabic-font text-center" dir="rtl">
-       <div className="bg-white rounded-2xl p-4 md:p-8 max-w-lg w-full shadow-xl border border-slate-100">
+    <div className="pub-page pub-pay arabic-font" dir="rtl">
+       <main className="pub-card pub-card--narrow" role="status" aria-live="polite">
            {statusMsg ? (
-               <div className="animate-in fade-in zoom-in duration-500 py-6">
-                   <div className={cn(
-                       "w-12 md:w-20 h-12 md:h-20 rounded-2xl flex items-center justify-center mx-auto mb-6",
-                       statusMsg.isError ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-500"
-                   )}>
-                       {statusMsg.isError ? <XCircle size={40} /> : <CheckCircle2 size={40} />}
+               <div className="pub-pay-result" data-state={statusMsg.isError ? 'failed' : 'success'}>
+                   <div className="pub-mark" aria-hidden="true">
+                       <svg viewBox="0 0 96 96" width="96" height="96" fill="none">
+                           <circle className="pub-mark-ring" cx="48" cy="48" r="42" />
+                           {statusMsg.isError ? (
+                               <path className="pub-mark-glyph" d="M34 34 L62 62 M62 34 L34 62" pathLength={1} />
+                           ) : (
+                               <path className="pub-mark-glyph" d="M30 49 L43 62 L67 36" pathLength={1} />
+                           )}
+                       </svg>
                    </div>
-                   <h1 className="text-xl md:text-3xl font-bold text-slate-800 mb-2">{statusMsg.title}</h1>
-                   <p className="text-slate-500 font-bold mb-8 text-lg" dir="ltr">{statusMsg.sub}</p>
+                   <h1 className="pub-title">{statusMsg.title}</h1>
+                   <p className="pub-sub pub-sub--lead">{statusMsg.sub}</p>
                    
-                   <div className="flex items-center justify-center gap-3 text-sm text-slate-500 font-bold">
-                       <Loader2 size={16} className="animate-spin text-blue-500" />
+                   <div className="pub-redirect">
+                       <Loader2 size={16} className="pub-spin-icon" />
                        بنحوّلك لصفحة التتبع...
                    </div>
                </div>
            ) : (
-               <div className="py-6 md:py-12 flex flex-col items-center justify-center">
+               <div className="pub-pay-wait">
                   <AdminMicroLoader size={48} label="نتأكد من عملية الدفع" className="mb-4" />
-                  <p className="font-bold text-slate-500">نتأكد من عملية الدفع...</p>
+                  <p className="pub-sub">نتأكد من عملية الدفع...</p>
                </div>
            )}
-       </div>
+       </main>
     </div>
   );
 };
@@ -1059,9 +1063,9 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
   const statusText = phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…' : 'جاري مزامنة بيانات الإدارة…';
 
   return (
-    <div ref={rootRef} className="fixed inset-0 z-[99997] flex h-[100dvh] w-full overflow-hidden bg-slate-50 arabic-font" dir="rtl" aria-busy="true">
+    <div ref={rootRef} className="fixed inset-0 z-[99997] flex h-[100dvh] w-full overflow-hidden bg-[#fbf7ee] arabic-font" dir="rtl" aria-busy="true">
       {/* Sidebar skeleton (desktop only, matches shell layout) */}
-      <div className="hidden lg:flex w-64 shrink-0 flex-col gap-3 border-l border-slate-200/70 bg-slate-950 p-5">
+      <div className="hidden lg:flex w-64 shrink-0 flex-col gap-3 border-l border-[#d4af37]/25 bg-[#0f3d1f] p-5">
         <div className="h-10 w-10 rounded-2xl bg-white/10" />
         <div className="mt-6 space-y-3">
           {[...Array(6)].map((_, i) => (
@@ -1072,15 +1076,15 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
 
       {/* Main region skeleton */}
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-16 border-b border-slate-200/70 bg-white/90 flex items-center justify-between px-4 md:px-6">
-          <div className="h-8 w-40 rounded-full bg-slate-100" />
-          <div className="h-9 w-9 rounded-full bg-slate-100" />
+        <div className="h-16 border-b border-[#d4af37]/25 bg-white/90 flex items-center justify-between px-4 md:px-6">
+          <div className="h-8 w-40 rounded-full bg-[#efe8d6]" />
+          <div className="h-9 w-9 rounded-full bg-[#efe8d6]" />
         </div>
         <div className="flex-1 overflow-hidden p-4 md:p-6 space-y-4">
-          <div className="h-24 rounded-3xl border border-slate-200/70 bg-white/80" />
+          <div className="h-24 rounded-3xl border border-[#d4af37]/25 bg-white/80" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-28 rounded-3xl border border-slate-200/70 bg-white/80" />
+              <div key={i} className="h-28 rounded-3xl border border-[#d4af37]/25 bg-white/80" />
             ))}
           </div>
         </div>
@@ -1096,10 +1100,10 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
       >
         <AdminMicroLoader size={44} appearDelay={250} label={statusText} />
         {showStatus && (
-          <p className="text-sm font-bold text-slate-500 text-center">{statusText}</p>
+          <p className="text-sm font-bold text-[#55625a] text-center">{statusText}</p>
         )}
         {slow && (
-          <p className="text-xs font-bold text-slate-400 max-w-xs text-center leading-6">
+          <p className="text-xs font-bold text-[#55625a] max-w-xs text-center leading-6">
             المزامنة تأخذ وقتاً أطول من المعتاد. دخولك سليم والاتصال شغال — لا حاجة لإعادة تسجيل الدخول.
           </p>
         )}
@@ -1123,8 +1127,9 @@ const CloudConnectionGate: React.FC<{
     : [BadgeCheck, Zap, Database];
 
   return (
-    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#06110f] px-5 arabic-font" dir="rtl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(16,185,129,.22),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(245,184,74,.16),transparent_28%),linear-gradient(145deg,#030706_0%,#0b1714_46%,#12110a_100%)]" />
+    <MotionConfig reducedMotion="user">
+    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#07140b] px-5 arabic-font" dir="rtl">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(23,96,47,.42),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(212,175,55,.2),transparent_28%),linear-gradient(145deg,#040a06_0%,#0a1d10_46%,#14120a_100%)]" />
       <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
       <motion.div
         className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
@@ -1136,8 +1141,8 @@ const CloudConnectionGate: React.FC<{
         animate={{ rotate: -360 }}
         transition={{ duration: 32, repeat: Infinity, ease: 'linear' }}
       />
-      <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-300/16 blur-[105px]" />
-      <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/14 blur-[110px]" />
+      <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/15 blur-[105px]" />
+      <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/16 blur-[110px]" />
 
       <motion.div
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
@@ -1240,9 +1245,9 @@ const CloudConnectionGate: React.FC<{
           transition={{ delay: 0.15, duration: 0.5 }}
           className="relative -mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.075] px-6 py-6 shadow-[0_26px_90px_rgba(0,0,0,.38)] backdrop-blur-2xl"
         >
-          <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-emerald-100/18 bg-emerald-300/10 text-emerald-100'} px-4 py-2 text-[11px] font-black`}>
+          <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-amber-200/25 bg-amber-300/10 text-amber-100'} px-4 py-2 text-xs font-black`}>
             <motion.span
-              className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-emerald-300'}`}
+              className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-amber-300'}`}
               animate={{ opacity: [0.35, 1, 0.35], scale: [0.88, 1.18, 0.88] }}
               transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
             />
@@ -1252,7 +1257,7 @@ const CloudConnectionGate: React.FC<{
           <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">{title}</h1>
 
           {isOffline ? (
-            <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-300">
+            <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-200">
               تعذر الاتصال مؤقتاً. تم إيقاف التعديل لحماية البيانات حتى يعود الاتصال.
             </p>
           ) : (
@@ -1260,7 +1265,7 @@ const CloudConnectionGate: React.FC<{
               {[0, 1, 2, 3, 4].map((item) => (
                 <motion.span
                   key={item}
-                  className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-emerald-200 to-amber-200 shadow-[0_0_18px_rgba(245,184,74,.34)]"
+                  className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-300 shadow-[0_0_18px_rgba(245,184,74,.34)]"
                   animate={{ y: [0, -9, 0], opacity: [0.35, 1, 0.35], scale: [0.86, 1.18, 0.86] }}
                   transition={{ duration: 1.05, repeat: Infinity, delay: item * 0.11, ease: 'easeInOut' }}
                 />
@@ -1268,7 +1273,7 @@ const CloudConnectionGate: React.FC<{
             </div>
           )}
 
-          <div className="mt-5 text-[11px] font-bold text-slate-400/80">{name || 'شركة مطبخ التراث الكويتي'}</div>
+          <div className="mt-5 text-xs font-bold text-slate-300">{name || 'شركة مطبخ التراث الكويتي'}</div>
 
           {isOffline && (
             <button
@@ -1283,9 +1288,9 @@ const CloudConnectionGate: React.FC<{
         </motion.div>
       </motion.div>
     </div>
+  </MotionConfig>
   );
 };
-
 const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || item?.amount || item?.price || 0) || 0;
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
