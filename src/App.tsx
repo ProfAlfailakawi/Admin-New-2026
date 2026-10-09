@@ -663,23 +663,36 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
 
   }, [invoiceId]);
 
+  // Presentation only: which kind of non-success return this is, from params already parsed above.
+  const payVariant: 'failed' | 'cancel' | 'error' =
+    path === '/cancel' || resultParam === 'CANCELED' || resultParam === 'CANCELLED' || resultParam === 'VOIDED' ? 'cancel'
+    : path === '/error' ? 'error' : 'failed';
+  const payCopy = !statusMsg?.isError ? null
+    : payVariant === 'cancel' ? { title: 'تم إلغاء الدفع', sub: 'أوقفت عملية الدفع، وتقدر ترجع وتكمل الطلب وقت ما تبي' }
+    : payVariant === 'error' ? { title: 'صار خلل أثناء الدفع', sub: 'ما قدرنا نكمل العملية، حاول مرة ثانية بعد شوي' }
+    : null;
+
   return (
     <div className="pub-page pub-pay arabic-font" dir="rtl">
        <main className="pub-card pub-card--narrow" role="status" aria-live="polite">
            {statusMsg ? (
-               <div className="pub-pay-result" data-state={statusMsg.isError ? 'failed' : 'success'}>
+               <div className="pub-pay-result" data-state={statusMsg.isError ? payVariant : 'success'}>
                    <div className="pub-mark" aria-hidden="true">
                        <svg viewBox="0 0 96 96" width="96" height="96" fill="none">
                            <circle className="pub-mark-ring" cx="48" cy="48" r="42" />
-                           {statusMsg.isError ? (
+                           {payVariant === 'cancel' ? (
+                               <path className="pub-mark-glyph" d="M32 48 L64 48" pathLength={1} />
+                           ) : payVariant === 'error' ? (
+                               <path className="pub-mark-glyph" d="M48 28 L48 52 M48 65 L48 65.5" pathLength={1} />
+                           ) : statusMsg.isError ? (
                                <path className="pub-mark-glyph" d="M34 34 L62 62 M62 34 L34 62" pathLength={1} />
                            ) : (
                                <path className="pub-mark-glyph" d="M30 49 L43 62 L67 36" pathLength={1} />
                            )}
                        </svg>
                    </div>
-                   <h1 className="pub-title">{statusMsg.title}</h1>
-                   <p className="pub-sub pub-sub--lead">{statusMsg.sub}</p>
+                   <h1 className="pub-title">{payCopy ? payCopy.title : statusMsg.title}</h1>
+                   <p className="pub-sub pub-sub--lead">{payCopy ? payCopy.sub : statusMsg.sub}</p>
                    
                    <div className="pub-redirect">
                        <Loader2 size={16} className="pub-spin-icon" />
@@ -4436,7 +4449,7 @@ const MainApp: React.FC = () => {
   const showSecondFloatingTools = (floatingToolRole === 'admin' || (floatingToolRole as any) === 'local') && showExecutiveFloatingTools;
 
   return (
-    <div className="admin-heritage-shell flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font" dir="rtl">
+    <div className={`admin-heritage-shell${userRole === 'partner' ? ' partner-brand' : ''} flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font`} dir="rtl">
       <AmbientBackground />
       <LoginIntro />
 

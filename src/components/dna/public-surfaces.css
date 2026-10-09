@@ -169,6 +169,8 @@
 .pub-mark-glyph { stroke: var(--mk); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: pub-draw 0.5s var(--pub-ease) 0.25s both; }
 .pub-pay-result[data-state='success'] { --mk: var(--pub-green); --mk-soft: var(--pub-green-soft); }
 .pub-pay-result[data-state='failed'] { --mk: var(--pub-danger); --mk-soft: var(--pub-danger-soft); }
+.pub-pay-result[data-state='cancel'] { --mk: var(--pub-gold-ink); --mk-soft: var(--pub-gold-soft); }
+.pub-pay-result[data-state='error'] { --mk: var(--pub-danger); --mk-soft: var(--pub-danger-soft); }
 .pub-mark-ring { stroke-dasharray: none; }
 @keyframes pub-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 .pub-redirect { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: var(--pub-muted); background: var(--pub-cream); border-radius: 999px; }
@@ -231,3 +233,73 @@
 .admin-login-showcase .login-install-btn { color: var(--pub-gold-ink) !important; background: var(--pub-gold-soft) !important; box-shadow: 0 10px 24px -14px rgba(15, 61, 31, 0.5) !important; }
 .admin-login-showcase .login-form-stage-cloud-first .login-install-btn::after { font-size: 12px; color: var(--pub-gold-ink); transform: translateY(36px); }
 .admin-login-showcase:after { display: none; } /* the diagonal sweep painted a hard-edged grey slab */
+
+/* ==========================================================================
+   Partner mode: the partner is a real non-owner user, so every screen they can
+   reach speaks the same brand. Token level only: Tailwind v4 reads colours from
+   --color-* variables, so re-pointing them inside .partner-brand recolours the
+   shared screens (orders, invoices, assistant, studio, diwaniya) without touching
+   their layout or behaviour. Owner screens never get this class.
+   ========================================================================== */
+.partner-brand {
+  /* every cool hue -> deep green family */
+  --color-indigo-50:#e8efe9; --color-indigo-100:#d6e3d9; --color-indigo-200:#b3cdb9; --color-indigo-300:#7fae8c; --color-indigo-400:#3f8553;
+  --color-indigo-500:#17602f; --color-indigo-600:#0f3d1f; --color-indigo-700:#0c3219; --color-indigo-800:#0a2915; --color-indigo-900:#08200f;
+  --color-violet-50:#e8efe9; --color-violet-100:#d6e3d9; --color-violet-200:#b3cdb9; --color-violet-300:#7fae8c; --color-violet-400:#3f8553;
+  --color-violet-500:#17602f; --color-violet-600:#0f3d1f; --color-violet-700:#0c3219; --color-violet-800:#0a2915; --color-violet-900:#08200f;
+  --color-purple-50:#e8efe9; --color-purple-100:#d6e3d9; --color-purple-200:#b3cdb9; --color-purple-300:#7fae8c; --color-purple-400:#3f8553;
+  --color-purple-500:#17602f; --color-purple-600:#0f3d1f; --color-purple-700:#0c3219; --color-purple-800:#0a2915; --color-purple-900:#08200f;
+  --color-fuchsia-500:#17602f; --color-fuchsia-600:#0f3d1f; --color-blue-50:#e8efe9; --color-blue-100:#d6e3d9; --color-blue-200:#b3cdb9;
+  --color-blue-400:#3f8553; --color-blue-500:#17602f; --color-blue-600:#0f3d1f; --color-blue-700:#0c3219;
+  --color-sky-50:#e8efe9; --color-sky-100:#d6e3d9; --color-sky-500:#17602f; --color-sky-600:#0f3d1f;
+  --color-cyan-50:#e8efe9; --color-cyan-500:#17602f; --color-cyan-600:#0f3d1f;
+  --color-teal-50:#e8efe9; --color-teal-100:#d6e3d9; --color-teal-500:#17602f; --color-teal-600:#0f3d1f; --color-teal-700:#0c3219;
+  --color-emerald-50:#e8efe9; --color-emerald-100:#d6e3d9; --color-emerald-200:#b3cdb9; --color-emerald-300:#7fae8c; --color-emerald-400:#3f8553;
+  --color-emerald-500:#17602f; --color-emerald-600:#0f3d1f; --color-emerald-700:#0c3219; --color-emerald-800:#0a2915;
+  --color-green-50:#e8efe9; --color-green-100:#d6e3d9; --color-green-500:#17602f; --color-green-600:#0f3d1f; --color-green-700:#0c3219;
+  /* warm accents -> gold */
+  --color-amber-50:#faf3d9; --color-amber-100:#f5e8b8; --color-amber-200:#ecd78a; --color-amber-300:#e3c660; --color-amber-400:#d4af37;
+  --color-amber-500:#c29b24; --color-amber-600:#9a7716; --color-amber-700:#7a5c0a; --color-amber-800:#5e4605;
+  --color-yellow-50:#faf3d9; --color-yellow-100:#f5e8b8; --color-yellow-400:#d4af37; --color-yellow-500:#c29b24; --color-yellow-600:#9a7716;
+  --color-orange-50:#faf3d9; --color-orange-100:#f5e8b8; --color-orange-400:#d4af37; --color-orange-500:#c29b24; --color-orange-600:#9a7716;
+  /* danger stays red but in the brand's muted red */
+  --color-red-50:#f7e5e3; --color-red-100:#f1d3d0; --color-red-500:#b04a43; --color-red-600:#a2433d; --color-red-700:#8c2f29;
+  --color-rose-50:#f7e5e3; --color-rose-100:#f1d3d0; --color-rose-500:#b04a43; --color-rose-600:#a2433d; --color-rose-700:#8c2f29;
+  /* navy slate -> warm green-grey, so no screen is blue-black */
+  --color-slate-50:#fbf9f3; --color-slate-100:#f3eee1; --color-slate-200:#e6dfce; --color-slate-300:#cfc8b6; --color-slate-400:#7a847c;
+  --color-slate-500:#55625a; --color-slate-600:#3f4c44; --color-slate-700:#2c3a31; --color-slate-800:#1f2d24; --color-slate-900:#14231a; --color-slate-950:#0b1a10;
+  --color-gray-500:#55625a; --color-gray-600:#3f4c44; --color-gray-700:#2c3a31; --color-gray-900:#14231a;
+}
+.partner-brand .smart-studio-hero { background-image: linear-gradient(135deg, #0f3d1f 0%, #17602f 60%, #0c2c17 100%) !important; }
+.partner-brand .ai-suggestion-chip,
+.partner-brand .ai-mission-card { color: #2c3a31; }
+
+/* Loader pieces in brand colours (colour only; geometry and animation untouched) */
+.aml-p1 { background: #cfc8b6 !important; }
+.aml-p2 { background: #0f3d1f !important; }
+.aml-p3 { background: #17602f !important; }
+.aml-p4 { background: #d4af37 !important; }
+.aml-p5 { background: #b3cdb9 !important; }
+.partner-brand .page-skeleton .admin-skeleton { background: #efe8d6 !important; border-color: #e6dfce; }
+
+/* offline notice: brand ink instead of navy */
+.admin-offline-toast { background: rgba(11, 26, 16, 0.95) !important; border-color: rgba(212, 175, 55, 0.35) !important; }
+.offline-dot { background: #d4af37 !important; }
+
+/* partner shell sidebar: deep green, not navy */
+.partner-brand aside.bg-slate-950 {
+  background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.16), transparent 30%), linear-gradient(180deg, #07170d 0%, #0f3d1f 55%, #07120a 100%) !important;
+}
+/* forecast chart (shared with owner): re-point its hard-coded indigo/mint, partner only */
+.partner-brand [stroke='#4f46e5'] { stroke: #0f3d1f; }
+.partner-brand [stroke='#10b981'] { stroke: #d4af37; }
+.partner-brand stop[stop-color='#6366f1'] { stop-color: #0f3d1f; }
+.partner-brand stop[stop-color='#10b981'] { stop-color: #d4af37; }
+.partner-brand [fill='#4f46e5'] { fill: #0f3d1f; }
+.partner-brand [fill='#10b981'] { fill: #d4af37; }
+.partner-brand .ai-mission-icon { background: #f3eee1; color: #7a5c0a; border-color: #e6dfce; }
+.partner-brand .ai-mission-card.is-risk .ai-mission-icon { background: #f7e5e3; color: #a2433d; border-color: #f1d3d0; }
+.partner-brand .ai-mission-card.is-action .ai-mission-icon { background: #f7efd2; color: #7a5c0a; border-color: rgba(212,175,55,.5); }
+.partner-brand .ai-mission-card.is-opportunity .ai-mission-icon { background: #e3ece5; color: #0f3d1f; border-color: #b3cdb9; }
+.partner-brand .recharts-tooltip-wrapper [style*='rgb(79, 70, 229)'] { color: #0f3d1f !important; }
+.partner-brand .recharts-tooltip-wrapper [style*='rgb(16, 185, 129)'] { color: #7a5c0a !important; }
