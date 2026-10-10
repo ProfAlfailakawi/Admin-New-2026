@@ -54,7 +54,7 @@
 }
 
 /* ---- accordion headers: the leading icon sits in a gold tile ---- */
-.admin-content-polish section.bg-white > button.w-full > div:first-child > svg:first-child {
+.admin-content-polish .bp-acc > button > div:first-child > svg:first-child {
   box-sizing: content-box;
   width: 20px;
   height: 20px;
@@ -65,7 +65,7 @@
   background: linear-gradient(145deg, #fffaf0, #f5e7b4);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.4), 0 6px 14px -6px rgba(122, 92, 10, 0.45);
 }
-.admin-content-polish section.bg-white > button.w-full {
+.admin-content-polish .bp-acc > button {
   background: linear-gradient(180deg, #fff, #f8fafc) !important;
 }
 
@@ -91,22 +91,44 @@
   font-weight: 800;
 }
 
-/* ---- dark sidebar: a soft gold glow behind the brand so it is not a flat slab ---- */
-aside.bg-slate-900,
-aside[class*="bg-[#0"] {
-  background-image: radial-gradient(120% 40% at 50% 0%, rgba(212, 175, 55, 0.12), transparent 70%);
+/* ---- short entrance (opacity + transform only) ---- */
+/* ---- sidebar: gold-lattice foot, readable group labels ---- */
+.bp-sidebar::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 44%;
+  background: var(--bp-diamond) center bottom / 44px 44px repeat;
+  opacity: 0.2;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to top, #000, transparent);
+  mask-image: linear-gradient(to top, #000, transparent);
+}
+.bp-sidebar .bp-nav-group {
+  min-height: 44px;
+  color: rgba(255, 255, 255, 0.78);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+.bp-sidebar .bp-nav-group:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+/* ---- stat cards: AA label colour comes from the component; display numerals here ---- */
+.bp-statcard { background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(252, 249, 240, 0.8)); }
+.bp-statvalue { font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.02em; font-weight: 800; }
+@media (min-width: 768px) { .bp-statvalue { font-size: 1.9rem; line-height: 1.1; } }
+
+/* ---- phones: the pinned payment toast is compact (main already keeps 96px of bottom padding) ---- */
+@media (max-width: 639px) {
+  [data-sonner-toast][data-type="success"] { padding: 10px 12px; font-size: 14px !important; }
 }
 
-/* ---- short entrance (opacity + transform only) ---- */
+/* ---- short entrance (opacity + transform only; backwards fill so hover transforms keep working) ---- */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes bp-rise {
     from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: none; }
   }
   .admin-page-hero { animation: bp-rise 0.5s var(--bp-ease) backwards; }
-  .admin-content-polish > div > * { animation: bp-rise 0.55s var(--bp-ease) backwards; }
-  .admin-content-polish > div > *:nth-child(1) { animation-delay: 0.06s; }
-  .admin-content-polish > div > *:nth-child(2) { animation-delay: 0.12s; }
-  .admin-content-polish > div > *:nth-child(3) { animation-delay: 0.18s; }
-  .admin-content-polish > div > *:nth-child(n + 4) { animation-delay: 0.24s; }
+  .admin-content-polish > div > * { animation: bp-rise 0.55s 0.08s var(--bp-ease) backwards; }
 }
