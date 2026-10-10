@@ -1044,8 +1044,13 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   transform-origin: left center;
   transition: transform 0.5s var(--dna-ease);
 }
-.dna-steps[data-journey]:dir(rtl) .dna-stepi + .dna-stepi::after,
-[dir='rtl'] .dna-steps[data-journey] .dna-stepi + .dna-stepi::after { transform-origin: right center; }
+.dna-steps[data-journey]:dir(rtl) .dna-stepi + .dna-stepi::after { transform-origin: right center; }
+/* engines without :dir() fall back to the nearest dir attribute (a nested LTR island inside RTL still fills from the left) */
+@supports not selector(:dir(rtl)) {
+  [dir='rtl'] .dna-steps[data-journey] .dna-stepi + .dna-stepi::after { transform-origin: right center; }
+  [dir='rtl'] [dir='ltr'] .dna-steps[data-journey] .dna-stepi + .dna-stepi::after,
+  [dir='ltr'] .dna-steps[data-journey] .dna-stepi + .dna-stepi::after { transform-origin: left center; }
+}
 .dna-steps[data-journey] .dna-stepi[data-link='done']::after { transform: scaleX(1); }
 .dna-steps[data-journey][data-size='xs'] .dna-stepi + .dna-stepi::after {
   inset-block-start: calc(var(--node) / 2 - 0.75px);
@@ -1060,7 +1065,6 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   animation: none;
 }
 .dna-steps[data-journey] .dna-lbl { transition: color 0.4s var(--dna-ease), opacity 0.4s var(--dna-ease); }
-.dna-steps[data-journey] .dna-stepi[data-state='pending'] .dna-lbl { opacity: 0.7; }
 /* intro only: pop, check draw-in and ONE soft halo (no infinite loop in journey mode) */
 .dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node {
   animation: dna-journey-pop 0.4s var(--dna-ease) both;
@@ -1091,7 +1095,6 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
 .dna-steps[data-journey] .dna-stepi[data-shown='pending'] .dna-lbl {
   color: var(--dna-muted);
   font-weight: 500;
-  opacity: 0.7;
 }
 @media (prefers-reduced-motion: reduce) {
   .dna-steps[data-journey] .dna-stepi::before,
