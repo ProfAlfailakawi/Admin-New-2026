@@ -2626,6 +2626,7 @@ const MainApp: React.FC = () => {
           <span>🔔</span>
         </div>, {
         id: 'persistent-new-orders',
+        className: 'bp-payment-toast',
         duration: 3000, // Show for 3s to sync with sound
         style: {
            background: '#fff',

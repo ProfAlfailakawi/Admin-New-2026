@@ -121,7 +121,7 @@
 
 /* ---- phones: the pinned payment toast is compact (main already keeps 96px of bottom padding) ---- */
 @media (max-width: 639px) {
-  [data-sonner-toast][data-type="success"] { padding: 10px 12px; font-size: 14px !important; }
+  .bp-payment-toast[data-sonner-toast] { padding: 10px 12px; font-size: 14px !important; }
 }
 
 /* ---- short entrance (opacity + transform only; backwards fill so hover transforms keep working) ---- */
