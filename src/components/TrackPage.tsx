@@ -348,6 +348,8 @@ export default function TrackPage() {
  <DnaStepper
  size="sm"
  className="dna-steps-track"
+ reveal
+ playKey={`track-${order.id}`}
  ariaLabel="مراحل الطلب"
  steps={[
  { key: 'received', label: 'استلام الطلب', state: 'done' },

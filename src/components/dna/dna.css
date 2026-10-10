@@ -19,6 +19,8 @@
   --dna-on-accent: #ffffff;
   --dna-core: #10231d;
   --dna-on-core: #ffffff;
+  --journey-fill: var(--dna-accent);
+  --journey-on-fill: var(--dna-on-accent);
   --dna-warn: #9a6b17;
   --dna-warn-soft: #f6ecd8;
   --dna-danger: #a2433d;
@@ -1000,15 +1002,15 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   from { transform: scale(0.8); }
   to { transform: scale(1); }
 }
-.dna-steps-track .dna-stepi[data-link='done']::before {
+.dna-steps-track:not([data-journey]) .dna-stepi[data-link='done']::before {
   transform-origin: left center;
   animation: dna-track-line 0.7s var(--dna-ease) 0.1s both;
 }
-.dna-steps-track:dir(rtl) .dna-stepi[data-link='done']::before { transform-origin: right center; }
-.dna-steps-track .dna-stepi[data-state='done'] .dna-node {
+.dna-steps-track:not([data-journey]):dir(rtl) .dna-stepi[data-link='done']::before { transform-origin: right center; }
+.dna-steps-track:not([data-journey]) .dna-stepi[data-state='done'] .dna-node {
   animation: dna-track-pop 0.45s var(--dna-ease) both;
 }
-.dna-steps-track .dna-stepi[data-state='done'] .dna-node > svg path {
+.dna-steps-track:not([data-journey]) .dna-stepi[data-state='done'] .dna-node > svg path {
   stroke-dasharray: 24;
   animation: dna-track-check 0.5s var(--dna-ease) 0.35s both;
 }
@@ -1016,4 +1018,85 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   .dna-steps-track .dna-stepi::before,
   .dna-steps-track .dna-node,
   .dna-steps-track .dna-node > svg path { animation: none !important; }
+}
+
+/* ---------- journey stepper (opt-in `reveal`): staged fill, plays once ----------
+   The fill colour is --journey-fill (a site maps it in its theme file). The
+   steps' data-state values are the truth; during the intro only stations that
+   have been reached show their real state, the rest stay outlined. */
+.dna-steps[data-journey] {
+  --dna-accent: var(--journey-fill);
+  --dna-accent-soft: color-mix(in srgb, var(--journey-fill) 18%, var(--dna-surface));
+  --dna-on-accent: var(--journey-on-fill);
+}
+/* ::before stays the track; ::after is the fill that scales in from the inline-start side */
+.dna-steps[data-journey] .dna-stepi[data-link='done']::before { background: var(--dna-line-2); }
+.dna-steps[data-journey] .dna-stepi + .dna-stepi::after {
+  content: '';
+  position: absolute;
+  inset-block-start: calc(var(--node) / 2 - 1px);
+  inset-inline-start: calc(-50% + var(--node) / 2 + 5px);
+  inline-size: calc(100% - var(--node) - 10px);
+  block-size: 2px;
+  border-radius: 2px;
+  background: var(--dna-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.5s var(--dna-ease);
+}
+.dna-steps[data-journey]:dir(rtl) .dna-stepi + .dna-stepi::after,
+[dir='rtl'] .dna-steps[data-journey] .dna-stepi + .dna-stepi::after { transform-origin: right center; }
+.dna-steps[data-journey] .dna-stepi[data-link='done']::after { transform: scaleX(1); }
+.dna-steps[data-journey][data-size='xs'] .dna-stepi + .dna-stepi::after {
+  inset-block-start: calc(var(--node) / 2 - 0.75px);
+  inset-inline-start: calc(-50% + var(--node) / 2 + 2px);
+  inline-size: calc(100% - var(--node) - 4px);
+  block-size: 1.5px;
+}
+/* the node fills just after the line reaches it */
+.dna-steps[data-journey] .dna-stepi[data-just] .dna-node { transition-delay: 0.25s; }
+.dna-steps[data-journey] .dna-stepi[data-state='current'] .dna-node {
+  color: var(--dna-ink);
+  animation: none;
+}
+.dna-steps[data-journey] .dna-lbl { transition: color 0.4s var(--dna-ease), opacity 0.4s var(--dna-ease); }
+.dna-steps[data-journey] .dna-stepi[data-state='pending'] .dna-lbl { opacity: 0.7; }
+/* intro only: pop, check draw-in and ONE soft halo (no infinite loop in journey mode) */
+.dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node {
+  animation: dna-journey-pop 0.4s var(--dna-ease) both;
+}
+.dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node > svg path {
+  stroke-dasharray: 24;
+  animation: dna-track-check 0.45s var(--dna-ease) 0.2s both;
+}
+.dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='current'][data-just] .dna-node {
+  animation: dna-journey-halo 1.5s var(--dna-ease) 0.25s 1 both;
+}
+@keyframes dna-journey-pop {
+  from { transform: scale(0.85); }
+  to { transform: scale(1); }
+}
+@keyframes dna-journey-halo {
+  0% { box-shadow: inset 0 0 0 2px var(--dna-accent), 0 0 0 0 color-mix(in srgb, var(--dna-accent) 45%, transparent); }
+  60% { box-shadow: inset 0 0 0 2px var(--dna-accent), 0 0 0 9px color-mix(in srgb, var(--dna-accent) 0%, transparent); }
+  100% { box-shadow: inset 0 0 0 2px var(--dna-accent), 0 0 0 4px color-mix(in srgb, var(--dna-accent) 12%, transparent); }
+}
+/* intro: a station not reached yet LOOKS pending while data-state/aria keep the real state */
+.dna-steps[data-journey] .dna-stepi[data-shown='pending'] .dna-node {
+  background: var(--dna-surface);
+  color: var(--dna-muted);
+  box-shadow: inset 0 0 0 1.5px var(--dna-line-2);
+  animation: none !important;
+}
+.dna-steps[data-journey] .dna-stepi[data-shown='pending'] .dna-lbl {
+  color: var(--dna-muted);
+  font-weight: 500;
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dna-steps[data-journey] .dna-stepi::before,
+  .dna-steps[data-journey] .dna-stepi::after,
+  .dna-steps[data-journey] .dna-node,
+  .dna-steps[data-journey] .dna-node > svg path,
+  .dna-steps[data-journey] .dna-lbl { animation: none !important; transition: none !important; }
 }

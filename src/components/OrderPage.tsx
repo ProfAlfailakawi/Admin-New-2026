@@ -426,6 +426,31 @@ const OrderPage: React.FC<OrderPageProps> = ({
     return status;
   };
 
+  // Payment-centric journey (same truth as the status badge): received -> payment -> invoice.
+  const getOrderJourneySteps = (order: Order) => [
+    { key: "received", label: "استلام الطلب", state: "done" as const },
+    {
+      key: "payment",
+      label: getStatusLabel(order.status, order),
+      state: isCancelledStatus(order.status as string)
+        ? ("returned" as const)
+        : isPaidStatus(order.status as string)
+          ? ("done" as const)
+          : isFailedStatus(order.status as string)
+            ? ("blocked" as const)
+            : ("current" as const),
+    },
+    {
+      key: "invoice",
+      label: "تحويل لفاتورة",
+      state: order.isConvertedToInvoice
+        ? ("done" as const)
+        : isPaidStatus(order.status as string)
+          ? ("current" as const)
+          : ("pending" as const),
+    },
+  ];
+
   const getOrderSubtotal = (order: Order) => {
     // Priority 1: Calculate from individual items for maximum accuracy
     let itemsTotal = 0;
@@ -1593,29 +1618,7 @@ Alturath.kw`;
                       size="xs"
                       className="mb-3"
                       ariaLabel="مراحل الطلب"
-                      steps={[
-                        { key: "received", label: "استلام الطلب", state: "done" },
-                        {
-                          key: "payment",
-                          label: getStatusLabel(order.status, order),
-                          state: isCancelledStatus(order.status as string)
-                            ? "returned"
-                            : isPaidStatus(order.status as string)
-                              ? "done"
-                              : isFailedStatus(order.status as string)
-                                ? "blocked"
-                                : "current",
-                        },
-                        {
-                          key: "invoice",
-                          label: "تحويل لفاتورة",
-                          state: order.isConvertedToInvoice
-                            ? "done"
-                            : isPaidStatus(order.status as string)
-                              ? "current"
-                              : "pending",
-                        },
-                      ]}
+                      steps={getOrderJourneySteps(order)}
                     />
 
                     <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-4">
@@ -1871,6 +1874,14 @@ Alturath.kw`;
                   <div className="lg:col-span-2 space-y-6 md:space-y-8">
                     {/* Items List */}
                     <div className="space-y-3 md:space-y-4">
+                      {/* Journey: plays once each time the modal opens (the modal mounts per opening); static afterwards */}
+                      <DnaStepper
+                        size="md"
+                        className="mb-3"
+                        reveal
+                        ariaLabel="مراحل الطلب"
+                        steps={getOrderJourneySteps(selectedOrder)}
+                      />
                       {(selectedOrder as any).splitType === "traditional" &&
                         Array.isArray((selectedOrder as any).splitPayments) &&
                         (selectedOrder as any).splitPayments.length > 0 && (
