@@ -14,6 +14,9 @@
   --dna-on-accent: #ffffff;
   --dna-core: #0f3d1f;
   --dna-on-core: #ffffff;
+  /* journey stepper fill: brand gold (flip this one line to recolour every journey) */
+  --journey-fill: var(--color-accent, #d4af37);
+  --journey-on-fill: var(--color-primary, #0f3d1f);
 }
 
 /* Cream canvas: the page and the admin shell that covers it (index.css paints the

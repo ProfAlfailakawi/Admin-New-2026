@@ -4,6 +4,7 @@ import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PAR
 import { toast } from 'sonner';
 import { Product } from '../types';
 import { cn } from '../lib/utils';
+import { DnaStepper } from './dna/DnaKit';
 import { motion, AnimatePresence } from 'motion/react';
 import { RealtimeRadar } from './RealtimeRadar';
 import { ReviewToPoster } from './ReviewToPoster';
@@ -3189,9 +3190,18 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
             ) : (
               <>
-                <div className="mb-5 md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3 flex items-center justify-between gap-3">
-                  <span className="h-10 px-4 rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xs font-black">{reelStep} من 4</span>
-                  <div className="text-right"><div className="text-sm font-black text-slate-900">{reelStep === 1 ? 'البداية' : reelStep === 2 ? 'اللقطة' : reelStep === 3 ? 'المدة' : 'التوليد'}</div><div className="text-[10px] font-bold text-slate-400">ريل واقعي</div></div>
+                <div className="mb-5 md:hidden rounded-[22px] border border-slate-100 bg-slate-50 p-3">
+                  <DnaStepper
+                    size="sm"
+                    journey
+                    ariaLabel={`خطوة ${reelStep} من 4`}
+                    steps={[
+                      { key: 'start', label: 'البداية' },
+                      { key: 'shot', label: 'اللقطة' },
+                      { key: 'duration', label: 'المدة' },
+                      { key: 'generate', label: 'التوليد' },
+                    ].map((st, idx) => ({ ...st, state: idx + 1 < reelStep ? ('done' as const) : idx + 1 === reelStep ? ('current' as const) : ('pending' as const) }))}
+                  />
                 </div>
 
                 {reelStep === 1 && (
