@@ -1446,9 +1446,12 @@ const MainApp: React.FC = () => {
   // An open session closes only after several failed probes in a row. One slow answer,
   // an iOS network hand-over (Wi-Fi <-> cellular) or a resume from background used to
   // flash the full offline gate even though the cloud was fine. A real outage still
-  // closes the gate within a few seconds: each failure triggers a quick re-check.
+  // closes the gate within a few seconds: each failure triggers a quick, short re-check,
+  // and a hard deadline caps the whole window even when requests hang until timeout.
   const CLOUD_FAILURES_BEFORE_OFFLINE = 3;
+  const CLOUD_OUTAGE_DEADLINE_MS = 12_000;
   const cloudFailureCountRef = useRef(0);
+  const cloudOutageStartedAtRef = useRef(0);
   const cloudRecheckTimerRef = useRef<number | null>(null);
   const probeCloudConnectionRef = useRef<((showFeedback?: boolean) => Promise<boolean>) | null>(null);
 
@@ -1457,10 +1460,15 @@ const MainApp: React.FC = () => {
     let request = cloudProbePromiseRef.current;
     if (!request) {
       const sequence = ++cloudProbeSequenceRef.current;
-      const registerFailure = () => {
-        if (sequence !== cloudProbeSequenceRef.current) return;
+      const probeStartedAt = Date.now();
+      // Returns whether the session is still accepted as online (a tolerated miss), so
+      // callers that act on the result follow the same threshold as the gate.
+      const registerFailure = (): boolean => {
+        if (sequence !== cloudProbeSequenceRef.current) return isOnlineRef.current;
+        if (cloudFailureCountRef.current === 0) cloudOutageStartedAtRef.current = probeStartedAt;
         cloudFailureCountRef.current += 1;
-        if (isOnlineRef.current && cloudFailureCountRef.current < CLOUD_FAILURES_BEFORE_OFFLINE) {
+        const withinDeadline = Date.now() - cloudOutageStartedAtRef.current < CLOUD_OUTAGE_DEADLINE_MS;
+        if (isOnlineRef.current && withinDeadline && cloudFailureCountRef.current < CLOUD_FAILURES_BEFORE_OFFLINE) {
           // Stay open and confirm quickly instead of locking on a single miss.
           if (cloudRecheckTimerRef.current === null) {
             cloudRecheckTimerRef.current = window.setTimeout(() => {
@@ -1468,10 +1476,12 @@ const MainApp: React.FC = () => {
               void probeCloudConnectionRef.current?.(false);
             }, 1_500);
           }
-          return;
+          return true;
         }
+        isOnlineRef.current = false;
         setIsOnline(false);
         setCloudChecking(Date.now() < cloudWakeGraceUntilRef.current);
+        return false;
       };
       const registerSuccess = () => {
         cloudFailureCountRef.current = 0;
@@ -1487,17 +1497,19 @@ const MainApp: React.FC = () => {
 
       const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
       if (!browserOnline) {
-        registerFailure();
-        return false;
+        return registerFailure();
       }
 
       const inWakeGrace = Date.now() < cloudWakeGraceUntilRef.current;
       if (showFeedback || inWakeGrace) setCloudChecking(true);
       request = (async () => {
         const controller = new AbortController();
-        // Wait out a cold start only while the gate is already closed, so an open session
-        // is never left unverified for longer than before.
-        const timeoutMs = inWakeGrace && !isOnlineRef.current ? 15_000 : 10_000;
+        // Wait out a cold start only while the gate is already closed. An open session
+        // gets one patient probe; confirmation probes after a miss are short so a real
+        // outage reaches the deadline quickly.
+        const timeoutMs = !isOnlineRef.current
+          ? (inWakeGrace ? 15_000 : 9_000)
+          : cloudFailureCountRef.current > 0 ? 4_000 : 9_000;
         const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
           const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
@@ -1510,13 +1522,11 @@ const MainApp: React.FC = () => {
           if (healthy) {
             cloudWakeGraceUntilRef.current = 0;
             registerSuccess();
-          } else {
-            registerFailure();
+            return true;
           }
-          return healthy;
+          return registerFailure();
         } catch {
-          registerFailure();
-          return false;
+          return registerFailure();
         } finally {
           window.clearTimeout(timeoutId);
         }
