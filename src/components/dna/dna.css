@@ -1062,14 +1062,14 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
 .dna-steps[data-journey] .dna-lbl { transition: color 0.4s var(--dna-ease), opacity 0.4s var(--dna-ease); }
 .dna-steps[data-journey] .dna-stepi[data-state='pending'] .dna-lbl { opacity: 0.7; }
 /* intro only: pop, check draw-in and ONE soft halo (no infinite loop in journey mode) */
-.dna-steps[data-journey]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node {
+.dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node {
   animation: dna-journey-pop 0.4s var(--dna-ease) both;
 }
-.dna-steps[data-journey]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node > svg path {
+.dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='done'] .dna-node > svg path {
   stroke-dasharray: 24;
   animation: dna-track-check 0.45s var(--dna-ease) 0.2s both;
 }
-.dna-steps[data-journey]:not([data-reveal='done']) .dna-stepi[data-state='current'] .dna-node {
+.dna-steps[data-journey][data-reveal]:not([data-reveal='done']) .dna-stepi[data-state='current'][data-just] .dna-node {
   animation: dna-journey-halo 1.5s var(--dna-ease) 0.25s 1 both;
 }
 @keyframes dna-journey-pop {
