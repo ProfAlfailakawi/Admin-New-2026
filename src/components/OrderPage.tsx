@@ -1874,14 +1874,16 @@ Alturath.kw`;
                   <div className="lg:col-span-2 space-y-6 md:space-y-8">
                     {/* Items List */}
                     <div className="space-y-3 md:space-y-4">
-                      {/* Journey: plays once each time the modal opens (the modal mounts per opening); static afterwards */}
-                      <DnaStepper
-                        size="md"
-                        className="mb-3"
-                        reveal
-                        ariaLabel="مراحل الطلب"
-                        steps={getOrderJourneySteps(selectedOrder)}
-                      />
+                      {/* Journey: plays once per order (playKey), so reopening the same order does not replay it; static afterwards */}
+                      <div className="pt-1 pb-4 md:pb-5">
+                        <DnaStepper
+                          size="md"
+                          reveal
+                          playKey={`order-modal-${selectedOrder.id}`}
+                          ariaLabel="مراحل الطلب"
+                          steps={getOrderJourneySteps(selectedOrder)}
+                        />
+                      </div>
                       {(selectedOrder as any).splitType === "traditional" &&
                         Array.isArray((selectedOrder as any).splitPayments) &&
                         (selectedOrder as any).splitPayments.length > 0 && (

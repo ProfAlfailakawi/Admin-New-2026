@@ -93,27 +93,47 @@ export function useJourneyReveal({ target, count, stepMs, threshold = 0.5, enabl
       markJourneyPlayed(playKey); // started: never replay for this key, even if it unmounts mid-intro
       setVisible(true);
     };
-    // Safety net: if no intersecting entry ever arrives, bounded wait then show the real state.
-    const safety = window.setTimeout(() => {
+    // Failsafes (never hide the real state indefinitely, never burn the intro for a stepper that is just below the fold):
+    //  - `silent`: the observer never delivered ANY entry (a working one reports the initial state right away),
+    //    so show the real state without marking it played.
+    //  - `stuck`: the element is partly in view but never reaches the ratio (e.g. clipped by a scroller);
+    //    the user has seen it, so settle and mark it played. An off-screen element never arms this.
+    let silentTimer: number | undefined = window.setTimeout(() => {
       io.disconnect();
-      markJourneyPlayed(playKey);
       setLit(null);
-    }, 6000);
+    }, 3000);
+    let stuckTimer: number | undefined;
+    const clearTimers = () => {
+      window.clearTimeout(silentTimer);
+      window.clearTimeout(stuckTimer);
+      silentTimer = stuckTimer = undefined;
+    };
     const io = new IntersectionObserver(
       (entries) => {
+        window.clearTimeout(silentTimer);
         // isIntersecting is true with 1px visible: require the effective ratio too
         if (entries.some((e) => e.isIntersecting && e.intersectionRatio >= effective - 0.01)) {
           io.disconnect();
-          window.clearTimeout(safety);
+          clearTimers();
           start();
+          return;
+        }
+        window.clearTimeout(stuckTimer);
+        stuckTimer = undefined;
+        if (entries.some((e) => e.isIntersecting)) {
+          stuckTimer = window.setTimeout(() => {
+            io.disconnect();
+            markJourneyPlayed(playKey);
+            setLit(null);
+          }, 6000);
         }
       },
-      { threshold: effective },
+      { threshold: [0, effective] },
     );
     io.observe(el);
     return () => {
       io.disconnect();
-      window.clearTimeout(safety);
+      clearTimers();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, playKey, threshold]);

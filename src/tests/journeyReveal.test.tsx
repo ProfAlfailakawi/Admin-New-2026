@@ -28,6 +28,7 @@ const setReducedMotion = (on: boolean) => {
 };
 
 let elHeight = 100;
+const entryAll = (isIntersecting: boolean, ratio = 0) => observers.forEach((o) => o.el && o.cb([{ isIntersecting, intersectionRatio: ratio, target: o.el } as any], {} as any));
 const intersectAll = (ratio = 1) => observers.forEach((o) => o.el && o.cb([{ isIntersecting: true, intersectionRatio: ratio, target: o.el } as any], {} as any));
 
 const steps = (payment: 'done' | 'current' | 'blocked' | 'returned') => [
@@ -137,6 +138,26 @@ describe('DnaStepper reveal', () => {
     act(() => intersectAll(0.15));
     settle();
     expect(states(container)).toEqual(['done', 'current', 'pending']);
+  });
+
+  it('a stepper below the fold keeps its intro for when it is scrolled into view (no timeout burns it)', () => {
+    const { container } = render(<DnaStepper reveal playKey="below" stepMs={400} steps={steps('current')} />);
+    act(() => entryAll(false)); // observer reports "not visible"
+    act(() => void vi.advanceTimersByTime(60000));
+    expect(states(container)).toEqual(['pending', 'pending', 'pending']); // waiting, nothing played yet
+    expect(container.querySelector('ol')!.getAttribute('data-reveal')).toBe('0');
+    // semantics stay real while it waits
+    expect(Array.from(container.querySelectorAll('li.dna-stepi')).map((li) => li.getAttribute('data-state'))).toEqual(['done', 'current', 'pending']);
+    act(() => intersectAll());
+    settle();
+    expect(states(container)).toEqual(['done', 'current', 'pending']);
+  });
+
+  it('a partly visible stepper that never reaches the ratio settles after a while (and is marked played)', () => {
+    const { container } = render(<DnaStepper reveal playKey="stuck" stepMs={400} steps={steps('current')} />);
+    act(() => entryAll(true, 0.1));
+    act(() => void vi.advanceTimersByTime(7000));
+    expect(container.querySelector('ol')!.getAttribute('data-reveal')).toBe('done');
   });
 
   it('never hides the real state forever if no entry ever arrives', () => {
