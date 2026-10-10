@@ -1,0 +1,112 @@
+/* ==========================================================================
+   Beauty pass: depth, icon tiles, display numerals and a short entrance.
+   Presentation only. Scoped to the owner screens (.admin-content-polish /
+   .admin-page-hero) so the public and partner surfaces are untouched.
+   Motion lives inside prefers-reduced-motion: no-preference and uses
+   opacity + transform only (no blur, no filter stacks). Loaded last.
+   ========================================================================== */
+:root {
+  --bp-gold: #d4af37;
+  --bp-gold-ink: #7a5c0a;
+  --bp-green: #0f3d1f;
+  --bp-ease: cubic-bezier(0.22, 0.78, 0.24, 1);
+  --bp-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cpath d='M22 4 40 22 22 40 4 22Z' fill='none' stroke='%23d4af37' stroke-width='1.2'/%3E%3Cpath d='M22 13 31 22 22 31 13 22Z' fill='%23d4af37' fill-opacity='.35'/%3E%3C/svg%3E");
+}
+
+/* ---- hero: a sadu diamond lattice fading in from the leading edge ---- */
+.admin-page-hero::after {
+  /* resets the older text badge that shares this pseudo-element */
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  width: min(34%, 240px);
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  background-image: var(--bp-diamond);
+  background-size: 44px 44px;
+  opacity: 0.5;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, #000, transparent);
+  mask-image: linear-gradient(to left, #000, transparent);
+}
+[dir="rtl"] .admin-page-hero::after {
+  right: auto;
+  left: 0;
+  -webkit-mask-image: linear-gradient(to right, #000, transparent);
+  mask-image: linear-gradient(to right, #000, transparent);
+}
+.admin-page-hero > * { position: relative; z-index: 1; }
+.admin-page-hero {
+  border-top: 3px solid transparent !important;
+  background-image:
+    linear-gradient(90deg, transparent, var(--bp-gold) 30%, var(--bp-gold) 70%, transparent),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(251, 247, 236, 0.9)) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 3px, 100% 100% !important;
+  background-position: top, center !important;
+}
+
+/* ---- accordion headers: the leading icon sits in a gold tile ---- */
+.admin-content-polish section.bg-white > button.w-full > div:first-child > svg:first-child {
+  box-sizing: content-box;
+  width: 20px;
+  height: 20px;
+  padding: 8px;
+  flex: none;
+  border-radius: 12px;
+  color: var(--bp-gold-ink) !important;
+  background: linear-gradient(145deg, #fffaf0, #f5e7b4);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.4), 0 6px 14px -6px rgba(122, 92, 10, 0.45);
+}
+.admin-content-polish section.bg-white > button.w-full {
+  background: linear-gradient(180deg, #fff, #f8fafc) !important;
+}
+
+/* ---- KPI tiles: display numerals + a brand edge ---- */
+.admin-content-polish .bp-kpi {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, #fff 0%, #fcf9f0 100%) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 28px -20px rgba(15, 61, 31, 0.35) !important;
+}
+.admin-content-polish .bp-kpi::before {
+  content: "";
+  position: absolute;
+  inset-block: 14px;
+  inset-inline-end: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(var(--bp-gold), var(--bp-green));
+}
+.admin-content-polish .bp-kpi .tracking-tighter {
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+/* ---- dark sidebar: a soft gold glow behind the brand so it is not a flat slab ---- */
+aside.bg-slate-900,
+aside[class*="bg-[#0"] {
+  background-image: radial-gradient(120% 40% at 50% 0%, rgba(212, 175, 55, 0.12), transparent 70%);
+}
+
+/* ---- short entrance (opacity + transform only) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes bp-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+  .admin-page-hero { animation: bp-rise 0.5s var(--bp-ease) backwards; }
+  .admin-content-polish > div > * { animation: bp-rise 0.55s var(--bp-ease) backwards; }
+  .admin-content-polish > div > *:nth-child(1) { animation-delay: 0.06s; }
+  .admin-content-polish > div > *:nth-child(2) { animation-delay: 0.12s; }
+  .admin-content-polish > div > *:nth-child(3) { animation-delay: 0.18s; }
+  .admin-content-polish > div > *:nth-child(n + 4) { animation-delay: 0.24s; }
+}
