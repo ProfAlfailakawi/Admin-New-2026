@@ -6,6 +6,7 @@
  */
 import * as React from 'react';
 import './dna.css';
+import { useJourneyReveal } from './useJourneyReveal';
 
 export type DnaTone =
   | 'accent'
@@ -121,16 +122,58 @@ export interface DnaStepperProps {
   ariaLabel?: string;
   stateText?: Partial<Record<DnaStepState, string>>;
   className?: string;
+  /**
+   * Opt-in journey intro: once the stepper scrolls into view, the stations that
+   * are really done/current light up one after another (gold fill), then it
+   * settles. The `state` values stay the truth; nothing past the real current
+   * station is ever lit. Off by default (zero change for existing call sites).
+   */
+  reveal?: boolean;
+  /** Journey look (gold fill, staged connector transitions) WITHOUT the timed intro: for steppers the user drives, e.g. wizards. */
+  journey?: boolean;
+  /** Entity id (e.g. order id): the intro plays once per key, never on re-render/remount. */
+  playKey?: string;
+  /** Keep the intro armed but wait (e.g. data still loading). */
+  hold?: boolean;
+  /** Override the per-station time of the intro (ms). */
+  stepMs?: number;
 }
 
-export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, stateText, className }: DnaStepperProps) {
+export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, stateText, className, reveal = false, journey = false, playKey, hold, stepMs }: DnaStepperProps) {
   const text = { ...DEFAULT_STATE_TEXT, ...stateText };
   const labels = showLabels && size !== 'xs';
+  let target = 0;
+  steps.forEach((s, i) => {
+    if (s.state !== 'pending') target = i + 1; // done/current/returned/blocked are all really reached; pending never is
+  });
+  const jr = useJourneyReveal({ target, count: steps.length, stepMs, enabled: reveal, hold, playKey });
+  const lit = reveal ? jr.lit : null;
   return (
-    <ol className={cx('dna', 'dna-steps', className)} data-size={size} aria-label={ariaLabel}>
-      {steps.map((step, i) => {
-        const prev = i > 0 ? steps[i - 1] : null;
-        const link = !prev ? 'none' : step.state === 'returned' ? 'returned' : prev.state === 'done' ? 'done' : 'pending';
+    <ol
+      ref={reveal ? jr.ref : undefined}
+      className={cx('dna', 'dna-steps', className)}
+      data-size={size}
+      aria-label={ariaLabel}
+      data-journey={reveal || journey ? '' : undefined}
+      data-reveal={reveal ? (lit ?? 'done') : undefined}
+      style={reveal ? ({ '--journey-step': `${jr.stepMs}ms` } as React.CSSProperties) : undefined}
+    >
+      {steps.map((realStep, i) => {
+        // During the intro a station only shows its real state once it has been reached.
+        const revealed = lit === null || i < lit;
+        const step = revealed ? realStep : { ...realStep, state: 'pending' as DnaStepState };
+        const prevReal = i > 0 ? steps[i - 1] : null;
+        const link = !prevReal
+          ? 'none'
+          : !revealed
+            ? 'pending'
+            : realStep.state === 'returned'
+              ? 'returned'
+              : realStep.state === 'blocked' && (reveal || journey)
+                ? 'pending' // the path stops before a blocked station: no gold line into it
+                : prevReal.state === 'done'
+                ? 'done'
+                : 'pending';
         const stamped = Boolean(step.stamp) && step.state === 'done';
         return (
           <li
@@ -138,6 +181,8 @@ export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, s
             className="dna-stepi"
             data-state={step.state}
             data-link={link}
+            data-lit={lit !== null && revealed ? 'true' : undefined}
+            data-just={lit !== null && lit > 0 && i === lit - 1 ? 'true' : undefined}
             data-stamp={stamped ? 'true' : undefined}
             aria-current={step.state === 'current' ? 'step' : undefined}
             title={step.title ?? (size === 'xs' && typeof step.label === 'string' ? step.label : undefined)}
