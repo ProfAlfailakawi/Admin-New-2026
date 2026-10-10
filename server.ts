@@ -6436,7 +6436,9 @@ app.get("/api/cloud-health", async (_req, res) => {
     });
   }
 
-  if (now - cloudHealthCache.checkedAt < 4_000) {
+  // Only a success is served from cache: a failed check is re-tried on the next request
+  // so one slow read does not report the cloud as down to every probe for 4s.
+  if (cloudHealthCache.reachable && now - cloudHealthCache.checkedAt < 4_000) {
     const status = cloudHealthCache.reachable ? 200 : 503;
     return res.status(status).json({
       success: cloudHealthCache.reachable,
@@ -6450,10 +6452,14 @@ app.get("/api/cloud-health", async (_req, res) => {
 
   try {
     const timeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("FIRESTORE_HEALTH_TIMEOUT")), 4_500);
+      setTimeout(() => reject(new Error("FIRESTORE_HEALTH_TIMEOUT")), 8_000);
     });
-    const snap: any = await Promise.race([
-      db.collection("appData").doc("shared_company_data").get(),
+    // Field-masked read: a real Firestore server round-trip that confirms the company
+    // document exists without downloading it. A plain .get() pulled the whole (large)
+    // company document every few seconds and timed out under load, which flashed the
+    // offline gate while the cloud was actually fine.
+    const [snap]: any = await Promise.race([
+      db.getAll(db.collection("appData").doc("shared_company_data"), { fieldMask: [] }),
       timeout,
     ]);
 

@@ -1443,18 +1443,51 @@ const MainApp: React.FC = () => {
   const cloudWakeGraceUntilRef = useRef(Date.now() + 25_000);
   const isOnlineRef = useRef(false);
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
+  // An open session closes only after several failed probes in a row. One slow answer,
+  // an iOS network hand-over (Wi-Fi <-> cellular) or a resume from background used to
+  // flash the full offline gate even though the cloud was fine. A real outage still
+  // closes the gate within a few seconds: each failure triggers a quick re-check.
+  const CLOUD_FAILURES_BEFORE_OFFLINE = 3;
+  const cloudFailureCountRef = useRef(0);
+  const cloudRecheckTimerRef = useRef<number | null>(null);
+  const probeCloudConnectionRef = useRef<((showFeedback?: boolean) => Promise<boolean>) | null>(null);
 
   const probeCloudConnection = React.useCallback(async (showFeedback = false): Promise<boolean> => {
     if (IS_DEMO_MODE) return true;
     let request = cloudProbePromiseRef.current;
     if (!request) {
       const sequence = ++cloudProbeSequenceRef.current;
+      const registerFailure = () => {
+        if (sequence !== cloudProbeSequenceRef.current) return;
+        cloudFailureCountRef.current += 1;
+        if (isOnlineRef.current && cloudFailureCountRef.current < CLOUD_FAILURES_BEFORE_OFFLINE) {
+          // Stay open and confirm quickly instead of locking on a single miss.
+          if (cloudRecheckTimerRef.current === null) {
+            cloudRecheckTimerRef.current = window.setTimeout(() => {
+              cloudRecheckTimerRef.current = null;
+              void probeCloudConnectionRef.current?.(false);
+            }, 1_500);
+          }
+          return;
+        }
+        setIsOnline(false);
+        setCloudChecking(Date.now() < cloudWakeGraceUntilRef.current);
+      };
+      const registerSuccess = () => {
+        cloudFailureCountRef.current = 0;
+        if (cloudRecheckTimerRef.current !== null) {
+          window.clearTimeout(cloudRecheckTimerRef.current);
+          cloudRecheckTimerRef.current = null;
+        }
+        if (sequence === cloudProbeSequenceRef.current) {
+          setIsOnline(true);
+          setCloudChecking(false);
+        }
+      };
+
       const browserOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
       if (!browserOnline) {
-        if (sequence === cloudProbeSequenceRef.current) {
-          setCloudChecking(false);
-          setIsOnline(false);
-        }
+        registerFailure();
         return false;
       }
 
@@ -1464,7 +1497,7 @@ const MainApp: React.FC = () => {
         const controller = new AbortController();
         // Wait out a cold start only while the gate is already closed, so an open session
         // is never left unverified for longer than before.
-        const timeoutMs = inWakeGrace && !isOnlineRef.current ? 15_000 : 5_500;
+        const timeoutMs = inWakeGrace && !isOnlineRef.current ? 15_000 : 10_000;
         const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
         try {
           const response = await fetch(`/api/cloud-health?ts=${Date.now()}`, {
@@ -1474,17 +1507,15 @@ const MainApp: React.FC = () => {
           });
           const payload = await response.json().catch(() => null);
           const healthy = Boolean(response.ok && payload?.success && payload?.firestoreReachable);
-          if (healthy) cloudWakeGraceUntilRef.current = 0;
-          if (sequence === cloudProbeSequenceRef.current) {
-            setIsOnline(healthy);
-            setCloudChecking(!healthy && Date.now() < cloudWakeGraceUntilRef.current);
+          if (healthy) {
+            cloudWakeGraceUntilRef.current = 0;
+            registerSuccess();
+          } else {
+            registerFailure();
           }
           return healthy;
         } catch {
-          if (sequence === cloudProbeSequenceRef.current) {
-            setIsOnline(false);
-            setCloudChecking(Date.now() < cloudWakeGraceUntilRef.current);
-          }
+          registerFailure();
           return false;
         } finally {
           window.clearTimeout(timeoutId);
@@ -1508,6 +1539,7 @@ const MainApp: React.FC = () => {
     }
     return healthy;
   }, []);
+  probeCloudConnectionRef.current = probeCloudConnection;
 
   const handleManualRetryOffline = async () => {
     if (retryingOffline) return;
@@ -1531,11 +1563,9 @@ const MainApp: React.FC = () => {
       if (cancelled) return;
       void probeCloudConnection(false);
     };
-    const markOffline = () => {
-      cloudProbeSequenceRef.current += 1;
-      setCloudChecking(false);
-      setIsOnline(false);
-    };
+    // The browser 'offline' event fires spuriously on iOS during network hand-overs, so it
+    // only starts a check; the failure counter decides whether the gate actually closes.
+    const markOffline = () => verify();
     const onOnline = () => verify();
     const onFocus = () => verify();
     let hiddenAt = 0;
@@ -1568,6 +1598,10 @@ const MainApp: React.FC = () => {
       window.removeEventListener('offline', markOffline);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
+      if (cloudRecheckTimerRef.current !== null) {
+        window.clearTimeout(cloudRecheckTimerRef.current);
+        cloudRecheckTimerRef.current = null;
+      }
     };
   }, [probeCloudConnection]);
 
