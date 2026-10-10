@@ -70,13 +70,13 @@
 }
 
 /* ---- KPI tiles: display numerals + a brand edge ---- */
-.admin-content-polish div:has(> .tracking-tighter) {
+.admin-content-polish .bp-kpi {
   position: relative;
   overflow: hidden;
   background: linear-gradient(160deg, #fff 0%, #fcf9f0 100%) !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 28px -20px rgba(15, 61, 31, 0.35) !important;
 }
-.admin-content-polish div:has(> .tracking-tighter)::before {
+.admin-content-polish .bp-kpi::before {
   content: "";
   position: absolute;
   inset-block: 14px;
@@ -85,7 +85,7 @@
   border-radius: 3px;
   background: linear-gradient(var(--bp-gold), var(--bp-green));
 }
-.admin-content-polish .tracking-tighter {
+.admin-content-polish .bp-kpi .tracking-tighter {
   font-variant-numeric: lining-nums tabular-nums;
   letter-spacing: -0.02em;
   font-weight: 800;

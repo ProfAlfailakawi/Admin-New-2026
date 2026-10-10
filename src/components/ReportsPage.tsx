@@ -1182,7 +1182,7 @@ Alturath.kw`;
               className="space-y-6"
             >
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-0">
-                <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+                <div className="bp-kpi bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
                   <div className="text-[11px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
                     عدد الفواتير
                   </div>
@@ -1190,7 +1190,7 @@ Alturath.kw`;
                     {filteredInvoices.length}
                   </div>
                 </div>
-                <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
+                <div className="bp-kpi bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
                   <div className="text-[11px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
                     إجمالي المبيعات
                   </div>
@@ -1216,7 +1216,7 @@ Alturath.kw`;
                     <span className="text-sm font-bold mr-1">د.ك</span>
                   </div>
                 </div>
-                <div className="bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
+                <div className="bp-kpi bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center col-span-2 md:col-span-1">
                   <div className="text-[11px] font-bold text-slate-500 uppercase mb-0.5 md:mb-1">
                     إجمالي الربح
                   </div>
