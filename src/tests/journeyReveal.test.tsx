@@ -38,7 +38,8 @@ const steps = (payment: 'done' | 'current' | 'blocked' | 'returned') => [
 
 const settle = () => { for (let i = 0; i < 12; i++) act(() => void vi.advanceTimersByTime(700)); };
 
-const states = (c: HTMLElement) => Array.from(c.querySelectorAll('li.dna-stepi')).map((li) => li.getAttribute('data-state'));
+// visual state (what is drawn); semantics are asserted separately via data-state / aria-current / sr text
+const states = (c: HTMLElement) => Array.from(c.querySelectorAll('li.dna-stepi')).map((li) => li.getAttribute('data-shown'));
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -153,5 +154,52 @@ describe('DnaStepper reveal', () => {
     settle();
     expect(states(container)).toEqual(['done', 'current']);
     expect(container.querySelector('ol')!.getAttribute('data-reveal')).toBe('done');
+  });
+
+  it('re-arms per playKey when a mounted stepper is reused for another entity', () => {
+    const { container, rerender } = render(<DnaStepper reveal playKey="e1" stepMs={400} steps={steps('current')} />);
+    act(() => intersectAll());
+    settle();
+    expect(container.querySelector('ol')!.getAttribute('data-reveal')).toBe('done');
+    rerender(<DnaStepper reveal playKey="e2" stepMs={400} steps={steps('current')} />);
+    expect(states(container)).toEqual(['pending', 'pending', 'pending']); // new key arms its own intro
+    act(() => intersectAll());
+    settle();
+    expect(states(container)).toEqual(['done', 'current', 'pending']);
+    rerender(<DnaStepper reveal playKey="e1" stepMs={400} steps={steps('current')} />);
+    expect(container.querySelector('ol')!.getAttribute('data-reveal')).toBe('done'); // e1 remembered: no replay
+  });
+
+  it('a remembered key renders settled (data-reveal=done, no data-just) so no halo can replay', () => {
+    const first = render(<DnaStepper reveal playKey="mem" stepMs={400} steps={steps('current')} />);
+    act(() => intersectAll());
+    settle();
+    first.unmount();
+    const { container } = render(<DnaStepper reveal playKey="mem" stepMs={400} steps={steps('current')} />);
+    expect(container.querySelector('ol')!.getAttribute('data-reveal')).toBe('done');
+    expect(container.querySelector('[data-just]')).toBeNull();
+  });
+
+  it('keeps real semantics (data-state, aria-current, sr text) while the intro has not lit a station yet', () => {
+    const { container } = render(<DnaStepper reveal playKey="sem" steps={steps('current')} />);
+    expect(states(container)).toEqual(['pending', 'pending', 'pending']);
+    const lis = Array.from(container.querySelectorAll('li.dna-stepi'));
+    expect(lis.map((l) => l.getAttribute('data-state'))).toEqual(['done', 'current', 'pending']);
+    expect(lis[1].getAttribute('aria-current')).toBe('step');
+    expect(lis[0].getAttribute('aria-current')).toBeNull();
+    expect(lis[0].querySelector('.dna-sr:last-child')!.textContent).toBe('مكتملة');
+    expect(lis[1].querySelector('.dna-sr:last-child')!.textContent).toBe('الحالية');
+  });
+
+  it('survives React StrictMode setup/cleanup/setup and still plays', () => {
+    const { container } = render(
+      <React.StrictMode>
+        <DnaStepper reveal playKey="strict" stepMs={400} steps={steps('current')} />
+      </React.StrictMode>,
+    );
+    expect(states(container)).toEqual(['pending', 'pending', 'pending']);
+    act(() => intersectAll());
+    settle();
+    expect(states(container)).toEqual(['done', 'current', 'pending']);
   });
 });

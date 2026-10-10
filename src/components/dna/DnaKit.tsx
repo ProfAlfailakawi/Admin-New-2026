@@ -161,7 +161,8 @@ export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, s
       {steps.map((realStep, i) => {
         // During the intro a station only shows its real state once it has been reached.
         const revealed = lit === null || i < lit;
-        const step = revealed ? realStep : { ...realStep, state: 'pending' as DnaStepState };
+        // `shown` is presentation only (glyph + CSS via data-shown); semantics always use realStep.state.
+        const shown = revealed ? realStep : { ...realStep, state: 'pending' as DnaStepState };
         const prevReal = i > 0 ? steps[i - 1] : null;
         const link = !prevReal
           ? 'none'
@@ -174,25 +175,26 @@ export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, s
                 : prevReal.state === 'done'
                 ? 'done'
                 : 'pending';
-        const stamped = Boolean(step.stamp) && step.state === 'done';
+        const stamped = Boolean(shown.stamp) && shown.state === 'done';
         return (
           <li
-            key={step.key}
+            key={realStep.key}
             className="dna-stepi"
-            data-state={step.state}
+            data-state={realStep.state}
+            data-shown={shown.state}
             data-link={link}
             data-lit={lit !== null && revealed ? 'true' : undefined}
             data-just={lit !== null && lit > 0 && i === lit - 1 ? 'true' : undefined}
             data-stamp={stamped ? 'true' : undefined}
-            aria-current={step.state === 'current' ? 'step' : undefined}
-            title={step.title ?? (size === 'xs' && typeof step.label === 'string' ? step.label : undefined)}
+            aria-current={realStep.state === 'current' ? 'step' : undefined}
+            title={realStep.title ?? (size === 'xs' && typeof realStep.label === 'string' ? realStep.label : undefined)}
           >
             <span className="dna-node" aria-hidden="true">
               {stamped ? (
-                <span className="dna-stamp">{step.stamp}</span>
-              ) : step.icon ? (
-                step.icon
-              ) : step.state === 'done' ? (
+                <span className="dna-stamp">{shown.stamp}</span>
+              ) : shown.icon ? (
+                shown.icon
+              ) : shown.state === 'done' ? (
                 <CheckGlyph />
               ) : (
                 <span className="dna-num">{i + 1}</span>
@@ -202,10 +204,10 @@ export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, s
                   <CheckGlyph />
                 </span>
               )}
-              {step.badge != null && step.badge !== false && <span className="dna-bdg">{step.badge}</span>}
+              {realStep.badge != null && realStep.badge !== false && <span className="dna-bdg">{realStep.badge}</span>}
             </span>
-            <span className={labels ? 'dna-lbl' : 'dna-sr'}>{step.label}</span>
-            <span className="dna-sr">{text[step.state]}</span>
+            <span className={labels ? 'dna-lbl' : 'dna-sr'}>{realStep.label}</span>
+            <span className="dna-sr">{text[realStep.state]}</span>
           </li>
         );
       })}

@@ -163,7 +163,6 @@
 .pub-pay-wait { padding: 26px 0 14px; display: flex; flex-direction: column; align-items: center; }
 .pub-pay-wait .pub-sub { margin: 0; }
 @keyframes pub-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-.pub-pay-steps { width: 100%; max-width: 340px; margin: 18px auto 16px; }
 .pub-mark { width: 96px; height: 96px; margin: 0 auto 18px; }
 .pub-mark svg { display: block; }
 .pub-mark-ring { fill: var(--mk-soft); stroke: var(--mk); stroke-width: 2.5; stroke-dasharray: 1; }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo, startTransition } from 'react';
-import { DnaStepper } from './components/dna/DnaKit';
 import { displayLabel } from './lib/displayLabels';
 import { buildLogicalShardWritePlan, commitLogicalShardWritePlan, readLogicalAppDataShard } from './lib/firestoreShardStorage';
 import { 
@@ -513,13 +512,6 @@ const getInitialPageFromDeepLink = () => {
 // Remove deduplication import as requested
 // import { getDeduplicatedProducts } from './lib/deduplication';
 
-// Payment return: the result used to redirect after 120ms, so nobody ever saw it. Keep the finished
-// result visible for at least PAY_RESULT_HOLD_MS, and never leave before PAY_MIN_VISIBLE_MS after the
-// page opened (the app splash covers the first ~1.5s), so the journey stepper can be read.
-const PAY_RESULT_HOLD_MS = 1400;
-const PAY_MIN_VISIBLE_MS = 3800;
-const PAY_SPLASH_HOLD_MS = 1500;
-
 const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallback, mode = 'cloud' }: any) => {
   const [statusMsg, setStatusMsg] = useState<{title: string, sub: string, isError: boolean} | null>(null);
   
@@ -529,15 +521,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
   const isExplicitFail = path === '/cancel' || path === '/failed' || path === '/error' || resultParam === 'CANCELED' || resultParam === 'CANCELLED' || resultParam === 'FAILED' || resultParam === 'DECLINED' || resultParam === 'VOIDED' || resultParam === 'NOT CAPTURED' || resultParam === 'NOT_CAPTURED' || resultParam === 'REJECTED';
   const urlIndicatesSuccess = !isExplicitFail && (path === '/success' || resultParam === 'CAPTURED' || resultParam === 'SUCCESS' || resultParam === 'SUCCESSFUL' || resultParam === 'PAID' || resultParam === 'AUTHORIZED' || resultParam === 'COMPLETED' || resultParam === 'APPROVED' || isUpaymentsCallback);
 
-  // The app splash overlays the first ~1.5s: hold the stepper intro until it has cleared.
-  const [introHold, setIntroHold] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setIntroHold(false), PAY_SPLASH_HOLD_MS);
-    return () => clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    const mountedAt = Date.now();
     const showMessageAndRedirect = (status: 'success' | 'failed', invoiceIdToSearch: string) => {
         if (status === 'success') {
             setStatusMsg({ title: "تمت العملية", sub: "الدفع تم بنجاح", isError: false });
@@ -555,15 +539,13 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
             console.error("localStorage error:", e);
         }
 
-        // Hold the finished result so the journey stepper can show its last station before leaving.
-        const holdMs = Math.max(PAY_RESULT_HOLD_MS, PAY_MIN_VISIBLE_MS - (Date.now() - mountedAt));
         setTimeout(() => {
             const url = `/track?show_result=${status}&tracked_order=${invoiceIdToSearch || ''}`;
             window.history.replaceState({}, '', url);
             // Since we use window.location.pathname for routing, we need to force a re-render
             // or just trigger the URL sync logic.
             window.location.reload(); 
-        }, holdMs);
+        }, 120);
     };
 
     if (IS_DEMO_MODE) {
@@ -690,58 +672,39 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
     : payVariant === 'error' ? { title: 'صار خلل أثناء الدفع', sub: 'ما قدرنا نكمل العملية، حاول مرة ثانية بعد شوي' }
     : null;
 
-  // Journey stepper: only states we really know. Waiting = verification in progress;
-  // a failed/cancelled/error return is a terminal branch (never green).
-  const payJourney = [
-    { key: 'received', label: 'استلام الطلب', state: 'done' as const },
-    { key: 'verify', label: 'التحقق من الدفع', state: statusMsg ? ('done' as const) : ('current' as const) },
-    {
-      key: 'paid',
-      label: !statusMsg ? 'تم الدفع' : !statusMsg.isError ? 'تم الدفع' : payVariant === 'cancel' ? 'ملغي' : payVariant === 'error' ? 'خلل في الدفع' : 'فشل الدفع',
-      state: !statusMsg ? ('pending' as const) : !statusMsg.isError ? ('done' as const) : payVariant === 'cancel' ? ('returned' as const) : ('blocked' as const),
-    },
-  ];
-
   return (
     <div className="pub-page pub-pay arabic-font" dir="rtl">
        <main className="pub-card pub-card--narrow" role="status" aria-live="polite">
-           {/* one container + fixed child slots so the stepper keeps its instance from waiting to result */}
-           <div className={statusMsg ? 'pub-pay-result' : 'pub-pay-wait'} data-state={statusMsg ? (statusMsg.isError ? payVariant : 'success') : undefined}>
-               {statusMsg ? (
-                   <>
-                       <div className="pub-mark" aria-hidden="true">
-                           <svg viewBox="0 0 96 96" width="96" height="96" fill="none">
-                               <circle className="pub-mark-ring" cx="48" cy="48" r="42" />
-                               {payVariant === 'cancel' ? (
-                                   <path className="pub-mark-glyph" d="M32 48 L64 48" pathLength={1} />
-                               ) : payVariant === 'error' ? (
-                                   <path className="pub-mark-glyph" d="M48 28 L48 52 M48 65 L48 65.5" pathLength={1} />
-                               ) : statusMsg.isError ? (
-                                   <path className="pub-mark-glyph" d="M34 34 L62 62 M62 34 L34 62" pathLength={1} />
-                               ) : (
-                                   <path className="pub-mark-glyph" d="M30 49 L43 62 L67 36" pathLength={1} />
-                               )}
-                           </svg>
-                       </div>
-                       <h1 className="pub-title">{payCopy ? payCopy.title : statusMsg.title}</h1>
-                       <p className="pub-sub pub-sub--lead">{payCopy ? payCopy.sub : statusMsg.sub}</p>
-                   </>
-               ) : (
-                   <>
-                       <AdminMicroLoader size={48} label="نتأكد من عملية الدفع" className="mb-4" />
-                       <p className="pub-sub">نتأكد من عملية الدفع...</p>
-                   </>
-               )}
-               <div className="pub-pay-steps">
-                   <DnaStepper size="sm" reveal hold={introHold} playKey={`pay-${invoiceId || path}`} stepMs={350} ariaLabel="مراحل الدفع" steps={payJourney} />
-               </div>
-               {statusMsg && (
+           {statusMsg ? (
+               <div className="pub-pay-result" data-state={statusMsg.isError ? payVariant : 'success'}>
+                   <div className="pub-mark" aria-hidden="true">
+                       <svg viewBox="0 0 96 96" width="96" height="96" fill="none">
+                           <circle className="pub-mark-ring" cx="48" cy="48" r="42" />
+                           {payVariant === 'cancel' ? (
+                               <path className="pub-mark-glyph" d="M32 48 L64 48" pathLength={1} />
+                           ) : payVariant === 'error' ? (
+                               <path className="pub-mark-glyph" d="M48 28 L48 52 M48 65 L48 65.5" pathLength={1} />
+                           ) : statusMsg.isError ? (
+                               <path className="pub-mark-glyph" d="M34 34 L62 62 M62 34 L34 62" pathLength={1} />
+                           ) : (
+                               <path className="pub-mark-glyph" d="M30 49 L43 62 L67 36" pathLength={1} />
+                           )}
+                       </svg>
+                   </div>
+                   <h1 className="pub-title">{payCopy ? payCopy.title : statusMsg.title}</h1>
+                   <p className="pub-sub pub-sub--lead">{payCopy ? payCopy.sub : statusMsg.sub}</p>
+                   
                    <div className="pub-redirect">
                        <Loader2 size={16} className="pub-spin-icon" />
                        بنحوّلك لصفحة التتبع...
                    </div>
-               )}
-           </div>
+               </div>
+           ) : (
+               <div className="pub-pay-wait">
+                  <AdminMicroLoader size={48} label="نتأكد من عملية الدفع" className="mb-4" />
+                  <p className="pub-sub">نتأكد من عملية الدفع...</p>
+               </div>
+           )}
        </main>
     </div>
   );
