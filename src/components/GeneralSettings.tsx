@@ -4130,7 +4130,7 @@ const GeneralSettings: React.FC<Props> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:p-4">
         <div className="lg:col-span-2 space-y-6">
           {/* Profile Settings */}
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <section className="bp-acc bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             <button
               onClick={() =>
                 setActiveSection(activeSection === "profile" ? "" : "profile")
@@ -4300,7 +4300,7 @@ const GeneralSettings: React.FC<Props> = ({
           </section>
 
           {/* Notifications Section */}
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <section className="bp-acc bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             <button
               onClick={() =>
                 setActiveSection(
@@ -5442,7 +5442,7 @@ const GeneralSettings: React.FC<Props> = ({
           </section>
 
           {/* Zones Management Section */}
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <section className="bp-acc bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             <button
               onClick={() =>
                 setActiveSection(activeSection === "zones" ? "" : "zones")
@@ -5682,7 +5682,7 @@ const GeneralSettings: React.FC<Props> = ({
             </div>
           </section>
 
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <section className="bp-acc bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             <button
               onClick={() =>
                 setActiveSection(
@@ -5925,7 +5925,7 @@ const GeneralSettings: React.FC<Props> = ({
             </div>
           </section>
 
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <section className="bp-acc bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             <button
               onClick={() =>
                 setActiveSection(activeSection === "data" ? "" : "data")
@@ -6317,7 +6317,7 @@ const GeneralSettings: React.FC<Props> = ({
 
           {/* Integration API Section - Hidden as requested */}
           {/*
- <section className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+ <section className="bp-acc bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
  ...
  </section>
  */}

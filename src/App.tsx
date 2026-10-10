@@ -2626,6 +2626,7 @@ const MainApp: React.FC = () => {
           <span>🔔</span>
         </div>, {
         id: 'persistent-new-orders',
+        className: 'bp-payment-toast',
         duration: 3000, // Show for 3s to sync with sound
         style: {
            background: '#fff',
@@ -4541,7 +4542,7 @@ const MainApp: React.FC = () => {
         }}
         transition={{ type: 'tween', ease: "easeOut", duration: 0.3 }}
         className={cn(
-          "bg-slate-950 text-white flex flex-col transition-all relative",
+          "bp-sidebar bg-slate-950 text-white flex flex-col transition-all relative",
           isMobile ? "fixed right-0 top-0 bottom-0 shadow-[0_0_80px_rgba(0,0,0,0.8)] z-[1001]" : "relative z-40 border-l border-white/5 overflow-hidden"
         )}
       >
@@ -4597,7 +4598,7 @@ const MainApp: React.FC = () => {
                     }
                  }}
                  className={cn(
-                   "w-full border-0 bg-transparent flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
+                   "bp-nav-group w-full border-0 bg-transparent flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
                    (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50"
                  )}
                >
@@ -4670,7 +4671,7 @@ const MainApp: React.FC = () => {
                     }
                  }}
                  className={cn(
-                   "w-full border-0 bg-transparent flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
+                   "bp-nav-group w-full border-0 bg-transparent flex items-center justify-between text-white/40 px-3 mb-3 cursor-pointer hover:text-white transition-all group",
                    (!sidebarOpen && !isMobile) && "justify-center px-0 opacity-50"
                  )}
                >
