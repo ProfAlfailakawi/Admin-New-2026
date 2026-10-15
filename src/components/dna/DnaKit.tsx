@@ -137,11 +137,13 @@ export interface DnaStepperProps {
   hold?: boolean;
   /** Override the per-station time of the intro (ms). */
   stepMs?: number;
+  /** xs only: keep the compact dots but show a short caption under each one. */
+  xsLabels?: boolean;
 }
 
-export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, stateText, className, reveal = false, journey = false, playKey, hold, stepMs }: DnaStepperProps) {
+export function DnaStepper({ steps, size = 'md', showLabels = true, xsLabels = false, ariaLabel, stateText, className, reveal = false, journey = false, playKey, hold, stepMs }: DnaStepperProps) {
   const text = { ...DEFAULT_STATE_TEXT, ...stateText };
-  const labels = showLabels && size !== 'xs';
+  const labels = showLabels && (size !== 'xs' || xsLabels);
   let target = 0;
   steps.forEach((s, i) => {
     if (s.state !== 'pending') target = i + 1; // done/current/returned/blocked are all really reached; pending never is
@@ -153,6 +155,7 @@ export function DnaStepper({ steps, size = 'md', showLabels = true, ariaLabel, s
       ref={reveal ? jr.ref : undefined}
       className={cx('dna', 'dna-steps', className)}
       data-size={size}
+      data-xslabels={size === 'xs' && xsLabels ? '' : undefined}
       aria-label={ariaLabel}
       data-journey={reveal || journey ? '' : undefined}
       data-reveal={reveal ? (lit ?? 'done') : undefined}

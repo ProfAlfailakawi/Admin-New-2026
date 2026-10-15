@@ -400,6 +400,14 @@
   box-shadow: inset 0 0 0 2px var(--dna-accent);
   animation: none;
 }
+/* xs with captions: dots stay small, a short word sits under each */
+.dna-steps[data-size='xs'][data-xslabels] {
+  display: grid;
+  grid-auto-columns: 1fr;
+  inline-size: 100%;
+}
+.dna-steps[data-size='xs'][data-xslabels] .dna-stepi { gap: 4px; }
+.dna-steps[data-size='xs'][data-xslabels] .dna-lbl { font-size: 11px; text-align: center; }
 @keyframes dna-halo {
   0%, 100% {
     box-shadow: inset 0 0 0 2px var(--dna-accent), 0 0 0 3px color-mix(in srgb, var(--dna-accent) 16%, transparent);

@@ -1616,9 +1616,14 @@ Alturath.kw`;
 
                     <DnaStepper
                       size="xs"
+                      xsLabels
                       className="mb-3"
                       ariaLabel="مراحل الطلب"
-                      steps={getOrderJourneySteps(order)}
+                      steps={getOrderJourneySteps(order).map((st) => ({
+                        ...st,
+                        title: typeof st.label === "string" ? st.label : undefined,
+                        label: st.key === "received" ? "استلام" : st.key === "payment" ? "الدفع" : "فاتورة",
+                      }))}
                     />
 
                     <div className="space-y-1.5 md:space-y-2 mb-2 md:mb-4">
