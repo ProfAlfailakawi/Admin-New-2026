@@ -903,8 +903,8 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 .animate-pulse:not(.skeleton-card):not(.admin-skeleton):not([class*="bg-slate-"]),
 .animate-ping,
 [class*="animate-[ping"]{animation-iteration-count:3!important}
-/* The skeleton rule above sets position:relative on every .animate-pulse, which silently turned the header bell badge (absolute top/right) into an in-flow dot at the button corner. Keep it a badge. */
-.admin-app-header .animate-pulse.absolute{position:absolute}
+/* The skeleton rule above sets position:relative on every .animate-pulse, which turned corner badges and sparkles (absolute with offsets) into in-flow elements. Keep them positioned; full-area (inset-0) glows are left as they render today. */
+.animate-pulse.absolute:not([class*="inset-0"]){position:absolute}
 
 /* Fix Command Center contrast after premium glass layer */
 .command-feature-card,
@@ -6499,7 +6499,8 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
   table.mobile-card-table td button,table.mobile-card-table td a{min-height:44px;min-width:44px}
   table.mobile-card-table td .flex{flex-wrap:wrap}
   /* A call-to-action button (icon + label) must stay on one line and centred, not wrap its icon onto a separate row */
-  table.mobile-card-table td button.flex,table.mobile-card-table td a.flex{flex-wrap:nowrap;justify-content:center;text-align:center}
+  table.mobile-card-table td button.flex,table.mobile-card-table td a.flex{flex-wrap:nowrap;justify-content:center;text-align:center;gap:8px}
+  table.mobile-card-table td button.flex > span:only-of-type{font-size:14px;line-height:1.4}
   /* customer cell holds name + phone + address as sibling blocks: stack them instead of squeezing the name character by character */
   table.mobile-card-table td[data-label="العميل"]{flex-wrap:wrap}
   /* action icons: label on its own line, icons share the next line instead of leaving one orphan icon */
@@ -6684,3 +6685,9 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 
 /* The framed hero already names this lab; keep the in-page copy for screen readers only where the hero is shown (dashboard route hides the hero, so the title stays visible there). */
 .admin-experience-stack:not(.dashboard-merged-with-command) .intel-dup-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Header pulse orb: its scale/rotate/ring loops are driven by JS inline styles, which the browser reduced-motion setting does not stop. Show the resting state. */
+@media (prefers-reduced-motion: reduce) {
+  .admin-app-header [class*="w-[33px]"] div { transform: none !important; animation: none !important; }
+  .admin-app-header [class*="w-[33px]"] div[class*="border-[#0f3d1f]/20"] { opacity: .5 !important; }
+}

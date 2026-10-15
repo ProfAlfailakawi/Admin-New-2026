@@ -1305,7 +1305,7 @@ Alturath.kw`;
                   )}
                 >
                   {p.isActive === false && (
-                    <div className="absolute top-2 right-2 text-amber-700 bg-gradient-to-br from-amber-500/10 to-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm font-black text-xs flex items-center gap-1 z-10 select-none animate-pulse motion-reduce:animate-none">
+                    <div className="absolute top-2 right-2 text-amber-700 bg-gradient-to-br from-amber-500/10 to-amber-600/15 border border-amber-500/30 px-2 py-0.5 rounded-lg shadow-sm font-black text-xs flex items-center gap-1 z-10 select-none relative! animate-pulse motion-reduce:animate-none">
                       <EyeOff size={12} aria-hidden="true" /><span>مخفي</span>
                     </div>
                   )}
