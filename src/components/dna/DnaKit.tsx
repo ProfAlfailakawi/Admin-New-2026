@@ -7,6 +7,9 @@
 import * as React from 'react';
 import './dna.css';
 import { useJourneyReveal } from './useJourneyReveal';
+import { useDrawIn, useChangeFlash } from './useDrawIn';
+
+export { DnaCountUp, useChangeFlash } from './useDrawIn';
 
 export type DnaTone =
   | 'accent'
@@ -321,9 +324,15 @@ export interface DnaRingProps {
   sublabel?: React.ReactNode;
   ariaLabel?: string;
   className?: string;
+  /** Opt-in: draw the ring once (per session) when it first scrolls into view. */
+  playKey?: string;
+  /** Delay (ms) before the one-time draw starts, to sequence it with siblings. */
+  drawDelay?: number;
 }
 
-export function DnaRing({ value, max = 100, size = 52, stroke = 4, tone = 'accent', label, sublabel, ariaLabel, className }: DnaRingProps) {
+export function DnaRing({ value, max = 100, size = 52, stroke = 4, tone = 'accent', label, sublabel, ariaLabel, className, playKey, drawDelay = 0 }: DnaRingProps) {
+  const draw = useDrawIn<HTMLDivElement>({ playKey, threshold: 0.4 });
+  const pre = draw.phase === 'pre';
   const has = typeof value === 'number' && Number.isFinite(value) && max > 0;
   const fraction = has ? Math.min(1, Math.max(0, (value as number) / max)) : 0;
   const r = (size - stroke) / 2;
@@ -331,8 +340,10 @@ export function DnaRing({ value, max = 100, size = 52, stroke = 4, tone = 'accen
   const mid = size / 2;
   return (
     <div
+      ref={playKey ? draw.ref : undefined}
       className={cx('dna', 'dna-ring', className)}
       data-dna-tone={tone}
+      data-draw={draw.phase === 'final' ? undefined : draw.phase}
       style={{ inlineSize: size, blockSize: size }}
       role="img"
       aria-label={ariaLabel}
@@ -348,7 +359,8 @@ export function DnaRing({ value, max = 100, size = 52, stroke = 4, tone = 'accen
             fill="none"
             strokeWidth={stroke}
             strokeLinecap="round"
-            strokeDasharray={`${c * fraction} ${c}`}
+            strokeDasharray={`${pre ? 0 : c * fraction} ${c}`}
+            style={playKey && draw.phase !== 'final' ? { opacity: pre ? 0 : 1, transitionDelay: `${drawDelay}ms`, transitionDuration: '0.9s' } : undefined}
             transform={`rotate(-90 ${mid} ${mid})`}
           />
         )}
@@ -398,10 +410,21 @@ export function DnaSegmented<T extends string>({
         >
           {option.icon}
           <span>{option.label}</span>
-          {option.count != null && option.count !== false && <span className="dna-count">{option.count}</span>}
+          {option.count != null && option.count !== false && <SegCount count={option.count} />}
         </button>
       ))}
     </div>
+  );
+}
+
+/** Count pill: one soft tint when the number really rises after first paint (never on first render). */
+function SegCount({ count }: { count: React.ReactNode }) {
+  const n = typeof count === 'number' ? count : typeof count === 'string' && /^\d+$/.test(count) ? Number(count) : NaN;
+  const rose = useChangeFlash(Number.isFinite(n) ? n : null, { ms: 1200, when: (a, b) => typeof a === 'number' && typeof b === 'number' && a > 0 && b > a });
+  return (
+    <span className="dna-count" data-rise={rose ? 'true' : undefined}>
+      {count}
+    </span>
   );
 }
 
@@ -414,6 +437,8 @@ export function DnaSpark({
   tone = 'accent',
   ariaLabel,
   className,
+  playKey,
+  drawDelay = 0,
 }: {
   values: number[];
   width?: number;
@@ -421,7 +446,11 @@ export function DnaSpark({
   tone?: DnaTone;
   ariaLabel?: string;
   className?: string;
+  /** Opt-in: the line draws once (per session) on first view, then the area fades in. */
+  playKey?: string;
+  drawDelay?: number;
 }) {
+  const draw = useDrawIn<SVGSVGElement>({ playKey, threshold: 0.4 });
   const clean = values.filter((v) => Number.isFinite(v));
   if (clean.length < 2) return null;
   const min = Math.min(...clean);
@@ -437,8 +466,11 @@ export function DnaSpark({
   const last = pts[pts.length - 1];
   return (
     <svg
+      ref={playKey ? draw.ref : undefined}
       className={cx('dna', 'dna-spark', className)}
       data-dna-tone={tone}
+      data-draw={draw.phase === 'final' ? undefined : draw.phase}
+      style={drawDelay ? ({ '--draw-delay': `${drawDelay}ms` } as React.CSSProperties) : undefined}
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
@@ -447,7 +479,7 @@ export function DnaSpark({
       aria-hidden={ariaLabel ? undefined : true}
     >
       <path className="dna-sparka" d={area} />
-      <path className="dna-sparkl" d={line} />
+      <path className="dna-sparkl" d={line} pathLength={playKey ? 1 : undefined} />
       <circle cx={last[0]} cy={last[1]} r={2.6} />
     </svg>
   );
@@ -583,6 +615,8 @@ export interface DnaHubMapProps {
   action?: { icon: React.ReactNode; label: string; onClick: () => void } | null;
   spark?: React.ReactNode;
   animate?: boolean;
+  /** One-time highlight (flow + core breathe, plays once) when the host sees a real increase. */
+  pulse?: boolean;
   ariaLabel?: string;
   minHeight?: number;
   className?: string;
@@ -600,6 +634,7 @@ export function DnaHubMap({
   action,
   spark,
   animate = true,
+  pulse = false,
   ariaLabel,
   minHeight,
   className,
@@ -681,6 +716,7 @@ export function DnaHubMap({
       ref={ref}
       className={cx('dna', 'dna-hub', className)}
       data-animate={animate ? 'true' : 'false'}
+      data-pulse={pulse ? 'true' : undefined}
       data-dir={box.rtl ? 'rtl' : 'ltr'}
       role="group"
       aria-label={ariaLabel}
