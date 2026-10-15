@@ -157,14 +157,14 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  s.id === editingId ? { ...s, ...supplierFields } : s
 )
  }));
- toast.success("تم التحديث ✨", { description: `تم تعديل بيانات المورد ${supplierForm.name} بنجاح.` });
+ toast.success("تم التحديث", { description: `تم تعديل بيانات المورد ${supplierForm.name} بنجاح.` });
  } else {
  const id = Math.random().toString(36).substr(2, 9);
  setData(prev => recalculateStateBalances({
  ...prev,
  suppliers: [...(prev?.suppliers || []), { ...supplierFields, id, balance: 0, status: 'paid' as const }]
  }));
- toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة المورد ${supplierForm.name} لقائمة الموردين المعتمدين.` });
+ toast.success("تم الحفظ بنجاح", { description: `تمت إضافة المورد ${supplierForm.name} لقائمة الموردين المعتمدين.` });
  }
  closeModal();
  };

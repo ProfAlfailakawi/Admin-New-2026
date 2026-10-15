@@ -116,7 +116,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.explanation}
  </p>
  <div className="bg-[#fdfbf7] p-3 rounded-xl border border-[#f0e6d2]">
- <h5 className="text-indigo-600 font-bold text-[11px] uppercase mb-1 flex items-center gap-2 justify-end">💡 توصية التصحيح</h5>
+ <h5 className="text-indigo-600 font-bold text-[11px] uppercase mb-1 flex items-center gap-2 justify-end">توصية التصحيح</h5>
  <p className="text-xs font-bold text-slate-700 italic">"{insight.recommendation}"</p>
  </div>
  </div>

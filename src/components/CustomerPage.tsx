@@ -250,7 +250,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           customers: updatedCustomers
         };
       });
-      toast.success("تم التحديث ✨", { description: `تم تعديل بيانات العميل ومزامنة طلباته السابقة.` });
+      toast.success("تم التحديث", { description: `تم تعديل بيانات العميل ومزامنة طلباته السابقة.` });
     } else {
       const id = Math.random().toString(36).substr(2, 9);
       setData(prev => ({
@@ -267,7 +267,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
           totalSpent: 0 
         }]
       }));
-      toast.success("تم الحفظ بنجاح ✨", { description: `تمت إضافة العميل ${customerForm.name.trim()} لقاعدة البيانات.` });
+      toast.success("تم الحفظ بنجاح", { description: `تمت إضافة العميل ${customerForm.name.trim()} لقاعدة البيانات.` });
     }
     closeModal();
   };
@@ -622,15 +622,15 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
          </td>
          <td className="p-2.5 text-left sticky left-0 bg-white group-hover:bg-indigo-50/30 transition-all shadow-[-10px_0_15px_-10px_rgba(0,0,0,0.1)]">
           <div className="customer-actions flex items-center gap-1 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
-           <button onClick={() => handleSendMessage(customer)} className="w-7 h-7 max-md:!w-11 max-md:!h-11 md:w-8 md:h-8 flex items-center justify-center bg-indigo-600 hover:bg-slate-50 border border-slate-200 text-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة">
+           <button onClick={() => handleSendMessage(customer)} className="w-7 h-7 max-md:!w-11 max-md:!h-11 md:w-10 md:h-10 flex items-center justify-center bg-indigo-600 hover:bg-slate-50 border border-slate-200 text-slate-900 rounded-lg text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95 group/btn relative overflow-hidden" title="إرسال رسالة">
              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity" />
              <div className="relative flex items-center justify-center">
                <MessageSquare size={15} className="group-hover/btn:scale-110 transition-transform" />
                <Sparkles size={6} className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
              </div>
            </button>
-           <button onClick={() => openEditModal(customer)} className="w-7 h-7 max-md:!w-11 max-md:!h-11 md:w-8 md:h-8 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={15} /></button>
-           <button onClick={() => setCustomerToDelete(customer)} className="w-7 h-7 max-md:!w-11 max-md:!h-11 md:w-8 md:h-8 flex items-center justify-center bg-white hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={15} /></button>
+           <button onClick={() => openEditModal(customer)} className="w-7 h-7 max-md:!w-11 max-md:!h-11 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-slate-50 rounded-lg text-slate-400 hover:text-indigo-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Edit2 size={15} /></button>
+           <button onClick={() => setCustomerToDelete(customer)} className="w-7 h-7 max-md:!w-11 max-md:!h-11 md:w-10 md:h-10 flex items-center justify-center bg-white hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600 border border-slate-200 shadow-sm transition-all hover:scale-110"><Trash2 size={15} /></button>
           </div>
          </td>
         </tr>

@@ -406,7 +406,7 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
       setTurns(proof.turns)
       setAvailableDraft(null)
       setDirty(false)
-      setNotice(`${automatic ? 'حفظ تلقائي' : 'حُفظ الحوار'} وتطابقت القراءة الراجعة ✓ بصمة ${proof.contentSha256.slice(0, 12)}`)
+      setNotice(`${automatic ? 'حفظ تلقائي' : 'حُفظ الحوار'} وتطابقت القراءة الراجعة بصمة ${proof.contentSha256.slice(0, 12)}`)
       return proof
     } catch (error) {
       localStorage.setItem(pendingKey, canonicalJson)
@@ -457,8 +457,8 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
       const dispatch = await dispatchPodcastGeneration({ user, slug, proof })
       setQueuedProof({ turnCount: proof.turnCount, sha: proof.contentSha256.slice(0, 12), runId: dispatch.workflowRunId ? String(dispatch.workflowRunId) : undefined })
       setNotice(dispatch.duplicate
-        ? `الحوار نفسه مقفول والتوليد يعمل بالفعل ✓ ${proof.turnCount} مداخلة · بصمة ${proof.contentSha256.slice(0, 12)}`
-        : `بدأ التوليد تلقائياً من لوحة التحكم ✓ ${proof.turnCount} مداخلة · بصمة ${proof.contentSha256.slice(0, 12)}${dispatch.workflowRunId ? ` · تشغيل ${dispatch.workflowRunId}` : ''}. لا تحتاج إلى دخول GitHub.`)
+        ? `الحوار نفسه مقفول والتوليد يعمل بالفعل ${proof.turnCount} مداخلة · بصمة ${proof.contentSha256.slice(0, 12)}`
+        : `بدأ التوليد تلقائياً من لوحة التحكم ${proof.turnCount} مداخلة · بصمة ${proof.contentSha256.slice(0, 12)}${dispatch.workflowRunId ? ` · تشغيل ${dispatch.workflowRunId}` : ''}. لا تحتاج إلى دخول GitHub.`)
       /* التحويل المباشر إلى صفحة التوليد: الدكتور يرى حالة حلقته فوراً، ولا تبقى
          بين يديه شاشةٌ فيها زرّ إرسالٍ قد يُضغط مرّةً ثانية فيُنتج تكراراً. */
       onQueued?.()
@@ -499,7 +499,7 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
     setTurns(availableDraft)
     setAvailableDraft(null)
     setDirty(false)
-    setNotice(`استُعيدت المسودة المحفوظة (${availableDraft.length} مداخلة) ✓`)
+    setNotice(`استُعيدت المسودة المحفوظة (${availableDraft.length} مداخلة)`)
   }
 
   const download = () => {
@@ -510,7 +510,7 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
     anchor.download = `${slug}.json`
     anchor.click()
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-    setNotice('نُزّل ملف الحوار باسم الحلقة، جاهز لمسار الصوت ✓')
+    setNotice('نُزّل ملف الحوار باسم الحلقة، جاهز لمسار الصوت')
   }
 
   const importFile = async (file?: File) => {
@@ -638,7 +638,7 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
               disabled={cloudBusy || queueBusy || turns.length < 2 || Boolean(queuedProof)}
               className={queuedProof ? `${primary} cursor-default opacity-60` : primary}
             >
-              {queueBusy ? 'أحفظ وأبدأ التوليد…' : queuedProof ? '✓ أُرسل للتوليد' : 'حفظ وإرسال الحوار نفسه للتوليد'}
+              {queueBusy ? 'أحفظ وأبدأ التوليد…' : queuedProof ? 'أُرسل للتوليد' : 'حفظ وإرسال الحوار نفسه للتوليد'}
             </button>
           </div>
         </div>
@@ -669,7 +669,7 @@ export function ManualDialogueEditor({ articles, onQueued }: { articles: Article
 
         {queuedProof && (
           <div role="status" className="mt-4 grid gap-2 rounded-2xl border border-accent/45 bg-canvas px-5 py-4">
-            <p className="font-display text-[1.05rem] font-semibold text-ink">✓ وصل الحوار وبدأ التوليد</p>
+            <p className="font-display text-[1.05rem] font-semibold text-ink">وصل الحوار وبدأ التوليد</p>
             <p className="text-[.82rem] leading-relaxed text-soft">
               {queuedProof.turnCount} مداخلة · بصمة {queuedProof.sha}
               {queuedProof.runId ? ` · تشغيل ${queuedProof.runId}` : ''}

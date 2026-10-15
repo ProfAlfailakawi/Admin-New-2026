@@ -30,7 +30,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(99,102,241,0.05)_50%,transparent_75%)] bg-[length:10px_10px] pointer-events-none" />
  <div className="text-right relative z-10">
  <h3 className="font-bold text-xl md:text-2xl text-white">قمرة قيادة الأهداف</h3>
- <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">قائد أهداف التراث 🚀</p>
+ <p className="text-indigo-400 text-[10px] md:text-xs font-bold mt-1">قائد أهداف التراث</p>
  </div>
  <div className="flex items-center gap-3 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/30 relative z-10">
  <Target className="text-indigo-400" size={14} />
@@ -84,7 +84,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
  </div>
 ) : (
  <div className="space-y-6 md:space-y-8">
- <h4 className="text-xl md:text-2xl font-bold text-white text-right">حدد وجهتك القادمة 🎯</h4>
+ <h4 className="text-xl md:text-2xl font-bold text-white text-right">حدد وجهتك القادمة</h4>
  <p className="text-indigo-300 text-xs md:text-sm font-medium leading-relaxed text-right opacity-80">
  ما هو التغيير الحقيقي الذي تريد رؤيته في متجرك هذا الشهر؟ اختر أحد الأهداف المقترحة من قِبل التراث الذكي.
  </p>
@@ -100,7 +100,7 @@ export const GoalManager: React.FC<GoalManagerProps> = ({ data, onUpdateData }) 
 
  {/* Recommendations */}
  <div className="space-y-4 md:space-y-6">
- <h4 className="font-bold text-base md:text-lg text-slate-800 text-right pr-4">اقتراحات القائد الذكي 🤖</h4>
+ <h4 className="font-bold text-base md:text-lg text-slate-800 text-right pr-4">اقتراحات القائد الذكي</h4>
  <div className="space-y-3 md:space-y-4">
  {recommendations.map((rec, index) => (
  <motion.div

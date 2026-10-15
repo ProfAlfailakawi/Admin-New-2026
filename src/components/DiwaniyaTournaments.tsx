@@ -1978,7 +1978,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
                               <div className="mt-2 text-[11px] font-bold text-amber-700">مدى الانضمام الحالي: {getSquadGeofenceDistance(selected)}م</div>
                             </>
                           ) : (
-                            <div className="text-rose-600 font-bold">ماكو إحداثيات حقيقية. ثبّت الموقع من برنامج العميل عشان تظهر على الخريطة بدقة.</div>
+                            <div className="text-rose-600 font-bold">ماكو إحداثيات حقيقية. ثبّت الموقع من برنامج العميل ليظهر على الخريطة.</div>
                           )}
                         </div>
 

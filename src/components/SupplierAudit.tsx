@@ -213,7 +213,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
 
  if (!transferForm.id) {
    if (currentBalance <= 0) {
-     toast.error("لا يوجد التزامات مالية حالياً لهذا المورد! 🚫", {
+     toast.error("لا يوجد التزامات مالية حالياً لهذا المورد!", {
        description: "لقد تم سداد كافة ذمم ومستحقات هذا المورد بالكامل ولا توجد أي مبالغ مستحقة عليه.",
        position: 'bottom-right'
      });
@@ -221,7 +221,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    }
    const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
    if (enteredAmount > Math.round(currentBalance * 1000) / 1000) {
-     toast.error("المبلغ المدخل يتجاوز مديونية المورد! 🚫", {
+     toast.error("المبلغ المدخل يتجاوز مديونية المورد!", {
        description: `أقصى مبلغ يمكن سداده هو ${Number(currentBalance).toFixed(3)} د.ك.`,
        position: 'bottom-right'
      });
@@ -233,7 +233,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    const maxAllowed = currentBalance + oldAmount;
    const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
    if (enteredAmount > Math.round(maxAllowed * 1000) / 1000) {
-     toast.error("تعديل المبلغ يتجاوز إجمالي مديونية المورد! 🚫", {
+     toast.error("تعديل المبلغ يتجاوز إجمالي مديونية المورد!", {
        description: `أقصى مبلغ متاح للتحويل هو ${Number(maxAllowed).toFixed(3)} د.ك.`,
        position: 'bottom-right'
      });
@@ -290,7 +290,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  try {
    playMetallicSettlementChime();
  } catch (e) {}
- toast.success(transferForm.id ? "تم تعديل السداد ومطابقته ✨" : "تم السداد والمطابقة المالية بنجاح 🪙", {
+ toast.success(transferForm.id ? "تم تعديل السداد ومطابقته" : "تم السداد والمطابقة المالية بنجاح", {
    description: transferForm.id 
      ? "تم تحديث بيانات المعاملة وتعديل القيمة بنجاح." 
      : `تم تسجيل دفعة بقيمة (${transferForm.amount.toFixed(3)} د.ك) وتخفيض مديونية المورد بنجاح.`,
@@ -368,7 +368,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  className="absolute top-full mt-2 w-full left-0 bg-white border border-slate-200/60 rounded-2xl shadow-xl z-50 p-2"
  >
  {data?.suppliers && (data?.suppliers || []).filter(s => (supplierOutstandingMap[s.id]?.balance || 0) > 0).length === 0 ? (
- <div className="text-slate-500 text-xs text-center py-4 font-bold">لا يوجد موردين بالانتظار الحمدلله 🎉</div>
+ <div className="text-slate-500 text-xs text-center py-4 font-bold">لا يوجد موردين بالانتظار الحمدلله</div>
 ) : (
  <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
  {(data?.suppliers || []).filter(s => (supplierOutstandingMap[s.id]?.balance || 0) > 0).map(s => (

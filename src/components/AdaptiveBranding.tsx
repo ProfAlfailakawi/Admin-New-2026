@@ -56,7 +56,7 @@ export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, 
     
     setTimeout(() => {
       setIsApplying(false);
-      toast.success(`تم تغيير هوية التطبيق إلى: ${theme === 'morning' ? 'الصباح النشط ☀️' : 'المساء الفاخر 🌙'}`);
+      toast.success(`تم تغيير هوية التطبيق إلى: ${theme === 'morning' ? 'الصباح النشط' : 'المساء الفاخر'}`);
     }, 1500);
   };
 
@@ -99,7 +99,7 @@ No markdown formatting, just pure JSON.`;
       setHistory(prev => [newTheme, ...prev].slice(0, 10));
       recordStudioTasteChoice({ theme: themeData.name, format: selectedFormat, label: 'الهوية المتغيرة', source: 'branding-tab' });
       setActiveTheme('custom');
-      toast.success(`تم ابتكار وتطبيق ثيم: ${themeData.name} ✨`);
+      toast.success(`تم ابتكار وتطبيق ثيم: ${themeData.name}`);
     } catch (e) {
       toast.error('ما قدرنا نولّد الثيم، تأكد من الاتصال أو مفتاح API.');
     } finally {

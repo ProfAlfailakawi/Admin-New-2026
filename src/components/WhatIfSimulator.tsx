@@ -51,7 +51,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-slate-950 rounded-3xl border border-slate-800 text-center">
  <AlertCircle className="text-slate-600 mb-4" size={48} />
  <h3 className="text-xl font-bold text-white mb-2">ماكو أصناف متاحة</h3>
- <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">عشان نسوي محاكاة "ماذا لو" أو حملة بالتراث الذكي، أضف كم صنف للمتجر أول.</p>
+ <p className="text-slate-500 font-bold mb-6 text-sm max-w-sm">لعمل محاكاة "ماذا لو" أو حملة بالتراث الذكي، أضف كم صنف للمتجر أول.</p>
  </div>
 );
  }
@@ -115,7 +115,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  const errStr = String(error?.message || error);
  if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("depleted")) {
  toast.error("نفدت نقاط التراث الذكي", {
- description:"جدّد الباقة عشان تكمل تستخدم ميزات التراث الذكي."
+ description:"جدّد الباقة لتكمل استخدام ميزات التراث الذكي."
  });
  } else {
  console.error("Campaign generation failed:", error);
@@ -371,7 +371,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  className="bg-indigo-600 text-white px-4 md:px-8 md:px-12 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base hover:bg-indigo-500 hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50 active:scale-95 flex items-center gap-3 relative z-10 min-h-[44px]"
  >
  {isGenerating ? <RefreshCw className="animate-spin" /> : <Sparkles />}
- {isGenerating ? 'نبني الخطة والإعلانات...' : 'ابنِ الخطة الآن بضغطة زر 🚀'}
+ {isGenerating ? 'نبني الخطة والإعلانات...' : 'ابنِ الخطة الآن بضغطة زر'}
  </button>
  </>
 ) : (
@@ -422,7 +422,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  disabled={isExecuting}
  className="w-full md:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 px-4 md:px-8 py-4 rounded-xl font-bold text-sm hover:bg-emerald-500 hover:text-slate-900 transition-all active:scale-95 disabled:opacity-50 min-h-[44px]"
  >
- {isExecuting ? 'ننفذ...' : 'موافق، سجّل الحملة في خططي 🚀'}
+ {isExecuting ? 'ننفذ...' : 'موافق، سجّل الحملة في خططي'}
  </button>
  </div>
  </div>

@@ -46,7 +46,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
     // لا نعلن النجاح إلا بعد نجاح النسخ فعلياً
     navigator.clipboard.writeText(text).then(() => {
       setCopiedKey(key);
-      toast.success('انسخ! النص جاهز للصق في إنستغرام ✨');
+      toast.success('انسخ! النص جاهز للصق في إنستغرام');
       setTimeout(() => setCopiedKey(null), 2000);
     }).catch(() => {
       toast.error('ما قدرنا ننسخ تلقائياً — ظللوا النص وانسخوه يدوياً');
@@ -278,7 +278,7 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="text-[15px] font-black text-slate-800 leading-tight">{kit.title}</h3>
-                              <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">🎯 {kit.goal}</p>
+                              <p className="text-[9.5px] font-bold text-slate-400 mt-0.5">{kit.goal}</p>
                             </div>
                           </div>
 
@@ -300,8 +300,8 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                             </div>
 
                             <div className="flex flex-col gap-1.5 text-[10px] font-bold">
-                              <span className="bg-amber-50 text-amber-800 border border-amber-100 rounded-xl px-3 py-1.5 leading-snug">🗓 {kit.scheduleLine}</span>
-                              <span className="bg-indigo-50 text-indigo-800 border border-indigo-100 rounded-xl px-3 py-1.5 leading-snug">⚖️ {kit.winnerMethod}</span>
+                              <span className="bg-amber-50 text-amber-800 border border-amber-100 rounded-xl px-3 py-1.5 leading-snug">{kit.scheduleLine}</span>
+                              <span className="bg-indigo-50 text-indigo-800 border border-indigo-100 rounded-xl px-3 py-1.5 leading-snug">{kit.winnerMethod}</span>
                             </div>
 
                             {kit.prizeNote && (
@@ -377,12 +377,12 @@ export const InstagramMagicWand: React.FC<InstagramMagicWandProps> = ({ data }) 
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="text-[14px] font-black text-slate-800 leading-tight">{idea.title}</h4>
-                              <p className="text-[9.5px] font-bold text-slate-400 mt-1 leading-snug">💡 {idea.why}</p>
+                              <p className="text-[9.5px] font-bold text-slate-400 mt-1 leading-snug">{idea.why}</p>
                             </div>
                           </div>
 
                           <div className="flex gap-1.5">
-                            {([['caption', '📝 بوست'], ['story', '📱 ستوري']] as ['caption' | 'story', string][]).map(([key, label]) => (
+                            {([['caption', 'بوست'], ['story', 'ستوري']] as ['caption' | 'story', string][]).map(([key, label]) => (
                               <button
                                 key={key}
                                 onClick={() => setEngageView(prev => ({ ...prev, [idea.id]: key }))}

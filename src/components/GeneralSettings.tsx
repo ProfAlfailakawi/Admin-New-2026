@@ -578,7 +578,7 @@ const CashAnchorSettings: React.FC<{
       },
     });
     setActualBalance("");
-    toast.success("تمت معايرة السيولة ✨", {
+    toast.success("تمت معايرة السيولة", {
       description: `فرق المعايرة المحفوظ ${nextOpening.toFixed(3)} د.ك، وبطاقة السيولة صارت تعرض ${typed.toFixed(3)} د.ك وتتحرك مع العمليات القادمة.`,
     });
   };
@@ -2723,7 +2723,7 @@ const GeneralSettings: React.FC<Props> = ({
       setShowRestoreConfirm(false);
       addToast(
         "تم الاسترجاع السحابي",
-        "استُعيدت البيانات كاملة، وتم اعتمادها سحابياً والتحقق من الفواتير والطلبات بنجاح ☁️",
+        "استُعيدت البيانات كاملة، وتم اعتمادها سحابياً والتحقق من الفواتير والطلبات بنجاح",
         "success",
       );
     } catch (e) {
@@ -3429,7 +3429,7 @@ const GeneralSettings: React.FC<Props> = ({
                   if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
                   addToast(
                     "تمت العملية",
-                    "تم استيراد النسخة ومزامنتها سحابياً بنجاح ✨",
+                    "تم استيراد النسخة ومزامنتها سحابياً بنجاح",
                     "success",
                   );
                 })
@@ -4022,7 +4022,7 @@ const GeneralSettings: React.FC<Props> = ({
                     if (!saved) throw new Error("CLOUD_IMPORT_NOT_CONFIRMED");
                     addToast(
                       "تمت العملية",
-                      `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح ✨${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
+                      `تم استيراد ${importIntegrity.invoiceRows} فاتورة و${importIntegrity.invoiceItemRows} بند و${importIntegrity.orderRows} طلب، ثم التحقق من حفظها سحابياً بنجاح${restoredWhatsAppQuickRepliesCount ? ` وتم استرجاع ${restoredWhatsAppQuickRepliesCount} رد سريع.` : ""}`,
                       "success",
                     );
                   })
@@ -4112,7 +4112,7 @@ const GeneralSettings: React.FC<Props> = ({
           // Compress logo payload
           const dataUrl = canvas.toDataURL("image/png", 0.8);
           setSettings({ ...settings, companyLogo: dataUrl });
-          toast.success("تم رفع وتقليل حجم الشعار بنجاح ✅");
+          toast.success("تم رفع وتقليل حجم الشعار بنجاح");
         } catch (err) {
           console.error("Logo process error:", err);
           toast.error("تعطلت معالجة أبعاد الشعار");
@@ -6029,7 +6029,7 @@ const GeneralSettings: React.FC<Props> = ({
                           setData(demo);
                           addToast(
                             "تم تحميل النسخة التجريبية",
-                            "تم شحن النظام بالبيانات التجريبية الترويجية بنجاح 🧪",
+                            "تم شحن النظام بالبيانات التجريبية الترويجية بنجاح",
                             "success",
                           );
                         }}
@@ -6055,7 +6055,7 @@ const GeneralSettings: React.FC<Props> = ({
                           const simulationData = GENERATE_PERFORMANCE_SIMULATION_DATA();
                           setData(simulationData);
                           addToast(
-                            "تم بدء محاكاة الأداء العالي 🚀",
+                            "تم بدء محاكاة الأداء العالي",
                             "تم تحميل 10,000 فاتورة و5,000 عميل محلياً بأمان وبدون أي تأثير على قاعدة بيانتك السحابية!",
                             "success",
                           );

@@ -24,7 +24,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  setActiveCampaign(campaign);
  setEditedText(campaign.marketingMessage || campaign.message || '');
  setIsEditing(false);
- toast.success('تم ابتكار حملة جديدة بنجاح! 🚀');
+ toast.success('تم ابتكار حملة جديدة بنجاح!');
  } catch (error: any) {
  console.error("Marketing campaign generation failed:", error);
  toast.error('خدمة التراث الذكي مشغولة الحين. جرّب بعد شوي.');
@@ -34,7 +34,7 @@ export const MarketingLab: React.FC<MarketingLabProps> = ({ data }) => {
  };
 
  const launchCampaign = () => {
- toast.success('تم إطلاق الحملة بنجاح عبر جميع القنوات! 📢');
+ toast.success('تم إطلاق الحملة بنجاح عبر جميع القنوات!');
  setActiveCampaign(null);
  };
 

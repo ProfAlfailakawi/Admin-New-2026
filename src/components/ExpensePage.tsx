@@ -294,9 +294,9 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  onClick={e => e.stopPropagation()}
  >
  <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
- <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3 justify-end leading-tight text-right">
+ <h2 className="text-2xl font-bold text-slate-800 mt-2 mb-8 flex items-center gap-3 justify-start leading-tight text-right">
+ <PlusCircle className="text-primary shrink-0" aria-hidden="true" />
  {editingId ? 'تحرير المصروف' : 'إضافة مصروف جديد'}
- <PlusCircle className="text-primary" />
  </h2>
  
  <div className="space-y-6">
