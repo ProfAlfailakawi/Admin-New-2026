@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw, Video, Package, Utensils, LayoutGrid, ArrowDownToLine, Flame, Search } from 'lucide-react';
+import { Camera, Image as ImageIcon, Sparkles, Download, Check, Save, Upload, X, Loader2, MousePointerSquareDashed, Zap, ChevronLeft, Layout, Edit3, Brain, Library, MessageCircle, Film, PlayCircle, Copy, RotateCcw, Video, Package, Utensils, LayoutGrid, ArrowDownToLine, Flame, Search, Home, Sofa, Waves, TreePalm, Sun, Snowflake, Sunset, Cloud, Tent, CloudRain, Moon, Flag, Users, Handshake, Gift, Building2, ShoppingBag, SlidersHorizontal, Soup, Lightbulb, CalendarDays, PartyPopper } from 'lucide-react';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from '../constants';
 import { toast } from 'sonner';
 import { Product } from '../types';
@@ -17,6 +17,21 @@ import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCap
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { analyzeAlturathStudioIdea, getAlturathDishProfile, getAlturathProductGroups, getAlturathProductName, getAlturathProductSuggestions, type AlturathStudioBrainResult } from '../lib/alturathStudioBrain';
 import { buildAITrainingContext, recordAITrainingSignal, runAISelfTrainingCycle } from '../lib/aiLearningCore';
+
+
+// Display-only: maps the emoji kept in scene/place/mood config to calm line icons.
+const GLYPH_MAP: Array<[string, React.ComponentType<any>]> = [
+  ['🏠', Home], ['🛋', Sofa], ['🌊', Waves], ['🌴', TreePalm], ['🐪', Tent], ['👨', Users], ['✨', Sparkles],
+  ['☀', Sun], ['❄', Snowflake], ['🌇', Sunset], ['☁', Cloud], ['⛺', Tent], ['🌧', CloudRain], ['🌙', Moon],
+  ['🇰🇼', Flag], ['🏖', Waves], ['📦', Package], ['🍚', Soup], ['🤝', Handshake], ['🎁', Gift], ['🔎', Search],
+  ['🌆', Building2], ['🛍', ShoppingBag], ['⚡', Zap], ['🎛', SlidersHorizontal], ['✓', Check], ['🎈', PartyPopper],
+];
+const StudioGlyph = ({ emoji, size = 20, className }: { emoji?: string; size?: number; className?: string }) => {
+  const key = (emoji || '').trim();
+  const hit = GLYPH_MAP.find(([k]) => key.startsWith(k));
+  const Icon = hit ? hit[1] : Sparkles;
+  return <Icon size={size} strokeWidth={1.8} className={className} aria-hidden="true" />;
+};
 
 interface SmartContentStudioProps {
   data: any;
@@ -826,14 +841,14 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         "rounded-xl bg-slate-50 border border-slate-100/30 flex items-center justify-center shrink-0",
         isLarge ? "h-24 w-24 rounded-[2rem] text-6xl border-white/10 bg-white/10 shadow-2xl" : "p-2 text-xl"
       )}>
-        {scene.icon}
+        <StudioGlyph emoji={scene.icon} size={isLarge ? 44 : 20} />
       </span>
     );
   };
 
   const renderKuwaitPlaceIcon = (id: KuwaitOrderPlace, place: typeof KUWAIT_PLACES[KuwaitOrderPlace]) => {
     if (id === 'towers') return renderKuwaitTowersMark('sm');
-    return <span className="text-xl">{place.icon}</span>;
+    return <span className="text-xl"><StudioGlyph emoji={place.icon} /></span>;
   };
 
   const buildReelSceneContract = () => {
@@ -2461,7 +2476,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     fineToolTab === tab.id ? "bg-slate-950 text-white shadow-md" : "bg-white text-slate-500 border border-slate-100"
                   )}
                 >
-                  <span>{tab.icon}</span>
+                  <span><StudioGlyph emoji={tab.icon} size={16} /></span>
                   {tab.label}
                 </button>
               ))}
@@ -2473,7 +2488,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <div className="grid grid-cols-2 gap-2">
                   {moods.map(m => (
                     <button key={m.id} type="button" onClick={() => setSelectedMood(m.id)} className={cn("p-3 rounded-[1.2rem] border flex items-center justify-between gap-2 transition-all active:scale-95", selectedMood === m.id ? "bg-amber-50/80 border-[#C5A059] text-amber-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.03),0_1px_5px_rgba(197,160,89,0.2)] scale-[0.98]" : "bg-white/60 backdrop-blur-sm border-white/40 text-slate-600 hover:bg-white/90 active:scale-[0.98] hover:shadow-sm") }>
-                      <span className="text-xl drop-shadow-sm">{m.icon}</span><span className="text-[11px] font-black">{m.label}</span>
+                      <span className="text-xl drop-shadow-sm"><StudioGlyph emoji={m.icon} /></span><span className="text-[11px] font-black">{m.label}</span>
                     </button>
                   ))}
                 </div>
@@ -2507,7 +2522,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       >
         <span>
           <span className="block text-xs font-black text-slate-500 font-mono uppercase tracking-widest">مشاهد واقعية جاهزة</span>
-          <span className="mt-1 flex items-center justify-end gap-2 text-sm font-black text-slate-900"><span>{KUWAIT_PLACES[selectedOrderPlace]?.label}</span>{selectedOrderPlace === 'towers' ? renderKuwaitTowersMark('sm') : <span className="drop-shadow-sm">{KUWAIT_PLACES[selectedOrderPlace]?.icon}</span>}</span>
+          <span className="mt-1 flex items-center justify-end gap-2 text-sm font-black text-slate-900"><span>{KUWAIT_PLACES[selectedOrderPlace]?.label}</span>{selectedOrderPlace === 'towers' ? renderKuwaitTowersMark('sm') : <span className="drop-shadow-sm"><StudioGlyph emoji={KUWAIT_PLACES[selectedOrderPlace]?.icon} size={18} /></span>}</span>
         </span>
         <ChevronLeft className={cn("transition-transform text-slate-400", showPlaceLibrary ? "-rotate-90" : "")} size={20} />
       </button>
@@ -2942,7 +2957,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
             <h1 className="frame-dup-title">استوديو التراث الذكي</h1>
             <div className="smart-studio-title flex items-center gap-3 leading-tight">
               <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white border border-indigo-100 shadow-sm"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" strokeWidth={1.6} /></span>
-              <span className="text-base sm:text-lg font-black text-slate-800">اختر نوع المحتوى</span>
+              {studioTab === 'home' && <span className="text-base sm:text-lg font-black text-slate-800">اختر نوع المحتوى</span>}
             </div>
           </div>
           <button onClick={() => setStudioTab('library')} className="h-11 min-w-11 px-3 gap-1.5 text-sm font-bold rounded-[14px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 transition-all shadow-[0_2px_12px_rgba(15,23,42,0.03)] active:scale-95" title="الأرشيف">
@@ -3341,7 +3356,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     : "text-slate-500 hover:text-slate-850"
                 )}
               >
-                💡 فكرة حرة
+                <Lightbulb size={14} className="inline-block align-[-2px] ml-1" aria-hidden="true" />فكرة حرة
               </button>
               <button
                 type="button"
@@ -3353,7 +3368,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                     : "text-slate-500 hover:text-slate-850"
                 )}
               >
-                📅 رادار المواسم والطقس
+                <CalendarDays size={14} className="inline-block align-[-2px] ml-1" aria-hidden="true" />رادار المواسم والطقس
               </button>
             </div>
 
@@ -3384,7 +3399,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         )}
                       >
                         <div className="flex items-center justify-between w-full">
-                          <span className="text-2xl">{campaign.icon}</span>
+                          <span className="text-2xl"><StudioGlyph emoji={campaign.icon} size={26} /></span>
                           <span className="text-[9px] font-black text-slate-400 bg-slate-50 border px-2 py-0.5 rounded-full">{campaign.seasonLabel}</span>
                           <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full border", campaign.radarScore >= 75 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : campaign.radarScore >= 50 ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-slate-50 text-slate-500 border-slate-100")}>ذكاء {campaign.radarScore}%</span>
                         </div>
@@ -3395,7 +3410,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                         <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100/55 w-full">
                           <span className="text-[9px] font-black text-slate-400">{KUWAIT_PLACES[campaign.place]?.label || campaign.place} · {campaign.mood}</span>
                           <span className={cn("text-[10px] font-black", isSelected ? "text-rose-600" : "text-slate-400")}>
-                            {isSelected ? 'تفعيل تلقائي ✓' : 'تفعيل'}
+                            {isSelected ? 'تفعيل تلقائي' : 'تفعيل'}
                           </span>
                         </div>
                       </button>
@@ -3526,7 +3541,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                   >
                     <div className="flex items-center gap-3">
                       <div className="text-3xl p-2.5 rounded-2xl bg-white border border-rose-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                        {activeScene.icon}
+                        <StudioGlyph emoji={activeScene.icon} size={30} />
                       </div>
                       <div className="flex-1 text-right min-w-0 pr-1 select-none">
                         <span className="block text-[11px] font-black text-rose-500">مشهد الصورة</span>
@@ -3812,7 +3827,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                       >
                         <div className="flex items-center gap-3">
                           <div className="text-3xl p-2.5 rounded-2xl bg-white border border-rose-100 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                            {activeScene.icon}
+                            <StudioGlyph emoji={activeScene.icon} size={30} />
                           </div>
                           <div className="flex-1 text-right min-w-0 pr-1 select-none">
                             <span className="block text-[11px] font-black text-rose-500">مشهد الصورة</span>
