@@ -1148,13 +1148,11 @@ const CloudConnectionGate: React.FC<{
       <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
       <motion.div
         className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
+        
       />
       <motion.div
         className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10"
-        animate={{ rotate: -360 }}
-        transition={{ duration: 32, repeat: Infinity, ease: 'linear' }}
+        
       />
       <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/15 blur-[105px]" />
       <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/16 blur-[110px]" />
@@ -1168,40 +1166,21 @@ const CloudConnectionGate: React.FC<{
         <div className="relative mx-auto flex h-[310px] w-[310px] items-center justify-center sm:h-[360px] sm:w-[360px]">
           <motion.div
             className={`absolute inset-0 rounded-full border ${isOffline ? 'border-rose-200/16' : 'border-emerald-200/16'} bg-white/[0.035] shadow-[inset_0_0_70px_rgba(255,255,255,.05),0_28px_95px_rgba(0,0,0,.42)] backdrop-blur-xl`}
-            animate={{ scale: isOffline ? [1, 1.012, 1] : [1, 1.025, 1] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            animate={{ scale: isOffline ? 1 : [1, 1.015, 1] }}
+            transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
           />
           <div className="absolute inset-8 rounded-full border border-white/10 bg-slate-950/30" />
           <motion.div
             className="absolute inset-12 rounded-full border border-dashed border-white/12"
-            animate={{ rotate: isOffline ? 0 : 360 }}
-            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+            
           />
 
-          {!isOffline && (
-            <>
-              <motion.div
-                className="absolute inset-12 pointer-events-none"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
-              >
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]" />
-              </motion.div>
-              <motion.div
-                className="absolute inset-8 pointer-events-none"
-                animate={{ rotate: -360 }}
-                transition={{ duration: 6.2, repeat: Infinity, ease: 'linear' }}
-              >
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]" />
-              </motion.div>
-            </>
-          )}
+          
 
           <div className={`relative flex h-36 w-36 items-center justify-center rounded-[2.35rem] border ${isOffline ? 'border-rose-200/25 bg-rose-950/28 text-rose-100' : 'border-emerald-100/20 bg-emerald-950/24 text-emerald-50'} shadow-[0_22px_70px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:h-40 sm:w-40`}>
             <motion.div
               className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10"
-              animate={{ opacity: [0.18, 0.55, 0.18], scale: [0.96, 1.05, 0.96] }}
-              transition={{ duration: 2.1, repeat: Infinity, ease: 'easeInOut' }}
+              
             />
             {isOffline ? (
               <ShieldAlert size={54} strokeWidth={1.65} />
@@ -1245,8 +1224,7 @@ const CloudConnectionGate: React.FC<{
               <motion.div
                 key={index}
                 className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
-                animate={{ y: isOffline ? 0 : [0, -6, 0], opacity: isOffline ? 0.72 : [0.72, 1, 0.72] }}
-                transition={{ duration: 1.45, repeat: Infinity, delay: index * 0.18, ease: 'easeInOut' }}
+                
               >
                 <Icon size={18} />
               </motion.div>
@@ -1263,8 +1241,7 @@ const CloudConnectionGate: React.FC<{
           <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-amber-200/25 bg-amber-300/10 text-amber-100'} px-4 py-2 text-xs font-black`}>
             <motion.span
               className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-amber-300'}`}
-              animate={{ opacity: [0.35, 1, 0.35], scale: [0.88, 1.18, 0.88] }}
-              transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
+              
             />
             {statusLabel}
           </div>
@@ -1276,15 +1253,12 @@ const CloudConnectionGate: React.FC<{
               تعذر الاتصال مؤقتاً. تم إيقاف التعديل لحماية البيانات حتى يعود الاتصال.
             </p>
           ) : (
-            <div className="mx-auto mt-6 flex w-full max-w-[330px] items-center justify-center gap-2" aria-label="cloud-connection-loader">
-              {[0, 1, 2, 3, 4].map((item) => (
-                <motion.span
-                  key={item}
-                  className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-300 shadow-[0_0_18px_rgba(245,184,74,.34)]"
-                  animate={{ y: [0, -9, 0], opacity: [0.35, 1, 0.35], scale: [0.86, 1.18, 0.86] }}
-                  transition={{ duration: 1.05, repeat: Infinity, delay: item * 0.11, ease: 'easeInOut' }}
-                />
-              ))}
+            <div className="mx-auto mt-6 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-white/10" aria-label="cloud-connection-loader">
+              <motion.span
+                className="block h-full w-full rounded-full bg-amber-200/80"
+                animate={{ opacity: [0.35, 0.9, 0.35] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
             </div>
           )}
 
@@ -4567,7 +4541,7 @@ const MainApp: React.FC = () => {
             )}
           </div>
           {isMobile && (
-            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
+            <button onClick={() => setSidebarOpen(false)} className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
               <X size={20} />
             </button>
           )}
@@ -4743,7 +4717,7 @@ const MainApp: React.FC = () => {
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
-                className="p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
+                className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
                 title="القائمة الجانبية"
               >
                 <Menu size={18} className="group-hover:rotate-180 transition-transform duration-500" />
