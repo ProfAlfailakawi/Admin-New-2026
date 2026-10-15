@@ -903,6 +903,8 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 .animate-pulse:not(.skeleton-card):not(.admin-skeleton):not([class*="bg-slate-"]),
 .animate-ping,
 [class*="animate-[ping"]{animation-iteration-count:3!important}
+/* The skeleton rule above sets position:relative on every .animate-pulse, which silently turned the header bell badge (absolute top/right) into an in-flow dot at the button corner. Keep it a badge. */
+.admin-app-header .animate-pulse.absolute{position:absolute}
 
 /* Fix Command Center contrast after premium glass layer */
 .command-feature-card,
@@ -6496,6 +6498,8 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
   table.mobile-card-table tbody > tr:has(> td[colspan]:only-child):empty{display:none!important}
   table.mobile-card-table td button,table.mobile-card-table td a{min-height:44px;min-width:44px}
   table.mobile-card-table td .flex{flex-wrap:wrap}
+  /* A call-to-action button (icon + label) must stay on one line and centred, not wrap its icon onto a separate row */
+  table.mobile-card-table td button.flex,table.mobile-card-table td a.flex{flex-wrap:nowrap;justify-content:center;text-align:center}
   /* customer cell holds name + phone + address as sibling blocks: stack them instead of squeezing the name character by character */
   table.mobile-card-table td[data-label="العميل"]{flex-wrap:wrap}
   /* action icons: label on its own line, icons share the next line instead of leaving one orphan icon */
@@ -6505,6 +6509,8 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
   table.mobile-card-table td[data-label="العميل"] > div{flex:1 1 100%;max-width:100%!important}
   table.mobile-card-table tbody > tr > td:first-child::before{content:none!important}
   table.mobile-card-table tbody > tr > td:first-child{font-size:15px;padding-top:4px!important}
+  /* Plain-text empty-state row: give the message breathing room and centre it (the card reset above zeroed the padding and left it flush with the dashed edge) */
+  table.mobile-card-table tbody > tr:has(> td[colspan]:only-child) > td[colspan]:not(:has(*)){padding:28px 16px!important;text-align:center!important;line-height:1.7}
 }
 @media (min-width: 640px) and (max-width: 1023px) {
   table.mobile-card-table tbody{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
@@ -6650,6 +6656,8 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 
 /* r52: page hero uses the full row (no 2-column grid leaving a void and wrapping long titles) */
 .admin-page-hero{grid-template-columns:minmax(0,1fr)!important}
+/* Contain the hero's z-index:1 text layer: unscoped it painted above the content below (e.g. the order card hover list ghosted behind the page title). */
+.admin-page-hero{isolation:isolate}
 .admin-page-hero .admin-page-hero-main{max-width:none!important;min-width:0}
 /* r52: coupon tickets sit two per row on phones instead of one tall card each */
 @media (max-width:520px){

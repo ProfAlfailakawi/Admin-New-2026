@@ -1710,7 +1710,7 @@ Alturath.kw`;
                         </span>
                       </div>
 
-                    <div className="space-y-1.5 border-t border-slate-50 pt-2 opacity-80">
+                    <div className="space-y-1.5 border-t border-slate-50 pt-2 opacity-80 has-[.group:hover]:opacity-100 transition-opacity duration-300">
                       {order.items?.slice(0, 2).map((it, idx) => {
                         const p = data.products?.find(
                           (p) => p.id === it.productId,
@@ -1745,7 +1745,7 @@ Alturath.kw`;
                       {order.items?.length > 2 && (
                         <div className="text-[11px] text-slate-500 hover:text-indigo-600 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50">
                           + {order.items.length - 2} أصناف
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.16)] border border-slate-200/80 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[100] text-right">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] max-h-[55vh] overflow-hidden bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.16)] border border-slate-200/80 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[100] text-right">
                             <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/80 text-[11px] font-black text-slate-600 flex items-center justify-between gap-2">
                               <span>الأصناف الإضافية</span>
                               <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-black" dir="ltr">
