@@ -768,7 +768,7 @@ Alturath.kw`;
       }
 
       if (product.isActive === false) {
-        toast.warning(`⚠️ تنبيه: هذا المنتج [${product.name}] مخفي حالياً في قائمة المنتجات!`, {
+        toast.warning(`تنبيه: هذا المنتج [${product.name}] مخفي حالياً في قائمة المنتجات!`, {
           duration: 5000,
         });
       } else {

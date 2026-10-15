@@ -434,7 +434,7 @@ const BusinessStatusMirror: React.FC<{
   const profit = totalSales - totalCost;
 
   const [aiRecommendation, setAiRecommendation] = useState<any>({
-    recommendation: "نحلل الأنماط عشان نطلع توصية مبنية على البيانات...",
+    recommendation: "نحلل الأنماط لنخرج بتوصية مبنية على البيانات...",
     context: "loading",
   });
 
@@ -2276,7 +2276,7 @@ const [isPending, startTransition] = useTransition();
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     {appMode === 'cloud' || hasActiveBackup 
                       ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي") 
-                      : "تقدر تحمل بيانات تجريبية شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
+                      : "تقدر تحمل بيانات تجريبية لتجرب النظام والفواتير والتقارير بسهولة."}
                   </p>
                 </div>
               </div>
@@ -5580,7 +5580,7 @@ const [isPending, startTransition] = useTransition();
                             ماكو بيانات كافية للتحليل الاستراتيجي.
                           </p>
                           <p className="text-[10px] text-white/50 mt-2 font-bold">
-                            سجل حركة مبيعات وملاحظات عشان تظهر القراءة
+                            سجل حركة مبيعات وملاحظات حتى تظهر القراءة
                             الاصطناعي قراءة الأنماط.
                           </p>
                         </div>

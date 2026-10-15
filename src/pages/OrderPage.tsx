@@ -560,7 +560,7 @@ export default function OrderPage() {
     const label = getStatusDisplay(order).text;
     if (label.includes("ملغي") || label.includes("إلغاء") || label.includes("الغاء")) return { title: "تم إلغاء الطلب", desc: "المعذرة، الفاتورة ملغية أو انتهى وقت القطيّة وما اكتمل المبلغ. للاستفسار تواصل معانا." };
     if (label.includes("قيد تجميع القطية")) return { title: "قيد تجميع القطية", desc: "اللمة ماشية، وكل دفعة تقرب الطلب من الاكتمال." };
-    if (label.includes("بانتظار")) return { title: "بانتظار الدفع", desc: "كمل الدفع عشان نعتمد الطلب ونمشيه لك." };
+    if (label.includes("بانتظار")) return { title: "بانتظار الدفع", desc: "أكمل الدفع لنعتمد الطلب ونبدأ تجهيزه." };
     if (label.includes("فشل")) return { title: "فشلت عملية الدفع", desc: "ما عليه، جرب مرة ثانية أو اختار طريقة أنسب." };
     if (label.includes("تم الدفع") || label.includes("توصيل")) return { title: "تم الدفع بنجاح", desc: "طلبك معتمد وجاري توصيله بهدوء." };
     return { title: "تم إنشاء الطلب", desc: "وصلنا طلبك، وبانتظار الخطوة التالية." };
@@ -2150,7 +2150,7 @@ export default function OrderPage() {
                             ? "تم الدفع بنجاح"
                             : getStatusDisplay(selectedOrder).text.includes("قطية")
                             ? "القطيّة شغالة والربع قاعدين يدفعون، الفاتورة ما تتأكد لين يكمل المبلغ!"
-                            : "استلمنا طلبك، بانتظار الدفع عشان نبلش التجهيز."}
+                            : "استلمنا طلبك، بانتظار الدفع لنبدأ التجهيز."}
                     </motion.p>
                   </div>
                     </div>
@@ -2193,12 +2193,12 @@ export default function OrderPage() {
 	                      ).length > 0 || (((selectedOrder as any).splitType === "roulette" || isDiwaniyaQatyaOrder(selectedOrder)) && ((selectedOrder as any).splitParticipants || []).length > 0)) && (
                         <div className="track-v14-social-card track-wow-social-card bg-stone-50 p-4 rounded-2xl border border-stone-100">
                           <h4 className="text-[11px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <Users className="w-3 h-3" /> {(selectedOrder as any).splitType === 'roulette' ? 'المشاركون في وهق غيرك 🎰' : 'المساهمين في القطية'}
+                            <Users className="w-3 h-3" /> {(selectedOrder as any).splitType === 'roulette' ? 'المشاركون في وهق غيرك' : 'المساهمين في القطية'}
                           </h4>
                           {(selectedOrder as any).splitType === 'roulette' && (selectedOrder as any).rouletteLoser && (
                             <div className="mb-4 bg-fuchsia-50 border border-fuchsia-100 p-3 rounded-xl flex items-center justify-between">
                               <span className="text-fuchsia-600 font-bold text-xs flex items-center gap-2">
-                                🎯 بطل الليلة (صاحب الحظ اللي دفعها)
+                                بطل الليلة (صاحب الحظ اللي دفعها)
                               </span>
                               <span className="font-extrabold text-fuchsia-700 text-sm">{(selectedOrder as any).rouletteLoser}</span>
                             </div>
@@ -2311,13 +2311,13 @@ export default function OrderPage() {
                         onClick={() => openPrintableInvoice(selectedOrder as any)}
                         className="flex items-center justify-center gap-3 w-full p-4 rounded-2xl bg-white border border-emerald-100 text-brand font-extrabold text-sm hover:bg-emerald-50 transition-all shadow-sm outline-none"
                       >
-                        🧾 إنشاء / طباعة PDF
+                        إنشاء / طباعة PDF
                       </button>
                       <button
                         onClick={() => shareOrPrintInvoice(selectedOrder as any)}
                         className="flex items-center justify-center gap-3 w-full p-4 rounded-2xl bg-white border border-amber-100 text-amber-700 font-extrabold text-sm hover:bg-amber-50 transition-all shadow-sm outline-none"
                       >
-                        📤 مشاركة الفاتورة
+                        مشاركة الفاتورة
                       </button>
                     </div>
                     </>
@@ -2470,13 +2470,13 @@ export default function OrderPage() {
                         >
                            <Users className="w-5 h-5 text-stone-400" />
                            <p className="text-xs font-extrabold text-stone-600">
-                             مو مشترك بديوانية للحين؟ ☕
+                             مو مشترك بديوانية للحين؟
                            </p>
                            <Link
                              to="/?showSquads=true"
                              className="text-[11px] font-black text-accent bg-accent/5 px-3 py-1.5 rounded-xl border border-accent/10 hover:bg-accent/10 transition-colors"
                            >
-                             أسس ديوانيتك أو شارك ديوانية ربعك! 🤝
+                             أسس ديوانيتك أو شارك ديوانية ربعك!
                            </Link>
                         </motion.div>
                       )}

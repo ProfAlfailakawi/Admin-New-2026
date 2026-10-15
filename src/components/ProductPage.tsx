@@ -570,7 +570,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 imageUpdatedAt,
                 imageRemovedAt: undefined,
               }));
-              toast.success("تم رفع الصورة وضبط حجمها تلقائياً ✅");
+              toast.success("تم رفع الصورة وضبط حجمها تلقائياً");
               setUploading(false);
             } catch (err: any) {
               console.error("Process error:", err);
@@ -647,8 +647,8 @@ const ProductPage: React.FC<ProductPageProps> = ({
       });
 
       if (duplicateProduct) {
-        toast.error("تنبيه الحماية من التكرار 🛡️", {
-            description: `الاسم "${productForm.name}" مسجل من قبل لهذا المورد. استخدم اسم مختلف عشان تميّز الصنف.`,
+        toast.error("تنبيه الحماية من التكرار", {
+            description: `الاسم "${productForm.name}" مسجل من قبل لهذا المورد. استخدم اسماً مختلفاً لتميّز الصنف.`,
           duration: 6000,
         });
         return;
@@ -738,7 +738,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
       const { seedClientDatabase } = await import("../scripts/seed-client-db");
       await seedClientDatabase(data);
 
-      toast.success("تمت المزامنة بنجاح 🚀", {
+      toast.success("تمت المزامنة بنجاح", {
         description: "تم توحيد المنتجات المكررة ونشرها لتطبيق العميل بنجاح.",
         id: toastId,
       });
@@ -1336,7 +1336,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                p.id === product.id ? { ...p, isOutOfStock: !p.isOutOfStock } : p
                              ),
                            }));
-                           toast.info(product.isOutOfStock ? '✅ المادة متوفرة الآن' : '🚫 سجلت كنفدت الكمية');
+                           toast.info(product.isOutOfStock ? 'المادة متوفرة الآن' : 'سجلت كنفدت الكمية');
                          }}
                          className={cn(
                            "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] font-bold w-8 h-8",
@@ -1356,7 +1356,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                p.id === product.id ? { ...p, isActive: p.isActive === false } : p
                              ),
                            }));
-                           toast.info(product.isActive !== false ? '👁️ تم إخفاء المنتج' : '👁️ تم إظهار المنتج');
+                           toast.info(product.isActive !== false ? 'تم إخفاء المنتج' : 'تم إظهار المنتج');
                          }}
                          className={cn(
                            "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] font-bold w-8 h-8",
@@ -1385,7 +1385,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                                  : p
                              ),
                            }));
-                           toast.success(nextFeatured ? '✨ ظهر المنتج ضمن اختياراتنا لكم' : 'تمت إزالة المنتج من اختياراتنا لكم');
+                           toast.success(nextFeatured ? 'ظهر المنتج ضمن اختياراتنا لكم' : 'تمت إزالة المنتج من اختياراتنا لكم');
                          }}
                          className={cn(
                            "flex items-center justify-center p-2 rounded-xl shadow-lg backdrop-blur-md border transition-all hover:scale-110 active:scale-90 text-[11px] font-bold w-8 h-8",
@@ -1415,7 +1415,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                       )}
                       {sales > 10 && (
                         <span className="bg-emerald-500/80 backdrop-blur-sm text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-white/10 uppercase pointer-events-auto title-premium font-black max-w-full truncate block">
-                          رائج 🔥
+                          رائج
                         </span>
                       )}
                       <span
@@ -2268,7 +2268,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
 
                           <div className="hidden p-4 bg-amber-50/30 rounded-2xl border border-amber-50 space-y-3">
                             <h4 className="font-bold text-amber-900 flex items-center gap-2 text-sm justify-between">
-                              <span className="flex items-center gap-2"><span className="text-lg">📦</span> تتبع المخزون</span>
+                              <span className="flex items-center gap-2"><Package size={18} aria-hidden="true" /> تتبع المخزون</span>
                               <input
                                 type="checkbox"
                                 checked={addon.trackStock || false}
@@ -2437,7 +2437,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 <div className="flex items-center gap-2 mb-6 justify-end">
                   <div className="text-right">
                     <h3 className="text-2xl font-bold text-slate-800">
-                      المسوق التراثي الذكي 📸
+                      المسوق التراثي الذكي
                     </h3>
                     <p className="text-xs text-slate-500 font-bold">
                       محتوى جاهز للنشر في إنستقرام

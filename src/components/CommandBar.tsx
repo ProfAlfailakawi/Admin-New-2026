@@ -560,7 +560,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       const matchedSupplier = (data?.suppliers || []).find((s: any) => clean(s.name).includes(cleanTargetName));
       if (matchedSupplier) {
         return {
-          title: 'تأكيد السداد المالي الذكي 💳',
+          title: 'تأكيد السداد المالي الذكي',
           value: `سداد مبلغ ${parsedPay.amount}.000 د.ك`,
           subtitle: `المستفيد: ${matchedSupplier.name} (الرصيد الكلي: ${money(matchedSupplier.balance)} د.ك)`,
           details: [
@@ -593,7 +593,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
       const percent = Number(matchDiscount[1]);
       const promoCode = `ALTURATH-${percent}PCT`;
       return {
-        title: 'توليد كود خصم فوري 🏷️',
+        title: 'توليد كود خصم فوري',
         value: promoCode,
         subtitle: `تم إنشاء كود خصم بقيمة ${percent}% لطلبات المطبخ والتقديم.`,
         details: [

@@ -622,7 +622,7 @@ export function SelectionTools({ current, articles, body, excerpt }: { current: 
                 onClick={(event) => { if (event.detail === 0) setView('thread') }}
                 className="flex items-center gap-1.5 px-4 py-2 text-[.78rem] font-semibold text-ink transition-colors hover:bg-accent hover:text-canvas"
               >
-                🧬 عبر السنوات
+                عبر السنوات
               </button>
               <span className="my-1.5 w-px bg-hair" />
               <button
@@ -631,7 +631,7 @@ export function SelectionTools({ current, articles, body, excerpt }: { current: 
                 onClick={(event) => { if (event.detail === 0) void openCard() }}
                 className="flex items-center gap-1.5 px-4 py-2 text-[.78rem] font-semibold text-ink transition-colors hover:bg-accent hover:text-canvas"
               >
-                🖼 بطاقة اقتباس
+                بطاقة اقتباس
               </button>
             </motion.div>
           </div>
@@ -656,7 +656,7 @@ export function SelectionTools({ current, articles, body, excerpt }: { current: 
                   <p className="text-[.74rem] font-semibold uppercase tracking-wide text-accent">تتبّع الجملة</p>
                   <p className="mt-2 break-words border-r-2 border-accent pe-0 ps-4 text-[.95rem] font-light leading-[1.9] text-ink/80">«{sel}»</p>
                 </div>
-                <button type="button" onClick={close} aria-label="إغلاق" className="shrink-0 text-soft transition-colors hover:text-accent">✕</button>
+                <button type="button" onClick={close} aria-label="إغلاق" className="shrink-0 text-soft transition-colors hover:text-accent">×</button>
               </div>
               <div className="mt-6 border-t border-hair pt-6">
                 {matches.length ? (

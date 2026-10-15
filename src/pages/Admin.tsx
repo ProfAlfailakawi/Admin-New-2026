@@ -220,7 +220,7 @@ function CvPdfCard() {
       const { doc, setDoc, serverTimestamp } = await import('firebase/firestore')
       await setDoc(doc(db, 'site_settings', 'cv'), { ...patch, updatedAt: serverTimestamp() }, { merge: true })
       setLinks((prev) => ({ ...prev, ...patch }))
-      setSaved('حُدّث رابط السيرة في الموقع فوراً ✓')
+      setSaved('حُدّث رابط السيرة في الموقع فوراً')
       setTimeout(() => setSaved(''), 3000)
       task.complete('تم تحديث ملف السيرة')
     } catch (reason) {
@@ -512,7 +512,7 @@ function useCollection(name: string) {
     if (!db) return false
     const { collection, addDoc, serverTimestamp } = await import('firebase/firestore')
     await addDoc(collection(db, name), { ...data, createdAt: serverTimestamp() })
-    setMsg('✓ نُشر — سيظهر في الموقع فوراً.')
+    setMsg('نُشر — سيظهر في الموقع فوراً.')
     setTimeout(() => setMsg(''), 4000)
     load()
     return true

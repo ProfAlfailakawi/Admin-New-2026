@@ -398,7 +398,7 @@ export const PromoCodePage: React.FC<{ data: AppState; onUpdateData?: (data: App
  onClick={handleCreateCode}
  className="w-full bg-slate-900 text-white py-5 rounded-2xl font-bold text-lg hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl shadow-slate-900/20"
  >
- إطلاق الكود وتعميمه 🚀
+ إطلاق الكود وتعميمه
  </button>
  </div>
  </motion.div>

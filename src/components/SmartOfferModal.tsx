@@ -140,7 +140,7 @@ export const SmartOfferModal: React.FC<SmartOfferModalProps> = ({ product, isOpe
  <div className="bg-rose-50 border border-rose-200 p-3 md:p-3 rounded-2xl flex gap-3 items-start shrink-0">
  <div className="p-3 bg-rose-100 rounded-xl text-rose-600 shrink-0"><AlertTriangle size={24} /></div>
  <div>
- <h4 className="font-bold text-rose-800 text-lg mb-2">تحذير! خسارة محققة 🚨</h4>
+ <h4 className="font-bold text-rose-800 text-lg mb-2">تحذير! خسارة محققة</h4>
  <p className="text-sm text-rose-700 font-bold leading-relaxed">
  السعر أقل من التكلفة ({Number(product.cost || 0).toFixed(3)} د.ك). لا تقم بهذا الخصم إلا للتصفية الشاملة.
  </p>
@@ -151,7 +151,7 @@ export const SmartOfferModal: React.FC<SmartOfferModalProps> = ({ product, isOpe
  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl" />
  <div className="p-3 bg-indigo-100 rounded-xl text-indigo-600 shrink-0 relative z-10"><Sparkles size={24} /></div>
  <div className="relative z-10">
- <h4 className="font-bold text-indigo-800 text-lg mb-2">تحدي المبيعات لتعويض الخصم 🎯</h4>
+ <h4 className="font-bold text-indigo-800 text-lg mb-2">تحدي المبيعات لتعويض الخصم</h4>
  {discountPercent === 0 ? (
  <p className="text-sm text-indigo-700 font-bold leading-relaxed">قم بتعديل مؤشر الخصم لتحليل الأثر على مبيعاتك المطلوبة.</p>
 ) : (
