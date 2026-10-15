@@ -2935,20 +2935,18 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
   return (
     <div className="smart-studio-shell max-w-6xl mx-auto px-3 sm:px-4 py-5 sm:py-8 animate-in fade-in duration-500 pb-32">
       
-      <div className="smart-studio-hero mb-5 sm:mb-8 rounded-[2rem] sm:rounded-[2.4rem] bg-[radial-gradient(circle_at_top_left,_#4338ca,_#0f172a_46%,_#020617)] p-5 sm:p-6 md:p-7 shadow-2xl border border-white/10 text-white relative overflow-hidden">
-        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 bottom-0 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl pointer-events-none" />
-        <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-l from-transparent via-white/25 to-transparent" />
-
+      <div className="smart-studio-hero mb-5 sm:mb-8 rounded-[2rem] sm:rounded-[2.4rem] bg-gradient-to-br from-indigo-50 via-white to-slate-50 p-4 sm:p-6 md:p-7 shadow-sm border border-indigo-100 text-slate-900 relative overflow-hidden">
+        
         <div className="relative z-10 flex items-center justify-between gap-3 sm:gap-4">
           <div className="text-right">
-            <h1 className="smart-studio-title flex items-center gap-3 leading-tight">
-              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-200" strokeWidth={1.6} /></span>
-              <span className="frame-dup-title text-2xl sm:text-3xl md:text-4xl font-black">استوديو التراث الذكي</span>
-            </h1>
+            <h1 className="frame-dup-title">استوديو التراث الذكي</h1>
+            <div className="smart-studio-title flex items-center gap-3 leading-tight">
+              <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-white border border-indigo-100 shadow-sm"><Camera className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" strokeWidth={1.6} /></span>
+              <span className="text-base sm:text-lg font-black text-slate-800">اختر نوع المحتوى</span>
+            </div>
           </div>
-          <button onClick={() => setStudioTab('library')} className="h-11 w-11 sm:h-12 sm:w-12 rounded-[14px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 transition-all shadow-[0_2px_12px_rgba(15,23,42,0.03)] active:scale-95" title="الأرشيف">
-            <Library size={18} strokeWidth={1.6} />
+          <button onClick={() => setStudioTab('library')} className="h-11 min-w-11 px-3 gap-1.5 text-sm font-bold rounded-[14px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 flex items-center justify-center shrink-0 transition-all shadow-[0_2px_12px_rgba(15,23,42,0.03)] active:scale-95" title="الأرشيف">
+            <Library size={18} strokeWidth={1.6} /><span>الأرشيف</span>
           </button>
         </div>
         
@@ -2966,7 +2964,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
           <div className="mb-4 sm:mb-5" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-            <button onClick={openReelDirect} className="group rounded-[20px] text-right transition-all active:scale-[0.98] overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-between min-h-[260px] p-6 sm:p-7 relative">
+            <button onClick={openReelDirect} className="group rounded-[20px] text-right transition-all active:scale-[0.98] overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-start min-h-[260px] p-6 sm:p-7 relative">
               <div className="relative flex items-center justify-between gap-3">
                 <span className="h-13 w-13 rounded-3xl bg-white border border-violet-100 shadow-sm flex items-center justify-center text-violet-600"><Film size={25} /></span>
                 <span className="rounded-full bg-violet-600 text-white px-4 py-2 text-xs font-black shadow-sm">فيديو / ريل</span>
@@ -2981,7 +2979,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               </div>
             </button>
 
-            <button onClick={openImageDirect} className="group rounded-[20px] text-right transition-all  overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-between min-h-[260px] p-6 sm:p-7 relative">
+            <button onClick={openImageDirect} className="group rounded-[20px] text-right transition-all  overflow-hidden outline-none bg-white border border-slate-200 shadow-[0_2px_12px_rgba(15,23,42,0.03)] ring-1 ring-inset ring-slate-900/5 hover:border-slate-300 active:scale-95 flex flex-col justify-start min-h-[260px] p-6 sm:p-7 relative">
               <div className="relative flex items-center justify-between gap-3">
                 <span className="h-13 w-13 rounded-3xl bg-white border border-indigo-100 shadow-sm flex items-center justify-center text-indigo-600"><Camera size={25} /></span>
                 <span className="rounded-full bg-indigo-600 text-white px-4 py-2 text-xs font-black shadow-sm">صورة / تصميم</span>
@@ -2990,8 +2988,8 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
                 <div className="text-2xl font-black text-slate-950 leading-tight">صورة مباشرة</div>
                 <div className="text-sm font-bold text-slate-500 mt-2 leading-6">استوديو صورة واحد: ارفع صورة أو اكتب فكرة، والاختيار الذكي يساعدك من المنيو بدون مسار مكرر.</div>
                 <div className="mt-5 grid grid-cols-2 gap-2 text-center text-[10px] font-black">
-                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
                   <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">فكرة</span>
+                  <span className="rounded-2xl bg-white border border-indigo-100 px-2 py-2 text-indigo-700">صورة</span>
                 </div>
               </div>
             </button>

@@ -854,7 +854,7 @@ const [isPending, startTransition] = useTransition();
           onUpdateData(parsed);
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
-          toast.success(appMode === 'cloud' ? "تمت استعادة كافة البيانات السحابية الأخيرة بنجاح! ☁️" : "تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح! ⛑️");
+          toast.success(appMode === 'cloud' ? "تمت استعادة كافة البيانات السحابية الأخيرة بنجاح!" : "تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح!");
         } else {
           // In cloud mode, if no backup found, we still call it "restore" attempt but might end up with demo?
           // Actually, let's keep the demo behavior as absolute fallback if they click it, but change UI intent.
@@ -862,7 +862,7 @@ const [isPending, startTransition] = useTransition();
           onUpdateData(demo);
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
-          toast.success(appMode === 'cloud' ? "تم استرجاع جلسة البيانات السحابية بنجاح! ☁️" : "تم تحميل البيانات التجريبية بنجاح! 🎉");
+          toast.success(appMode === 'cloud' ? "تم استرجاع جلسة البيانات السحابية بنجاح!" : "تم تحميل البيانات التجريبية بنجاح!");
         }
       } catch (e) {
         console.error("Dashboard restore backup error", e);
@@ -870,7 +870,7 @@ const [isPending, startTransition] = useTransition();
         onUpdateData(demo);
         setShowSampleDataPrompt(false);
         sessionStorage.setItem('hideSampleDataPrompt', 'true');
-        toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
+        toast.success("تم تحميل البيانات التجريبية بنجاح!");
       }
     }, [onUpdateData, appMode]);
 
@@ -2271,11 +2271,11 @@ const [isPending, startTransition] = useTransition();
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-slate-900 leading-tight mb-0.5">
-                    {appMode === 'cloud' || hasActiveBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟ ⛑️" : "نظام لوحة التحكم فارغ حالياً"}
+                    {appMode === 'cloud' || hasActiveBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟" : "نظام لوحة التحكم فارغ حالياً"}
                   </h3>
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     {appMode === 'cloud' || hasActiveBackup 
-                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً ☁️" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻") 
+                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي") 
                       : "تقدر تحمل بيانات تجريبية شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
                   </p>
                 </div>
@@ -2393,7 +2393,7 @@ const [isPending, startTransition] = useTransition();
                   <Sparkles size={20} className="dashboard-header-spark" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black tracking-[0.18em] text-amber-600 uppercase leading-none">مطبخ التراث العربي</p>
+                  <p className="text-[10px] font-black tracking-[0.18em] text-amber-600 uppercase leading-none">مطبخ التراث الكويتي</p>
                   <h1 className="text-xl md:text-2xl font-black text-slate-950 leading-tight mt-1">مركز القيادة التنفيذي</h1>
                 </div>
               </div>
@@ -4224,10 +4224,10 @@ const [isPending, startTransition] = useTransition();
                         </div>
                         <div className="text-right">
                           <h3 className="font-bold text-slate-800 text-lg tracking-tight">
-                            اقتصاديات العملاء والنمو
+                            كم يكلفنا العميل وكم يجلب لنا
                           </h3>
                           <p className="text-[10px] text-slate-500 font-bold">
-                            التدفق النقدي، قيمة العميل، وتكلفة الاستحواذ
+                            التدفق النقدي، وكم يدفع العميل مقابل كم ندفع لنجيبه
                           </p>
                         </div>
                       </div>
@@ -4265,14 +4265,16 @@ const [isPending, startTransition] = useTransition();
                                 index={9}
                               />
                               <GlobalStatBox
-                                label="تكلفة اكتساب العميل"
+                                label="كم يكلفنا العميل"
+                                subtext="د.ك لكل عميل"
                                 value={cac}
                                 color="amber"
                                 icon={User}
                                 index={10}
                               />
                               <GlobalStatBox
-                                label="كفاءة اكتساب العميل"
+                                label="كم يجلب لنا العميل"
+                                subtext="أضعاف تكلفته (الأفضل 3 أو أكثر)"
                                 value={ltvCacRatio}
                                 color="blue"
                                 icon={BarChart3}
@@ -4983,15 +4985,15 @@ const [isPending, startTransition] = useTransition();
                                 النمو الاستراتيجي
                               </div>
                               <span className="text-[10px] text-white/65 font-bold italic">
-                                نسبة القيمة إلى التكلفة = {ltvCacRatio.toFixed(1)}
+                                العميل يجلب {ltvCacRatio.toFixed(1)} مرة تكلفته
                               </span>
                             </div>
                             <p className="text-xs font-semibold leading-relaxed text-white/90">
                               {ltvCacRatio >= 3
-                                ? `بناءً على نسبة القيمة الحياتية إلى تكلفة الاكتساب = ${ltvCacRatio.toFixed(1)} (أعلى من الحد المثالي 3.0)، نوصي بمضاعفة ميزانية التسويق بأمان لجذب شريحة أكبر نظراً لارتفاع كفاءة الاستحواذ.`
+                                ? `كل عميل يجلب لنا ${ltvCacRatio.toFixed(1)} أضعاف ما يكلفنا (الأفضل 3 أو أكثر). تقدر تزيد ميزانية الإعلان بأمان.`
                                 : ltvCacRatio < 1
-                                  ? `بناءً على نسبة القيمة الحياتية إلى تكلفة الاكتساب = ${ltvCacRatio.toFixed(1)} (أقل من 1.0)، تكلفة الاستحواذ (${cac.toFixed(2)} د.ك) أعلى من القيمة المستردة. نوصي بتقليل الإنفاق الإعلاني فوراً ومراجعة التسعير.`
-                                  : `بناءً على نسبة القيمة الحياتية إلى تكلفة الاكتساب = ${ltvCacRatio.toFixed(1)} (أقل من الحد المثالي 3.0)، نوصي بتحسين الاستهداف في مناطق التوصيل القريبة لرفع كفاءة الاستحواذ وتقليل تكلفة العميل (${cac.toFixed(2)} د.ك).`}
+                                  ? `العميل يكلفنا ${cac.toFixed(2)} د.ك وما يرجع لنا هالمبلغ. قلل الإعلانات وراجع الأسعار.`
+                                  : `كل عميل يجلب ${ltvCacRatio.toFixed(1)} أضعاف تكلفته (الأفضل 3 أو أكثر). ركّز الإعلان على مناطق التوصيل القريبة لتقل تكلفة العميل (${cac.toFixed(2)} د.ك).`}
                             </p>
                           </div>
                         )}

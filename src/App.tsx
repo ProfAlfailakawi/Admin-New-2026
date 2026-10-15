@@ -47,6 +47,8 @@ import {
   Receipt,
   ClipboardCheck,
   AlertTriangle,
+  ChevronLeft,
+  ExternalLink,
   CircleDollarSign,
   Boxes,
   HandCoins,
@@ -788,16 +790,16 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'loyalty',
-      label: 'مملكة الولاء',
+      label: 'الولاء',
       subtitle: 'مستويات العملاء ونقاط الذهبي وكبار العملاء',
       icon: <Sparkles size={18} />,
       tone: 'purple',
-      value: `مملكة الولاء`,
+      value: `الولاء`,
       hint: `العملاء: ${customers.length}`
     },
     {
       id: 'coupons',
-      label: 'مسرح عروض التراث',
+      label: 'العروض',
       subtitle: 'إدارة الكوبونات وحساب الأثر الربحي لها',
       icon: <CircleDollarSign size={18} />,
       tone: 'amber',
@@ -854,7 +856,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const searchableTools = [
     ...coreModules,
     { id: 'products', label: 'إدارة المنتجات والمخزون', subtitle: 'سجل المنتجات، الأسعار والتوافر بالمخزن', icon: <Boxes size={18} />, tone: 'slate', value: 'المخزون والمنتجات', hint: `${products.length} صنف` },
-    { id: 'expenses', label: 'المصروفات العامة والنزيف', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
+    { id: 'expenses', label: 'المصروفات', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
     { id: 'suppliers', label: 'حسابات الموردين ورادار المخاطر', subtitle: 'المديونية وصرف التوريد والانتظام', icon: <Truck size={18} />, tone: 'indigo', value: 'الموردين والمستحقات', hint: `${suppliers.length} مورد` },
     { id: 'suppliers-audit', label: 'مراجعة الموردين والتأثير المالي', subtitle: 'تفصيل أثر المورد على الربحية والمخاطر', icon: <AlertTriangle size={18} />, tone: 'slate', value: 'رادار المخاطر', hint: 'أثر التوريد' },
     { id: 'new-invoice', label: 'إنشاء فاتورة جديدة', subtitle: 'مسار سريع لإدخال المبيعات الفورية للعملاء', icon: <PlusCircle size={18} />, tone: 'sky', value: 'فاتورة جديدة', hint: 'مسار إنشاء سريع' },
@@ -1274,15 +1276,12 @@ const CloudConnectionGate: React.FC<{
               تعذر الاتصال مؤقتاً. تم إيقاف التعديل لحماية البيانات حتى يعود الاتصال.
             </p>
           ) : (
-            <div className="mx-auto mt-6 flex w-full max-w-[330px] items-center justify-center gap-2" aria-label="cloud-connection-loader">
-              {[0, 1, 2, 3, 4].map((item) => (
-                <motion.span
-                  key={item}
-                  className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-amber-200 to-amber-300 shadow-[0_0_18px_rgba(245,184,74,.34)]"
-                  animate={{ y: [0, -9, 0], opacity: [0.35, 1, 0.35], scale: [0.86, 1.18, 0.86] }}
-                  transition={{ duration: 1.05, repeat: Infinity, delay: item * 0.11, ease: 'easeInOut' }}
-                />
-              ))}
+            <div className="mx-auto mt-6 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-white/10" aria-label="cloud-connection-loader">
+              <motion.span
+                className="block h-full w-full rounded-full bg-amber-200/80"
+                animate={{ opacity: [0.35, 0.9, 0.35] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              />
             </div>
           )}
 
@@ -1321,8 +1320,8 @@ const getAdminPageMeta = (page: string) => {
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'التقارير التنفيذية' },
     ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'المساعد التنفيذي' },
     'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'الحزمة الإبداعية' },
-    loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وكبار العملاء مع شارات وترقيات.', tag: 'برنامج الولاء' },
-    coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'مسرح العروض الذكي' },
+    loyalty: { title: 'الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وكبار العملاء مع شارات وترقيات.', tag: 'برنامج الولاء' },
+    coupons: { title: 'العروض', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'مسرح العروض الذكي' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'محاكي النمو' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'درع الربح' },
     diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'لوحة البطولات' },
@@ -1398,9 +1397,9 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
         </section>
       )}
       {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>مؤشر المنتجات</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
-      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>لوحة العملاء</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{displayLabel(c.label)}</span></div>)}</div></div>}</section>}
+      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>لوحة العملاء</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{displayLabel(c.label)}</span></div>)}</div></div>}</section>}
       {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>رادار الموردين</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {(Number(sup.debt) || 0).toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
-      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">مسرح العروض الذكي</span><h2 className="frame-dup-title">مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
+      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">مسرح العروض الذكي</span><h2 className="frame-dup-title">العروض</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
       {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>معرض المختبر الذكي</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },
@@ -2068,7 +2067,7 @@ const MainApp: React.FC = () => {
       }
 
       if (isActuallyWrite) {
-        toast.error("يتعذر التعديل دون اتصال ⚠️", {
+        toast.error("يتعذر التعديل دون اتصال", {
           description: "تم حجب النظام بالكامل لأن الاتصال بالسحابة غير موثّق. لا يمكن إدخال أو تعديل أي معلومة.",
           position: 'bottom-right',
           className: 'arabic-font',
@@ -2316,7 +2315,7 @@ const MainApp: React.FC = () => {
           }) as any;
           return { ...prev, invoices: nextInvoices, orders: nextOrders };
         });
-        if (paidCount > 0) toast.success(`تمت مطابقة ${paidCount} فاتورة مدفوعة تلقائياً ✅`);
+        if (paidCount > 0) toast.success(`تمت مطابقة ${paidCount} فاتورة مدفوعة تلقائياً`);
       }
     };
 
@@ -2476,7 +2475,7 @@ const MainApp: React.FC = () => {
         if (feedback.length > 0) {
             newNotifications.push({
                 id: `supp-bio-${supp.id}-${todayStr}`,
-                title: `رادار جودة المورد: ${supp.name} 🛰️`,
+                title: `رادار جودة المورد: ${supp.name}`,
                 message: `ملاحظات جودة متكررة على أصناف هذا المورد!`,
                 type: "warning",
                 insightType: 'تنبيه',
@@ -2495,7 +2494,7 @@ const MainApp: React.FC = () => {
     if (todayOrdersCount > 15) { 
          newNotifications.push({
             id: `vol-fore-${todayStr}`,
-            title: "تنبؤ حجم الطلب 📈",
+            title: "تنبؤ حجم الطلب",
             message: `حجم الطلبات اليوم استثنائي!`,
             type: "info",
             insightType: 'فرصة',
@@ -2515,7 +2514,7 @@ const MainApp: React.FC = () => {
         if (isEmotional && t.rating >= 4) {
              newNotifications.push({
                 id: `emotion-loyalty-${t.id}`,
-                title: "سفير براند مكتشف! 💖",
+                title: "سفير براند مكتشف!",
                 message: `هذا العميل (${t.customerName}) يعتبر سفيراً للبراند بناءً على نبرته.`,
                 type: "success",
                 insightType: 'فرصة',
@@ -2541,7 +2540,7 @@ const MainApp: React.FC = () => {
           const supplier = (data.suppliers || []).find(s => s.id === prod.supplierId);
           newNotifications.push({
               id: `profit-guard-alert-${prod.id}-${todayStr}`,
-              title: `درع الربح: تكلفة ${prod.name} مرتفعة 🛡️`,
+              title: `درع الربح: تكلفة ${prod.name} مرتفعة`,
               message: `هامش الربح تقلص إلى ${(margin * 100).toFixed(0)}%.`,
               type: 'warning',
               insightType: 'خطر',
@@ -2623,7 +2622,7 @@ const MainApp: React.FC = () => {
         <div className="flex items-center gap-2" dir="rtl">
           <span>يوجد لديك {pendingOrdersCount} طلب</span>
           <span className="text-violet-500 font-extrabold text-lg">بانتظار الدفع</span>
-          <span>🔔</span>
+          <Bell size={16} aria-hidden="true" />
         </div>, {
         id: 'persistent-new-orders',
         className: 'bp-payment-toast',
@@ -2754,7 +2753,7 @@ const MainApp: React.FC = () => {
       await enqueuePersistenceWrite('root', async () => {
         await setDoc(rootDataRef, sanitizedRoot, { merge: true });
       });
-      addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
+      addToast("تمت المزامنة", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
       setIsOnline(false);
@@ -4232,7 +4231,7 @@ const MainApp: React.FC = () => {
       <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full max-h-[90dvh] overflow-y-auto border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
               <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-3xl">⚠️</span>
+                  <AlertTriangle size={28} aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة استخدام Firestore</h2>
               
@@ -4258,10 +4257,10 @@ const MainApp: React.FC = () => {
                         className="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold rounded-2xl transition-all"
                      >
                         <span className="flex items-center gap-2">
-                           <span>💾</span>
+                           <Database size={16} aria-hidden="true" />
                            <span>تفعيل وضع التخزين المحلي والعمل دون إنترنت</span>
                         </span>
-                        <span>👈</span>
+                        <ChevronLeft size={16} aria-hidden="true" />
                      </button>
                   </div>
               </div>
@@ -4274,7 +4273,7 @@ const MainApp: React.FC = () => {
                      rel="noopener noreferrer"
                      className="p-3 bg-slate-100 text-slate-700 text-center rounded-xl hover:bg-slate-200 transition-all flex flex-col justify-center items-center gap-1 border border-slate-200"
                   >
-                     <span>🔗 تفاصيل الأسعار</span>
+                     <span className="inline-flex items-center gap-1"><ExternalLink size={12} aria-hidden="true" />تفاصيل الأسعار</span>
                      <span className="text-[10px] text-slate-500 font-normal">باقة Spark & Enterprise</span>
                   </a>
                   <a 
@@ -4284,7 +4283,7 @@ const MainApp: React.FC = () => {
                      rel="noopener noreferrer"
                      className="p-3 bg-blue-50 text-blue-700 text-center rounded-xl hover:bg-blue-100 transition-all flex flex-col justify-center items-center gap-1 border border-blue-150"
                   >
-                     <span>⚙️ وحدة تحكم Firebase</span>
+                     <span className="inline-flex items-center gap-1"><Settings size={12} aria-hidden="true" />وحدة تحكم Firebase</span>
                      <span className="text-[10px] text-blue-500 font-normal">مراقبة وترقية الحساب</span>
                   </a>
               </div>
@@ -4565,7 +4564,7 @@ const MainApp: React.FC = () => {
             )}
           </div>
           {isMobile && (
-            <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
+            <button onClick={() => setSidebarOpen(false)} className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
               <X size={20} />
             </button>
           )}
@@ -4741,7 +4740,7 @@ const MainApp: React.FC = () => {
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
-                className="p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
+                className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
                 title="القائمة الجانبية"
               >
                 <Menu size={18} className="group-hover:rotate-180 transition-transform duration-500" />

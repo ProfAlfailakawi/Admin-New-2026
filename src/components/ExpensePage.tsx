@@ -221,7 +221,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <td className="p-3 md:p-3 font-bold text-slate-900 text-lg tabular-nums whitespace-nowrap">
  <div>
  <span className="whitespace-nowrap">{Number(Math.abs(expense.amount || 0)).toFixed(3)} د.ك</span>
- <div className="mt-1 h-1 w-28 max-w-full rounded-full bg-slate-100 overflow-hidden" aria-hidden="true">
+ <div className="mt-1 h-1 w-28 max-w-full rounded-full hidden md:block bg-slate-100 overflow-hidden" aria-hidden="true">
  <div className="h-full rounded-full bg-slate-400" style={{ width: `${Math.max(3, Math.min(100, (Math.abs(Number(expense.amount) || 0) / maxExpenseAmount) * 100))}%` }} />
  </div>
  </div>
@@ -237,15 +237,17 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="flex items-center gap-2 justify-end pr-5">
  <button 
  onClick={() => openEditModal(expense)}
- className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors"
+ aria-label="تعديل المصروف"
+ className="p-2 hover:bg-slate-100 rounded-xl text-slate-300 hover:text-slate-600 transition-colors max-md:inline-flex max-md:items-center max-md:gap-1.5 max-md:px-4 max-md:border max-md:border-slate-200 max-md:text-slate-600 max-md:text-sm max-md:font-bold"
  >
- <Edit2 size={16} />
+ <Edit2 size={16} /><span className="md:hidden">تعديل</span>
  </button>
  <button 
  onClick={() => setExpenseToDelete(expense.id)}
- className="p-2 hover:bg-red-50 rounded-xl text-red-300 hover:text-red-500 transition-colors"
+ aria-label="حذف المصروف"
+ className="p-2 hover:bg-red-50 rounded-xl text-red-300 hover:text-red-500 transition-colors max-md:inline-flex max-md:items-center max-md:gap-1.5 max-md:px-4 max-md:border max-md:border-red-100 max-md:text-red-600 max-md:text-sm max-md:font-bold"
  >
- <Trash2 size={16} />
+ <Trash2 size={16} /><span className="md:hidden">حذف</span>
  </button>
  </div>
  </td>
