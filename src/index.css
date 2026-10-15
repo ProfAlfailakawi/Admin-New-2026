@@ -15,6 +15,9 @@
   
   --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
   --shadow-glow: none;
+
+  /* Extra-small breakpoint: App.tsx uses xs: (header gutters, pulse orb, popover widths) but it was never defined, so those classes silently did nothing. */
+  --breakpoint-xs: 30rem;
 }
 
 @layer base {

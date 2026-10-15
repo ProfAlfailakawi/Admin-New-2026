@@ -4775,7 +4775,7 @@ const MainApp: React.FC = () => {
             {deferredChromeReady && (
               <React.Suspense fallback={null}>
                 <SmartIconGuide guideKey="header-system-pulse" title="مؤشر صحة الربط السحابي والجسر" position="bottom">
-                  <div className="hidden xs:block scale-75 origin-left">
+                  <div className="hidden xs:flex items-center justify-center w-[33px] h-[33px] shrink-0 [&>div]:scale-75">
                     <SystemPulseOrb data={data} />
                   </div>
                 </SmartIconGuide>
@@ -4792,8 +4792,8 @@ const MainApp: React.FC = () => {
                 className="hidden md:flex items-center gap-2 sm:gap-4 glass-surface hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl transition-all group overflow-hidden hover:shadow-md hover:border-amber-400"
               >
                   <Search size={16} className="text-slate-500 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
-                  <span className="hidden sm:block text-xs font-bold text-slate-500">ابحث عن أي شيء...</span>
-                  <div className="hidden sm:flex gap-1.5 items-center bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-[0.5rem] shadow-sm group-hover:shadow-md group-hover:bg-amber-100/50 transition-all">
+                  <span className="hidden lg:block text-xs font-bold text-slate-500">ابحث عن أي شيء...</span>
+                  <div className="hidden 2xl:flex gap-1.5 items-center bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-[0.5rem] shadow-sm group-hover:shadow-md group-hover:bg-amber-100/50 transition-all">
                     <span className="text-[11px] font-bold text-amber-700">K</span>
                     <span className="text-[11px] font-bold text-amber-600/50">+</span>
                     <span className="text-[11px] font-bold text-amber-700">{displayLabel("Ctrl")}</span>
