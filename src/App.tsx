@@ -47,6 +47,8 @@ import {
   Receipt,
   ClipboardCheck,
   AlertTriangle,
+  ChevronLeft,
+  ExternalLink,
   CircleDollarSign,
   Boxes,
   HandCoins,
@@ -2068,7 +2070,7 @@ const MainApp: React.FC = () => {
       }
 
       if (isActuallyWrite) {
-        toast.error("يتعذر التعديل دون اتصال ⚠️", {
+        toast.error("يتعذر التعديل دون اتصال", {
           description: "تم حجب النظام بالكامل لأن الاتصال بالسحابة غير موثّق. لا يمكن إدخال أو تعديل أي معلومة.",
           position: 'bottom-right',
           className: 'arabic-font',
@@ -2316,7 +2318,7 @@ const MainApp: React.FC = () => {
           }) as any;
           return { ...prev, invoices: nextInvoices, orders: nextOrders };
         });
-        if (paidCount > 0) toast.success(`تمت مطابقة ${paidCount} فاتورة مدفوعة تلقائياً ✅`);
+        if (paidCount > 0) toast.success(`تمت مطابقة ${paidCount} فاتورة مدفوعة تلقائياً`);
       }
     };
 
@@ -2476,7 +2478,7 @@ const MainApp: React.FC = () => {
         if (feedback.length > 0) {
             newNotifications.push({
                 id: `supp-bio-${supp.id}-${todayStr}`,
-                title: `رادار جودة المورد: ${supp.name} 🛰️`,
+                title: `رادار جودة المورد: ${supp.name}`,
                 message: `ملاحظات جودة متكررة على أصناف هذا المورد!`,
                 type: "warning",
                 insightType: 'تنبيه',
@@ -2495,7 +2497,7 @@ const MainApp: React.FC = () => {
     if (todayOrdersCount > 15) { 
          newNotifications.push({
             id: `vol-fore-${todayStr}`,
-            title: "تنبؤ حجم الطلب 📈",
+            title: "تنبؤ حجم الطلب",
             message: `حجم الطلبات اليوم استثنائي!`,
             type: "info",
             insightType: 'فرصة',
@@ -2515,7 +2517,7 @@ const MainApp: React.FC = () => {
         if (isEmotional && t.rating >= 4) {
              newNotifications.push({
                 id: `emotion-loyalty-${t.id}`,
-                title: "سفير براند مكتشف! 💖",
+                title: "سفير براند مكتشف!",
                 message: `هذا العميل (${t.customerName}) يعتبر سفيراً للبراند بناءً على نبرته.`,
                 type: "success",
                 insightType: 'فرصة',
@@ -2541,7 +2543,7 @@ const MainApp: React.FC = () => {
           const supplier = (data.suppliers || []).find(s => s.id === prod.supplierId);
           newNotifications.push({
               id: `profit-guard-alert-${prod.id}-${todayStr}`,
-              title: `درع الربح: تكلفة ${prod.name} مرتفعة 🛡️`,
+              title: `درع الربح: تكلفة ${prod.name} مرتفعة`,
               message: `هامش الربح تقلص إلى ${(margin * 100).toFixed(0)}%.`,
               type: 'warning',
               insightType: 'خطر',
@@ -2623,7 +2625,7 @@ const MainApp: React.FC = () => {
         <div className="flex items-center gap-2" dir="rtl">
           <span>يوجد لديك {pendingOrdersCount} طلب</span>
           <span className="animate-pulse text-violet-500 font-extrabold text-lg">بانتظار الدفع</span>
-          <span>🔔</span>
+          <Bell size={16} aria-hidden="true" />
         </div>, {
         id: 'persistent-new-orders',
         className: 'bp-payment-toast',
@@ -2754,7 +2756,7 @@ const MainApp: React.FC = () => {
       await enqueuePersistenceWrite('root', async () => {
         await setDoc(rootDataRef, sanitizedRoot, { merge: true });
       });
-      addToast("تمت المزامنة ✨", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
+      addToast("تمت المزامنة", "تم حفظ كافة البيانات في السحابة بنجاح.", "success");
     } catch (err) {
       console.error(err);
       setIsOnline(false);
@@ -4232,7 +4234,7 @@ const MainApp: React.FC = () => {
       <div className="fixed inset-0 bg-slate-900/90 z-[201] flex items-center justify-center p-4 md:p-6 text-right arabic-font shadow-2xl" dir="rtl">
           <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full max-h-[90dvh] overflow-y-auto border border-rose-100 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
               <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-3xl">⚠️</span>
+                  <AlertTriangle size={28} aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 text-center">تجاوز حصة استخدام Firestore</h2>
               
@@ -4258,10 +4260,10 @@ const MainApp: React.FC = () => {
                         className="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold rounded-2xl transition-all"
                      >
                         <span className="flex items-center gap-2">
-                           <span>💾</span>
+                           <Database size={16} aria-hidden="true" />
                            <span>تفعيل وضع التخزين المحلي والعمل دون إنترنت</span>
                         </span>
-                        <span>👈</span>
+                        <ChevronLeft size={16} aria-hidden="true" />
                      </button>
                   </div>
               </div>
@@ -4274,7 +4276,7 @@ const MainApp: React.FC = () => {
                      rel="noopener noreferrer"
                      className="p-3 bg-slate-100 text-slate-700 text-center rounded-xl hover:bg-slate-200 transition-all flex flex-col justify-center items-center gap-1 border border-slate-200"
                   >
-                     <span>🔗 تفاصيل الأسعار</span>
+                     <span className="inline-flex items-center gap-1"><ExternalLink size={12} aria-hidden="true" />تفاصيل الأسعار</span>
                      <span className="text-[10px] text-slate-500 font-normal">باقة Spark & Enterprise</span>
                   </a>
                   <a 
@@ -4284,7 +4286,7 @@ const MainApp: React.FC = () => {
                      rel="noopener noreferrer"
                      className="p-3 bg-blue-50 text-blue-700 text-center rounded-xl hover:bg-blue-100 transition-all flex flex-col justify-center items-center gap-1 border border-blue-150"
                   >
-                     <span>⚙️ وحدة تحكم Firebase</span>
+                     <span className="inline-flex items-center gap-1"><Settings size={12} aria-hidden="true" />وحدة تحكم Firebase</span>
                      <span className="text-[10px] text-blue-500 font-normal">مراقبة وترقية الحساب</span>
                   </a>
               </div>

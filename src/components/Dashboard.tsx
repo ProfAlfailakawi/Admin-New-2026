@@ -848,7 +848,7 @@ const [isPending, startTransition] = useTransition();
           onUpdateData(parsed);
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
-          toast.success(appMode === 'cloud' ? "تمت استعادة كافة البيانات السحابية الأخيرة بنجاح! ☁️" : "تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح! ⛑️");
+          toast.success(appMode === 'cloud' ? "تمت استعادة كافة البيانات السحابية الأخيرة بنجاح!" : "تمت استعادة كافة مبيعاتك وعملائك الأخيرة بنجاح!");
         } else {
           // In cloud mode, if no backup found, we still call it "restore" attempt but might end up with demo?
           // Actually, let's keep the demo behavior as absolute fallback if they click it, but change UI intent.
@@ -856,7 +856,7 @@ const [isPending, startTransition] = useTransition();
           onUpdateData(demo);
           setShowSampleDataPrompt(false);
           sessionStorage.setItem('hideSampleDataPrompt', 'true');
-          toast.success(appMode === 'cloud' ? "تم استرجاع جلسة البيانات السحابية بنجاح! ☁️" : "تم تحميل البيانات التجريبية بنجاح! 🎉");
+          toast.success(appMode === 'cloud' ? "تم استرجاع جلسة البيانات السحابية بنجاح!" : "تم تحميل البيانات التجريبية بنجاح!");
         }
       } catch (e) {
         console.error("Dashboard restore backup error", e);
@@ -864,7 +864,7 @@ const [isPending, startTransition] = useTransition();
         onUpdateData(demo);
         setShowSampleDataPrompt(false);
         sessionStorage.setItem('hideSampleDataPrompt', 'true');
-        toast.success("تم تحميل البيانات التجريبية بنجاح! 🎉");
+        toast.success("تم تحميل البيانات التجريبية بنجاح!");
       }
     }, [onUpdateData, appMode]);
 
@@ -2265,11 +2265,11 @@ const [isPending, startTransition] = useTransition();
                 </div>
                 <div>
                   <h3 className="text-xs font-bold text-slate-900 leading-tight mb-0.5">
-                    {appMode === 'cloud' || hasActiveBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟ ⛑️" : "نظام لوحة التحكم فارغ حالياً"}
+                    {appMode === 'cloud' || hasActiveBackup ? "رصدنا تصفير النظام! هل مسحت البيانات بالخطأ؟" : "نظام لوحة التحكم فارغ حالياً"}
                   </h3>
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     {appMode === 'cloud' || hasActiveBackup 
-                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً ☁️" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻") 
+                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻") 
                       : "تقدر تحمل بيانات تجريبية شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
                   </p>
                 </div>
