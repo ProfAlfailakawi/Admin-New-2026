@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, cleanup } from '@testing-library/react';
 import { DnaCountUp, DnaRing, DnaSegmented } from '../components/dna/DnaKit';
-import { parseCountText, formatCountFrame } from '../components/dna/useDrawIn';
+import { parseCountText, formatCountFrame, useChangeFlash } from '../components/dna/useDrawIn';
 import { resetJourneyPlayed } from '../components/dna/useJourneyReveal';
 
 let observers: Array<{ cb: IntersectionObserverCallback; el?: Element }> = [];
@@ -119,5 +119,24 @@ describe('DnaSegmented count tint', () => {
     expect(view.container.querySelector('[data-rise]')).toBeNull();
     view.rerender(<DnaSegmented options={opts(2)} value="a" onChange={() => {}} />);
     expect(view.container.querySelector('[data-rise]')).toBeNull();
+  });
+});
+
+describe('useChangeFlash', () => {
+  it('clears the flash when a follow-up change fails the predicate', () => {
+    vi.useFakeTimers();
+    const Probe = ({ n }: { n: number }) => {
+      const on = useChangeFlash(n, { when: (a, b) => b > a });
+      return <span data-testid="p" data-on={on ? '1' : '0'} />;
+    };
+    const { getByTestId, rerender } = render(<Probe n={1} />);
+    expect(getByTestId('p').getAttribute('data-on')).toBe('0');
+    rerender(<Probe n={2} />);
+    expect(getByTestId('p').getAttribute('data-on')).toBe('1');
+    rerender(<Probe n={1} />); // decrease before ms elapsed: predicate rejects
+    expect(getByTestId('p').getAttribute('data-on')).toBe('0');
+    rerender(<Probe n={3} />); // later increase can retrigger
+    expect(getByTestId('p').getAttribute('data-on')).toBe('1');
+    vi.useRealTimers();
   });
 });

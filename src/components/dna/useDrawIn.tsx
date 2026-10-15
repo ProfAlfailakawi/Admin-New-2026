@@ -228,7 +228,8 @@ export function useChangeFlash<V>(value: V, { ms = 1200, when }: { ms?: number; 
     if (Object.is(prev.current, value)) return;
     const before = prev.current;
     prev.current = value;
-    if (when && !when(before, value)) return;
+    // The previous run's cleanup already cancelled its reset timer: a rejected follow-up change must clear the flash itself.
+    if (when && !when(before, value)) { setOn(false); return; }
     setOn(true);
     const t = window.setTimeout(() => setOn(false), ms);
     return () => window.clearTimeout(t);
