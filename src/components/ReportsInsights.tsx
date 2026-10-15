@@ -25,11 +25,11 @@ export function ReportsInsights({ invoiceCount, paidCount, salesTotal, profitTot
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3" dir="rtl">
       <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm flex items-center justify-around gap-4">
         <div className="flex flex-col items-center gap-2 text-center">
-          <DnaRing value={paidPct} size={72} stroke={6} tone="mint" ariaLabel={paidPct == null ? 'نسبة المدفوع غير متوفرة' : `نسبة الفواتير المدفوعة ${Math.round(paidPct)}%`} />
+          <DnaRing value={paidPct} size={72} stroke={6} tone="mint" playKey="reports:ring:paid" ariaLabel={paidPct == null ? 'نسبة المدفوع غير متوفرة' : `نسبة الفواتير المدفوعة ${Math.round(paidPct)}%`} />
           <span className="text-[11px] font-bold text-slate-500">فواتير مدفوعة</span>
         </div>
         <div className="flex flex-col items-center gap-2 text-center">
-          <DnaRing value={marginPct} size={72} stroke={6} tone="amber" ariaLabel={marginPct == null ? 'هامش الربح غير متوفر' : `هامش الربح ${Math.round(marginPct)}%`} />
+          <DnaRing value={marginPct} size={72} stroke={6} tone="amber" playKey="reports:ring:margin" drawDelay={150} ariaLabel={marginPct == null ? 'هامش الربح غير متوفر' : `هامش الربح ${Math.round(marginPct)}%`} />
           <span className="text-[11px] font-bold text-slate-500">هامش الربح</span>
         </div>
       </div>
@@ -37,7 +37,7 @@ export function ReportsInsights({ invoiceCount, paidCount, salesTotal, profitTot
       <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm flex flex-col justify-between gap-2">
         <span className="text-[11px] font-bold text-slate-500">المبيعات المدفوعة · آخر 30 يوماً</span>
         {hasSpark ? (
-          <DnaSpark values={dailySales} width={260} height={56} tone="accent" ariaLabel="اتجاه المبيعات اليومية لآخر 30 يوماً" className="w-full" />
+          <DnaSpark values={dailySales} width={260} height={56} tone="accent" playKey="reports:spark:daily" drawDelay={300} ariaLabel="اتجاه المبيعات اليومية لآخر 30 يوماً" className="w-full" />
         ) : (
           <span className="text-xs font-bold text-slate-400">لا توجد مبيعات كافية لرسم الاتجاه</span>
         )}
@@ -46,7 +46,7 @@ export function ReportsInsights({ invoiceCount, paidCount, salesTotal, profitTot
       <div className="bg-white rounded-2xl p-4 border border-slate-200/60 shadow-sm">
         <div className="text-[11px] font-bold text-slate-500 mb-2">طرق الدفع</div>
         {methods.length > 0 ? (
-          <DnaDonut slices={methods} size={96} stroke={14} ariaLabel="توزيع الفواتير حسب طريقة الدفع" />
+          <DnaDonut slices={methods} size={96} stroke={14} playKey="reports:donut:methods" drawDelay={600} ariaLabel="توزيع الفواتير حسب طريقة الدفع" />
         ) : (
           <span className="text-xs font-bold text-slate-400">—</span>
         )}

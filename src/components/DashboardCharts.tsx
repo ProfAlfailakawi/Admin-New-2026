@@ -1,3 +1,4 @@
+import { useChartDrawIn } from './dna/useDrawIn';
 import React from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 
@@ -15,11 +16,12 @@ const tooltipStyle: React.CSSProperties = {
 };
 
 export function DailySalesArea({ points }: { points: Array<{ label: string; value: number }> }) {
+  const draw = useChartDrawIn({ playKey: 'dash-chart:daily-sales' });
   if (points.filter((p) => p.value > 0).length < 2) return null;
   return (
     <div className="bg-white rounded-3xl border border-slate-200/60 p-4 md:p-5 shadow-sm text-right" dir="rtl">
       <h3 className="text-sm font-bold text-slate-700 mb-3">المبيعات اليومية · آخر 14 يوماً</h3>
-      <div role="img" aria-label="رسم المبيعات اليومية لآخر 14 يوماً" style={{ width: '100%', height: 190 }} dir="ltr">
+      <div ref={draw.ref} className="dna-chart-draw" data-draw={draw.phase === 'final' ? undefined : draw.phase} role="img" aria-label="رسم المبيعات اليومية لآخر 14 يوماً" style={{ width: '100%', height: 190 }} dir="ltr">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={points} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
             <defs>

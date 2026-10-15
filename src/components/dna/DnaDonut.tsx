@@ -1,5 +1,6 @@
 import React from 'react';
 import type { DnaTone } from './DnaKit';
+import { useDrawIn } from './useDrawIn';
 
 export interface DnaDonutSlice {
   key: string;
@@ -24,7 +25,12 @@ export function DnaDonut({
   centerSub,
   ariaLabel,
   className,
+  playKey,
+  drawDelay = 0,
 }: {
+  /** Opt-in: segments draw one after another, once per session, on first view. */
+  playKey?: string;
+  drawDelay?: number;
   slices: DnaDonutSlice[];
   size?: number;
   stroke?: number;
@@ -33,6 +39,9 @@ export function DnaDonut({
   ariaLabel?: string;
   className?: string;
 }) {
+  const draw = useDrawIn<HTMLDivElement>({ playKey, threshold: 0.4 });
+  const pre = draw.phase === 'pre';
+  const segMs = Math.round(Math.min(500, 1000 / Math.max(1, slices.length)));
   const data = slices.filter((s) => Number.isFinite(s.value) && s.value > 0);
   const total = data.reduce((a, s) => a + s.value, 0);
   const r = (size - stroke) / 2;
@@ -41,7 +50,7 @@ export function DnaDonut({
   let offset = 0;
   return (
     <div className={['dna', className].filter(Boolean).join(' ')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
-      <div style={{ position: 'relative', width: size, height: size, flex: '0 0 auto' }} role="img" aria-label={ariaLabel}>
+      <div ref={playKey ? draw.ref : undefined} style={{ position: 'relative', width: size, height: size, flex: '0 0 auto' }} role="img" aria-label={ariaLabel}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
           <circle cx={mid} cy={mid} r={r} fill="none" strokeWidth={stroke} style={{ stroke: 'var(--dna-line)' }} />
           {total > 0 &&
@@ -57,8 +66,12 @@ export function DnaDonut({
                   r={r}
                   fill="none"
                   strokeWidth={stroke}
-                  style={{ stroke: 'var(--t-fg)' }}
-                  strokeDasharray={`${Math.max(0, len - gap)} ${c}`}
+                  style={
+                    playKey && draw.phase !== 'final'
+                      ? { stroke: 'var(--t-fg)', transition: `stroke-dasharray ${segMs}ms var(--dna-ease, ease-out) ${drawDelay + i * segMs}ms` }
+                      : { stroke: 'var(--t-fg)' }
+                  }
+                  strokeDasharray={`${pre ? 0 : Math.max(0, len - gap)} ${c}`}
                   strokeDashoffset={-offset}
                   transform={`rotate(-90 ${mid} ${mid})`}
                 />

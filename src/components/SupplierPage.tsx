@@ -415,6 +415,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  size={56}
  tone={invoiceStats.paidPercentage >= 100 ? 'mint' : invoiceStats.paidPercentage > 0 ? 'amber' : 'danger'}
  sublabel="مسدد"
+ playKey="supplier:ring:paid"
  ariaLabel={`نسبة المسدد ${Math.round(invoiceStats.paidPercentage)}%`}
  />
  </div>

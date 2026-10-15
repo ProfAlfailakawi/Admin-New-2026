@@ -80,7 +80,7 @@ import {
   Database,
   Download,
 } from "lucide-react";
-import { DnaHubMap } from "./dna/DnaKit";
+import { DnaHubMap, DnaCountUp } from "./dna/DnaKit";
 import { DailySalesArea, ExpensePie } from "./DashboardCharts";
 import {
   ResponsiveContainer,
@@ -229,14 +229,15 @@ const GlobalStatBox = React.memo(
     subtext = "",
     unit = "",
   }: any) => {
+    // Decorative glow is one calm brand-green for every tone; icon/subtext colours keep their meaning.
     const glowColors: Record<string, string> = {
-      blue: 'rgba(59, 130, 246, 0.16)',
-      red: 'rgba(244, 63, 94, 0.16)',
-      emerald: 'rgba(16, 185, 129, 0.20)',
-      amber: 'rgba(245, 158, 11, 0.16)',
-      purple: 'rgba(168, 85, 247, 0.16)',
-      indigo: 'rgba(99, 102, 241, 0.16)',
-      rose: 'rgba(244, 63, 94, 0.16)',
+      blue: 'rgba(15, 61, 31, 0.10)',
+      red: 'rgba(15, 61, 31, 0.10)',
+      emerald: 'rgba(15, 61, 31, 0.10)',
+      amber: 'rgba(15, 61, 31, 0.10)',
+      purple: 'rgba(15, 61, 31, 0.10)',
+      indigo: 'rgba(15, 61, 31, 0.10)',
+      rose: 'rgba(15, 61, 31, 0.10)',
     };
 
     const getTextColor = (col: string) => {
@@ -252,7 +253,7 @@ const GlobalStatBox = React.memo(
       }
     };
 
-    const glowColor = glowColors[color] || 'rgba(100, 116, 139, 0.16)';
+    const glowColor = glowColors[color] || 'rgba(15, 61, 31, 0.10)';
 
     return (
       <SpatialGlassCard
@@ -279,12 +280,17 @@ const GlobalStatBox = React.memo(
               {unit}
             </span>
             <div className="text-lg min-[360px]:text-xl sm:text-3xl font-mono tracking-tighter font-bold text-slate-800 interactive-hover origin-right truncate overflow-hidden text-ellipsis whitespace-nowrap leading-none shrink w-full">
-              {isPercent
-                ? `${value.toFixed(1)}%`
-                : Number(value).toLocaleString("en-GB", {
-                    minimumFractionDigits: 3,
-                    maximumFractionDigits: 3,
-                  })}
+              <DnaCountUp
+                playKey={`dash-tile:${label}`}
+                text={
+                  isPercent
+                    ? `${value.toFixed(1)}%`
+                    : Number(value).toLocaleString("en-GB", {
+                        minimumFractionDigits: 3,
+                        maximumFractionDigits: 3,
+                      })
+                }
+              />
             </div>
           </div>
 
@@ -3928,9 +3934,9 @@ const [isPending, startTransition] = useTransition();
                         </div>
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                        <MiniRing percent={profitMargin} size={24} stroke={3} label="هامش الربح" tone="#d97706" />
+                        <MiniRing percent={profitMargin} size={24} stroke={3} label="هامش الربح" tone="#d97706" playKey="dash-pulse:margin" />
                         <div className="shrink-0 text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
-                          {totalSalesVal.toFixed(3)}{" "}
+                          <DnaCountUp text={totalSalesVal.toFixed(3)} playKey="dash-pulse:sales" durationMs={600} />{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
                         <ChevronDown
@@ -4017,7 +4023,7 @@ const [isPending, startTransition] = useTransition();
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <div className="text-base sm:text-lg font-bold text-slate-900 whitespace-nowrap" dir="ltr">
-                          <span>{cumulativeBankBalance.toFixed(3)}</span>{" "}
+                          <DnaCountUp text={cumulativeBankBalance.toFixed(3)} playKey="dash-pulse:liquidity" durationMs={600} />{" "}
                           <span className="text-sm">د.ك</span>
                         </div>
                         <ChevronDown
@@ -4388,7 +4394,7 @@ const [isPending, startTransition] = useTransition();
                                 className="bg-slate-100/50 border-2 border-dashed border-slate-200/60 rounded-3xl flex flex-row-reverse items-center justify-center text-slate-500 p-3 md:p-4 relative overflow-hidden"
                               >
                                 <div
-                                  className="absolute inset-0 -translate-x-full bg-gradient-to-l from-transparent via-white/80 to-transparent animate-[shimmer_1.5s_infinite]"
+                                  className="absolute inset-0 -translate-x-full bg-gradient-to-l from-transparent via-white/80 to-transparent animate-[shimmer_1.5s_3]"
                                   style={{ animationDirection: "reverse" }}
                                 />
                                 <ShoppingBag
@@ -4761,7 +4767,7 @@ const [isPending, startTransition] = useTransition();
                             animate={{ x: "100%" }}
                             transition={{
                               duration: 1.5,
-                              repeat: Infinity,
+                              repeat: 3,
                               ease: "linear",
                             }}
                             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none"
