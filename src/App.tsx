@@ -788,16 +788,16 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
     },
     {
       id: 'loyalty',
-      label: 'مملكة الولاء',
+      label: 'الولاء',
       subtitle: 'مستويات العملاء ونقاط الذهبي وكبار العملاء',
       icon: <Sparkles size={18} />,
       tone: 'purple',
-      value: `مملكة الولاء`,
+      value: `الولاء`,
       hint: `العملاء: ${customers.length}`
     },
     {
       id: 'coupons',
-      label: 'مسرح عروض التراث',
+      label: 'العروض',
       subtitle: 'إدارة الكوبونات وحساب الأثر الربحي لها',
       icon: <CircleDollarSign size={18} />,
       tone: 'amber',
@@ -854,7 +854,7 @@ const CompanyCommandCenter: React.FC<{ data: any; onNavigate: (page: string) => 
   const searchableTools = [
     ...coreModules,
     { id: 'products', label: 'إدارة المنتجات والمخزون', subtitle: 'سجل المنتجات، الأسعار والتوافر بالمخزن', icon: <Boxes size={18} />, tone: 'slate', value: 'المخزون والمنتجات', hint: `${products.length} صنف` },
-    { id: 'expenses', label: 'المصروفات العامة والنزيف', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
+    { id: 'expenses', label: 'المصروفات', subtitle: 'إدخال المصاريف والمدفوعات والمتابعة المالية', icon: <DollarSign size={18} />, tone: 'rose', value: 'المصروفات العامة', hint: 'تفاصيل المصروفات' },
     { id: 'suppliers', label: 'حسابات الموردين ورادار المخاطر', subtitle: 'المديونية وصرف التوريد والانتظام', icon: <Truck size={18} />, tone: 'indigo', value: 'الموردين والمستحقات', hint: `${suppliers.length} مورد` },
     { id: 'suppliers-audit', label: 'مراجعة الموردين والتأثير المالي', subtitle: 'تفصيل أثر المورد على الربحية والمخاطر', icon: <AlertTriangle size={18} />, tone: 'slate', value: 'رادار المخاطر', hint: 'أثر التوريد' },
     { id: 'new-invoice', label: 'إنشاء فاتورة جديدة', subtitle: 'مسار سريع لإدخال المبيعات الفورية للعملاء', icon: <PlusCircle size={18} />, tone: 'sky', value: 'فاتورة جديدة', hint: 'مسار إنشاء سريع' },
@@ -1321,8 +1321,8 @@ const getAdminPageMeta = (page: string) => {
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'التقارير التنفيذية' },
     ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'المساعد التنفيذي' },
     'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'الحزمة الإبداعية' },
-    loyalty: { title: 'مملكة الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وكبار العملاء مع شارات وترقيات.', tag: 'برنامج الولاء' },
-    coupons: { title: 'مسرح عروض التراث', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'مسرح العروض الذكي' },
+    loyalty: { title: 'الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وكبار العملاء مع شارات وترقيات.', tag: 'برنامج الولاء' },
+    coupons: { title: 'العروض', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'مسرح العروض الذكي' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'محاكي النمو' },
     'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'درع الربح' },
     diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'لوحة البطولات' },
@@ -1398,9 +1398,9 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
         </section>
       )}
       {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>مؤشر المنتجات</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
-      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>لوحة العملاء</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>مملكة الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{displayLabel(c.label)}</span></div>)}</div></div>}</section>}
+      {showCustomers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='customers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('customers')}><div><span>لوحة العملاء</span><h2>لوحة العملاء</h2><p>مختصر الولاء والقيمة الشرائية.</p></div><span className="toggle-pill">{openSmartPanel==='customers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='customers' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('loyalty')}>الولاء</button></div><div className="customer-intel-grid">{customerRows.map((c:any, idx:number) => <div key={c.id||idx} className={`customer-intel-card ${c.label==='VIP'?'is-vip':''}`}><div className="customer-avatar">{String(c.name||'ع').slice(0,1)}</div><div><h3>{getItemName(c,'عميل')}</h3><p>{c.phone || 'لا يوجد هاتف'} · {c.ordersCount} طلب</p><strong>{(Number(c.spend) || 0).toFixed(3)} د.ك</strong></div><span>{displayLabel(c.label)}</span></div>)}</div></div>}</section>}
       {showSuppliers && <section className={cn("admin-smart-panel smart-collapsible-panel", openSmartPanel==='suppliers' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('suppliers')}><div><span>رادار الموردين</span><h2>رادار الموردين</h2><p>أولوية السداد وتأثير التوريد.</p></div><span className="toggle-pill">{openSmartPanel==='suppliers' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='suppliers' && <div className="smart-panel-body"><div className="supplier-radar-guide"><span><b>سداد عالي:</b> مستحق كبير.</span><span><b>مورد مؤثر:</b> مرتبط بعدة منتجات.</span><span><b>مستقر:</b> لا إجراء عاجل.</span></div><div className="supplier-radar-grid">{supplierRows.map((sup:any, idx:number) => <div key={sup.id||idx} className="supplier-radar-card"><div className="supplier-risk-path"><span>سداد</span><b>→</b><span>توفر</span><b>→</b><span>ربح</span></div><h3>{getItemName(sup,'مورد')}</h3><p>{sup.linkedProducts} منتجات · {(Number(sup.debt) || 0).toFixed(3)} د.ك</p><strong title="الحالة محسوبة من المستحقات وعدد المنتجات المرتبطة بالمورد">{sup.risk} · {sup.priorityScore}/100</strong><p className="mt-2 text-[11px] font-bold text-slate-500">{sup.recommendation}</p></div>)}</div></div>}</section>}
-      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">مسرح العروض الذكي</span><h2 className="frame-dup-title">مسرح عروض التراث</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
+      {showCoupons && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">مسرح العروض الذكي</span><h2 className="frame-dup-title">العروض</h2></div><button type="button" onClick={() => onNavigate('reports')}>قياس الأثر</button></div><div className="coupon-theater-grid">{(coupons.length?coupons: [{code:'WELCOME', discountValue:0, isActive:false}]).slice(0,4).map((c:any, idx:number) => { const val=Number(c.discountValue||c.value||0); const tone= val>=25?'خطر':val>=10?'متوسط':'آمن'; return <div className="coupon-ticket" key={c.id||idx}><h3>{c.code||'كوبون'}</h3><p>{val || '—'} {c.discountType==='fixed'?'د.ك':'%'}</p><span data-tone={tone==='خطر'?'high':tone==='متوسط'?'mid':'low'}>تأثير الربح: {tone}</span></div>})}</div></section>}
       {showAi && <section className="admin-smart-panel ai-lab-gallery" dir="rtl"><div className="panel-head"><div><span>معرض المختبر الذكي</span><h2>معرض التراث الذكي</h2></div><button type="button" onClick={() => onNavigate('smart-studio')}>استوديو التراث الذكي</button></div><div className="smart-mini-grid ai-lab-compact-grid">{[
         { label: 'تحليل العملاء', page: 'customers' },
         { label: 'تحليل المنتجات', page: 'products' },

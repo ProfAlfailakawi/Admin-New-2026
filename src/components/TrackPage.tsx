@@ -253,7 +253,7 @@ export default function TrackPage() {
  </header>
 
  <h1 className="pub-title">تتبع الطلب</h1>
- <p className="pub-sub">اكتب رقم التلفون المسجل أو رقم الطلب عشان تتابع الحالة</p>
+ <p className="pub-sub">اكتب رقم الهاتف المسجل أو رقم الطلب لمتابعة الحالة</p>
  
  {IS_DEMO_MODE && (() => {
  const d = GET_DEMO_DATA();
