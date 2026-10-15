@@ -852,7 +852,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         <button
           type="button"
           onClick={() => setOpenSmartPanel(openSmartPanel === 'productPulse' ? null : 'productPulse')}
-          className="w-full flex items-center justify-between gap-3 text-right"
+          className="w-full flex flex-row-reverse items-center justify-between gap-3 text-right"
         >
           <ChevronDown size={20} className={cn("text-slate-500 transition-transform", openSmartPanel === 'productPulse' && "rotate-180")} />
           <div>
@@ -966,7 +966,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
         <button
           type="button"
           onClick={() => setIsCategoryManagerOpen((v) => !v)}
-          className="w-full flex items-center justify-between gap-4 text-right"
+          className="w-full flex flex-row-reverse items-center justify-between gap-4 text-right"
         >
           <ChevronDown
             size={20}
@@ -976,7 +976,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
             )}
           />
           <div className="flex-1">
-            <h3 className="text-lg font-black text-slate-900 flex items-center justify-end gap-2">
+            <h3 className="text-lg font-black text-slate-900 flex items-center justify-start gap-2">
               تصنيفات المنتجات
               <Layers size={18} className="text-primary" />
             </h3>

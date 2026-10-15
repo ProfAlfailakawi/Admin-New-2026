@@ -2263,7 +2263,7 @@ const [isPending, startTransition] = useTransition();
           dir="rtl"
         >
           {showSampleDataPrompt && (
-            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-row items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
+            <div className="mb-4 bg-amber-50/90 border border-amber-200 rounded-xl p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in slide-in-from-top-4 fade-in duration-500 text-right w-full overflow-hidden relative shadow-sm">
               <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[50px] bg-amber-500/10 -translate-y-1/2 translate-x-1/2 pointer-events-none" />
               <div className="flex-1 relative z-10 flex items-center gap-3">
                 <div className="bg-amber-500 text-white p-1.5 rounded-lg shrink-0">
@@ -2280,10 +2280,10 @@ const [isPending, startTransition] = useTransition();
                   </p>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-auto font-sans">
+              <div className="flex justify-end gap-2 shrink-0 relative z-10 w-full sm:w-auto font-sans">
                 <button
                   onClick={handleLoadDemoData}
-                  className="bg-amber-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
+                  className="max-sm:flex-1 bg-amber-600 outline-none text-white font-bold text-sm text-[11px] px-3 py-1.5 rounded-md hover:bg-amber-700 transition-all flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-95"
                 >
                   <Download size={14} />
                   <span>{appMode === 'cloud' || hasActiveBackup ? "استرجاع بياناتي" : "تحميل بيانات تجريبية"}</span>

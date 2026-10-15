@@ -4734,9 +4734,9 @@ const MainApp: React.FC = () => {
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
-          className="admin-app-header h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
+          className="admin-app-header h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-4 xl:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
         >
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 xl:gap-4 shrink min-w-0">
             {userRole !== 'partner' && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
@@ -4775,7 +4775,7 @@ const MainApp: React.FC = () => {
             {deferredChromeReady && (
               <React.Suspense fallback={null}>
                 <SmartIconGuide guideKey="header-system-pulse" title="مؤشر صحة الربط السحابي والجسر" position="bottom">
-                  <div className="hidden xs:flex items-center justify-center w-[33px] h-[33px] shrink-0 [&>div]:scale-75">
+                  <div className="hidden min-[414px]:flex items-center justify-center w-[33px] h-[33px] shrink-0 [&>div]:scale-75">
                     <SystemPulseOrb data={data} />
                   </div>
                 </SmartIconGuide>
@@ -4783,7 +4783,7 @@ const MainApp: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 xl:gap-4 shrink-0">
              {/* Magic Command Bar Trigger */}
              {userRole !== 'partner' && (
               <button 
@@ -4792,7 +4792,7 @@ const MainApp: React.FC = () => {
                 className="hidden md:flex items-center gap-2 sm:gap-4 glass-surface hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl transition-all group overflow-hidden hover:shadow-md hover:border-amber-400"
               >
                   <Search size={16} className="text-slate-500 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
-                  <span className="hidden lg:block text-xs font-bold text-slate-500">ابحث عن أي شيء...</span>
+                  <span className="hidden xl:block text-xs font-bold text-slate-500">ابحث عن أي شيء...</span>
                   <div className="hidden 2xl:flex gap-1.5 items-center bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-[0.5rem] shadow-sm group-hover:shadow-md group-hover:bg-amber-100/50 transition-all">
                     <span className="text-[11px] font-bold text-amber-700">K</span>
                     <span className="text-[11px] font-bold text-amber-600/50">+</span>
@@ -4839,7 +4839,7 @@ const MainApp: React.FC = () => {
               </SmartIconGuide>
 
             {/* Notifications */}
-            <div className="relative shrink-0" ref={notifRef}>
+            <div className="max-xs:static relative shrink-0" ref={notifRef}>
               <button 
                 onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }}
                 className={cn(
@@ -4870,7 +4870,7 @@ const MainApp: React.FC = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute left-0 mt-3 w-[290px] xs:w-[320px] sm:w-[380px] md:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
+                        className="absolute left-0 mt-3 max-xs:left-3 max-xs:right-3 max-xs:top-full max-xs:mt-2 max-xs:w-auto xs:w-[320px] sm:w-[380px] xl:w-[420px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200/60 z-[9999] overflow-hidden origin-top-left"
                       >
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                         <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
@@ -4961,10 +4961,10 @@ const MainApp: React.FC = () => {
                       ) : (
                         <div className="p-5 md:p-10 text-center">
                           <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-                            <Bell size={28} className="text-slate-200" />
+                            <Bell size={28} className="text-slate-300" />
                           </div>
                           <div className="font-bold text-slate-500">ماكو تنبيهات</div>
-                          <div className="text-[11px] text-slate-300 mt-1">سيظهر هنا كل جديد يخص المطعم</div>
+                          <div className="text-[11px] text-slate-500 mt-1">سيظهر هنا كل جديد يخص المطعم</div>
                         </div>
                       )}
                     </div>
