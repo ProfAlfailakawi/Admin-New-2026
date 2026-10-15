@@ -268,11 +268,11 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
           >
             {/* Core Orb */}
             <div className="absolute inset-1.5 bg-gradient-to-tr from-[#b8941f] via-[#D4AF37] to-[#e6cf7a] rounded-full shadow-[0_0_20px_rgba(212,175,55,0.5)] z-10 flex items-center justify-center overflow-hidden">
-               <Activity size={16} className="text-[#0f3d1f] animate-pulse" />
+               <Activity size={16} className="text-[#0f3d1f] animate-[pulse_1.2s_cubic-bezier(0.4,0,0.6,1)_4]" />
             </div>
             {/* Energy Particles */}
             <div className="absolute inset-0 bg-[#D4AF37]/30 rounded-full blur-[8px]" />
-            <div className="absolute inset-[-4px] border-2 border-[#D4AF37]/40 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+            <div className="absolute inset-[-4px] border-2 border-[#D4AF37]/40 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_3]" />
           </motion.div>
         ) : (
           <motion.div 
