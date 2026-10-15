@@ -2269,7 +2269,7 @@ const [isPending, startTransition] = useTransition();
                   </h3>
                   <p className="text-slate-600 font-bold text-[10px] leading-relaxed">
                     {appMode === 'cloud' || hasActiveBackup 
-                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي 💻") 
+                      ? (appMode === 'cloud' ? "يا طويل العمر، تم رصد مسح أو تصفير للبيانات السحابية. يمكنك استرجاع كافة مبيعاتك وعملائك المسجلة مسبقاً فوراً" : "يا طويل العمر، تونا رصدنا مسح أو تصفير للبيانات، تقدر تسترجع فوراً كافة مبيعاتك وعملائك ومورديك اللي خزنها جهازك بشكل احترازي") 
                       : "تقدر تحمل بيانات تجريبية شاملة عشان تجرب ميزات النظام وفواتيره وتقارير التراث الذكي بكل سهولة."}
                   </p>
                 </div>
@@ -4260,6 +4260,7 @@ const [isPending, startTransition] = useTransition();
                               />
                               <GlobalStatBox
                                 label="كم يكلفنا العميل"
+                                subtext="د.ك لكل عميل"
                                 value={cac}
                                 color="amber"
                                 icon={User}
@@ -4267,6 +4268,7 @@ const [isPending, startTransition] = useTransition();
                               />
                               <GlobalStatBox
                                 label="كم يجلب لنا العميل"
+                                subtext="أضعاف تكلفته (الأفضل 3 أو أكثر)"
                                 value={ltvCacRatio}
                                 color="blue"
                                 icon={BarChart3}

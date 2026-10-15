@@ -1146,14 +1146,8 @@ const CloudConnectionGate: React.FC<{
     <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#07140b] px-5 arabic-font" dir="rtl">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(23,96,47,.42),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(212,175,55,.2),transparent_28%),linear-gradient(145deg,#040a06_0%,#0a1d10_46%,#14120a_100%)]" />
       <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
-      <motion.div
-        className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
-        
-      />
-      <motion.div
-        className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10"
-        
-      />
+      <div className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10" />
+      <div className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10" />
       <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/15 blur-[105px]" />
       <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/16 blur-[110px]" />
 
@@ -1170,18 +1164,12 @@ const CloudConnectionGate: React.FC<{
             transition={{ duration: 3.6, repeat: Infinity, ease: 'easeInOut' }}
           />
           <div className="absolute inset-8 rounded-full border border-white/10 bg-slate-950/30" />
-          <motion.div
-            className="absolute inset-12 rounded-full border border-dashed border-white/12"
-            
-          />
+          <div className="absolute inset-12 rounded-full border border-dashed border-white/12" />
 
           
 
           <div className={`relative flex h-36 w-36 items-center justify-center rounded-[2.35rem] border ${isOffline ? 'border-rose-200/25 bg-rose-950/28 text-rose-100' : 'border-emerald-100/20 bg-emerald-950/24 text-emerald-50'} shadow-[0_22px_70px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:h-40 sm:w-40`}>
-            <motion.div
-              className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10"
-              
-            />
+            <div className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10" />
             {isOffline ? (
               <ShieldAlert size={54} strokeWidth={1.65} />
             ) : (
@@ -1221,13 +1209,12 @@ const CloudConnectionGate: React.FC<{
 
           <div className="absolute inset-x-0 bottom-9 flex items-center justify-center gap-3">
             {orbitItems.map((Icon, index) => (
-              <motion.div
+              <div
                 key={index}
                 className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
-                
               >
                 <Icon size={18} />
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -1239,10 +1226,7 @@ const CloudConnectionGate: React.FC<{
           className="relative -mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.075] px-6 py-6 shadow-[0_26px_90px_rgba(0,0,0,.38)] backdrop-blur-2xl"
         >
           <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-amber-200/25 bg-amber-300/10 text-amber-100'} px-4 py-2 text-xs font-black`}>
-            <motion.span
-              className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-amber-300'}`}
-              
-            />
+            <span className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-amber-300'}`} />
             {statusLabel}
           </div>
 

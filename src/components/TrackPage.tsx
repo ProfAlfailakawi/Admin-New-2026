@@ -272,7 +272,7 @@ export default function TrackPage() {
  })()}
  <form onSubmit={handleSearch} className="pub-form">
  <div>
- <label htmlFor="track-query" className="pub-label">رقم التلفون أو الفاتورة</label>
+ <label htmlFor="track-query" className="pub-label">رقم الهاتف أو الفاتورة</label>
  <input
  id="track-query"
  type="text"
@@ -317,7 +317,7 @@ export default function TrackPage() {
  {hasSearched && !loading && (
  <div className="pub-results">
  {orders.length === 0 ? (
- <DnaEmpty icon={<Package />} title="ماكو طلبات نشطة" hint="ما لقينا طلبات حالية على رقم التلفون اللي دخلته." />
+ <DnaEmpty icon={<Package />} title="ماكو طلبات نشطة" hint="ما لقينا طلبات حالية على رقم الهاتف اللي دخلته." />
 ) : (
  orders.map((order: any) => {
  const isZeroOrder = Number(order.totalAmount || order.finalPrice || order.total || order.total_amount || 0) === 0;

@@ -273,7 +273,7 @@
   --color-emerald-900:#08200f; --color-emerald-950:#04120a; --color-amber-900:#4a3704; --color-amber-950:#2e2203;
   --color-gray-500:#55625a; --color-gray-600:#3f4c44; --color-gray-700:#2c3a31; --color-gray-900:#14231a;
 }
-.partner-brand .smart-studio-hero { background-image: linear-gradient(135deg, #0f3d1f 0%, #17602f 60%, #0c2c17 100%) !important; }
+.partner-brand .smart-studio-hero { background-image: linear-gradient(135deg, #f3eee1 0%, #ffffff 70%) !important; border-color: #e6dfce !important; color: #14231a; }
 .partner-brand .ai-suggestion-chip,
 .partner-brand .ai-mission-card { color: #2c3a31; }
 
