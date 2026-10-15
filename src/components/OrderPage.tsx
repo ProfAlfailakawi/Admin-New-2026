@@ -1,6 +1,6 @@
 import { IS_DEMO_MODE } from '../lib/demoMode';
 import React, { useState, useEffect } from "react";
-import { DnaSegmented, DnaStepper } from "./dna/DnaKit";
+import { DnaSegmented, DnaStepper, useChangeFlash } from "./dna/DnaKit";
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import {
   ClipboardList,
@@ -125,6 +125,12 @@ import {
   isFailedStatus,
   isCancelledStatus,
 } from "../lib/status-utils";
+
+/** Badge wrapper: ONE soft accent ring (~1.2s) when the order's status really changes after first paint. */
+const OrderStatusFlash: React.FC<{ statusKey: string; children: React.ReactNode }> = ({ statusKey, children }) => {
+  const changed = useChangeFlash(statusKey);
+  return <div className={cn("relative rounded-lg", changed && "dna-changed")}>{children}</div>;
+};
 
 const OrderPage: React.FC<OrderPageProps> = ({
   data,
@@ -1575,11 +1581,11 @@ Alturath.kw`;
                           {getOrderCustomerName(order)}
                         </h3>
                       </div>
-                      <div className="relative">
+                      <OrderStatusFlash statusKey={`${String(order.status)}|${order.isConvertedToInvoice ? 1 : 0}`}>
                         {isPending && (
                           <div
                             className={cn(
-                              "absolute inset-0 rounded-lg filter blur-md animate-pulse",
+                              "absolute inset-0 rounded-lg filter blur-md opacity-40",
                               isFailedStatus(order.status as string)
                                 ? "bg-amber-500"
                                 : String(order.status).includes(
@@ -1598,7 +1604,7 @@ Alturath.kw`;
                               (isPaidStatus(order.status) &&
                                 hasUnselectedSuppliers(order) &&
                                 (order as any).paymentStatus !== "paid")
-                              ? "animate-bounce"
+                              ? "" /* static at rest; a real status change gets one soft ring */
                               : "",
                             getStatusColor(order.status as string, order),
                           )}
@@ -1611,7 +1617,7 @@ Alturath.kw`;
                               <AlertTriangle size={12} className="mr-1 inline-block align-[-2px]" aria-hidden="true" />
                             )}
                         </div>
-                      </div>
+                      </OrderStatusFlash>
                     </div>
 
                     <DnaStepper
@@ -2633,7 +2639,7 @@ Alturath.kw`;
                               isFailedStatus(selectedOrder.status as string) ||
                               (isPaidStatus(selectedOrder.status) &&
                                 hasUnselectedSuppliers(selectedOrder))
-                              ? "animate-bounce"
+                              ? "" /* static */
                               : "",
                             isFailedStatus(selectedOrder.status as string)
                               ? "bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"

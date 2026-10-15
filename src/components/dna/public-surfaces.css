@@ -166,18 +166,18 @@
 .pub-mark { width: 96px; height: 96px; margin: 0 auto 18px; }
 .pub-mark svg { display: block; }
 .pub-mark-ring { fill: var(--mk-soft); stroke: var(--mk); stroke-width: 2.5; stroke-dasharray: 1; }
-.pub-mark-glyph { stroke: var(--mk); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: pub-draw 0.5s var(--pub-ease) 0.25s both; }
+.pub-mark-glyph { stroke: var(--mk); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: pub-draw 0.5s var(--pub-ease) 0.5s both; }
 .pub-pay-result[data-state='success'] { --mk: var(--pub-green); --mk-soft: var(--pub-green-soft); }
 .pub-pay-result[data-state='failed'] { --mk: var(--pub-danger); --mk-soft: var(--pub-danger-soft); }
 .pub-pay-result[data-state='cancel'] { --mk: var(--pub-gold-ink); --mk-soft: var(--pub-gold-soft); }
 .pub-pay-result[data-state='error'] { --mk: var(--pub-danger); --mk-soft: var(--pub-danger-soft); }
-.pub-mark-ring { stroke-dasharray: none; }
+.pub-mark-ring { stroke-dasharray: 1; transform: rotate(-90deg); transform-origin: center; transform-box: fill-box; animation: pub-draw 0.5s var(--pub-ease) both; } /* ring draws first (0.5s), then the glyph */
 @keyframes pub-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 .pub-redirect { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: var(--pub-muted); background: var(--pub-cream); border-radius: 999px; }
 
 @media (prefers-reduced-motion: reduce) {
   .pub-spin, .pub-spin-icon, .pub-skel-line, .pub-order[data-state='pending'] .pub-pill::before,
-  .pub-pay-result, .pub-mark-glyph { animation: none !important; }
+  .pub-pay-result, .pub-mark-glyph, .pub-mark-ring { animation: none !important; }
   .pub-btn, .pub-retry, .pub-input { transition: none !important; }
   .pub-spin { border-top-color: #fff; }
   .pub-skel-line { background: #ebe5d6; }

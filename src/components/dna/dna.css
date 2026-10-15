@@ -219,7 +219,7 @@
   border-radius: 50%;
   background: var(--dna-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--dna-accent) 16%, transparent);
-  animation: dna-live 2.4s ease-in-out infinite;
+  animation: dna-live 2.4s ease-in-out 3; /* calm: three soft pulses, then rest */
 }
 .dna-live[data-on='false'] i {
   background: var(--dna-muted);
@@ -789,6 +789,9 @@
 .dna-hubend[data-state='off'],
 .dna-hubend[data-state='dashed'] { fill: var(--dna-line-2); }
 .dna-hub[data-animate='true'] .dna-hubln { animation: dna-flow 10s linear infinite; }
+/* one-time highlight when the host flags a real increase (data-pulse); replaces the endless flow */
+.dna-hub[data-pulse='true'] .dna-hubln { animation: dna-flow 4s linear 1; }
+.dna-hub[data-pulse='true'] .dna-hubc { animation: dna-breathe 1.6s ease-in-out 1; }
 .dna-hub[data-animate='true'] g:nth-of-type(3n + 1) .dna-hubln {
   animation-duration: 12s;
   animation-direction: reverse;
@@ -1103,3 +1106,45 @@ button.dna-hubn:focus-visible .dna-hubt { transform: translateY(-2px); }
   .dna-steps[data-journey] .dna-node > svg path,
   .dna-steps[data-journey] .dna-lbl { animation: none !important; transition: none !important; }
 }
+
+
+/* ---------- draw-in (opt-in via playKey): initial state is applied only once JS arms it ---------- */
+.dna-spark[data-draw] .dna-sparkl { stroke-dasharray: 1; }
+.dna-spark[data-draw='pre'] .dna-sparkl { stroke-dashoffset: 1; opacity: 0; }
+.dna-spark[data-draw='pre'] .dna-sparka,
+.dna-spark[data-draw='pre'] circle { opacity: 0; }
+.dna-spark[data-draw='play'] .dna-sparkl {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.9s var(--dna-ease) var(--draw-delay, 0ms), opacity 0.05s linear var(--draw-delay, 0ms);
+}
+.dna-spark[data-draw='play'] .dna-sparka,
+.dna-spark[data-draw='play'] circle {
+  transition: opacity 0.5s var(--dna-ease) calc(var(--draw-delay, 0ms) + 0.8s);
+}
+
+/* ---------- change highlight: ONE soft accent ring that fades (never on first render) ---------- */
+@keyframes dna-change {
+  0% { outline-color: color-mix(in srgb, var(--dna-accent) 55%, transparent); }
+  100% { outline-color: color-mix(in srgb, var(--dna-accent) 0%, transparent); }
+}
+.dna-changed {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  animation: dna-change 1.2s var(--dna-ease) 1;
+}
+@keyframes dna-rise {
+  0% { background-color: color-mix(in srgb, var(--dna-accent) 28%, transparent); }
+  100% { background-color: color-mix(in srgb, var(--dna-accent) 0%, transparent); }
+}
+.dna-count[data-rise='true'] { animation: dna-rise 1.2s var(--dna-ease) 1; }
+@media (prefers-reduced-motion: reduce) {
+  .dna-spark .dna-sparkl,
+  .dna-spark .dna-sparka,
+  .dna-spark circle { transition: none !important; }
+  .dna-changed,
+  .dna-count[data-rise='true'] { animation: none !important; }
+}
+
+/* recharts wrapper armed by useChartDrawIn: line + fill wait for the one-time draw */
+.dna-chart-draw[data-draw='pre'] .recharts-area-curve,
+.dna-chart-draw[data-draw='pre'] .recharts-area-area { opacity: 0; }

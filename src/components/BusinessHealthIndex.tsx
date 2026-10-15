@@ -110,12 +110,12 @@ export const BusinessHealthIndex: React.FC<BusinessHealthIndexProps> = React.mem
  transition={{ duration: 1.2, delay: i * 0.15, ease:"easeOut" }}
  className={cn(
 "h-full rounded-2xl relative",
- factor.score >= 80 ? 'bg-gradient-to-l from-emerald-400 to-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 
- factor.score >= 50 ? 'bg-gradient-to-l from-amber-400 to-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 
- 'bg-gradient-to-l from-rose-400 to-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
+ factor.score >= 80 ? 'bg-gradient-to-l from-emerald-400 to-emerald-500 shadow-[0_1px_3px_rgba(15,61,31,0.18)]' : 
+ factor.score >= 50 ? 'bg-gradient-to-l from-amber-400 to-amber-500 shadow-[0_1px_3px_rgba(15,61,31,0.18)]' : 
+ 'bg-gradient-to-l from-rose-400 to-rose-500 shadow-[0_1px_3px_rgba(15,61,31,0.18)]'
 )}
  >
- <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[shimmer_2s_linear_infinite]" />
+ <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[shimmer_2s_linear_2]" />
  </motion.div>
  </div>
  <div className="flex justify-between items-center text-[10px] md:text-xs text-slate-500 font-bold">

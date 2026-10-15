@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AdminMicroLoader from './ui/AdminMicroLoader';
 import { motion } from 'motion/react';
 import { AlertCircle, Bot, Brain, CheckCircle2, CircleAlert, CircleDot, Hourglass, KeyRound, ThumbsUp, Clock, CreditCard, FileText, Flame, Headphones, LifeBuoy, ListOrdered, Loader2, MessageCircle, Pencil, Plus, RadioTower, RefreshCw, Save, Search, Send, Smartphone, Sparkles, Star, Trash2, Truck, UserRound, X, Zap } from 'lucide-react';
-import { DnaHubMap, DnaLive, DnaStatusHeader, DnaStepper, type DnaStep } from './dna/DnaKit';
+import { DnaHubMap, DnaLive, DnaStatusHeader, DnaStepper, useChangeFlash, type DnaStep } from './dna/DnaKit';
 import { cn } from '../lib/utils';
 import type { AppState, Customer, Product } from '../types';
 import { isPaidStatus } from '../lib/status-utils';
@@ -1126,6 +1126,11 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     };
   }, [operationLane, topSmartDecision, counts.support, counts.unread]);
 
+  // One-time hub highlight when the urgent total really rises (replaces the endless flow while urgent).
+  const urgentRose = useChangeFlash(whatsappCommandPulse.urgentTotal, { ms: 1800, when: (a, b) => b > a });
+  // Bridge status as the stepper's play key: the journey halo plays once per status, not on every refresh.
+  const bridgePlayKey = bridge ? `wa-bridge:${bridge.reason || 'ok'}:${bridge.connected ? 1 : 0}` : 'wa-bridge:none';
+
   // Bridge health drawn as one path: device -> bridge -> queue -> bot (presentation only).
   const bridgeHealthSteps: DnaStep[] = (() => {
     const reason = bridge?.reason;
@@ -1436,7 +1441,8 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
           <DnaHubMap
             minHeight={400}
             ariaLabel="غرفة عمليات واتساب — مراقبة حية حسب الغضب والدفع والتوصيل والانتظار"
-            animate={whatsappCommandPulse.urgentTotal > 0}
+            animate={false}
+            pulse={urgentRose}
             center={{ icon: <Headphones />, label: whatsappCommandPulse.health, ariaLabel: `${whatsappCommandPulse.health} · عاجل ${whatsappCommandPulse.urgentTotal} · أعلى انتظار ${whatsappCommandPulse.maxWait} د · المسار الساخن ${whatsappCommandPulse.laneLabel}` }}
             live={{ on: counts.support > 0, label: `تحتاج دعم ${counts.support}` }}
             count={{ value: counts.unread, icon: <MessageCircle />, label: 'غير مقروء' }}
@@ -1547,7 +1553,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
             </button>
           </>}
         >
-          <DnaStepper size="md" ariaLabel="صحة الجسر" steps={bridgeHealthSteps} />
+          <DnaStepper size="md" ariaLabel="صحة الجسر" steps={bridgeHealthSteps} reveal playKey={`${bridgePlayKey}:a`} />
           <p className="wa-bridge-hint">
             {/* A restart cannot re-link WhatsApp; saying so beats a button that
                 looks like it should work and does not. */}
@@ -1963,7 +1969,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
         )}
 
         <div className="dna wa-bridge-path mb-4">
-          <DnaStepper size="md" ariaLabel="صحة الجسر: الجهاز ثم الجسر ثم الطابور ثم البوت" steps={bridgeHealthSteps} />
+          <DnaStepper size="md" ariaLabel="صحة الجسر: الجهاز ثم الجسر ثم الطابور ثم البوت" steps={bridgeHealthSteps} reveal playKey={`${bridgePlayKey}:b`} />
           <p className="wa-bridge-meta">
             {[
               { label: 'آخر نبضة', value: bridge ? `${bridge.minutesSinceSeen} د` : '—' },
