@@ -1585,7 +1585,7 @@ Alturath.kw`;
                         {isPending && (
                           <div
                             className={cn(
-                              "absolute inset-0 rounded-lg filter blur-md opacity-40",
+                              "absolute inset-0 rounded-lg filter blur-md opacity-25",
                               isFailedStatus(order.status as string)
                                 ? "bg-amber-500"
                                 : String(order.status).includes(
