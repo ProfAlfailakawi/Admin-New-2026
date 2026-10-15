@@ -5117,7 +5117,7 @@ const MainApp: React.FC = () => {
             {/* Mobile: one soft edge capsule with a liquid progress fill */}
             <span className="sm:hidden absolute inset-[3px] rounded-full bg-slate-950/[0.035] overflow-hidden" aria-hidden="true">
               <motion.span
-                className="absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-teal-500/55 via-sky-400/38 to-white/10"
+                className="absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-[#0f3d1f]/45 via-[#2f7e62]/30 to-white/10"
                 animate={{ height: `${Math.max(10, Math.min(100, scrollProgress))}%` }}
                 transition={{ type: 'spring', stiffness: 170, damping: 26 }}
               />
@@ -5148,8 +5148,8 @@ const MainApp: React.FC = () => {
               />
               <defs>
                 <linearGradient id="scrollProgressGradient" x1="0" x2="1" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#0f766e" />
-                  <stop offset="100%" stopColor="#0284c7" />
+                  <stop offset="0%" stopColor="#0f3d1f" />
+                  <stop offset="100%" stopColor="#D4AF37" />
                 </linearGradient>
               </defs>
             </svg>

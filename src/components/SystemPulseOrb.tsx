@@ -267,12 +267,12 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
             transition={{ duration: 1.2, repeat: 3, ease: "easeInOut" }}
           >
             {/* Core Orb */}
-            <div className="absolute inset-1.5 bg-gradient-to-tr from-rose-500 via-amber-500 to-orange-400 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.6)] z-10 flex items-center justify-center overflow-hidden">
-               <Activity size={16} className="text-white/90 animate-pulse" />
+            <div className="absolute inset-1.5 bg-gradient-to-tr from-[#b8941f] via-[#D4AF37] to-[#e6cf7a] rounded-full shadow-[0_0_20px_rgba(212,175,55,0.5)] z-10 flex items-center justify-center overflow-hidden">
+               <Activity size={16} className="text-[#0f3d1f] animate-pulse" />
             </div>
             {/* Energy Particles */}
-            <div className="absolute inset-0 bg-amber-400/40 rounded-full blur-[8px]" />
-            <div className="absolute inset-[-4px] border-2 border-amber-500/30 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
+            <div className="absolute inset-0 bg-[#D4AF37]/30 rounded-full blur-[8px]" />
+            <div className="absolute inset-[-4px] border-2 border-[#D4AF37]/40 rounded-full animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite]" />
           </motion.div>
         ) : (
           <motion.div 
@@ -282,14 +282,14 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
             transition={{ duration: 4, repeat: 1, ease: "easeInOut" }}
           >
             {/* Core Orb */}
-            <div className="absolute inset-2 bg-gradient-to-tr from-teal-400 via-emerald-400 to-cyan-300 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] z-10 flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-2 bg-gradient-to-tr from-[#0f3d1f] via-[#1c5a33] to-[#2f7e62] rounded-full shadow-[0_0_15px_rgba(15,61,31,0.35)] z-10 flex items-center justify-center overflow-hidden">
                <Waves size={14} className="text-white/80" />
             </div>
             {/* Calm Aura */}
-            <div className="absolute inset-1 bg-emerald-400/20 rounded-full blur-[4px]" />
+            <div className="absolute inset-1 bg-[#0f3d1f]/15 rounded-full blur-[4px]" />
             {/* Gentle expansion */}
             <motion.div 
-              className="absolute inset-0 border border-teal-400/20 rounded-full"
+              className="absolute inset-0 border border-[#0f3d1f]/20 rounded-full"
               animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
               transition={{ duration: 3, repeat: 2, ease: "easeInOut" }}
             />
@@ -303,8 +303,8 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
           <div 
             className="fixed inset-0 pointer-events-none transition-all duration-[3000ms] z-[9900]"
             style={{
-              boxShadow: isBusy ? 'inset 0 0 150px rgba(245,158,11,0.12)' : 'inset 0 0 150px rgba(16,185,129,0.08)',
-              background: isBusy ? 'transparent' : 'radial-gradient(circle at 50% -20%, rgba(16,185,129,0.03), transparent 60%)'
+              boxShadow: isBusy ? 'inset 0 0 150px rgba(212,175,55,0.10)' : 'inset 0 0 150px rgba(15,61,31,0.06)',
+              background: isBusy ? 'transparent' : 'radial-gradient(circle at 50% -20%, rgba(15,61,31,0.03), transparent 60%)'
             }}
           />
 
@@ -339,7 +339,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
               );
             }
             if (p.type === 'confetti') {
-              const colors = ['bg-rose-500', 'bg-amber-400', 'bg-emerald-400', 'bg-blue-400', 'bg-purple-400'];
+              const colors = ['bg-[#D4AF37]', 'bg-amber-400', 'bg-[#0f3d1f]', 'bg-[#2f7e62]', 'bg-[#e6cf7a]'];
               const color = colors[p.id % colors.length];
               return (
                 <div
@@ -405,7 +405,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                     opacity: 0,
                   }}
                   transition={{ duration: 2.6, delay: 0.15, ease: "easeOut" }}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[2px] border-purple-500 bg-radial-gradient from-purple-500/10 via-transparent to-transparent shadow-[0_0_65px_rgba(168,85,247,0.25)]"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[2px] border-[#0f3d1f] bg-radial-gradient from-[#0f3d1f]/10 via-transparent to-transparent shadow-[0_0_65px_rgba(15,61,31,0.22)]"
                   style={{
                     width: "120px",
                     height: "120px",
@@ -436,7 +436,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                   initial={{ opacity: 0.25 }}
                   animate={{ opacity: 0 }}
                   transition={{ duration: 1.2 }}
-                  className="absolute inset-0 bg-gradient-to-tr from-amber-400/5 via-purple-950/10 to-transparent backdrop-blur-[0.5px]"
+                  className="absolute inset-0 bg-gradient-to-tr from-amber-400/5 via-emerald-950/10 to-transparent backdrop-blur-[0.5px]"
                 />
 
                 {/* Floating Banner */}
