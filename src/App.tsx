@@ -1242,14 +1242,14 @@ const CloudConnectionGate: React.FC<{
 
           <div className="absolute inset-x-0 bottom-9 flex items-center justify-center gap-3">
             {orbitItems.map((Icon, index) => (
-              <div
+              <motion.div
                 key={index}
                 className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
                 animate={{ y: isOffline ? 0 : [0, -6, 0], opacity: isOffline ? 0.72 : [0.72, 1, 0.72] }}
                 transition={{ duration: 1.45, repeat: 3, delay: index * 0.18, ease: 'easeInOut' }}
               >
                 <Icon size={18} />
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
