@@ -49,7 +49,7 @@ export function DnaDonut({
   const mid = size / 2;
   let offset = 0;
   return (
-    <div className={['dna', className].filter(Boolean).join(' ')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
+    <div className={['dna', className].filter(Boolean).join(' ')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div ref={playKey ? draw.ref : undefined} style={{ position: 'relative', width: size, height: size, flex: '0 0 auto' }} role="img" aria-label={ariaLabel}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
           <circle cx={mid} cy={mid} r={r} fill="none" strokeWidth={stroke} style={{ stroke: 'var(--dna-line)' }} />
@@ -87,7 +87,7 @@ export function DnaDonut({
           </div>
         )}
       </div>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, minWidth: 0, flex: '1 1 140px', maxWidth: 300 }}>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, minWidth: 0, flex: '1 1 auto', maxWidth: 300 }}>
         {data.map((s, i) => (
           <li key={s.key} data-dna-tone={s.tone ?? CYCLE[i % CYCLE.length]} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--dna-ink)' }}>
             <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 999, background: 'var(--t-fg)', flex: '0 0 auto' }} />
