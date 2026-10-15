@@ -28,6 +28,15 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
   const isBusy = pendingCount > 0;
   
   const [showTooltip, setShowTooltip] = useState(false);
+  // The orb pulses a few times on mount and again only when the pending count really changes, then rests.
+  const [pulseKey, setPulseKey] = useState(0);
+  const lastPendingRef = useRef(pendingCount);
+  useEffect(() => {
+    if (lastPendingRef.current !== pendingCount) {
+      lastPendingRef.current = pendingCount;
+      setPulseKey((k) => k + 1);
+    }
+  }, [pendingCount]);
   const orbRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   
@@ -252,9 +261,10 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
       >
         {isBusy ? (
           <motion.div 
+            key={`busy-${pulseKey}`}
             className="relative flex items-center justify-center w-full h-full"
             animate={{ scale: [1, 1.15, 1] }}
-            transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 1.2, repeat: 3, ease: "easeInOut" }}
           >
             {/* Core Orb */}
             <div className="absolute inset-1.5 bg-gradient-to-tr from-rose-500 via-amber-500 to-orange-400 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.6)] z-10 flex items-center justify-center overflow-hidden">
@@ -266,9 +276,10 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
           </motion.div>
         ) : (
           <motion.div 
+            key={`calm-${pulseKey}`}
             className="relative flex items-center justify-center w-full h-full"
             animate={{ scale: [1, 1.05, 1], rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 4, repeat: 1, ease: "easeInOut" }}
           >
             {/* Core Orb */}
             <div className="absolute inset-2 bg-gradient-to-tr from-teal-400 via-emerald-400 to-cyan-300 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)] z-10 flex items-center justify-center overflow-hidden">
@@ -280,7 +291,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
             <motion.div 
               className="absolute inset-0 border border-teal-400/20 rounded-full"
               animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 3, repeat: 2, ease: "easeInOut" }}
             />
           </motion.div>
         )}
@@ -355,7 +366,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                 className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-xl px-10 py-8 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] z-[99999] flex flex-col items-center gap-5 text-center border border-slate-100"
               >
                 <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shadow-inner">
-                  <Coffee size={36} className="animate-bounce" />
+                  <Coffee size={36} className="animate-[bounce_1s_ease-in-out_3]" />
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold text-slate-800 tracking-tight mb-2"><Coffee size={26} className="inline-block align-[-4px] ms-2" aria-hidden="true" />تقدر تريح الحين</h2>
@@ -451,7 +462,7 @@ const SystemPulseOrb: React.FC<Props> = ({ data }) => {
                   <div className="w-14 h-14 rounded-full bg-amber-500/10 border-2 border-amber-400 flex items-center justify-center mb-3 mt-1 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
                     <motion.span 
                       animate={{ scale: [1, 1.2, 1] }} 
-                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      transition={{ repeat: 3, duration: 1.5 }}
                       className="text-amber-500"
                       aria-hidden="true"
                     >

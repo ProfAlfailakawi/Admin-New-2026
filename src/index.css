@@ -894,7 +894,12 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 
 .bg-white,.glass-card,.ui-card{backdrop-filter:saturate(1.05) blur(12px)}
 [data-sonner-toast],.sonner-toast,.admin-toast{border-radius:22px!important;border:1px solid rgba(200,148,47,.22)!important;box-shadow:0 22px 62px rgba(24,51,38,.18)!important;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,250,242,.90))!important}
-.animate-pulse,.skeleton-card,.admin-skeleton{position:relative;overflow:hidden!important}.animate-pulse:after,.skeleton-card:after,.admin-skeleton:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.62),transparent);animation:adminLuxuryShimmer 1.7s ease-in-out infinite;pointer-events:none}@keyframes adminLuxuryShimmer{0%{transform:translateX(120%)}100%{transform:translateX(-120%)}}
+.animate-pulse,.skeleton-card,.admin-skeleton{position:relative;overflow:hidden!important}.skeleton-card:after,.admin-skeleton:after,.animate-pulse[class*="bg-slate-"]:not(.rounded-full):after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.62),transparent);animation:adminLuxuryShimmer 1.7s ease-in-out infinite;pointer-events:none}@keyframes adminLuxuryShimmer{0%{transform:translateX(120%)}100%{transform:translateX(-120%)}}
+/* Calm motion: the shimmer above is for real loading skeletons only. Status pulses and pings (dots, badges, glows)
+   play three times and rest; the elements and their classes stay where they are. */
+.animate-pulse:not(.skeleton-card):not(.admin-skeleton):not([class*="bg-slate-"]),
+.animate-ping,
+[class*="animate-[ping"]{animation-iteration-count:3!important}
 
 /* Fix Command Center contrast after premium glass layer */
 .command-feature-card,
@@ -936,7 +941,7 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 .invoice-new-attention-icon{
   width:28px; height:28px; border-radius:999px; display:flex; align-items:center; justify-content:center;
   background:linear-gradient(180deg,#fff7ed,#fff1f2); color:#fb7185; border:1px solid rgba(251,113,133,.24);
-  box-shadow:0 8px 22px rgba(251,113,133,.16); animation:invoiceAttentionPulse 2.4s ease-in-out infinite;
+  box-shadow:0 8px 22px rgba(251,113,133,.16); animation:invoiceAttentionPulse 2.4s ease-in-out 3;
 }
 .invoice-new-attention-popover{
   position:absolute; bottom:calc(100% + 10px); left:0; width:172px; max-width:min(172px,calc(100vw - 28px));

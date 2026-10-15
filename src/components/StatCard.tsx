@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import { SpatialGlassCard } from './ui/SpatialGlassCard';
-import { DnaSpark } from './dna/DnaKit';
+import { DnaSpark, DnaCountUp } from './dna/DnaKit';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 interface StatCardProps {
@@ -26,11 +26,12 @@ export const StatCardComponent: React.FC<StatCardProps> = ({ label, value, icon,
   };
 
   const glowColorMap: Record<string, string> = {
-    blue: 'rgba(59, 130, 246, 0.16)',
-    emerald: 'rgba(16, 185, 129, 0.20)',
-    amber: 'rgba(245, 158, 11, 0.16)',
-    red: 'rgba(239, 68, 68, 0.16)',
-    accent: 'rgba(99, 102, 241, 0.16)'
+    // one calm brand-green glow for every tone (decorative only)
+    blue: 'rgba(15, 61, 31, 0.10)',
+    emerald: 'rgba(15, 61, 31, 0.10)',
+    amber: 'rgba(15, 61, 31, 0.10)',
+    red: 'rgba(15, 61, 31, 0.10)',
+    accent: 'rgba(15, 61, 31, 0.10)'
   };
 
   const hasChange = typeof changePct === 'number' && Number.isFinite(changePct);
@@ -51,7 +52,9 @@ export const StatCardComponent: React.FC<StatCardProps> = ({ label, value, icon,
       </div>
       <div className="flex flex-col text-left md:text-right">
         <div className="md:hidden text-[11px] md:text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">{label}</div>
-        <div className="bp-statvalue text-sm md:text-2xl tabular-nums tracking-tight font-bold text-slate-800 mb-0.5 md:mb-1">{value}</div>
+        <div className="bp-statvalue text-sm md:text-2xl tabular-nums tracking-tight font-bold text-slate-800 mb-0.5 md:mb-1">
+          {typeof value === 'number' || typeof value === 'string' ? <DnaCountUp text={value} playKey={`stat:${label}`} /> : value}
+        </div>
         {description && <div className="hidden md:block text-[11px] md:text-[11px] font-bold text-slate-500 leading-tight">{description}</div>}
         {(hasChange || hasSeries) && (
           <div className="hidden md:flex items-center gap-2 mt-1.5">
@@ -61,7 +64,7 @@ export const StatCardComponent: React.FC<StatCardProps> = ({ label, value, icon,
                 {Math.abs(changePct as number).toFixed(1)}%
               </span>
             )}
-            {hasSeries && <DnaSpark values={series as number[]} width={72} height={22} tone={(changePct ?? 0) < 0 ? 'danger' : 'mint'} />}
+            {hasSeries && <DnaSpark values={series as number[]} width={72} height={22} tone={(changePct ?? 0) < 0 ? 'danger' : 'mint'} playKey={`stat-spark:${label}`} drawDelay={200} />}
           </div>
         )}
       </div>

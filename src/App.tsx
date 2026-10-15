@@ -679,7 +679,7 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
                <div className="pub-pay-result" data-state={statusMsg.isError ? payVariant : 'success'}>
                    <div className="pub-mark" aria-hidden="true">
                        <svg viewBox="0 0 96 96" width="96" height="96" fill="none">
-                           <circle className="pub-mark-ring" cx="48" cy="48" r="42" />
+                           <circle className="pub-mark-ring" cx="48" cy="48" r="42" pathLength={1} />
                            {payVariant === 'cancel' ? (
                                <path className="pub-mark-glyph" d="M32 48 L64 48" pathLength={1} />
                            ) : payVariant === 'error' ? (
@@ -1147,12 +1147,12 @@ const CloudConnectionGate: React.FC<{
       <motion.div
         className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
         animate={{ rotate: 360 }}
-        transition={{ duration: 26, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 26, repeat: 1, ease: 'linear' }}
       />
       <motion.div
         className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10"
         animate={{ rotate: -360 }}
-        transition={{ duration: 32, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 32, repeat: 1, ease: 'linear' }}
       />
       <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/15 blur-[105px]" />
       <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/16 blur-[110px]" />
@@ -1167,13 +1167,13 @@ const CloudConnectionGate: React.FC<{
           <motion.div
             className={`absolute inset-0 rounded-full border ${isOffline ? 'border-rose-200/16' : 'border-emerald-200/16'} bg-white/[0.035] shadow-[inset_0_0_70px_rgba(255,255,255,.05),0_28px_95px_rgba(0,0,0,.42)] backdrop-blur-xl`}
             animate={{ scale: isOffline ? [1, 1.012, 1] : [1, 1.025, 1] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 2.4, repeat: 3, ease: 'easeInOut' }}
           />
           <div className="absolute inset-8 rounded-full border border-white/10 bg-slate-950/30" />
           <motion.div
             className="absolute inset-12 rounded-full border border-dashed border-white/12"
             animate={{ rotate: isOffline ? 0 : 360 }}
-            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+            transition={{ duration: 18, repeat: 1, ease: 'linear' }}
           />
 
           {!isOffline && (
@@ -1181,14 +1181,14 @@ const CloudConnectionGate: React.FC<{
               <motion.div
                 className="absolute inset-12 pointer-events-none"
                 animate={{ rotate: 360 }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: 4.5, repeat: 3, ease: 'linear' }}
               >
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]" />
               </motion.div>
               <motion.div
                 className="absolute inset-8 pointer-events-none"
                 animate={{ rotate: -360 }}
-                transition={{ duration: 6.2, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: 6.2, repeat: 2, ease: 'linear' }}
               >
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]" />
               </motion.div>
@@ -1199,7 +1199,7 @@ const CloudConnectionGate: React.FC<{
             <motion.div
               className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10"
               animate={{ opacity: [0.18, 0.55, 0.18], scale: [0.96, 1.05, 0.96] }}
-              transition={{ duration: 2.1, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: 2.1, repeat: 3, ease: 'easeInOut' }}
             />
             {isOffline ? (
               <ShieldAlert size={54} strokeWidth={1.65} />
@@ -1244,7 +1244,7 @@ const CloudConnectionGate: React.FC<{
                 key={index}
                 className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
                 animate={{ y: isOffline ? 0 : [0, -6, 0], opacity: isOffline ? 0.72 : [0.72, 1, 0.72] }}
-                transition={{ duration: 1.45, repeat: Infinity, delay: index * 0.18, ease: 'easeInOut' }}
+                transition={{ duration: 1.45, repeat: 3, delay: index * 0.18, ease: 'easeInOut' }}
               >
                 <Icon size={18} />
               </motion.div>
@@ -1262,7 +1262,7 @@ const CloudConnectionGate: React.FC<{
             <motion.span
               className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-amber-300'}`}
               animate={{ opacity: [0.35, 1, 0.35], scale: [0.88, 1.18, 0.88] }}
-              transition={{ duration: 1.25, repeat: Infinity, ease: 'easeInOut' }}
+              transition={{ duration: 1.25, repeat: 3, ease: 'easeInOut' }}
             />
             {statusLabel}
           </div>
@@ -2622,7 +2622,7 @@ const MainApp: React.FC = () => {
       toast.success(
         <div className="flex items-center gap-2" dir="rtl">
           <span>يوجد لديك {pendingOrdersCount} طلب</span>
-          <span className="animate-pulse text-violet-500 font-extrabold text-lg">بانتظار الدفع</span>
+          <span className="text-violet-500 font-extrabold text-lg">بانتظار الدفع</span>
           <span>🔔</span>
         </div>, {
         id: 'persistent-new-orders',
@@ -5169,7 +5169,7 @@ const MainApp: React.FC = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-slate-900/10 backdrop-blur-[2px] z-[200] flex items-center justify-center pointer-events-none"
           >
-            <div className="bg-white/90 px-6 py-4 rounded-3xl shadow-xl border border-indigo-100 flex items-center gap-4 animate-bounce">
+            <div className="bg-white/90 px-6 py-4 rounded-3xl shadow-xl border border-indigo-100 flex items-center gap-4">
               <div className="relative">
                 <Bot className="text-indigo-600" size={24} />
                 <Sparkles className="absolute -top-2 -right-2 text-amber-500 animate-pulse" size={12} />
@@ -5199,7 +5199,7 @@ const MainApp: React.FC = () => {
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
                 animate={{ x: ['-100%', '100%'] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: 3, repeat: 1, ease: 'linear' }}
               />
               <div className="relative z-10 flex items-center justify-center bg-white/5 rounded-full w-7 h-7 backdrop-blur-md border border-white/5">
                 <Command className="text-amber-400 group-hover:scale-110 transition-transform duration-300" size={15} />

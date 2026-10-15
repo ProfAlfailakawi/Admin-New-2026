@@ -87,7 +87,7 @@ import {
 } from "../lib/invoice-calculations";
 import OrderPage from "./OrderPage";
 import { arLabel } from '../lib/arabicLabels';
-import { DnaEmpty } from "./dna/DnaKit";
+import { DnaEmpty, DnaCountUp } from "./dna/DnaKit";
 import { ReportsInsights } from "./ReportsInsights";
 
 const getInvoiceAddress = (inv: any, customerObj?: any): string => {
@@ -1187,7 +1187,7 @@ Alturath.kw`;
                     عدد الفواتير
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-slate-900 tracking-tighter">
-                    {filteredInvoices.length}
+                    <DnaCountUp text={filteredInvoices.length} playKey="reports:kpi:count" />
                   </div>
                 </div>
                 <div className="bp-kpi bg-white p-2.5 md:p-4 rounded-[14px] md:rounded-2xl border border-slate-200/60 shadow-sm text-right flex flex-col justify-center">
@@ -1195,7 +1195,7 @@ Alturath.kw`;
                     إجمالي المبيعات
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-primary tracking-tighter truncate">
-                    {Math.max(
+                    <DnaCountUp playKey="reports:kpi:sales" text={Math.max(
                       0,
                       filteredInvoices
                         .filter(
@@ -1212,7 +1212,7 @@ Alturath.kw`;
                           (a, b) => a + Math.max(0, Number(b.totalAmount || 0)),
                           0,
                         ),
-                    ).toFixed(3)}
+                    ).toFixed(3)} />
                     <span className="text-sm font-bold mr-1">د.ك</span>
                   </div>
                 </div>
@@ -1221,7 +1221,7 @@ Alturath.kw`;
                     إجمالي الربح
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-emerald-600 tracking-tighter truncate">
-                    {Math.max(
+                    <DnaCountUp playKey="reports:kpi:profit" text={Math.max(
                       0,
                       filteredInvoices
                         .filter(
@@ -1243,7 +1243,7 @@ Alturath.kw`;
                             ),
                           0,
                         ),
-                    ).toFixed(3)}
+                    ).toFixed(3)} />
                     <span className="text-sm font-bold mr-1">د.ك</span>
                   </div>
                 </div>
