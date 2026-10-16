@@ -1394,10 +1394,10 @@ Alturath.kw`;
                                 onClick={() => {
                                   if (onEditInvoice) onEditInvoice("new");
                                 }}
-                                className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95 mx-auto"
+                                className="bg-primary text-white hover:bg-primary/90 px-3 min-[360px]:px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 min-[360px]:gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95 mx-auto"
                               >
                                 <Plus size={24} />
-                                <span>ابدأ رحلتك وضيف أول فاتورة الآن!</span>
+                                <span className="text-balance text-center">ابدأ رحلتك وضيف أول فاتورة الآن!</span>
                               </button>
                             ) : undefined}
                           />

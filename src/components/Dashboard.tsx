@@ -3460,9 +3460,9 @@ const [isPending, startTransition] = useTransition();
                               <div className="w-1.5 lg:w-2.5 h-1.5 lg:h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
                               <span className="text-amber-100 font-bold text-xs lg:text-sm">مخاطر الموردين</span>
                             </div>
-                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-5 py-3 rounded-2xl flex items-center gap-3">
-                              <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse" />
-                              <span className="text-indigo-100 font-bold text-sm">أنماط الاحتيال</span>
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-3 lg:px-5 py-2 lg:py-3 rounded-xl lg:rounded-2xl flex items-center gap-2 lg:gap-3">
+                              <div className="w-1.5 lg:w-2.5 h-1.5 lg:h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse" />
+                              <span className="text-indigo-100 font-bold text-xs lg:text-sm">أنماط الاحتيال</span>
                             </div>
                           </div>
 

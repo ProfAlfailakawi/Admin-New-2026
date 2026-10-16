@@ -905,6 +905,8 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 [class*="animate-[ping"]{animation-iteration-count:3!important}
 /* The skeleton rule above sets position:relative on every .animate-pulse, which turned corner badges and sparkles (absolute with offsets) into in-flow elements. Keep them positioned; full-area (inset-0) glows are left as they render today. */
 .animate-pulse.absolute:not([class*="inset-0"]){position:absolute}
+/* inset-0 tints and halos lay over their parent instead of sitting in its flex row (which had pushed the "see items" pill labels off-centre). Checked on the real screens: the pill tints and the studio halos are faint and rest after three pulses. */
+.animate-pulse.absolute[class*="inset-0"]{position:absolute}
 
 /* Fix Command Center contrast after premium glass layer */
 .command-feature-card,
@@ -6614,7 +6616,7 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 /* ===== r23 tasks 5/6: tiny rings and bars (presentation only) ===== */
 .mini-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .mini-ring svg{position:absolute;inset:0}
-.mini-ring b{position:relative;font-size:11px;font-weight:800;color:#334155;line-height:1}
+.mini-ring b{position:relative;white-space:nowrap;font-size:11px;font-weight:800;color:#334155;line-height:1}
 .mini-bar{display:block;height:4px;width:100%;border-radius:99px;background:#e2e8f0;overflow:hidden}
 .mini-bar i{display:block;height:100%;border-radius:inherit}
 
@@ -6691,3 +6693,9 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
   .admin-app-header [class*="w-[33px]"] div { transform: none !important; animation: none !important; }
   .admin-app-header [class*="w-[33px]"] div[class*="border-[#0f3d1f]/20"] { opacity: .5 !important; }
 }
+
+/* Order card "+N items" hover list: the card whose list is open stacks above its neighbours, so the list can open downward over the next row. */
+.order-card-hl:has(.group\/hl:hover){position:relative;z-index:30}
+
+/* Long placeholders end in an ellipsis instead of being cut mid-letter. */
+input::placeholder,textarea::placeholder{text-overflow:ellipsis}
