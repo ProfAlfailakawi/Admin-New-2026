@@ -905,6 +905,8 @@ button:active,a:active,.interactive-hover:active,.ui-card:active{transform:scale
 [class*="animate-[ping"]{animation-iteration-count:3!important}
 /* The skeleton rule above sets position:relative on every .animate-pulse, which turned corner badges and sparkles (absolute with offsets) into in-flow elements. Keep them positioned; full-area (inset-0) glows are left as they render today. */
 .animate-pulse.absolute:not([class*="inset-0"]){position:absolute}
+/* inset-0 tints and halos lay over their parent instead of sitting in its flex row (which had pushed the "see items" pill labels off-centre). Checked on the real screens: the pill tints and the studio halos are faint and rest after three pulses. */
+.animate-pulse.absolute[class*="inset-0"]{position:absolute}
 
 /* Fix Command Center contrast after premium glass layer */
 .command-feature-card,
