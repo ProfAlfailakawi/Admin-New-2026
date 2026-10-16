@@ -1240,10 +1240,10 @@ const ProductPage: React.FC<ProductPageProps> = ({
                 action={
                   <button
                     onClick={() => setShowModal(true)}
-                    className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
+                    className="bg-primary text-white hover:bg-primary/90 px-3 min-[360px]:px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
                   >
                     <Plus size={24} />
-                    <span>ابدأ رحلتك وضيف أول منتج الآن!</span>
+                    <span className="text-center">ابدأ رحلتك وضيف أول منتج الآن!</span>
                   </button>
                 }
               />
