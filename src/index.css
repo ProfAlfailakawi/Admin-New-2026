@@ -6691,3 +6691,6 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
   .admin-app-header [class*="w-[33px]"] div { transform: none !important; animation: none !important; }
   .admin-app-header [class*="w-[33px]"] div[class*="border-[#0f3d1f]/20"] { opacity: .5 !important; }
 }
+
+/* Order card "+N items" hover list: the card whose list is open stacks above its neighbours, so the list can open downward over the next row. */
+.order-card-hl:has(.group\/hl:hover){position:relative;z-index:30}

@@ -127,6 +127,27 @@ import {
 } from "../lib/status-utils";
 
 /** Badge wrapper: ONE soft accent ring (~1.2s) when the order's status really changes after first paint. */
+// Presentational: the "+N items" hover list opens upward by default; when the card sits too near the top of the
+// scroll area, open it downward instead and cap its height to the room on that side (the list scrolls inside).
+const placeExtraItemsList = (el: HTMLElement) => {
+  try {
+    let scroller: HTMLElement | null = el.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+    const area = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+    const rect = el.getBoundingClientRect();
+    const top = Math.max(0, area.top);
+    const bottom = Math.min(window.innerHeight, area.bottom);
+    const above = rect.top - top - 16;
+    const below = bottom - rect.bottom - 16;
+    const want = Math.min(window.innerHeight * 0.6, 384);
+    const down = above < want && below > above;
+    el.dataset.flip = down ? "down" : "up";
+    el.style.setProperty("--extra-list-room", `${Math.max(120, Math.floor(down ? below : above))}px`);
+  } catch {
+    /* keep the default upward placement */
+  }
+};
+
 const OrderStatusFlash: React.FC<{ statusKey: string; children: React.ReactNode }> = ({ statusKey, children }) => {
   const changed = useChangeFlash(statusKey);
   return <div className={cn("relative rounded-lg", changed && "dna-changed")}>{children}</div>;
@@ -1565,7 +1586,7 @@ Alturath.kw`;
                   onClick={() => setSelectedOrder(order)}
                   whileHover={{ y: -4 }}
                   className={cn(
-                    "p-3 rounded-2xl border-2 transition-all cursor-pointer group h-full flex flex-col",
+                    "order-card-hl p-3 rounded-2xl border-2 transition-all cursor-pointer group h-full flex flex-col",
                     selectedOrder?.id === order.id
                       ? "border-indigo-600 bg-indigo-50/30 shadow-md"
                       : "border-slate-50 bg-white hover:border-indigo-100 shadow-sm",
@@ -1743,9 +1764,11 @@ Alturath.kw`;
                         );
                       })}
                       {order.items?.length > 2 && (
-                        <div className="text-[11px] text-slate-500 hover:text-indigo-600 font-bold text-center relative group cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50 after:content-[''] after:absolute after:bottom-full after:inset-x-0 after:h-3">
+                        <div
+                          onPointerEnter={(e) => placeExtraItemsList(e.currentTarget)}
+                          className="text-[11px] text-slate-500 hover:text-indigo-600 font-bold text-center relative group group/hl cursor-pointer w-fit mx-auto transition-colors px-2 py-0.5 rounded-full hover:bg-indigo-50 after:content-[''] after:absolute after:bottom-full after:inset-x-0 after:h-3 data-[flip=down]:after:bottom-auto data-[flip=down]:after:top-full">
                           + {order.items.length - 2} أصناف
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 max-w-[calc(100vw-2rem)] max-h-[min(60vh,24rem)] overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.16)] border border-slate-200/80 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto z-[100] text-right">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 group-data-[flip=down]/hl:bottom-auto group-data-[flip=down]/hl:top-full group-data-[flip=down]/hl:mb-0 group-data-[flip=down]/hl:mt-2 w-72 max-w-[calc(100vw-2rem)] max-h-[min(60vh,24rem,var(--extra-list-room,60vh))] overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.16)] border border-slate-200/80 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto z-[100] text-right">
                             <div className="px-3 py-2.5 border-b border-slate-100 bg-slate-50/80 text-[11px] font-black text-slate-600 flex items-center justify-between gap-2">
                               <span>الأصناف الإضافية</span>
                               <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-black" dir="ltr">
@@ -1799,8 +1822,8 @@ Alturath.kw`;
                                 })}
                             </div>
                             {/* Tooltip Arrow */}
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-[6px] border-transparent border-t-white"></div>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[-1px] border-[6px] border-transparent border-t-slate-200 -z-10"></div>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-[6px] border-transparent border-t-white group-data-[flip=down]/hl:top-auto group-data-[flip=down]/hl:bottom-full group-data-[flip=down]/hl:mt-0 group-data-[flip=down]/hl:-mb-px group-data-[flip=down]/hl:border-t-transparent group-data-[flip=down]/hl:border-b-white"></div>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[-1px] border-[6px] border-transparent border-t-slate-200 -z-10 group-data-[flip=down]/hl:top-auto group-data-[flip=down]/hl:bottom-full group-data-[flip=down]/hl:mt-0 group-data-[flip=down]/hl:mb-[-1px] group-data-[flip=down]/hl:border-t-transparent group-data-[flip=down]/hl:border-b-slate-200"></div>
                           </div>
                         </div>
                       )}
