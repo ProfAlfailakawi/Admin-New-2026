@@ -54,7 +54,7 @@ export function MiniRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </svg>
-      {showValue && <b dir="ltr">{Math.round(percent)}</b>}
+      {showValue && <b dir="ltr" style={String(Math.round(percent)).length > 3 ? { fontSize: Math.max(7, Math.round(size * 0.3)) } : undefined}>{Math.round(percent)}</b>}
     </span>
   );
 }

@@ -6616,7 +6616,7 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 /* ===== r23 tasks 5/6: tiny rings and bars (presentation only) ===== */
 .mini-ring{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
 .mini-ring svg{position:absolute;inset:0}
-.mini-ring b{position:relative;font-size:11px;font-weight:800;color:#334155;line-height:1}
+.mini-ring b{position:relative;white-space:nowrap;font-size:11px;font-weight:800;color:#334155;line-height:1}
 .mini-bar{display:block;height:4px;width:100%;border-radius:99px;background:#e2e8f0;overflow:hidden}
 .mini-bar i{display:block;height:100%;border-radius:inherit}
 
@@ -6696,3 +6696,6 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 
 /* Order card "+N items" hover list: the card whose list is open stacks above its neighbours, so the list can open downward over the next row. */
 .order-card-hl:has(.group\/hl:hover){position:relative;z-index:30}
+
+/* Long placeholders end in an ellipsis instead of being cut mid-letter. */
+input::placeholder,textarea::placeholder{text-overflow:ellipsis}

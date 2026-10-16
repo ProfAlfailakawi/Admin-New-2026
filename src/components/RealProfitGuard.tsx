@@ -59,7 +59,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200/60 flex items-center justify-between flex-row-reverse w-full opacity-60">
  <div className="flex items-center gap-3">
  <Info className="text-slate-500" size={16} />
- <h4 className="font-bold text-sm md:text-base text-slate-500">{insight.productName}</h4>
+ <h4 className="min-w-0 [overflow-wrap:anywhere] font-bold text-sm md:text-base text-slate-500">{insight.productName}</h4>
  </div>
  <div className="flex flex-col text-right">
  <span className="text-xs font-bold text-slate-500">لا توجد بيانات كافية للتحليل</span>
@@ -83,7 +83,7 @@ const InsightRow: React.FC<{ insight: RealProfitInsight, isOpen: boolean, onTogg
  {insight.riskLevel === 'high' && <AlertTriangle className="text-rose-500 shrink-0" size={16} />}
  {insight.riskLevel === 'medium' && <Info className="text-amber-500 shrink-0" size={16} />}
  {insight.riskLevel === 'low' && <CheckCircle2 className="text-emerald-500 shrink-0" size={16} />}
- <h4 className="font-bold text-sm md:text-base text-slate-800">{insight.productName}</h4>
+ <h4 className="min-w-0 [overflow-wrap:anywhere] font-bold text-sm md:text-base text-slate-800">{insight.productName}</h4>
  </div>
  <div className="flex items-center gap-2 sm:gap-4 justify-end shrink-0">
  <span className={cn(
