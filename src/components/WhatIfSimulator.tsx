@@ -191,7 +191,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  {/* Header Panel */}
  <div className="heritage-dark-card bg-gradient-to-br from-slate-900 to-indigo-950 rounded-2xl md:rounded-2xl p-3 md:p-4 md:p-3 shadow-xl relative overflow-hidden flex flex-col items-start lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-x-6 lg:items-center max-lg:pt-5 lg:py-6 lg:[&>h2]:mb-2 lg:[&>p]:mb-0">
  <div className="absolute top-0 left-0 w-full h-1 md:h-2 bg-gradient-to-r from-cyan-400 via-indigo-500 to-purple-400" />
- <div className="absolute top-3 md:p-4 left-10 opacity-10 text-white rotate-12 hidden sm:block"><Calculator size={200} /></div>
+ <div className="absolute top-3 md:p-4 left-3 sm:left-10 opacity-10 text-white rotate-12 pointer-events-none" aria-hidden="true"><Calculator size={200} className="w-[104px] h-[104px] sm:w-[200px] sm:h-[200px]" /></div>
  
  <h2 className="text-2xl md:text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 relative z-10 flex items-center gap-4 text-right px-4">
  محرك محاكاة"ماذا لو؟" <Zap className="text-cyan-400 animate-pulse" size={24} />
