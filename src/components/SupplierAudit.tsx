@@ -38,6 +38,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  id: '', 
  supplierId: '', 
  amount: 0, 
+ discountAmount: 0,
  method: 'BankTransfer' as PaymentMethod, 
  notes: '',
  date: new Date().toISOString()
@@ -70,6 +71,18 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
             rawAmount: Math.abs(t.amount),
             notes: t.label || 'تحويل مالي (سداد)',
             method: t.method
+          });
+        } else if (t.type === 'discount') {
+          transactions.push({
+            id: t.id,
+            supplierId: supplier.id,
+            date: t.date,
+            type: 'discount',
+            displayType: 'خصم مورد عند السداد',
+            amount: t.amount,
+            rawAmount: Math.abs(t.amount),
+            notes: t.label || 'خصم مورد',
+            method: t.method,
           });
         } else {
           transactions.push({
@@ -121,7 +134,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  // payments are matched to the invoices that existed when they were made, so an old
  // surplus can never cancel out a newly issued invoice.
  const supplierOutstandingMap = React.useMemo(() => {
-   const map: Record<string, { remainingSupply: number; remainingDelivery: number; balance: number; paid: number; unappliedCredit: number; supplyDue: number; addonsDue: number; deliveryDue: number; totalDue: number; paidToSupply: number; paidToDelivery: number; }> = {};
+   const map: Record<string, { remainingSupply: number; remainingDelivery: number; balance: number; paid: number; discount: number; unappliedCredit: number; supplyDue: number; addonsDue: number; deliveryDue: number; totalDue: number; paidToSupply: number; paidToDelivery: number; }> = {};
    (data?.suppliers || []).forEach((supplier) => {
      const settlement = getSupplierSettlementForState(supplier.id, data);
      const addonsDue = settlement.ledger
@@ -132,6 +145,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
        remainingDelivery: settlement.remainingDelivery,
        balance: settlement.outstanding,
        paid: settlement.totalPaid,
+       discount: settlement.totalDiscount,
        unappliedCredit: settlement.unappliedCredit,
        supplyDue: settlement.supplyDue,
        addonsDue,
@@ -172,10 +186,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  }
 
  setSelectedSupplier(initialSupplierId);
+ const suggestedDiscount = Math.round(initialBalance * Math.max(0, Number((supplier as any)?.discountPercent || 0)) / 100 * 1000) / 1000;
  setTransferForm(prev => ({ 
  ...prev, 
  supplierId: initialSupplierId,
- amount: initialBalance
+ amount: Math.max(0, initialBalance - suggestedDiscount),
+ discountAmount: suggestedDiscount
  }));
  }
  
@@ -193,9 +209,11 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    setTransferForm(prev => {
      if (prev.id || !prev.supplierId) return prev;
      const rounded = Math.max(0, Math.round(nextBalance * 1000) / 1000);
-     return prev.amount === rounded ? prev : { ...prev, amount: rounded };
+     const supplier = (data?.suppliers || []).find(s => s.id === prev.supplierId);
+     const discount = Math.round(rounded * Math.max(0, Number((supplier as any)?.discountPercent || 0)) / 100 * 1000) / 1000;
+     return prev.amount === Math.max(0, rounded - discount) && prev.discountAmount === discount ? prev : { ...prev, amount: Math.max(0, rounded - discount), discountAmount: discount };
    });
- }, [transferForm.supplierId, transferForm.id, supplierOutstandingMap]);
+ }, [transferForm.supplierId, transferForm.id, supplierOutstandingMap, data?.suppliers]);
  
  // Last movement logic
  const getLastMovement = (supId: string) => {
@@ -206,10 +224,11 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  };
 
  const handleAddTransfer = () => {
- const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
  const currentBalance = supplierOutstandingMap[transferForm.supplierId]?.balance ?? 0;
 
- if (!transferForm.supplierId || transferForm.amount <= 0) return;
+ const discountAmount = Math.round(Math.max(0, Number(transferForm.discountAmount || 0)) * 1000) / 1000;
+ const cashAmount = Math.round(Math.max(0, Number(transferForm.amount || 0)) * 1000) / 1000;
+ if (!transferForm.supplierId || cashAmount + discountAmount <= 0) return;
 
  if (!transferForm.id) {
    if (currentBalance <= 0) {
@@ -220,9 +239,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      return;
    }
    const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
-   if (enteredAmount > Math.round(currentBalance * 1000) / 1000) {
+   if (enteredAmount + discountAmount > Math.round(currentBalance * 1000) / 1000) {
      toast.error("المبلغ المدخل يتجاوز مديونية المورد!", {
-       description: `أقصى مبلغ يمكن سداده هو ${Number(currentBalance).toFixed(3)} د.ك.`,
+       description: `التحويل والخصم معاً يتجاوزان المستحق ${Number(currentBalance).toFixed(3)} د.ك.`,
        position: 'bottom-right'
      });
      return;
@@ -230,9 +249,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  } else {
    const oldTransfer = (data?.supplierTransfers || []).find(t => t.id === transferForm.id);
    const oldAmount = oldTransfer ? oldTransfer.amount : 0;
-   const maxAllowed = currentBalance + oldAmount;
+   const oldDiscount = oldTransfer ? Number((oldTransfer as any).discountAmount || 0) : 0;
+   const maxAllowed = currentBalance + oldAmount + oldDiscount;
    const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
-   if (enteredAmount > Math.round(maxAllowed * 1000) / 1000) {
+   if (enteredAmount + discountAmount > Math.round(maxAllowed * 1000) / 1000) {
      toast.error("تعديل المبلغ يتجاوز إجمالي مديونية المورد!", {
        description: `أقصى مبلغ متاح للتحويل هو ${Number(maxAllowed).toFixed(3)} د.ك.`,
        position: 'bottom-right'
@@ -254,7 +274,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  ...prev,
  supplierTransfers: prev.supplierTransfers.map(t =>
  t.id === transferForm.id
- ? { ...t, amount: transferForm.amount, method: transferForm.method, notes: transferForm.notes, date: transferForm.date }
+ ? { ...t, amount: cashAmount, discountAmount, method: transferForm.method, notes: transferForm.notes, date: transferForm.date }
  : t
 )
  });
@@ -262,13 +282,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  } else {
  // Add new
  const id = Math.random().toString(36).substr(2, 9);
- const amount = Math.round(transferForm.amount * 1000) / 1000;
+ const amount = cashAmount;
 
  setData(prev => {
  const nextState = recalculateStateBalances({
  ...prev,
  supplierTransfers: [
- { ...transferForm, id, amount, remainingAmount: 0 },
+ { ...transferForm, id, amount, discountAmount, remainingAmount: 0 },
  ...prev.supplierTransfers
  ]
  });
@@ -293,10 +313,10 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  toast.success(transferForm.id ? "تم تعديل السداد ومطابقته" : "تم السداد والمطابقة المالية بنجاح", {
    description: transferForm.id 
      ? "تم تحديث بيانات المعاملة وتعديل القيمة بنجاح." 
-     : `تم تسجيل دفعة بقيمة (${transferForm.amount.toFixed(3)} د.ك) وتخفيض مديونية المورد بنجاح.`,
+     : `تم تحويل ${cashAmount.toFixed(3)} د.ك وتسجيل خصم ${discountAmount.toFixed(3)} د.ك.`,
    position: 'bottom-right'
  });
- setTransferForm({ id: '', supplierId: '', amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
+ setTransferForm({ id: '', supplierId: '', amount: 0, discountAmount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
  };
 
  const handleDeleteTransfer = (transfer: SupplierTransfer) => {
@@ -435,6 +455,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  {(filteredTransactions || []).map(transaction => {
  const s = (data?.suppliers || []).find(sup => sup.id === transaction.supplierId);
  const isInvoice = transaction.type === 'invoice';
+ const isTransfer = transaction.type === 'transfer';
  
  return (
  <motion.tr 
@@ -476,15 +497,15 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <td data-mobile-label="التوصيل (د.ك)" className="p-3 md:p-3 font-black text-blue-600">
  {isInvoice ? Number(transaction.deliveryAmount || 0).toFixed(3) : '—'}
  </td>
- <td data-mobile-label="المبلغ (د.ك)" className={cn("p-3 md:p-3 font-bold", "whitespace-nowrap", isInvoice ?"text-red-500" :"text-emerald-600")}>
+ <td data-mobile-label="المبلغ (د.ك)" className={cn("p-3 md:p-3 font-bold", "whitespace-nowrap", isInvoice ?"text-red-500" : isTransfer ? "text-emerald-600" : "text-amber-600")}>
  {isInvoice ? '+' : '-'}{Number(transaction.rawAmount || 0).toFixed(3)} د.ك
  </td>
  <td data-mobile-label="طريقة الدفع" className="p-3 md:p-3">
  <span className={cn(
 "px-2.5 py-0.5 rounded-full border text-[11px] font-bold uppercase whitespace-nowrap bg-white",
- isInvoice ?"border-slate-200 text-slate-600" :"border-emerald-200 text-emerald-700"
+ isInvoice ?"border-slate-200 text-slate-600" : isTransfer ? "border-emerald-200 text-emerald-700" : "border-amber-200 text-amber-700"
 )}>
- {(transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : arLabel(transaction.method)) || '—'}
+ {transaction.type === 'discount' ? 'خصم متفق عليه' : (transaction.method === 'BankTransfer' ? 'حوالة' : transaction.method === 'Cash' ? 'نقدي' : arLabel(transaction.method)) || '—'}
  </span>
  </td>
  <td data-mobile-label="آخر حركة" className="p-3 md:p-3 text-slate-500 text-xs font-bold">
@@ -515,11 +536,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  )}
  </>
  )}
- {!isInvoice && (
+ {isTransfer && (
  <>
  <button 
  onClick={() => {
- setTransferForm({ ...transaction, amount: Number((transaction.rawAmount || 0).toFixed(3)), notes: transaction.notes || '' });
+ const transfer = (data?.supplierTransfers || []).find(t => t.id === transaction.id);
+ setTransferForm({ ...transferForm, ...(transfer || {}), amount: Number((transaction.rawAmount || 0).toFixed(3)), discountAmount: Number((transfer as any)?.discountAmount || 0), notes: transaction.notes || '' });
  setShowAddModal(true);
  }}
  className="p-2 bg-slate-100 rounded-lg text-slate-500 hover:text-emerald-600 transition-colors"
@@ -536,10 +558,12 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  </button>
  </>
 )}
- {s && (supplierOutstandingMap[s.id]?.balance || 0) > 0 && (
+ {s && (supplierOutstandingMap[s.id]?.balance || 0) > 0 && !isTransfer && transaction.type !== 'discount' && (
  <button 
  onClick={() => {
- setTransferForm({ id: '', supplierId: transaction.supplierId, amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
+ const balance = supplierOutstandingMap[s.id]?.balance || 0;
+ const discount = Math.round(balance * Math.max(0, Number((s as any).discountPercent || 0)) / 100 * 1000) / 1000;
+ setTransferForm({ id: '', supplierId: transaction.supplierId, amount: Math.max(0, balance - discount), discountAmount: discount, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
  setShowAddModal(true);
  }}
  className="p-2 bg-emerald-50 rounded-lg text-emerald-500 hover:bg-emerald-100 transition-colors"
@@ -606,10 +630,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  onChange={(e) => {
    const nextSupplierId = e.target.value;
    const nextBalance = nextSupplierId ? (supplierOutstandingMap[nextSupplierId]?.balance ?? 0) : 0;
+   const nextSupplier = (data?.suppliers || []).find(s => s.id === nextSupplierId);
+   const discountAmount = Math.round(nextBalance * Math.max(0, Number((nextSupplier as any)?.discountPercent || 0)) / 100 * 1000) / 1000;
    setTransferForm({
      ...transferForm,
      supplierId: nextSupplierId,
-     amount: transferForm.id ? transferForm.amount : Math.max(0, Math.round(nextBalance * 1000) / 1000)
+     amount: transferForm.id ? transferForm.amount : Math.max(0, Math.round(nextBalance * 1000) / 1000 - discountAmount),
+     discountAmount: transferForm.id ? Number((transferForm as any).discountAmount || 0) : discountAmount
    });
  }}
  >
@@ -627,11 +654,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <button 
  onClick={() => {
  const clean = Math.round(((selectedSupplierSummary?.balance ?? 0)) * 1000) / 1000;
- setTransferForm({ ...transferForm, amount: clean });
+ const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
+ const discountAmount = Math.round(clean * Math.max(0, Number((supplier as any)?.discountPercent || 0)) / 100 * 1000) / 1000;
+ setTransferForm({ ...transferForm, amount: Math.max(0, clean - discountAmount), discountAmount });
  }}
  className="text-[11px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
  >
- كامل المبلغ
+ كامل المستحق مع الخصم
  </button>
  )}
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">مبلغ التحويل</label>
@@ -650,8 +679,9 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      </div>
      )}
      <div className="bg-emerald-50 rounded-2xl p-3 text-right border border-emerald-100 min-w-0">
-       <div className="text-[11px] font-black text-emerald-500 mb-1 whitespace-nowrap">مدفوع سابقاً</div>
+       <div className="text-[11px] font-black text-emerald-500 mb-1 whitespace-nowrap">مدفوع نقداً</div>
        <div className="text-lg font-black text-emerald-700 whitespace-nowrap" dir="ltr">{selectedSupplierSummary.paid.toFixed(3)}</div>
+       {selectedSupplierSummary.discount > 0 && <div className="text-[10px] font-black text-amber-600 mt-1 whitespace-nowrap">خصم {selectedSupplierSummary.discount.toFixed(3)}</div>}
      </div>
      <div className="bg-slate-900 rounded-2xl p-3 text-right text-white min-w-0">
        <div className="text-[11px] font-black text-white/50 mb-1 whitespace-nowrap">المتبقي</div>
@@ -668,6 +698,26 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  value={transferForm.amount || ''}
  onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })}
  />
+ {!transferForm.id && !!transferForm.supplierId && (
+ <div className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 p-3 space-y-2 text-right">
+ <label className="text-xs font-black text-amber-800 block">خصم المورد المتفق عليه (د.ك)</label>
+ <input
+ type="number"
+ min="0"
+ step="0.001"
+ max={selectedSupplierSummary?.balance || 0}
+ value={transferForm.discountAmount || ''}
+ onChange={(e) => {
+   const discountAmount = Math.max(0, Number(e.target.value) || 0);
+   const balance = Math.round((selectedSupplierSummary?.balance || 0) * 1000) / 1000;
+   setTransferForm({ ...transferForm, discountAmount, amount: Math.max(0, balance - discountAmount) });
+ }}
+ className="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 font-bold text-slate-800 text-right"
+ />
+ <div className="flex justify-between text-xs font-bold text-amber-800"><span>{(Number(transferForm.amount || 0) + Number(transferForm.discountAmount || 0)).toFixed(3)} د.ك</span><span>المبلغ الذي سيُقفل من المستحق</span></div>
+ <p className="text-[11px] font-bold text-amber-700">الخصم الافتراضي {Number((data?.suppliers || []).find(s => s.id === transferForm.supplierId)?.discountPercent || 0).toFixed(3)}%، والتعديل هنا لهذه الدفعة فقط.</p>
+ </div>
+ )}
  </div>
  <div className="space-y-2">
  <div className="flex justify-end items-center h-6">
@@ -709,7 +759,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  <button 
  onClick={() => {
  setShowAddModal(false);
- setTransferForm({ id: '', supplierId: '', amount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
+ setTransferForm({ id: '', supplierId: '', amount: 0, discountAmount: 0, method: 'BankTransfer', notes: '', date: new Date().toISOString() });
  }}
  className="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-2xl transition-all shadow-sm"
  >

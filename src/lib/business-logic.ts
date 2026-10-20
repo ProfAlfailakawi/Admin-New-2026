@@ -203,6 +203,19 @@ export function getSupplierLedgerForState(
       label: t.notes || 'تحويل مالي (سداد)',
       method: t.method
     });
+    const discountAmount = Math.max(0, roundKwd(Number((t as any).discountAmount || 0)));
+    if (discountAmount > 0) {
+      transactions.push({
+        id: `discount-${t.id}`,
+        supplierId: supId,
+        date: t.date,
+        type: 'discount',
+        amount: -discountAmount,
+        refId: t.id,
+        label: `خصم مورد عند السداد${t.notes ? ` · ${t.notes}` : ''}`,
+        method: t.method,
+      });
+    }
   });
 
   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -256,6 +269,7 @@ export interface SupplierSettlement {
   settlementByEntryId: Map<string, SupplierSettlementInvoice>;
   totalDue: number;
   totalPaid: number;
+  totalDiscount: number;
   appliedPaid: number;
   unappliedCredit: number;
   outstanding: number;
@@ -321,7 +335,7 @@ export function getSupplierSettlementForState(
     .sort((a, b) => a.time - b.time || String(a.refId).localeCompare(String(b.refId), 'en', { numeric: true }));
 
   const payments = ledger
-    .filter((t: any) => t.type === 'transfer')
+    .filter((t: any) => t.type === 'transfer' || t.type === 'discount')
     .map((t: any) => ({
       time: settlementTime(t.date),
       amount: Math.max(0, roundKwd(Math.abs(Number(t.amount || 0)))),
@@ -367,7 +381,8 @@ export function getSupplierSettlementForState(
   const sum = (list: any[], pick: (x: any) => number) => roundKwd(list.reduce((acc, x) => acc + Number(pick(x) || 0), 0));
 
   const totalDue = sum(invoices, (i) => i.due);
-  const totalPaid = sum(payments, (p) => p.amount);
+  const totalCashPaid = sum(ledger.filter((t: any) => t.type === 'transfer'), (t) => Math.abs(Number(t.amount || 0)));
+  const totalDiscount = sum(ledger.filter((t: any) => t.type === 'discount'), (t) => Math.abs(Number(t.amount || 0)));
   const appliedPaid = sum(payments, (p) => p.applied);
   const outstanding = sum(invoices, (i) => Math.max(0, i.remaining));
   const supplyDue = sum(invoices, (i) => i.supplyDue);
@@ -385,9 +400,10 @@ export function getSupplierSettlementForState(
     invoices,
     settlementByEntryId: new Map(invoices.map((i) => [String(i.id), i])),
     totalDue,
-    totalPaid,
+    totalPaid: totalCashPaid,
+    totalDiscount,
     appliedPaid,
-    unappliedCredit: Math.max(0, roundKwd(totalPaid - appliedPaid)),
+    unappliedCredit: Math.max(0, roundKwd(totalCashPaid + totalDiscount - appliedPaid)),
     outstanding,
     supplyDue,
     deliveryDue,

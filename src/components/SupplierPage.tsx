@@ -64,7 +64,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  balance: 0,
  status: 'pending' as ('paid' | 'pending' | 'partially_paid'),
  supplierType: 'food' as 'food' | 'delivery',
- deliverySettlement: 'delivery_company' as 'supplier' | 'delivery_company'
+ deliverySettlement: 'delivery_company' as 'supplier' | 'delivery_company',
+ discountPercent: 0
  });
  const [deleteError, setDeleteError] = useState<string | null>(null);
  const [shakingId, setShakingId] = useState<string | null>(null);
@@ -171,7 +172,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  const openAddModal = () => {
  setEditingId(null);
- setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'delivery_company' });
+ setSupplierForm({ name: '', phone: '', paymentMethods: [], balance: 0, status: 'paid', supplierType: 'food', deliverySettlement: 'delivery_company', discountPercent: 0 });
  setShowModal(true);
  };
 
@@ -184,7 +185,8 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  balance: Number((supplier.balance || 0).toFixed(3)),
  status: supplier.status,
  supplierType: (supplier as any).supplierType || 'food',
- deliverySettlement: ((supplier as any).supplierType === 'delivery' ? 'delivery_company' : ((supplier as any).deliverySettlement === 'supplier' ? 'supplier' : 'delivery_company'))
+ deliverySettlement: ((supplier as any).supplierType === 'delivery' ? 'delivery_company' : ((supplier as any).deliverySettlement === 'supplier' ? 'supplier' : 'delivery_company')),
+ discountPercent: Math.min(100, Math.max(0, Number((supplier as any).discountPercent || 0)))
  });
  setShowModal(true);
  };
@@ -449,12 +451,15 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
  {supplierSettlement.unappliedCredit > 0 && (
  <div className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-2xl px-3 py-2 text-right leading-5">
- رصيد سداد فائض غير مطابق: <span dir="ltr">{supplierSettlement.unappliedCredit.toFixed(3)}</span> د.ك — سدادات لا تقابلها فواتير مسجلة بنفس تاريخها، ولا تُخصم من المستحق الجديد.
+ رصيد تسوية فائض غير مطابق: <span dir="ltr">{supplierSettlement.unappliedCredit.toFixed(3)}</span> د.ك — سدادات أو خصومات لا تقابلها فواتير مسجلة بنفس تاريخها، ولا تُخصم من المستحق الجديد.
  </div>
  )}
 
 
  <div className="supplier-kind-badges flex flex-wrap gap-2 justify-end">
+ {Number((supplier as any).discountPercent || 0) > 0 && (
+ <span className="bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-amber-700">خصم معتاد {Number((supplier as any).discountPercent).toFixed(3)}%</span>
+ )}
  {(supplier as any).supplierType !== 'delivery' && (
  <span className="bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl text-[11px] font-bold text-emerald-700 flex items-center gap-1">
  <Package size={12} /> مورد أكل
@@ -586,6 +591,24 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  />
  </div>
 
+ <div className="space-y-2">
+ <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">خصم المورد المعتاد عند السداد (%)</label>
+ <div className="relative">
+ <input
+ type="number"
+ min="0"
+ max="100"
+ step="0.001"
+ value={supplierForm.discountPercent || ''}
+ onChange={(e) => setSupplierForm({ ...supplierForm, discountPercent: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })}
+ className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-4 px-5 pl-12 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
+ placeholder="0"
+ />
+ <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+ </div>
+ <p className="text-[11px] font-bold text-slate-400 leading-5 text-right">يُقترح تلقائياً عند تسجيل الدفعة، ويمكن تعديله لكل دفعة قبل اعتمادها.</p>
+ </div>
+
  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
  <div className="space-y-2">
  <label className="text-xs font-bold text-slate-500 uppercase mr-1 block text-right">نوع المورد</label>
@@ -689,6 +712,7 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   const totalDeliveryDue = settlement.deliveryDue;
   const totalInvoiced = settlement.totalDue;
   const totalPaid = settlement.totalPaid;
+  const totalDiscount = settlement.totalDiscount;
   const unappliedCredit = settlement.unappliedCredit;
   const remainingDelivery = settlement.remainingDelivery;
   const currentBalance = settlement.outstanding;
@@ -747,8 +771,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
   </div>
   <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
   <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-8 -mt-8 blur-xl" />
-  <div className="text-[11px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد</div>
+  <div className="text-[11px] font-black text-slate-400 uppercase mb-1 text-center relative z-10">إجمالي السداد النقدي</div>
   <div className="text-base font-black text-emerald-600 text-center relative z-10">{totalPaid.toFixed(3)}</div>
+  {totalDiscount > 0 && <div className="text-[11px] font-black text-amber-600 mt-1 text-center">خصومات المورد {totalDiscount.toFixed(3)}</div>}
   </div>
   <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl relative overflow-hidden">
   <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -mr-8 -mt-8 blur-xl" />
@@ -759,9 +784,9 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
 
   {unappliedCredit > 0 && (
   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-right">
-  <div className="text-[11px] font-black text-amber-700 mb-1">رصيد سداد فائض غير مطابق: {unappliedCredit.toFixed(3)} د.ك</div>
+  <div className="text-[11px] font-black text-amber-700 mb-1">رصيد تسوية فائض غير مطابق: {unappliedCredit.toFixed(3)} د.ك</div>
   <p className="text-[11px] font-bold text-amber-600 leading-5">
-  هذا المبلغ سدّدته للمورد ولا تقابله فواتير مسجلة في نفس تاريخه (غالباً فواتير قديمة تم حذفها أو أرشفتها، أو دفعة افتتاحية).
+  هذا مبلغ دفعته أو خصم سجّلته ولا تقابله فواتير مسجلة في نفس تاريخه (غالباً فواتير قديمة تم حذفها أو أرشفتها، أو دفعة افتتاحية).
   يظهر هنا بشكل صريح ولا يُخصم تلقائياً من الفواتير الجديدة، حتى لا تختفي مستحقات المورد الحالية.
   </p>
   </div>
