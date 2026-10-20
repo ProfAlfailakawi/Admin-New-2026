@@ -37,6 +37,8 @@ export interface Supplier {
   status: 'paid' | 'pending' | 'partially_paid';
   supplierType?: 'food' | 'delivery';
   deliverySettlement?: 'heritage' | 'supplier' | 'delivery_company' | 'invoice';
+  /** Agreed default discount percentage used when recording supplier payments. */
+  discountPercent?: number;
 }
 
 export interface SupplierTransfer {
@@ -44,6 +46,8 @@ export interface SupplierTransfer {
   supplierId: string;
   amount: number;
   remainingAmount: number;
+  /** Supplier concession applied to the obligation, separate from cash transferred. */
+  discountAmount?: number;
   method: PaymentMethod;
   date: string;
   notes?: string;
