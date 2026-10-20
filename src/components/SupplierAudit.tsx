@@ -698,26 +698,32 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  value={transferForm.amount || ''}
  onChange={(e) => setTransferForm({ ...transferForm, amount: parseFloat(e.target.value) || 0 })}
  />
- {!transferForm.id && !!transferForm.supplierId && (
  <div className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 p-3 space-y-2 text-right">
  <label className="text-xs font-black text-amber-800 block">خصم المورد المتفق عليه (د.ك)</label>
  <input
  type="number"
  min="0"
  step="0.001"
- max={selectedSupplierSummary?.balance || 0}
+ disabled={!transferForm.supplierId}
+ aria-label="خصم المورد المتفق عليه بالدينار الكويتي"
  value={transferForm.discountAmount || ''}
  onChange={(e) => {
    const discountAmount = Math.max(0, Number(e.target.value) || 0);
-   const balance = Math.round((selectedSupplierSummary?.balance || 0) * 1000) / 1000;
-   setTransferForm({ ...transferForm, discountAmount, amount: Math.max(0, balance - discountAmount) });
+   const combinedSettlement = Number(transferForm.amount || 0) + Number(transferForm.discountAmount || 0);
+   setTransferForm({ ...transferForm, discountAmount, amount: Math.max(0, combinedSettlement - discountAmount) });
  }}
- className="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 font-bold text-slate-800 text-right"
+ className="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 font-bold text-slate-800 text-right disabled:cursor-not-allowed disabled:opacity-60"
+ placeholder={transferForm.supplierId ? '0.000' : 'اختر المورد أولاً'}
  />
- <div className="flex justify-between text-xs font-bold text-amber-800"><span>{(Number(transferForm.amount || 0) + Number(transferForm.discountAmount || 0)).toFixed(3)} د.ك</span><span>المبلغ الذي سيُقفل من المستحق</span></div>
- <p className="text-[11px] font-bold text-amber-700">الخصم الافتراضي {Number((data?.suppliers || []).find(s => s.id === transferForm.supplierId)?.discountPercent || 0).toFixed(3)}%، والتعديل هنا لهذه الدفعة فقط.</p>
- </div>
+ {transferForm.supplierId ? (
+   <>
+     <div className="flex justify-between text-xs font-bold text-amber-800"><span>{(Number(transferForm.amount || 0) + Number(transferForm.discountAmount || 0)).toFixed(3)} د.ك</span><span>المبلغ الذي سيُقفل من المستحق</span></div>
+     <p className="text-[11px] font-bold text-amber-700">الخصم الافتراضي {Number((data?.suppliers || []).find(s => s.id === transferForm.supplierId)?.discountPercent || 0).toFixed(3)}%، والتعديل هنا لهذه الدفعة فقط.</p>
+   </>
+ ) : (
+   <p className="text-[11px] font-bold text-amber-700">اختر المورد أولاً لاحتساب خصمه الافتراضي وتسجيل الخصم لهذه الدفعة.</p>
  )}
+ </div>
  </div>
  <div className="space-y-2">
  <div className="flex justify-end items-center h-6">
