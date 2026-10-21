@@ -2386,7 +2386,7 @@ const [isPending, startTransition] = useTransition();
           </AnimatePresence>
 
           {/* TOP ROW: HEADER WITH INTEGRATED TAB BAR */}
-          <div className="dashboard-executive-shell dashboard-visual-refactor flex flex-col gap-4 md:gap-6 w-full max-w-full min-w-0 overflow-hidden" dir="rtl">
+          <div className="dashboard-executive-shell dashboard-visual-refactor admin-heritage-console flex flex-col gap-4 md:gap-6 w-full max-w-full min-w-0 overflow-hidden" dir="rtl">
             <div className="dashboard-command-header flex items-center justify-between w-full">
               <div className="flex items-center gap-3 text-right">
                 <div className="dashboard-command-icon w-12 h-12 rounded-[22px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-amber-300 flex items-center justify-center shadow-2xl shadow-slate-900/20 shrink-0 ring-1 ring-white/10">

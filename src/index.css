@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Heritage commerce command surface: a measured brass-and-palm dashboard frame. */
+.admin-heritage-console .dashboard-command-header {
+  position: relative;
+  min-height: 82px;
+  padding: 16px 20px;
+  border: 1px solid rgba(178,138,65,.23);
+  border-radius: 24px;
+  background: radial-gradient(ellipse at 0% 0%, rgba(178,138,65,.11), transparent 45%), linear-gradient(110deg, #fffdf8, #f7f3e9 58%, #fff);
+  box-shadow: 0 14px 34px rgba(20,41,31,.06), inset 0 1px 0 rgba(255,255,255,.96);
+}
+.admin-heritage-console .dashboard-command-icon {
+  border-color: rgba(178,138,65,.30);
+  box-shadow: 0 10px 24px rgba(13,58,34,.18), 0 0 0 4px rgba(178,138,65,.08);
+}
+.admin-heritage-console .dashboard-tab-shell {
+  border-color: rgba(178,138,65,.30);
+  background: linear-gradient(110deg, rgba(255,253,248,.94), rgba(248,245,237,.92));
+}
+@media(max-width:767px){.admin-heritage-console .dashboard-command-header{padding:12px;border-radius:20px;min-height:70px}}
+@media(prefers-reduced-motion:reduce){.admin-heritage-console .dashboard-command-header,.admin-heritage-console .dashboard-tab-shell{transition:none!important}}
+
 @layer utilities {
 }
 
