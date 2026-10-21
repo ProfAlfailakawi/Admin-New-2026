@@ -1,0 +1,278 @@
+/* ==========================================================================
+   LEDGER — Admin visual identity ("دفتر المراقبة")
+   --------------------------------------------------------------------------
+   Concept : an operations ledger read at night. Mineral paper, petrol ink,
+             one brass measuring-ruler motif, hairline rules instead of glows.
+   Palette : petrol ink #0b2a31 / mineral paper #eaeeec / brass #b7852f /
+             signal amber #e7a820 (live state) / status greens-reds unchanged.
+   Type    : IBM Plex Sans Arabic (self-hosted, OFL) — one family, weights
+             400/500/600/700, tabular Latin figures for every amount.
+   Shape   : 14px cards, 10px controls, 1px rules, inline-start status bars.
+   Motion  : 160ms ease-out state changes only; nothing loops.
+   Presentation layer only. Loaded last, after beauty-pass.css.
+   ========================================================================== */
+
+@font-face { font-family: 'Plex Ledger'; font-weight: 400; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-arabic-400-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 500; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-arabic-500-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 600; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-arabic-600-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 700; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-arabic-700-normal.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200F; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 400; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-latin-400-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 500; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-latin-500-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 600; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-latin-600-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Plex Ledger'; font-weight: 700; font-display: swap;
+  src: url('/fonts/plex/ibm-plex-sans-arabic-latin-700-normal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root {
+  --lg-ink: #0b2a31;
+  --lg-ink-2: #123e48;
+  --lg-ink-3: #1d5663;
+  --lg-night: #071d22;
+  --lg-paper: #f8faf9;
+  --lg-mist: #eaeeec;
+  --lg-mist-2: #dfe6e3;
+  --lg-rule: #cbd6d3;
+  --lg-rule-soft: rgba(11, 42, 49, .09);
+  --lg-text: #10262c;
+  --lg-text-2: #46595e;
+  --lg-brass: #b7852f;
+  --lg-brass-deep: #8a6118;
+  --lg-signal: #e7a820;
+
+  /* retarget the shared token families so every older component follows */
+  --color-primary: var(--lg-ink);
+  --color-secondary: var(--lg-ink);
+  --color-accent: var(--lg-brass);
+  --font-sans: 'Plex Ledger', 'IBM Plex Sans Arabic', 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+  --font-cinema-arabic: var(--font-sans);
+  --font-cinema-numbers: var(--font-sans);
+
+  --dna-canvas: var(--lg-mist);
+  --dna-surface: var(--lg-paper);
+  --dna-surface-2: #f0f4f2;
+  --dna-ink: var(--lg-text);
+  --dna-muted: var(--lg-text-2);
+  --dna-line: var(--lg-rule-soft);
+  --dna-line-2: var(--lg-rule);
+  --dna-accent: var(--lg-ink);
+  --dna-accent-soft: #dbe8e6;
+  --dna-core: var(--lg-ink);
+  --journey-fill: var(--lg-brass);
+  --journey-on-fill: var(--lg-ink);
+
+  --r23-card-radius: 14px;
+  --r23-card-shadow: 0 1px 0 rgba(11, 42, 49, .05), 0 10px 24px -20px rgba(11, 42, 49, .35);
+}
+
+/* ---- ruler: the one signature motif (brass ticks, like a measuring rule) -- */
+:root {
+  --lg-ruler: repeating-linear-gradient(to left,
+      var(--lg-brass) 0 1.5px, transparent 1.5px 8px);
+}
+
+html body {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--lg-text);
+}
+html body :is(h1, h2, h3, h4) { letter-spacing: 0; }
+
+/* Amounts and counters: Plex tabular figures instead of the old serif numerals */
+html body .num-premium {
+  font-family: var(--font-sans) !important;
+  letter-spacing: 0;
+  font-weight: 600;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+html body .title-premium { font-weight: 700; letter-spacing: 0; }
+
+/* ---- canvas: mineral paper with a faint survey grid -------------------- */
+html body,
+html body .admin-heritage-shell {
+  background-color: var(--lg-mist) !important;
+}
+html body .admin-heritage-shell.bg-atmospheric {
+  background-image:
+    linear-gradient(var(--lg-rule-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--lg-rule-soft) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
+  background-position: -1px -1px !important;
+}
+html body .admin-heritage-shell > .fixed.inset-0 { display: none; }
+
+/* ---- sidebar: petrol ink column ---------------------------------------- */
+html body .bp-sidebar {
+  background: var(--lg-night) !important;
+  background-image: none !important;
+  border-inline-start: 1px solid rgba(255, 255, 255, .06) !important;
+}
+html body .bp-sidebar > .absolute.inset-0,
+html body .bp-sidebar::after,
+html body .bp-sidebar::before { display: none !important; background-image: none !important; }
+html body .bp-sidebar .admin-drawer-header {
+  border-bottom: 1px solid rgba(231, 168, 32, .22) !important;
+  padding-block: 18px !important;
+  position: relative;
+}
+html body .bp-sidebar .admin-drawer-header::after {
+  content: '';
+  position: absolute; inset-inline: 0; bottom: -1px; height: 5px;
+  background: var(--lg-ruler); opacity: .55; pointer-events: none;
+}
+html body .bp-sidebar .admin-drawer-header :is(.text-amber-400, .text-amber-500, .text-amber-300, [class*="text-[#"]) {
+  color: #f1d58a !important;
+}
+html body .bp-nav-group {
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, .035) !important;
+  color: rgba(255, 255, 255, .78) !important;
+  min-height: 44px;
+  position: relative;
+  transition: background-color .16s ease-out, color .16s ease-out;
+}
+html body .bp-nav-group::before {
+  content: ''; position: absolute; inset-block: 10px; inset-inline-start: 0;
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--lg-brass);
+  opacity: .7;
+}
+html body .bp-nav-group:hover { background: rgba(255, 255, 255, .08) !important; color: #fff !important; }
+html body .bp-sidebar nav { padding: 14px !important; }
+
+/* ---- top bar: paper strip, hairline, ruler edge ------------------------ */
+html body .admin-app-header {
+  background: var(--lg-paper) !important;
+  backdrop-filter: none !important;
+  border-bottom: 1px solid var(--lg-rule) !important;
+  box-shadow: none !important;
+  position: relative;
+}
+html body .admin-app-header::after {
+  content: ''; position: absolute; inset-inline: 0; bottom: -1px; height: 4px;
+  background: var(--lg-ruler); opacity: .35; pointer-events: none;
+}
+html body .admin-app-header .bg-slate-900 { background: var(--lg-ink) !important; border-radius: 10px !important; }
+html body .admin-app-header .glass-surface {
+  background: #fff !important;
+  border: 1px solid var(--lg-rule) !important;
+  border-radius: 10px !important;
+}
+
+/* ---- page heading block: calm ledger heading, no ornament -------------- */
+html body .admin-page-hero {
+  background: var(--lg-paper) !important;
+  background-image: none !important;
+  border: 1px solid var(--lg-rule) !important;
+  border-radius: var(--r23-card-radius) !important;
+  box-shadow: inset -4px 0 0 var(--lg-ink), var(--r23-card-shadow) !important;
+}
+html[dir="ltr"] body .admin-page-hero,
+body[dir="ltr"] .admin-page-hero { box-shadow: inset 4px 0 0 var(--lg-ink), var(--r23-card-shadow) !important; }
+html body .admin-page-hero::before,
+html body .admin-page-hero::after { display: none !important; }
+html body .admin-page-hero > * { background-image: none; }
+html body .admin-page-hero h1 {
+  font-weight: 700 !important;
+  color: var(--lg-ink) !important;
+  letter-spacing: 0 !important;
+}
+html body .admin-page-kicker {
+  background: transparent !important;
+  border: 0 !important;
+  border-inline-start: 2px solid var(--lg-brass) !important;
+  border-radius: 0 !important;
+  color: var(--lg-brass-deep) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  padding: 0 8px !important;
+  font-weight: 600 !important;
+}
+
+/* ---- surfaces ---------------------------------------------------------- */
+html body .admin-content-polish {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+html body .admin-app-main :is([class*="rounded-3xl"], [class*="rounded-[2"], [class*="rounded-[3"], [class*="rounded-[4"]):not(.rounded-full) {
+  border-radius: var(--r23-card-radius) !important;
+}
+html body .admin-app-main :is(.shadow-xl, .shadow-2xl, .shadow-lg, [class*="shadow-[0_"]):not(button):not([role="button"]) {
+  box-shadow: var(--r23-card-shadow) !important;
+}
+html body .admin-app-main .bg-white {
+  border-color: var(--lg-rule) ;
+}
+
+/* ---- controls ---------------------------------------------------------- */
+html body .admin-app-main :is(input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea) {
+  border-radius: 10px !important;
+  border: 1px solid var(--lg-rule) !important;
+  background-color: #fff;
+}
+html body .admin-app-main :is(input, select, textarea):focus-visible,
+html body :is(button, a, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--lg-ink-3) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(231, 168, 32, .28) !important;
+}
+
+/* ---- motion discipline ------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html body *, html body *::before, html body *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- dashboard shells: flat paper panels instead of gold-washed glass ---- */
+html body :is(.dashboard-executive-shell, .dashboard-command-header, .dashboard-tab-shell,
+              .dashboard-glass-card, .dashboard-bento-card, .heritage-command-brief) {
+  background: var(--lg-paper) !important;
+  background-image: none !important;
+  border: 1px solid var(--lg-rule) !important;
+  border-radius: var(--r23-card-radius) !important;
+  box-shadow: var(--r23-card-shadow) !important;
+  backdrop-filter: none !important;
+}
+html body :is(.dashboard-executive-shell, .dashboard-content-shell)::before,
+html body :is(.dashboard-executive-shell, .dashboard-content-shell)::after { display: none !important; }
+html body .dashboard-command-icon,
+html body .dashboard-main-tab[aria-selected="true"],
+html body .dashboard-main-tab.active {
+  background: var(--lg-ink) !important;
+  background-image: none !important;
+  border-radius: 10px !important;
+}
+html body .dashboard-active-tab-line { background: var(--lg-brass) !important; background-image: none !important; height: 3px !important; border-radius: 3px 3px 0 0; }
+html body .dashboard-main-tab { border-radius: 10px !important; }
+html body .admin-app-main .text-amber-600 { color: var(--lg-brass-deep) !important; }
+
+/* ---- one icon-tile language: ink tile, brass glyph (was a rainbow of hues) -- */
+html body .admin-app-main button.hover\:bg-slate-100\/50 > .flex > :first-child:not(.text-right) {
+  background: var(--lg-ink) !important;
+  background-image: none !important;
+  color: #f1d58a !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+html body .admin-app-main button.hover\:bg-slate-100\/50 > .flex > :first-child:not(.text-right) svg { color: #f1d58a !important; stroke: currentColor; }
+html body .admin-app-main .bg-slate-950.rounded-3xl { background: var(--lg-night) !important; }
+html body .admin-app-main :is(.bg-slate-50\/50, .bg-slate-50) { background-color: rgba(255,255,255,.55); }
