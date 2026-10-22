@@ -857,7 +857,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
           <ChevronDown size={20} className={cn("text-slate-500 transition-transform", openSmartPanel === 'productPulse' && "rotate-180")} />
           <div>
             <h3 className="font-black text-slate-900 text-lg">قراءة المنتجات المختصرة</h3>
-            <p className="text-xs font-bold text-slate-500 mt-1">افتحها عند الحاجة لعرض المؤشرات والمنتجات الأقوى</p>
+            <p className="text-xs font-bold text-slate-500 mt-1">المؤشرات والمنتجات الأقوى</p>
           </div>
         </button>
         {openSmartPanel === 'productPulse' && (
@@ -980,7 +980,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
               تصنيفات المنتجات
               <Layers size={18} className="text-primary" />
             </h3>
-            <p className="text-xs font-bold text-slate-400 mt-1">اضغط لفتح إدارة التصنيفات. الترتيب يظهر في فاتورة جديدة وبرنامج العميل.</p>
+            <p className="text-xs font-bold text-slate-400 mt-1">ترتيبها يظهر في الفاتورة وبرنامج العميل</p>
           </div>
         </button>
         <AnimatePresence initial={false}>

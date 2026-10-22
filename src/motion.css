@@ -1,0 +1,159 @@
+/* ==========================================================================
+   Motion system (round 2). Presentation only, loaded LAST.
+   One shared token set, used by every rule below:
+     --mo-ease  : calm ease-out
+     --mo-fast  : 120ms  (press, hover)
+     --mo-base  : 180ms  (disclosure, small reveals)
+     --mo-slow  : 260ms  (first appearance, tab content)
+     --mo-step  : 40ms   (stagger step, at most 8 steps)
+   Rules:
+   - only transform / opacity are animated (plus the stroke-dasharray the DNA
+     kit already uses); nothing loops; nothing runs on reading text, inputs,
+     tables, the invoice builder or any amount.
+   - every entrance uses `backwards` fill: the resting state is the normal
+     static design, so screenshots and tests see the same thing as before.
+   - all motion sits inside prefers-reduced-motion: no-preference; the reduce
+     block at the end makes sure everything is simply visible and still.
+   ========================================================================== */
+:root {
+  --mo-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --mo-fast: 120ms;
+  --mo-base: 180ms;
+  --mo-slow: 260ms;
+  --mo-step: 40ms;
+  --mo-lift-shadow: 0 1px 0 rgba(11, 42, 49, 0.05), 0 14px 26px -18px rgba(11, 42, 49, 0.42);
+}
+
+/* ---- non-motion polish: donut legend share bars (real share of the total) -- */
+.dna-donut-legend > li { position: relative; padding-block-end: 7px; }
+.dna-share {
+  position: absolute;
+  inset-inline: 18px 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--dna-line, rgba(11, 42, 49, 0.09));
+  overflow: hidden;
+  pointer-events: none;
+}
+.dna-share > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--t-fg);
+  opacity: 0.85;
+  transform-origin: left center;
+}
+.dna-share:dir(rtl) > i { transform-origin: right center; }
+.mini-bar > i { transform-origin: left center; }
+.mini-bar:dir(rtl) > i { transform-origin: right center; }
+
+/* ---- active navigation: a brass tick sits at the leading edge ------------- */
+.bp-sidebar nav button.text-amber-300 { position: relative; }
+.bp-sidebar nav button.text-amber-300::before {
+  content: '';
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: -2px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--lg-brass, #b7852f);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes mo-rise { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes mo-rise-sm { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes mo-drop { from { opacity: 0; transform: translateY(-4px); } }
+  @keyframes mo-fade { from { opacity: 0; } }
+  @keyframes mo-pop { from { opacity: 0; transform: scale(0.92); } }
+  @keyframes mo-grow-x { from { transform: scaleX(0); } }
+  @keyframes mo-grow-y { from { transform: scaleY(0); } }
+
+  /* stagger index: items 1..8 step by --mo-step, everything after shares the last step */
+  .admin-content-polish > * > :nth-child(1) { --mo-i: 0; }
+  .admin-content-polish > * > :nth-child(2) { --mo-i: 1; }
+  .admin-content-polish > * > :nth-child(3) { --mo-i: 2; }
+  .admin-content-polish > * > :nth-child(4) { --mo-i: 3; }
+  .admin-content-polish > * > :nth-child(5) { --mo-i: 4; }
+  .admin-content-polish > * > :nth-child(6) { --mo-i: 5; }
+  .admin-content-polish > * > :nth-child(7) { --mo-i: 6; }
+  .admin-content-polish > * > :nth-child(n + 8) { --mo-i: 7; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(1) { --mo-t: 0; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(2) { --mo-t: 1; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(3) { --mo-t: 2; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(4) { --mo-t: 3; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(5) { --mo-t: 4; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(6) { --mo-t: 5; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(7) { --mo-t: 6; }
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):nth-child(n + 8) { --mo-t: 7; }
+
+  /* 1. page: hero, then each block of the screen, once on mount */
+  .admin-page-hero { animation: mo-rise var(--mo-slow) var(--mo-ease) backwards; }
+  .admin-page-hero .admin-page-icon { animation: mo-pop var(--mo-slow) var(--mo-ease) 90ms backwards; }
+  .admin-page-hero .admin-page-hero-text { animation: mo-fade var(--mo-slow) var(--mo-ease) 70ms backwards; }
+  .admin-content-polish:not([data-page='new-invoice']) > * > * {
+    animation: mo-rise var(--mo-slow) var(--mo-ease) calc(60ms + var(--mo-i, 0) * var(--mo-step)) backwards;
+  }
+
+  /* 2. tiles and cards inside a screen (not in the invoice builder, never table rows) */
+  .admin-content-polish:not([data-page='new-invoice']) :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card) {
+    animation: mo-rise-sm var(--mo-slow) var(--mo-ease) calc(140ms + var(--mo-t, 0) * var(--mo-step)) backwards;
+  }
+
+  /* 3. dashboard tabs: the new panel cross-fades in (the old one is removed by React) */
+  .dashboard-content-shell > div > * { animation: mo-rise var(--mo-slow) var(--mo-ease) backwards; }
+
+  /* 4. disclosure: settings sections open with a short drop-in */
+  .bp-acc > button ~ div:not(.hidden) { animation: mo-drop var(--mo-base) var(--mo-ease) backwards; }
+
+  /* 5. fills: bars and share bars grow once to their real width */
+  .mini-bar > i { animation: mo-grow-x var(--mo-slow) var(--mo-ease) 120ms backwards; }
+  .dna-share > i { animation: mo-grow-x var(--mo-slow) var(--mo-ease) 200ms backwards; }
+  .dna-donut-legend > li { animation: mo-rise-sm var(--mo-base) var(--mo-ease) calc(120ms + var(--mo-t, 0) * var(--mo-step)) backwards; }
+  .dna-donut-legend > li:nth-child(1) { --mo-t: 0; }
+  .dna-donut-legend > li:nth-child(2) { --mo-t: 1; }
+  .dna-donut-legend > li:nth-child(3) { --mo-t: 2; }
+  .dna-donut-legend > li:nth-child(4) { --mo-t: 3; }
+  .dna-donut-legend > li:nth-child(5) { --mo-t: 4; }
+  .dna-donut-legend > li:nth-child(6) { --mo-t: 5; }
+  .dna-donut-legend > li:nth-child(7) { --mo-t: 6; }
+  .dna-donut-legend > li:nth-child(n + 8) { --mo-t: 7; }
+
+  /* 6. active navigation tick slides in when an item becomes current */
+  .bp-sidebar nav button.text-amber-300::before { animation: mo-grow-y var(--mo-slow) var(--mo-ease) backwards; }
+
+  /* 7. empty states settle in softly */
+  .dna-void { animation: mo-rise var(--mo-slow) var(--mo-ease) backwards; }
+
+  /* 8. micro-interactions (pointer devices only) */
+  @media (hover: hover) and (pointer: fine) {
+    :is(.bp-kpi, .dna-stat, .dashboard-bento-card, .lab-tool-card) {
+      transition: translate var(--mo-base) var(--mo-ease);
+    }
+    :is(.bp-kpi, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card):hover {
+      translate: 0 -1px;
+      box-shadow: var(--mo-lift-shadow) !important;
+    }
+    .bp-sidebar nav button:hover > span:first-child > svg { translate: -1px 0; }
+    .bp-sidebar nav button > span:first-child > svg { transition: translate var(--mo-fast) var(--mo-ease); }
+  }
+}
+
+/* press feedback: lowest specificity, so any existing active:scale-* keeps winning */
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, [role='button'], .dna-btn):where(:not(:disabled):active) { scale: 0.98; }
+}
+
+/* ---- reduced motion: everything visible, nothing moves ------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-page-hero, .admin-page-hero .admin-page-icon, .admin-page-hero .admin-page-hero-text,
+  .admin-content-polish > * > *, .dashboard-content-shell > div > *,
+  :is(.bp-kpi, .bp-statcard, .order-card-hl, .dna-stat, .dashboard-bento-card, .lab-tool-card),
+  .bp-acc > button ~ div, .mini-bar > i, .dna-share > i, .dna-donut-legend > li,
+  .bp-sidebar nav button::before, .dna-void {
+    animation: none !important;
+    transition: none !important;
+    translate: none !important;
+  }
+}
