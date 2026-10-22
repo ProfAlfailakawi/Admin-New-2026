@@ -2917,6 +2917,7 @@ const [isPending, startTransition] = useTransition();
                               icon: <Truck size={16} />,
                             })
                           }
+                          aria-label="فحص مسارات التوريد"
                           className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                         >
                           <Truck
@@ -4789,6 +4790,7 @@ const [isPending, startTransition] = useTransition();
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
                         <button
                           onClick={() => setArchiveResult(null)}
+                          aria-label="إغلاق"
                           className="absolute top-3 md:p-4 left-6 p-3 shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center hover:bg-slate-100 rounded-2xl text-slate-500 transition-colors"
                         >
                           <X size={24} />
@@ -4960,6 +4962,7 @@ const [isPending, startTransition] = useTransition();
                               { icon: <BrainCircuit size={16} /> },
                             )
                           }
+                          aria-label="عرض سبب التوصيات"
                           className="w-12 h-12 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/40 hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-indigo-400/30 cursor-pointer"
                         >
                           <Sparkles
@@ -5066,6 +5069,7 @@ const [isPending, startTransition] = useTransition();
                                   { icon: <Send size={16} /> },
                                 )
                               }
+                              aria-label="عرض توقع الطلبات"
                               className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                             >
                               <Flame
@@ -5328,6 +5332,7 @@ const [isPending, startTransition] = useTransition();
                           { icon: <BarChart3 size={16} /> },
                         )
                       }
+                      aria-label="عرض مؤشر العملاء"
                       className="hover:scale-110 active:scale-95 transition-transform shrink-0 max-md:!min-w-[44px] max-md:!min-h-[44px] max-md:inline-flex max-md:items-center max-md:justify-center"
                     >
                       <Users

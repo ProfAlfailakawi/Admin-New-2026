@@ -450,6 +450,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
 
         <div className="relative min-w-[150px]">
           <select 
+            aria-label="تصفية حسب الانطباع"
             value={sentimentFilter}
             onChange={(e) => setSentimentFilter(e.target.value)}
             className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full text-[11px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"

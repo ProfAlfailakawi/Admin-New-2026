@@ -1,0 +1,81 @@
+/* ==========================================================================
+   Round 3: quality layer (presentation only), loaded after motion.css.
+   Contrast fixes for light surfaces, focus ring for the scrollable main
+   region, a 44px home button, and loops silenced under reduced motion.
+   No layout, logic or data is touched; dark panels keep their palette.
+   ========================================================================== */
+
+/* "light surface" = a descendant of a white / pale card that is not itself inside a dark panel */
+:root {
+  --q-ink-muted: #526074;     /* slate-500 darkened: >= 5:1 on white and on slate-100 */
+  --q-ink-faint: #5b6b80;     /* replaces slate-400 text on light cards: >= 4.6:1 */
+  --q-emerald: #047857;
+  --q-indigo: #4338ca;
+}
+
+.admin-app-main
+  :is(.bg-white, .bg-slate-50, .bg-slate-100, .bg-slate-50\/50)
+  .text-slate-500:not(
+    :where(.bg-slate-900, .bg-slate-800, .bg-slate-950, .bg-black, .bg-gray-900, [class*="bg-gradient"], [class*="from-slate-9"], [class*="bg-[#0"], [class*="bg-slate-900"], [class*="bg-slate-800"]) *
+  ) { color: var(--q-ink-muted); }
+
+.admin-app-main
+  :is(.bg-white, .bg-slate-50, .bg-slate-100, .bg-slate-50\/50)
+  .text-slate-400:not(
+    :where(.bg-slate-900, .bg-slate-800, .bg-slate-950, .bg-black, .bg-gray-900, [class*="bg-gradient"], [class*="from-slate-9"], [class*="bg-[#0"], [class*="bg-slate-900"], [class*="bg-slate-800"]) *
+  ) { color: var(--q-ink-faint); }
+
+.admin-app-main
+  :is(.bg-white, .bg-slate-50, .bg-emerald-50, .bg-slate-100)
+  :is(.text-emerald-500, .text-emerald-600):not(
+    :where(.bg-slate-900, .bg-slate-800, .bg-slate-950, .bg-black, .bg-gray-900, [class*="bg-gradient"], [class*="from-slate-9"], [class*="bg-[#0"], [class*="bg-slate-900"], [class*="bg-slate-800"]) *
+  ) { color: var(--q-emerald); }
+
+.admin-app-main
+  :is(.bg-white, .bg-slate-50, .bg-indigo-50, .bg-slate-100)
+  .text-indigo-500:not(
+    :where(.bg-slate-900, .bg-slate-800, .bg-slate-950, .bg-black, .bg-gray-900, [class*="bg-gradient"], [class*="from-slate-9"], [class*="bg-[#0"], [class*="bg-slate-900"], [class*="bg-slate-800"]) *
+  ) { color: var(--q-indigo); }
+
+.admin-app-main .bg-emerald-500.text-white { background-color: var(--q-emerald); }
+
+/* Round 3b: same idea for tinted chips and portal content outside .admin-app-main.
+   Only the text colour (or a solid chip fill behind white text) is deepened; layout is untouched. */
+:root { --q-red: #b91c1c; --q-rose: #be123c; --q-blue: #2563eb; --q-amber-ink: #7a5416; --q-warm-ink: #6b5b49; }
+
+body :is(.bg-white, .bg-slate-50, .bg-slate-100)
+  .text-slate-400:not(
+    :where(.bg-slate-900, .bg-slate-800, .bg-slate-950, .bg-black, [class*="bg-gradient"], [class*="bg-slate-900"], [class*="bg-slate-800"], [class*="bg-[#0"], [class*="bg-[#1"]) *
+  ) { color: var(--q-ink-faint); }
+
+.admin-app-main .text-indigo-500:not(
+    :where(.bg-slate-900, .bg-slate-800, .bg-slate-950, .bg-black, [class*="bg-gradient"], [class*="bg-slate-900"], [class*="bg-slate-800"], [class*="bg-[#0"], [class*="bg-[#1"]) *
+  ) { color: var(--q-indigo); }
+
+:is(.bg-red-50, .bg-red-50\/50, .bg-red-100) :is(.text-red-500, .text-red-600),
+:is(.bg-red-50, .bg-red-100):is(.text-red-500, .text-red-600) { color: var(--q-red); }
+:is(.bg-rose-50, .bg-rose-100) :is(.text-rose-500, .text-rose-600),
+:is(.bg-rose-50, .bg-rose-100):is(.text-rose-500, .text-rose-600) { color: var(--q-rose); }
+:is(.bg-emerald-50, .bg-emerald-100) :is(.text-emerald-500, .text-emerald-600),
+:is(.bg-emerald-50, .bg-emerald-100):is(.text-emerald-500, .text-emerald-600) { color: var(--q-emerald); }
+.bg-blue-500.text-white { background-color: var(--q-blue); }
+[class*="text-[#b38026]"] { color: var(--q-amber-ink); }
+[class*="text-[#8c7b68]"] { color: var(--q-warm-ink); }
+/* ring numbers follow the panel they sit on instead of a fixed slate that vanishes on dark panels */
+.mini-ring b { color: inherit; }
+
+/* the main scroll region is focusable (keyboard scroll): quiet inset ring, keyboard only */
+.admin-app-main:focus { outline: none; }
+html body .admin-app-main:focus-visible {
+  outline: 2px solid var(--lg-ink-3, #0b2a31) !important;
+  outline-offset: -4px !important;
+  box-shadow: none !important;
+}
+
+/* header home button: 44px touch target (was 36px on phones) */
+button[aria-label="العودة للصفحة الرئيسية"] { min-width: 44px; min-height: 44px; }
+
+/* decorative loops stop under reduced motion (spinners that signal loading are kept) */
+@media (prefers-reduced-motion: reduce) {
+  html body :is(.animate-ping, .animate-pulse, .animate-bounce) { animation: none !important; }
+}

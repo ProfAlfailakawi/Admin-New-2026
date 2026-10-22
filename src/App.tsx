@@ -1409,7 +1409,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
         { label: 'تحليل العروض', page: 'coupons' },
         { label: 'تحليل المخاطر', page: 'expenses' },
       ].map((item)=><button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="lab-tool-card"><Bot size={18}/><strong>{item.label}</strong><small>يفتح الأداة مباشرة بدون شاشة بيضاء</small></button>)}</div></section>}
-      {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">محاكي النمو</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على كبار العملاء؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
+      {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">محاكي النمو</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip" tabIndex={0}>{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على كبار العملاء؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
       <div className="admin-content-polish" dir="rtl" data-page={page}>{children}</div>
     </div>
   );
@@ -4565,7 +4565,7 @@ const MainApp: React.FC = () => {
             )}
           </div>
           {isMobile && (
-            <button onClick={() => setSidebarOpen(false)} className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
+            <button onClick={() => setSidebarOpen(false)} aria-label="إغلاق القائمة" className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
               <X size={20} />
             </button>
           )}
@@ -4757,6 +4757,7 @@ const MainApp: React.FC = () => {
                 setSidebarOpen(false);
               }}
               title="العودة للصفحة الرئيسية"
+              aria-label="العودة للصفحة الرئيسية"
               className={cn(
                 "flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all group shrink-0",
                 currentPage === 'dashboard' ? "bg-slate-900 text-white shadow-xl shadow-slate-200" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
@@ -5018,6 +5019,7 @@ const MainApp: React.FC = () => {
               setSidebarOpen(false);
             }
           }}
+          tabIndex={0}
           className="admin-app-main flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 lg:p-6 relative bg-slate-50/50"
         >
           {/* Global Background Accents - Removed for performance */}
