@@ -24,10 +24,12 @@ jobs:
           main_sha=$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)
           main_time=$(gh api "repos/${{ github.repository }}/commits/main" --jq .commit.committer.date)
           live=$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "https://admin.alturathkw.shop/build-id.json?ts=$(date +%s)" || true)
-          live_sha=$(printf '%s' "$live" | jq -r '.commit // empty' 2>/dev/null || true)
+          # build id format: <time36>-<sha8> (scripts/build-stamp.mjs)
+          live_build=$(printf '%s' "$live" | jq -r '.build // empty' 2>/dev/null || true)
+          live_sha=${live_build##*-}
           echo "main: $main_sha ($main_time)"
-          echo "live: ${live_sha:-<none>}"
-          if [ "$live_sha" = "$main_sha" ]; then echo "OK: live serves main"; exit 0; fi
+          echo "live build: ${live_build:-<none>} (sha ${live_sha:-<none>})"
+          if [ -n "$live_sha" ] && [ "$live_sha" = "${main_sha:0:8}" ]; then echo "OK: live serves main"; exit 0; fi
           age=$(( ( $(date +%s) - $(date -d "$main_time" +%s) ) / 60 ))
           if [ "$age" -lt "$GRACE_MINUTES" ]; then
             echo "main is only ${age} min old; within grace period"; exit 0
