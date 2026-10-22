@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Compare live build-id with main
+      - name: Compare live build time with main
         env:
           GH_TOKEN: ${{ github.token }}
           GRACE_MINUTES: '45'
@@ -24,15 +24,16 @@ jobs:
           main_sha=$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)
           main_time=$(gh api "repos/${{ github.repository }}/commits/main" --jq .commit.committer.date)
           live=$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "https://admin.alturathkw.shop/build-id.json?ts=$(date +%s)" || true)
-          # build id format: <time36>-<sha8> (scripts/build-stamp.mjs)
-          live_build=$(printf '%s' "$live" | jq -r '.build // empty' 2>/dev/null || true)
-          live_sha=${live_build##*-}
-          echo "main: $main_sha ($main_time)"
-          echo "live build: ${live_build:-<none>} (sha ${live_sha:-<none>})"
-          if [ -n "$live_sha" ] && [ "$live_sha" = "${main_sha:0:8}" ]; then echo "OK: live serves main"; exit 0; fi
+          built_at=$(printf '%s' "$live" | jq -r '.builtAt // empty' 2>/dev/null || true)
+          echo "main: $main_sha committed $main_time"
+          echo "live: build=$(printf '%s' "$live" | jq -r '.build // "none"' 2>/dev/null) builtAt=${built_at:-none}"
+          # A deploy builds after the commit it ships, so live builtAt >= main commit time.
+          if [ -n "$built_at" ] && [ "$(date -d "$built_at" +%s)" -ge "$(date -d "$main_time" +%s)" ]; then
+            echo "OK: live was built after the latest main commit"; exit 0
+          fi
           age=$(( ( $(date +%s) - $(date -d "$main_time" +%s) ) / 60 ))
           if [ "$age" -lt "$GRACE_MINUTES" ]; then
             echo "main is only ${age} min old; within grace period"; exit 0
           fi
-          echo "::error::Live site is not serving main (live=${live_sha:-none}, main=$main_sha, main age=${age} min)"
+          echo "::error::Live site is older than main (builtAt=${built_at:-none}, main committed $main_time, age=${age} min)"
           exit 1
