@@ -1,0 +1,36 @@
+name: Deploy watchdog
+
+# Read-only. Fails when the live admin site is not serving the latest main.
+# It never deploys anything and uses no secrets.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Compare live build-id with main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GRACE_MINUTES: '45'
+        run: |
+          set -euo pipefail
+          main_sha=$(gh api "repos/${{ github.repository }}/commits/main" --jq .sha)
+          main_time=$(gh api "repos/${{ github.repository }}/commits/main" --jq .commit.committer.date)
+          live=$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "https://admin.alturathkw.shop/build-id.json?ts=$(date +%s)" || true)
+          live_sha=$(printf '%s' "$live" | jq -r '.commit // empty' 2>/dev/null || true)
+          echo "main: $main_sha ($main_time)"
+          echo "live: ${live_sha:-<none>}"
+          if [ "$live_sha" = "$main_sha" ]; then echo "OK: live serves main"; exit 0; fi
+          age=$(( ( $(date +%s) - $(date -d "$main_time" +%s) ) / 60 ))
+          if [ "$age" -lt "$GRACE_MINUTES" ]; then
+            echo "main is only ${age} min old; within grace period"; exit 0
+          fi
+          echo "::error::Live site is not serving main (live=${live_sha:-none}, main=$main_sha, main age=${age} min)"
+          exit 1
