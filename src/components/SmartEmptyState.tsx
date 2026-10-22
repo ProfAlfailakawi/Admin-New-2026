@@ -35,7 +35,7 @@ const SmartEmptyState: React.FC<Props> = ({
        className={cn("flex flex-col items-center justify-center p-8 md:p-16 text-center h-full min-h-[300px]", className)}
     >
       <div className="relative mb-6">
-        <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl animate-pulse" />
+        <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
         <div className="relative bg-white w-24 h-24 rounded-full shadow-sm flex items-center justify-center border border-slate-50">
            {icon}
         </div>
@@ -52,7 +52,7 @@ const SmartEmptyState: React.FC<Props> = ({
       {actionLabel && onAction && (
           <button 
              onClick={onAction}
-             className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20 animate-pulse-slow relative overflow-hidden group"
+             className="px-6 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20 relative overflow-hidden group"
           >
              <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300" />
              <span className="relative z-10">{actionLabel}</span>

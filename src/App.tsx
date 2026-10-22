@@ -130,6 +130,7 @@ const InstagramMagicWand = React.lazy(() => import('./components/InstagramMagicW
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { IS_DEMO_MODE, exitDemoMode } from './lib/demoMode';
+import PageHeroIcon from './components/ui/PageHeroIcon';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState } from './types';
 import { playSuccessAction } from './lib/sonic';
@@ -1307,26 +1308,26 @@ const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || 
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
   const map: Record<string, {title: string; subtitle: string; tag: string}> = {
-    dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم، الحالات المهمة، والإجراءات السريعة في واجهة واحدة.', tag: 'الموجز اليومي' },
-    'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'معرض أدوات للقرارات التنفيذية بدون لمس منطق التراث الذكي.', tag: 'معرض المختبر الذكي' },
-    'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء في مسار واحد واضح.', tag: 'منشئ الفواتير' },
-    'invoices-list': { title: 'سجل الفواتير', subtitle: 'سجل فخم للبحث والمراجعة والطباعة والمتابعة.', tag: 'دفتر الفواتير' },
-    orders: { title: 'طلبات الموقع', subtitle: 'لوحة تشغيل للطلبات الحالية وحالات الدفع الفعلية.', tag: 'لوحة التشغيل' },
-    customers: { title: 'لوحة العملاء', subtitle: 'كبار العملاء، جدد، غائبون، عالي القيمة، وعملاء يحتاجون عرض.', tag: 'لوحة ذكاء العملاء' },
-    products: { title: 'قائمة المنتجات', subtitle: 'استوديو منتجات مع مؤشر قوة المنتج من المبيعات والربحية والتوفر.', tag: 'مؤشر المنتجات' },
-    expenses: { title: 'المصروفات العامة', subtitle: 'صفحة مالية هادئة توضّح المصروفات والنزيف بدون صراخ بصري.', tag: 'ضبط المصروفات' },
-    suppliers: { title: 'سجل الموردين المعتمدين', subtitle: 'إدارة المديونيات، الاعتمادات، والمخاطر التشغيلية للموردين.', tag: 'رادار الموردين' },
-    'suppliers-audit': { title: 'كشف الحساب المالي التفصيلي', subtitle: 'سجل مراجعة شامل للتوريد، السداد، والتدقيق المالي.', tag: 'سجل تدقيق الموردين' },
+    dashboard: { title: 'مركز القيادة', subtitle: 'ملخص اليوم والحالات المهمة والإجراءات السريعة.', tag: 'الموجز اليومي' },
+    'dashboard-ai': { title: 'مختبر التراث الذكي', subtitle: 'أدوات للقرارات التنفيذية.', tag: 'معرض المختبر الذكي' },
+    'new-invoice': { title: 'فاتورة جديدة', subtitle: 'العميل، المنتجات، الملخص، ثم الإنشاء.', tag: 'منشئ الفواتير' },
+    'invoices-list': { title: 'سجل الفواتير', subtitle: 'بحث ومراجعة وطباعة ومتابعة.', tag: 'دفتر الفواتير' },
+    orders: { title: 'طلبات الموقع', subtitle: 'الطلبات الحالية وحالات الدفع.', tag: 'لوحة التشغيل' },
+    customers: { title: 'لوحة العملاء', subtitle: 'كبار العملاء والجدد والغائبون.', tag: 'لوحة ذكاء العملاء' },
+    products: { title: 'قائمة المنتجات', subtitle: 'المنتجات ومؤشر قوتها.', tag: 'مؤشر المنتجات' },
+    expenses: { title: 'المصروفات العامة', subtitle: 'المصروفات موزعة على فئاتها.', tag: 'ضبط المصروفات' },
+    suppliers: { title: 'سجل الموردين المعتمدين', subtitle: 'المديونيات والاعتمادات والمخاطر.', tag: 'رادار الموردين' },
+    'suppliers-audit': { title: 'كشف الحساب المالي التفصيلي', subtitle: 'التوريد والسداد والتدقيق المالي.', tag: 'سجل تدقيق الموردين' },
     reports: { title: 'التقارير', subtitle: 'قراءة تنفيذية للفواتير والمبيعات والأداء.', tag: 'التقارير التنفيذية' },
-    ai: { title: 'مستشار التراث الذكي', subtitle: 'مستشار تنفيذي يعرض الملخص والأسباب والإجراء المقترح.', tag: 'المساعد التنفيذي' },
+    ai: { title: 'مستشار التراث الذكي', subtitle: 'الملخص والأسباب والإجراء المقترح.', tag: 'المساعد التنفيذي' },
     'smart-studio': { title: 'استوديو التراث الذكي', subtitle: 'اختيار المحتوى، التوليد، المعاينة، والأرشيف في تجربة واحدة.', tag: 'الحزمة الإبداعية' },
-    loyalty: { title: 'الولاء', subtitle: 'مستويات عادي، فضي، ذهبي، وكبار العملاء مع شارات وترقيات.', tag: 'برنامج الولاء' },
-    coupons: { title: 'العروض', subtitle: 'كل كوبون كبطاقة تعرض الخصم والاستخدامات وتأثير الربح.', tag: 'مسرح العروض الذكي' },
+    loyalty: { title: 'الولاء', subtitle: 'المستويات والشارات والترقيات.', tag: 'برنامج الولاء' },
+    coupons: { title: 'العروض', subtitle: 'الخصم والاستخدامات وأثر الربح لكل كوبون.', tag: 'مسرح العروض الذكي' },
     'growth-simulator': { title: 'محاكي النمو والتسويق', subtitle: 'سيناريوهات ماذا لو للمبيعات والربح والمخاطر.', tag: 'محاكي النمو' },
-    'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'درع الربح: المبيعات، المصروفات، الهامش، النزيف، والفرص.', tag: 'درع الربح' },
-    diwaniya: { title: 'بطولات الديوانية', subtitle: 'لوحة بطولات ناعمة للترتيب والنقاط والجوائز.', tag: 'لوحة البطولات' },
+    'profit-guard': { title: 'المالية وحماية الأرباح', subtitle: 'المبيعات والمصروفات والهامش والفرص.', tag: 'درع الربح' },
+    diwaniya: { title: 'بطولات الديوانية', subtitle: 'الترتيب والنقاط والجوائز.', tag: 'لوحة البطولات' },
     'whatsapp-support': { title: 'مركز واتساب الذكي', subtitle: '', tag: 'مركز واتساب' },
-    settings: { title: 'الإعدادات العامة', subtitle: 'هوية المتجر، التشغيل، التوصيل، النظام، والحساب في بطاقات هادئة.', tag: 'الإعدادات العامة' },
+    settings: { title: 'الإعدادات العامة', subtitle: 'الهوية والتشغيل والتوصيل والنظام والحساب.', tag: 'الإعدادات العامة' },
   };
   return map[page] || { title: 'مركز الإدارة', subtitle: 'واجهة موحدة وقرارات واضحة.', tag: 'نظام الإدارة' };
 };
@@ -1393,7 +1394,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
     <div className={`admin-experience-stack ${!showPageHero ? 'dashboard-merged-with-command' : ''}`}>
       {showPageHero && (
         <section className="admin-page-hero" dir="rtl">
-          <div className="admin-page-hero-main"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>
+          <div className="admin-page-hero-main"><PageHeroIcon page={page} /><div className="admin-page-hero-text"><span className="admin-page-kicker">{meta.tag}</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div></div>
         </section>
       )}
       {showProduct && <section className={cn("admin-smart-panel product-score-panel smart-collapsible-panel", openSmartPanel==='product' && 'is-open')} dir="rtl"><button type="button" className="smart-panel-toggle" onClick={() => toggleSmartPanel('product')}><div><span>مؤشر المنتجات</span><h2>مؤشر قوة المنتج</h2><p>أفضل الأصناف حسب المبيعات والربحية.</p></div><span className="toggle-pill">{openSmartPanel==='product' ? 'إغلاق' : 'فتح'}</span></button>{openSmartPanel==='product' && <div className="smart-panel-body"><div className="panel-head compact"><button type="button" onClick={() => onNavigate('reports')}>عرض التقارير</button></div><div className="smart-mini-grid">{productLeaders.map((p:any) => <div className="product-score-card" key={p.id||p.name}><div className="score-ring"><strong>{p.score}</strong><small>/100</small></div><div><h3>{getItemName(p,'منتج')}</h3><p>مبيعات · ربحية · تكرار · طلب حالي</p><div className="tiny-meter"><span style={{width:`${p.score}%`}} /></div></div></div>)}</div></div>}</section>}
