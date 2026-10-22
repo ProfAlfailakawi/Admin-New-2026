@@ -1265,6 +1265,7 @@ Alturath.kw`;
               />
             </div>
             <select
+              aria-label="تصفية حسب المورد"
               value={supplierFilter}
               onChange={(e) => setSupplierFilter(e.target.value)}
               className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 outline-none font-bold text-xs"
@@ -1485,6 +1486,7 @@ Alturath.kw`;
                   <div>
                     <label className="block text-[11px] font-bold text-slate-500 mb-1">تاريخ التوصيل</label>
                     <input
+                      aria-label="تاريخ الفاتورة"
                       type="date"
                       lang="en-GB" dir="ltr"
                       value={invoiceDate}
@@ -1674,6 +1676,7 @@ Alturath.kw`;
               )}
 
             <select
+              aria-label="منطقة التوصيل"
               value={selectedZoneId}
               onChange={handleZoneChange}
               className="w-full bg-slate-50 border rounded-2xl p-4 text-right font-bold appearance-none outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm"
@@ -1736,6 +1739,7 @@ Alturath.kw`;
                     جهة التوصيل
                   </div>
                   <select
+                    aria-label="جهة التوصيل"
                     value={deliverySettlementSupplierId}
                     onChange={(e) => pickDeliverySettlementEntity(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-right text-xs font-bold focus:ring-2 focus:ring-primary/10 outline-none transition-all"

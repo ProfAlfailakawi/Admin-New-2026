@@ -425,6 +425,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  />
  </div>
  <select 
+ aria-label="تصفية حسب المورد"
  value={selectedSupplier}
  onChange={(e) => setSelectedSupplier(e.target.value)}
  className="bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-6 outline-none font-bold text-slate-700 text-right"
