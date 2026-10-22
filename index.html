@@ -238,7 +238,13 @@
       try {
         var __mode = null;
         try { __mode = localStorage.getItem('appMode'); } catch (e) {}
-        if (__mode !== 'local') {
+        // Demo mode (?demo=1 / remembered for the tab) never talks to the API server.
+        var __demo = false;
+        try {
+          var __dq = new URLSearchParams(location.search).get('demo');
+          __demo = (__dq === '1' || __dq === 'true') || (__dq !== '0' && __dq !== 'false' && sessionStorage.getItem('ktk_demo_mode') === '1');
+        } catch (e) {}
+        if (__mode !== 'local' && !__demo) {
           var __ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
           // 9s (was 4.5s): a cold Cloud Run instance needs ~10–40s, so a short abort here
           // killed the very request that was warming it. App.tsx's prewarmCloudBoot() picks
