@@ -113,7 +113,7 @@ html body .admin-heritage-shell.bg-atmospheric {
   background-size: 40px 40px !important;
   background-position: -1px -1px !important;
 }
-html body .admin-heritage-shell > .fixed.inset-0 { display: none; }
+html body .admin-heritage-shell > .fixed.inset-0.pointer-events-none { display: none; }
 
 /* ---- sidebar: petrol ink column ---------------------------------------- */
 html body .bp-sidebar {
