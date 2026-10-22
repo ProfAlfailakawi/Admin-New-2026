@@ -1410,7 +1410,7 @@ const AdminExperienceFrame: React.FC<{page: string; data: any; onNavigate: (page
         { label: 'تحليل المخاطر', page: 'expenses' },
       ].map((item)=><button key={item.label} type="button" onClick={() => onNavigate(item.page)} className="lab-tool-card"><Bot size={18}/><strong>{item.label}</strong><small>يفتح الأداة مباشرة بدون شاشة بيضاء</small></button>)}</div></section>}
       {showGrowth && <section className="admin-smart-panel" dir="rtl"><div className="panel-head"><div><span className="frame-dup-title">محاكي النمو</span><h2>محاكي سيناريوهات النمو</h2></div><button type="button" onClick={() => onNavigate('coupons')}>الكوبونات</button></div><div className="scenario-strip">{['ماذا لو زادت الطلبات 10%؟','ماذا لو أضفنا كوبون؟','ماذا لو رفعنا سعر منتج؟','ماذا لو ركزنا على كبار العملاء؟','ماذا لو قللنا مصروفًا؟'].map(t=><span key={t}>{t}</span>)}</div></section>}
-      <div className="admin-content-polish" dir="rtl">{children}</div>
+      <div className="admin-content-polish" dir="rtl" data-page={page}>{children}</div>
     </div>
   );
 };
