@@ -1680,6 +1680,13 @@ app.use((req, res, next) => {
     crossOriginEmbedderPolicy: false
   }));
 
+  // Requests reach this service through Cloud Run's front end (often via a Firebase Hosting rewrite). Trusting that one hop makes
+  // Express use the address Cloud Run received the request from, which a caller cannot forge (the service may also be called
+  // directly on its run.app address). Without this setting req.ip is not resolved through the proxy, and express-rate-limit logs
+  // a ValidationError on each cold start. Behind Hosting the key is Hosting's address, not each visitor's: a larger value would give
+  // per-visitor limits but lets a direct caller rotate a forged X-Forwarded-For, so it needs the service restricted to Hosting first.
+  app.set("trust proxy", 1);
+
   // Global rate limit
   const apiLimiter = rateLimit({
     windowMs: 5 * 60 * 1000,
