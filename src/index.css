@@ -6720,3 +6720,148 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 
 /* Long placeholders end in an ellipsis instead of being cut mid-letter. */
 input::placeholder,textarea::placeholder{text-overflow:ellipsis}
+
+/* Single boot screen (AdminBootShell). Mirrors #preboot-splash in index.html so the
+   hand-off from the HTML splash to React is seamless; no entry animations here, the
+   card is already on screen when React takes over. Keep the two in sync. */
+html:has(.ktk-boot),
+body:has(.ktk-boot) {
+  background: #07140b !important;
+  color-scheme: dark;
+}
+.ktk-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  overflow: hidden;
+  background-color: #07140b;
+  background-image: radial-gradient(circle at 50% 28%, rgba(212, 175, 55, 0.26), transparent 30%),
+    radial-gradient(circle at 16% 84%, rgba(23, 96, 47, 0.38), transparent 36%),
+    linear-gradient(135deg, #050d07 0%, #0f3d1f 52%, #07120a 100%);
+  font-family: "Cairo", "Tajawal", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.ktk-boot-card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 2.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.075);
+  padding: 34px 28px;
+  text-align: center;
+  box-shadow: 0 34px 100px rgba(0, 0, 0, 0.42);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+}
+.ktk-boot-top {
+  position: absolute;
+  left: 2rem;
+  right: 2rem;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(to left, transparent, rgba(212, 175, 55, 0.9), transparent);
+}
+.ktk-boot-logo {
+  position: relative;
+  margin: 0 auto 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 116px;
+  width: 116px;
+  border-radius: 2rem;
+  border: 1px solid rgba(255, 241, 223, 0.25);
+  background: linear-gradient(to bottom right, #f8f1df, #efe1bd 45%, #cfb36e);
+  box-shadow: 0 18px 55px rgba(245, 184, 74, 0.22);
+}
+.ktk-boot-logo::after {
+  content: "";
+  position: absolute;
+  inset: -16px;
+  border-radius: 2.6rem;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  animation: ktk-boot-ring 1.8s ease-in-out infinite;
+}
+.ktk-boot-logo img {
+  position: relative;
+  z-index: 1;
+  height: 80px;
+  width: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+.ktk-boot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 241, 223, 0.15);
+  background: rgba(212, 175, 55, 0.12);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #f6e7b0;
+}
+.ktk-boot-dot {
+  height: 8px;
+  width: 8px;
+  border-radius: 999px;
+  background: #d4af37;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.85);
+}
+.ktk-boot-title {
+  margin: 16px 0 0;
+  font-size: 30px;
+  line-height: 1.25;
+  font-weight: 900;
+  color: #ffffff;
+}
+.ktk-boot-rail {
+  margin: 26px auto 0;
+  height: 6px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+.ktk-boot-rail span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(to left, #fbf7ee, #d4af37, #17602f);
+  box-shadow: 0 0 24px rgba(245, 184, 74, 0.42);
+  animation: ktk-boot-shimmer 1.4s ease-in-out infinite;
+}
+.ktk-boot-status {
+  margin: 18px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(246, 231, 176, 0.92);
+}
+.ktk-boot-slow {
+  margin: 10px auto 0;
+  max-width: 320px;
+  font-size: 12px;
+  line-height: 1.9;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+@keyframes ktk-boot-ring {
+  0%, 100% { transform: scale(1); opacity: 0.35; }
+  50% { transform: scale(1.08); opacity: 0.05; }
+}
+@keyframes ktk-boot-shimmer {
+  0% { transform: translateX(150%); }
+  100% { transform: translateX(-260%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ktk-boot-logo::after { animation: none; opacity: 0.28; }
+  .ktk-boot-rail span { animation: none; width: 92%; transform: none; }
+}

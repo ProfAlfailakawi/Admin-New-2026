@@ -81,7 +81,7 @@ const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'
 const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
 import LoginIntro, { armLoginIntro } from './components/LoginIntro';
-import AdminMicroLoader, { useDelayedVisible } from './components/ui/AdminMicroLoader';
+import AdminMicroLoader from './components/ui/AdminMicroLoader';
 import { LAYER } from './lib/floatingLayers';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
@@ -206,6 +206,10 @@ const BOOT_PREWARM_TOTAL_BUDGET_MS = 60_000;
 const BOOT_PREWARM_BACKOFF_MS = 600;
 let __bootPrewarmPromise: Promise<any> | null = null;
 let __bootPrewarmFiredAt = 0;
+// Whether the cached boot request was started with a signed-in user. The endpoint
+// requires a token, so an anonymous warm-up only wakes Cloud Run and burns its retry
+// attempts on 401s; data loading after sign-in must not wait on that request.
+let __bootPrewarmWithAuth = false;
 
 // The appdata endpoint now requires an admin session (it carries all customer PII).
 // Attach the Firebase ID token when a user is signed in; without one the server
@@ -263,30 +267,40 @@ async function fetchBootPayloadResilient(): Promise<any> {
   throw lastErr || new Error('boot prewarm exhausted');
 }
 
-function prewarmCloudBoot(): Promise<any> {
+function prewarmCloudBoot(opts: { requireAuth?: boolean } = {}): Promise<any> {
   const now = Date.now();
-  if (__bootPrewarmPromise && now - __bootPrewarmFiredAt < BOOT_PREWARM_TTL_MS) {
+  const requireAuth = Boolean(opts.requireAuth);
+  if (
+    __bootPrewarmPromise &&
+    now - __bootPrewarmFiredAt < BOOT_PREWARM_TTL_MS &&
+    (!requireAuth || __bootPrewarmWithAuth)
+  ) {
     return __bootPrewarmPromise;
   }
 
   // First: try to adopt the inline <head> prefetch from index.html.
   // That request started before the JS bundle even downloaded — hundreds of milliseconds
   // earlier than anything this module could do. Reusing it skips a second network round-trip.
-  if (typeof window !== 'undefined') {
+  // It is always anonymous, so it is only adopted for warm-up, never for the signed-in load.
+  if (typeof window !== 'undefined' && !requireAuth) {
     const inflight: Promise<any> | undefined = (window as any).__bootPrefetchPromise;
     const firedAt: number | undefined = (window as any).__bootPrefetchAt;
     if (inflight && firedAt && now - firedAt < BOOT_PREWARM_TTL_MS) {
       __bootPrewarmFiredAt = firedAt;
-      __bootPrewarmPromise = inflight.then((payload) => {
+      __bootPrewarmWithAuth = false;
+      const adopted: Promise<any> = inflight.then((payload) => {
         if (payload) return payload;
         // The head prefetch returned null (cold-start abort / network blip).
         // Switch to the resilient retry — never strand the user on the slow fallback.
         return fetchBootPayloadResilient();
       }).catch(async () => {
-        __bootPrewarmPromise = null;
-        __bootPrewarmFiredAt = 0;
+        if (__bootPrewarmPromise === adopted) {
+          __bootPrewarmPromise = null;
+          __bootPrewarmFiredAt = 0;
+        }
         throw new Error('boot prefetch failed');
       });
+      __bootPrewarmPromise = adopted;
       // Consume the global so a later remount triggers a fresh fetch instead of reusing a stale promise.
       try { delete (window as any).__bootPrefetchPromise; } catch {}
       return __bootPrewarmPromise;
@@ -294,16 +308,20 @@ function prewarmCloudBoot(): Promise<any> {
   }
 
   __bootPrewarmFiredAt = now;
-  __bootPrewarmPromise = (async () => {
+  __bootPrewarmWithAuth = Boolean(auth.currentUser);
+  const request: Promise<any> = (async () => {
     try {
       return await fetchBootPayloadResilient();
     } catch (err) {
-      __bootPrewarmPromise = null;
-      __bootPrewarmFiredAt = 0;
+      if (__bootPrewarmPromise === request) {
+        __bootPrewarmPromise = null;
+        __bootPrewarmFiredAt = 0;
+      }
       throw err;
     }
   })();
-  return __bootPrewarmPromise;
+  __bootPrewarmPromise = request;
+  return request;
 }
 
 // Fire as soon as this module evaluates — earliest possible warm-up point.
@@ -1040,21 +1058,19 @@ const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = 
 const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
 
 /**
- * AdminBootShell — boot without a dark full-screen loader.
+ * AdminBootShell — the single boot screen.
  *
- * While auth is being verified or cloud data is syncing, the user sees a
- * light APP-SHELL skeleton (sidebar strip + header + dashboard cards) with
- * only the small branded assembly loader (44px) in the dashboard region and
- * an honest status line — never a black screen, never fake progress, and
- * never a state that could be read as "login failed". If syncing takes
- * long, a calm reassurance line appears (no percentages).
+ * It continues the pre-boot splash from index.html pixel-for-pixel (same dark
+ * brand canvas, logo card, title and rail; see .ktk-boot in index.css), so
+ * HTML splash → session check → cloud sync reads as ONE screen whose status
+ * line changes, instead of a chain of different loaders. It stays until the
+ * cloud data has loaded (the caller enforces that), then fades out. Honest
+ * status only, no fake progress; if syncing takes long, a calm reassurance
+ * line appears.
  */
 const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
   const [slow, setSlow] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  // Delayed-appearance gate for the loader + status line (same 250ms rule as
-  // AdminMicroLoader): a fast boot shows only the quiet skeleton, no flash.
-  const showStatus = useDelayedVisible(250);
   useEffect(() => {
     const t = window.setTimeout(() => setSlow(true), 7000);
     return () => window.clearTimeout(t);
@@ -1076,50 +1092,24 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
     };
   }, []);
 
-  const statusText = phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…' : 'جاري مزامنة بيانات الإدارة…';
+  const statusText = phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…' : 'جاري الاتصال بالسحابة ومزامنة البيانات…';
 
   return (
-    <div ref={rootRef} className="fixed inset-0 z-[99997] flex h-[100dvh] w-full overflow-hidden bg-[#fbf7ee] arabic-font" dir="rtl" aria-busy="true">
-      {/* Sidebar skeleton (desktop only, matches shell layout) */}
-      <div className="hidden lg:flex w-64 shrink-0 flex-col gap-3 border-l border-[#d4af37]/25 bg-[#0f3d1f] p-5">
-        <div className="h-10 w-10 rounded-2xl bg-white/10" />
-        <div className="mt-6 space-y-3">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-9 rounded-xl bg-white/[0.06]" />
-          ))}
+    <div ref={rootRef} className="ktk-boot" dir="rtl" aria-busy="true">
+      <div className="ktk-boot-card">
+        <div className="ktk-boot-top" />
+        <div className="ktk-boot-logo">
+          <img src="/logo.png" alt="" width={80} height={80} />
         </div>
-      </div>
-
-      {/* Main region skeleton */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="h-16 border-b border-[#d4af37]/25 bg-white/90 flex items-center justify-between px-4 md:px-6">
-          <div className="h-8 w-40 rounded-full bg-[#efe8d6]" />
-          <div className="h-9 w-9 rounded-full bg-[#efe8d6]" />
+        <div className="ktk-boot-badge">
+          <span className="ktk-boot-dot" />
+          مركز القيادة يتجهز الآن
         </div>
-        <div className="flex-1 overflow-hidden p-4 md:p-6 space-y-4">
-          <div className="h-24 rounded-3xl border border-[#d4af37]/25 bg-white/80" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-28 rounded-3xl border border-[#d4af37]/25 bg-white/80" />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Branded loader + honest status, centered in the viewport (over the
-          skeleton). Gated behind ~250ms so fast boots show nothing, then a
-          quick fade-in; exit fades via the unmount ghost above. */}
-      <div
-        className={`absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 px-6 transition-opacity duration-200 ${showStatus ? 'opacity-100' : 'opacity-0'}`}
-        role="status"
-        aria-live="polite"
-      >
-        <AdminMicroLoader size={44} appearDelay={250} label={statusText} />
-        {showStatus && (
-          <p className="text-sm font-bold text-[#55625a] text-center">{statusText}</p>
-        )}
+        <h1 className="ktk-boot-title">شركة مطبخ التراث الكويتي</h1>
+        <div className="ktk-boot-rail"><span /></div>
+        <p className="ktk-boot-status" role="status" aria-live="polite">{statusText}</p>
         {slow && (
-          <p className="text-xs font-bold text-[#55625a] max-w-xs text-center leading-6">
+          <p className="ktk-boot-slow">
             المزامنة تأخذ وقتاً أطول من المعتاد. دخولك سليم والاتصال شغال — لا حاجة لإعادة تسجيل الدخول.
           </p>
         )}
@@ -3424,7 +3414,7 @@ const MainApp: React.FC = () => {
         const __perfT0 = performance.now();
         let fastPayload: any = null;
         try {
-          fastPayload = await prewarmCloudBoot();
+          fastPayload = await prewarmCloudBoot({ requireAuth: true });
         } catch (prewarmErr) {
           console.warn('[FAST_APPDATA] prewarm failed; falling back to direct Firestore reads.', prewarmErr);
         }
@@ -4181,27 +4171,6 @@ const MainApp: React.FC = () => {
     return <PaymentFeedbackView invoiceId={invoiceId} path={normalizedPath} searchParams={searchParams} isUpaymentsCallback={isUpaymentsCallback} />;
   }
 
-  if (authLoading) {
-    // Boot is never a dark full-screen loader: while online we show the app
-    // shell skeleton with a small branded loader; the full gate stays only
-    // for the offline error state (existing, authoritative behavior).
-    return (
-      <>
-        {isOnline ? (
-          <AdminBootShell phase="auth" />
-        ) : (
-          <CloudConnectionGate
-            logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
-            name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-            phase={cloudChecking ? 'sync' : 'offline'}
-            onRetry={handleManualRetryOffline}
-          />
-        )}
-        <Toaster richColors position="bottom-right" closeButton />
-      </>
-    );
-  }
-
   const renderAuthError = () => {
     if (!authError) return null;
     return (
@@ -4306,16 +4275,19 @@ const MainApp: React.FC = () => {
   // whenever internet/Firestore is lost. There is no timeout bypass and no local mode.
   const shouldHoldCloudEntry = isAuthenticated && (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
-  if (shouldHoldCloudEntry) {
-    // Online data sync: light app-shell skeleton + 44px branded loader in the
-    // dashboard region (no black screen; the user never thinks login failed).
+  if (authLoading || shouldHoldCloudEntry) {
+    // One boot screen from the session check through the cloud sync: the auth and
+    // sync phases render the SAME element in the same tree position, so the shell
+    // stays mounted and only its status line changes (no remount, no flash between
+    // two loaders). Entry still waits for the cloud: the dashboard renders only
+    // after the authoritative cloud data has loaded.
     // Offline stays on the authoritative full gate with its retry action.
     return (
       <>
         {renderAuthError()}
         {renderQuotaError()}
         {isOnline ? (
-          <AdminBootShell phase="sync" />
+          <AdminBootShell phase={authLoading ? 'auth' : 'sync'} />
         ) : (
           <CloudConnectionGate
             logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
@@ -5274,154 +5246,19 @@ const SubNavItem: React.FC<{ label: string; icon: React.ReactNode; active?: bool
 );
 
 
-const ZEN_QUOTES = [
-  "نفتح مركز القيادة… ونترك الزحمة خارج الباب",
-  "الأرقام تتكلم بهدوء… والقرار يظهر بوضوح",
-  "إدارة تليق باسم شركة مطبخ التراث",
-  "كل طلب له مسار… وكل رقم له معنى",
-  "من هنا يبدأ نبض التشغيل الحقيقي",
-  "هدوء الواجهة… قوة القرار",
-  "نرتّب اليوم قبل أن يبدأ الزحام",
-  "مطبخ التراث: تشغيل أذكى، وقرار أسرع"
-];
-
-const ZenSplash: React.FC<{ show: boolean, logo?: string, name?: string }> = ({ show, logo, name }) => {
-  const [quote, setQuote] = useState(ZEN_QUOTES[0]);
-  // Respect the OS "reduce motion" setting: skip enter/looping animations and
-  // render the splash straight in its final resting state.
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const index = Math.floor(Math.random() * ZEN_QUOTES.length);
-    setQuote(ZEN_QUOTES[index]);
-  }, []);
-
-  const pulseCards = [
-    { label: 'المبيعات', value: 'نبض', icon: <TrendingUp size={18} /> },
-    { label: 'الطلبات', value: 'مباشر', icon: <ShoppingBag size={18} /> },
-    { label: 'الأرباح', value: 'حماية', icon: <Gauge size={18} /> },
-  ];
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.01, transition: { duration: reduceMotion ? 0 : 0.7, ease: 'easeInOut' } }}
-          className="safe-area-dark-overlay fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#080d12] px-5"
-          dir="rtl"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(245,184,74,.24),transparent_28%),radial-gradient(circle_at_16%_84%,rgba(16,185,129,.18),transparent_32%),linear-gradient(135deg,#070b10_0%,#111827_52%,#0b1115_100%)]" />
-          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-amber-200/10 to-transparent" />
-          <div className="absolute -top-24 -right-20 h-72 w-72 rounded-full bg-amber-400/20 blur-[90px]" />
-          <div className="absolute -bottom-24 -left-20 h-80 w-80 rounded-full bg-emerald-400/16 blur-[100px]" />
-          <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:44px_44px]" />
-
-          <motion.div
-            initial={reduceMotion ? false : { y: 22, opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ duration: reduceMotion ? 0 : 0.72, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-[720px] overflow-hidden rounded-[2.2rem] border border-white/12 bg-white/[0.075] p-6 text-center shadow-[0_34px_100px_rgba(0,0,0,.42)] backdrop-blur-2xl md:p-8"
-          >
-            <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-l from-transparent via-amber-200/80 to-transparent" />
-            <div className="absolute -right-12 top-12 h-32 w-32 rounded-full bg-amber-300/10 blur-3xl" />
-            <div className="absolute -left-12 bottom-8 h-32 w-32 rounded-full bg-emerald-300/10 blur-3xl" />
-
-            <motion.div
-              initial={reduceMotion ? false : { scale: 0.86, opacity: 0, rotate: -3 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.78, delay: reduceMotion ? 0 : 0.08, ease: 'easeOut' }}
-              className="relative mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-amber-100/25 bg-gradient-to-br from-[#f8f1df] via-[#efe1bd] to-[#cfb36e] shadow-[0_18px_55px_rgba(245,184,74,.22)] md:h-32 md:w-32"
-            >
-              <div className="absolute inset-[-10px] rounded-[2.4rem] border border-amber-200/10" />
-              <motion.span
-                className="absolute inset-[-16px] rounded-[2.6rem] border border-emerald-300/25"
-                animate={reduceMotion ? { scale: 1, opacity: 0.35 } : { scale: [1, 1.08, 1], opacity: [0.35, 0.05, 0.35] }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <LogoEngine src={logo || DEFAULT_GLOBAL_LOGO} variant="royal" className="relative z-10 h-20 w-20 drop-shadow-xl md:h-24 md:w-24" />
-            </motion.div>
-
-            <motion.div
-              initial={reduceMotion ? false : { y: 16, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: reduceMotion ? 0 : 0.62, delay: reduceMotion ? 0 : 0.22, ease: 'easeOut' }}
-              className="space-y-3"
-            >
-              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-100/15 bg-amber-100/10 px-4 py-2 text-[11px] font-black text-amber-100 shadow-inner shadow-white/5">
-                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.85)]" />
-                مركز القيادة يتجهز الآن
-              </div>
-              <h1 className="text-3xl font-black leading-tight text-white md:text-5xl">
-                {name || 'شركة مطبخ التراث الكويتي'}
-              </h1>
-              <p className="mx-auto max-w-[560px] text-sm font-bold leading-7 text-slate-300 md:text-base">
-                {quote}
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.55, delay: reduceMotion ? 0 : 0.46 }}
-              className="mt-7 grid grid-cols-3 gap-2 md:gap-3"
-            >
-              {pulseCards.map((card, index) => (
-                <motion.div
-                  key={card.label}
-                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: reduceMotion ? 0 : 0.45, delay: reduceMotion ? 0 : 0.54 + index * 0.08 }}
-                  className="rounded-2xl border border-white/10 bg-white/[0.075] px-2 py-3 text-center shadow-inner shadow-white/5"
-                >
-                  <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-amber-100">
-                    {card.icon}
-                  </span>
-                  <p className="text-[10px] font-bold text-slate-400 md:text-xs">{card.label}</p>
-                  <p className="mt-1 text-xs font-black text-white md:text-sm">{card.value}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            <div className="mt-7 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-l from-emerald-300 via-amber-300 to-white shadow-[0_0_24px_rgba(245,184,74,.42)]"
-                initial={reduceMotion ? false : { width: '12%' }}
-                animate={reduceMotion ? { width: '92%' } : { width: ['12%', '58%', '92%'] }}
-                transition={reduceMotion ? { duration: 0 } : { duration: 1.2, ease: 'easeInOut' }}
-              />
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
-
 const App: React.FC = () => {
-   const [showSplash, setShowSplash] = useState(true);
-   const [logo, setLogo] = useState(DEFAULT_GLOBAL_LOGO);
-   const [name, setName] = useState('شركة مطبخ التراث الكويتي');
-
    useEffect(() => {
-     // Warm up the server cache silently while the user reads the splash screen.
+     // Warm up the server cache silently while the boot screen shows.
      // This eliminates the Cloud Run cold-start delay before they even click login.
      // Warm-up only: the endpoint now requires auth, but an anonymous hit still
      // triggers the server's boot-cache warm before it replies 401, so the
      // cold-start benefit is preserved without exposing data.
      if (!IS_DEMO_MODE) fetch('/api/appdata/full?profile=boot', { cache: 'no-store' }).catch(() => {});
-     const timer = setTimeout(() => {
-       setShowSplash(false);
-     }, 900);
-     return () => clearTimeout(timer);
    }, []);
 
-   return (
-     <>
-       <MainApp />
-       <ZenSplash show={showSplash} logo={logo} name={name} />
-     </>
-   );
+   // No separate splash overlay: the pre-boot splash in index.html hands off to
+   // MainApp's single boot screen, which stays until the cloud data is loaded.
+   return <MainApp />;
 };
 
 export default App;
