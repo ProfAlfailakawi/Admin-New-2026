@@ -9,17 +9,8 @@ steps:
     args:
       - '-c'
       - |
-        GEMINI_API_KEY="$$GEMINI_API_KEY" npm run build
-
-  # Stamp the build so the live site can be compared with main (read by
-  # .github/workflows/deploy-watchdog.yml). Static file only; no secrets.
-  - name: 'node:20'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        printf '{"commit":"%s","build":"%s"}\n' "$COMMIT_SHA" "$BUILD_ID" > dist/build-id.json
-        cat dist/build-id.json
+        # BUILD_SHA lets scripts/build-stamp.mjs put the commit in the build id (read by deploy-watchdog.yml)
+        BUILD_SHA="$COMMIT_SHA" GEMINI_API_KEY="$$GEMINI_API_KEY" npm run build
 
   - name: 'node:20'
     entrypoint: 'bash'
