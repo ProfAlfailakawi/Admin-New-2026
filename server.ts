@@ -10235,6 +10235,30 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     }
   }
 
+  // The mirror (appData/shared_company_data) lags the real invoices/orders documents.
+  // A payment that wakes a sleeping server used to find the mirror still "pending" and
+  // send the overdue "not paid" reminder in the same instant as the "paid" alert.
+  // Before any "not paid" reminder, ask the source document; on a read error we keep
+  // the old behaviour and let the reminder go.
+  async function alertsPaidAtSource(collectionName: "invoices" | "orders", businessId: string, pendingEventIds: string[]) {
+    if (pendingEventIds.every((id) => __alertsPushEventsCache.knownIds.has(id))) return false; // nothing left to send, skip the read
+    try {
+      const direct = await db.collection(collectionName).doc(businessId).get();
+      let item: any = direct.exists ? direct.data() : null;
+      if (!item) {
+        const byId = await db.collection(collectionName).where("id", "==", businessId).limit(1).get();
+        item = byId.docs[0]?.data() || null;
+      }
+      if (!item) return false;
+      if (item.paid === true) return true;
+      const s = alertsStatusFor(item);
+      return alertsIsPaid(s) && !alertsIsPending(s) && !alertsIsFailed(s);
+    } catch (e: any) {
+      console.warn("[ALERTS] Source paid check failed:", businessId, e?.message || e);
+      return false;
+    }
+  }
+
   let __alertsReconcileInMemoryLock = false;
 
   async function alertsReconcile({ dryRun = false } = {}) {
@@ -10282,6 +10306,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (alertsIsPaid(st)) { await alertsSendOnce(results, `safe-worker-invoice-paid-${invoiceId}${era}`, { title: "✅ تم دفع فاتورة", body: `تم دفع الفاتورة ${invoiceId}${alertsAmountText(inv)}`, alertType: "invoice_paid", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters); continue; }
       if (alertsIsPending(st)) {
         const d = alertsBestDate(inv) || now;
+        if (d <= pendingPaymentGraceAgo && await alertsPaidAtSource("invoices", invoiceId, [`safe-worker-invoice-pending-immediate-${invoiceId}${era}`, ...(d <= thirtyMinutesAgo ? [`safe-worker-invoice-pending-10min-${invoiceId}${era}`] : [])])) {
+          results.push({ eventId: `safe-worker-invoice-pending-immediate-${invoiceId}${era}`, skipped: true, reason: "paid-at-source" });
+          continue;
+        }
         if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-immediate-${invoiceId}${era}`, { title: "⏳ فاتورة لم تُدفع", body: `الفاتورة ${invoiceId} لم يتم دفعها بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(inv)}`, alertType: "invoice_pending_immediate", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
         if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-invoice-pending-10min-${invoiceId}${era}`, { title: "⏳ فاتورة لم تُدفع بعد 30 دقيقة", body: `الفاتورة ${invoiceId} لم تُدفع بعد 30 دقيقة${alertsAmountText(inv)}`, alertType: "invoice_pending_10min", url: `https://admin.alturathkw.shop/?invoice=${encodeURIComponent(invoiceId)}` }, dryRun, counters);
       }
@@ -10306,6 +10334,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       if (alertsIsCancelled(st)) { results.push({ eventId: `safe-worker-order-cancelled-admin-${orderId}`, skipped: true, reason: "cancelled-order-alert-disabled" }); continue; }
       if (alertsIsPending(st)) {
         const d = alertsBestDate(order) || now;
+        if (d <= pendingPaymentGraceAgo && await alertsPaidAtSource("orders", orderId, [`safe-worker-payment-pending-immediate-${orderId}${era}`, ...(d <= thirtyMinutesAgo ? [`safe-worker-payment-pending-10min-${orderId}${era}`] : [])])) {
+          results.push({ eventId: `safe-worker-payment-pending-immediate-${orderId}${era}`, skipped: true, reason: "paid-at-source" });
+          continue;
+        }
         if (d <= pendingPaymentGraceAgo) await alertsSendOnce(results, `safe-worker-payment-pending-immediate-${orderId}${era}`, { title: "⏳ طلب لم يدفع", body: `الطلب ${orderId} لم يتم دفعه بعد ${PAYMENT_PENDING_GRACE_LABEL}${alertsAmountText(order)}`, alertType: "payment_pending_immediate", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
         if (d <= thirtyMinutesAgo) await alertsSendOnce(results, `safe-worker-payment-pending-10min-${orderId}${era}`, { title: "⏳ طلب لم يُدفع بعد 30 دقيقة", body: `الطلب ${orderId} لم يُدفع بعد 30 دقيقة${alertsAmountText(order)}`, alertType: "payment_pending_10min", url: `https://admin.alturathkw.shop/?order=${encodeURIComponent(orderId)}` }, dryRun, counters);
       }
