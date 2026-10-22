@@ -61,22 +61,40 @@ try {
   console.log(`[ADMIN020] Target Firestore Database ID: ${dbId || "(default)"}`);
   db = getFirestore(appInstance, dbId || "(default)");
 
-  // Verify database connectivity early
-  try {
-    const testSnap = await db.collection('pushTokens').limit(1).get();
-    firebaseInitialized = true;
-    console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
-    // Defer warm-up until the module has finished initializing. Calling it here,
-    // before `appDataCache` is initialized below, throws a temporal-dead-zone error
-    // and silently disables the fast boot cache for the entire process.
-    setImmediate(() => { void initBootCache().catch(console.error); });
-  } catch (err: any) {
-    console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
-    if (err.message && err.message.includes("PERMISSION_DENIED")) {
-      console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
+  // Verify database connectivity early, but never let it hold the port closed.
+  // This check runs before app.listen(); with no deadline a slow Firestore answer
+  // keeps the container from listening and Cloud Run reports "the instance could
+  // not start successfully". After STARTUP_DB_CHECK_TIMEOUT_MS the server starts
+  // anyway and the check finishes in the background with the same outcome handling.
+  const STARTUP_DB_CHECK_TIMEOUT_MS = 8_000;
+  const connectivityCheck = db.collection('pushTokens').limit(1).get().then(
+    () => {
+      firebaseInitialized = true;
+      console.log(`[ADMIN020] Firebase Admin verified. Access to database '${dbId || "(default)"}' confirmed.`);
+      // Defer warm-up until the module has finished initializing. Calling it here,
+      // before `appDataCache` is initialized below, throws a temporal-dead-zone error
+      // and silently disables the fast boot cache for the entire process.
+      setImmediate(() => { void initBootCache().catch(console.error); });
+    },
+    (err: any) => {
+      console.error(`[ADMIN020] Firebase Admin connectivity check FAILED for database '${dbId || "(default)"}':`, err.message);
+      if (err.message && err.message.includes("PERMISSION_DENIED")) {
+        console.warn("[ADMIN020] ACCESS DENIED. Server-side Firestore operations will fail. Check Service Account roles (Cloud Datastore User).");
+      }
+      firebaseInitialized = false;
+      db = null;
     }
-    firebaseInitialized = false;
-    db = null;
+  );
+  let startupCheckTimer: NodeJS.Timeout | undefined;
+  const checkFinishedInTime = await Promise.race([
+    connectivityCheck.then(() => true),
+    new Promise<boolean>((resolve) => {
+      startupCheckTimer = setTimeout(() => resolve(false), STARTUP_DB_CHECK_TIMEOUT_MS);
+    }),
+  ]);
+  clearTimeout(startupCheckTimer);
+  if (!checkFinishedInTime) {
+    console.warn(`[ADMIN020] Firestore connectivity check still pending after ${STARTUP_DB_CHECK_TIMEOUT_MS}ms; starting the server and finishing the check in the background.`);
   }
 } catch (error) {
   firebaseInitialized = false;
