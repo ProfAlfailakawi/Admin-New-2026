@@ -6853,6 +6853,37 @@ body:has(.ktk-boot) {
   font-weight: 700;
   color: rgba(255, 255, 255, 0.72);
 }
+.ktk-boot.is-offline .ktk-boot-dot {
+  background: #e8a3a3;
+  box-shadow: 0 0 14px rgba(232, 163, 163, 0.8);
+}
+.ktk-boot.is-offline .ktk-boot-rail span {
+  animation: none;
+  width: 100%;
+  transform: none;
+  opacity: 0.35;
+}
+.ktk-boot-retry {
+  margin: 16px auto 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f6e7b0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 160ms ease, transform 120ms ease;
+}
+.ktk-boot-retry:hover { background: rgba(212, 175, 55, 0.26); }
+.ktk-boot-retry:active { transform: scale(0.97); }
+.ktk-boot-retry:disabled { opacity: 0.6; cursor: default; }
+.ktk-boot-retry:focus-visible { outline: 2px solid #d4af37; outline-offset: 3px; }
 @keyframes ktk-boot-ring {
   0%, 100% { transform: scale(1); opacity: 0.35; }
   50% { transform: scale(1.08); opacity: 0.05; }
