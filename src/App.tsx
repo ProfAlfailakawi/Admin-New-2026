@@ -80,7 +80,6 @@ const DiwaniyaTournaments = React.lazy(() => import('./components/DiwaniyaTourna
 const PartnerDashboard = React.lazy(() => import('./components/PartnerDashboard'));
 const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m => ({ default: m.CommandBrief })));
 import Login from './components/Login';
-import LoginIntro, { armLoginIntro } from './components/LoginIntro';
 import AdminMicroLoader from './components/ui/AdminMicroLoader';
 import { LAYER } from './lib/floatingLayers';
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
@@ -1038,22 +1037,6 @@ const AdminOnboardingModal: React.FC<{
   );
 };
 
-const DataRefreshNotice: React.FC<{ show: boolean; mode: 'cloud' | 'local' }> = ({ show, mode }) => (
-  <AnimatePresence>
-    {show && (
-      <motion.div
-        className="admin-sync-toast"
-        dir="rtl"
-        initial={{ opacity: 0, y: -10, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -10, scale: 0.96 }}
-      >
-        <motion.span {...heritageMotion.breathe} className="admin-sync-breath" />
-        <span>{mode === 'cloud' ? 'جارٍ جلب آخر نسخة من السحابة...' : 'جارٍ تجهيز بيانات التجربة...'}</span>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
 
 const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
 
@@ -1068,7 +1051,11 @@ const NetworkStatusNotice: React.FC<{ online: boolean }> = ({ online }) => null;
  * status only, no fake progress; if syncing takes long, a calm reassurance
  * line appears.
  */
-const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
+const AdminBootShell: React.FC<{
+  phase: 'auth' | 'sync' | 'checking' | 'offline';
+  onRetry?: () => void;
+  retrying?: boolean;
+}> = ({ phase, onRetry, retrying = false }) => {
   const [slow, setSlow] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1092,10 +1079,15 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
     };
   }, []);
 
-  const statusText = phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…' : 'جاري الاتصال بالسحابة ومزامنة البيانات…';
+  const isOffline = phase === 'offline';
+  const statusText =
+    phase === 'auth' ? 'جاري التحقق من تسجيل الدخول…'
+    : phase === 'checking' ? 'جاري الاتصال بالسحابة…'
+    : phase === 'offline' ? 'الاتصال بالسحابة متوقف مؤقتاً — نعيد المحاولة تلقائياً'
+    : 'جاري الاتصال بالسحابة ومزامنة البيانات…';
 
   return (
-    <div ref={rootRef} className="ktk-boot" dir="rtl" aria-busy="true">
+    <div ref={rootRef} className={`ktk-boot${isOffline ? ' is-offline' : ''}`} dir="rtl" aria-busy={!isOffline}>
       <div className="ktk-boot-card">
         <div className="ktk-boot-top" />
         <div className="ktk-boot-logo">
@@ -1108,7 +1100,12 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
         <h1 className="ktk-boot-title">شركة مطبخ التراث الكويتي</h1>
         <div className="ktk-boot-rail"><span /></div>
         <p className="ktk-boot-status" role="status" aria-live="polite">{statusText}</p>
-        {slow && (
+        {isOffline && onRetry && (
+          <button type="button" className="ktk-boot-retry" onClick={onRetry} disabled={retrying}>
+            {retrying ? 'جاري إعادة الاتصال…' : 'إعادة الاتصال الآن'}
+          </button>
+        )}
+        {slow && !isOffline && (
           <p className="ktk-boot-slow">
             المزامنة تأخذ وقتاً أطول من المعتاد. دخولك سليم والاتصال شغال — لا حاجة لإعادة تسجيل الدخول.
           </p>
@@ -1119,181 +1116,6 @@ const AdminBootShell: React.FC<{ phase: 'auth' | 'sync' }> = ({ phase }) => {
 };
 
 
-const CloudConnectionGate: React.FC<{
-  logo?: string;
-  name?: string;
-  phase: 'auth' | 'sync' | 'offline';
-  onRetry?: () => void;
-}> = ({ name, phase, onRetry }) => {
-  const isOffline = phase === 'offline';
-  const title = isOffline ? 'الاتصال متوقف مؤقتاً' : 'جاري التحقق من الاتصال…';
-  const statusLabel = isOffline ? 'غير متصل' : phase === 'auth' ? 'جاري التحقق' : 'جاري الاتصال';
-  const orbitItems = isOffline
-    ? [ShieldAlert, RefreshCw, Database]
-    : [BadgeCheck, Zap, Database];
-
-  return (
-    <MotionConfig reducedMotion="user">
-    <div className="fixed inset-0 z-[99998] flex items-center justify-center overflow-hidden bg-[#07140b] px-5 arabic-font" dir="rtl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(23,96,47,.42),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(212,175,55,.2),transparent_28%),linear-gradient(145deg,#040a06_0%,#0a1d10_46%,#14120a_100%)]" />
-      <div className="absolute inset-0 opacity-[0.06] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,.82)_1px,transparent_1px)] [background-size:28px_28px]" />
-      <motion.div
-        className="absolute h-[520px] w-[520px] rounded-full border border-emerald-200/10"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 26, repeat: 1, ease: 'linear' }}
-      />
-      <motion.div
-        className="absolute h-[390px] w-[390px] rounded-full border border-amber-200/10"
-        animate={{ rotate: -360 }}
-        transition={{ duration: 32, repeat: 1, ease: 'linear' }}
-      />
-      <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/15 blur-[105px]" />
-      <div className="absolute -bottom-24 right-12 h-72 w-72 rounded-full bg-amber-300/16 blur-[110px]" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-[560px] text-center"
-      >
-        <div className="relative mx-auto flex h-[310px] w-[310px] items-center justify-center sm:h-[360px] sm:w-[360px]">
-          <motion.div
-            className={`absolute inset-0 rounded-full border ${isOffline ? 'border-rose-200/16' : 'border-emerald-200/16'} bg-white/[0.035] shadow-[inset_0_0_70px_rgba(255,255,255,.05),0_28px_95px_rgba(0,0,0,.42)] backdrop-blur-xl`}
-            animate={{ scale: isOffline ? [1, 1.012, 1] : [1, 1.025, 1] }}
-            transition={{ duration: 2.4, repeat: 3, ease: 'easeInOut' }}
-          />
-          <div className="absolute inset-8 rounded-full border border-white/10 bg-slate-950/30" />
-          <motion.div
-            className="absolute inset-12 rounded-full border border-dashed border-white/12"
-            animate={{ rotate: isOffline ? 0 : 360 }}
-            transition={{ duration: 18, repeat: 1, ease: 'linear' }}
-          />
-
-          {!isOffline && (
-            <>
-              <motion.div
-                className="absolute inset-12 pointer-events-none"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 4.5, repeat: 3, ease: 'linear' }}
-              >
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-emerald-200 shadow-[0_0_24px_rgba(110,231,183,.9)]" />
-              </motion.div>
-              <motion.div
-                className="absolute inset-8 pointer-events-none"
-                animate={{ rotate: -360 }}
-                transition={{ duration: 6.2, repeat: 2, ease: 'linear' }}
-              >
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-amber-200 shadow-[0_0_22px_rgba(252,211,77,.82)]" />
-              </motion.div>
-            </>
-          )}
-
-          <div className={`relative flex h-36 w-36 items-center justify-center rounded-[2.35rem] border ${isOffline ? 'border-rose-200/25 bg-rose-950/28 text-rose-100' : 'border-emerald-100/20 bg-emerald-950/24 text-emerald-50'} shadow-[0_22px_70px_rgba(0,0,0,.42)] backdrop-blur-2xl sm:h-40 sm:w-40`}>
-            <motion.div
-              className="absolute inset-[-18px] rounded-[2.9rem] border border-white/10"
-              animate={{ opacity: [0.18, 0.55, 0.18], scale: [0.96, 1.05, 0.96] }}
-              transition={{ duration: 2.1, repeat: 3, ease: 'easeInOut' }}
-            />
-            {isOffline ? (
-              <ShieldAlert size={54} strokeWidth={1.65} />
-            ) : (
-              <svg
-                width="66"
-                height="66"
-                viewBox="0 0 66 66"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-                className="drop-shadow-[0_0_18px_rgba(255,255,255,.22)]"
-              >
-                <path
-                  d="M22.2 39.6H19.8C14.7 39.6 10.56 35.46 10.56 30.36C10.56 25.59 14.19 21.66 18.84 21.18C20.67 13.95 27.24 8.58 35.04 8.58C44.1 8.58 51.48 15.78 51.78 24.78C55.95 25.74 59.04 29.46 59.04 33.9C59.04 39 54.9 43.14 49.8 43.14H44.64"
-                  stroke="currentColor"
-                  strokeWidth="4.1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M33 28.38V54.12"
-                  stroke="currentColor"
-                  strokeWidth="4.1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M22.77 43.89L33 54.12L43.23 43.89"
-                  stroke="currentColor"
-                  strokeWidth="4.1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            )}
-          </div>
-
-          <div className="absolute inset-x-0 bottom-9 flex items-center justify-center gap-3">
-            {orbitItems.map((Icon, index) => (
-              <motion.div
-                key={index}
-                className={`flex h-10 w-10 items-center justify-center rounded-2xl border ${isOffline ? 'border-rose-100/14 bg-rose-950/24 text-rose-100' : 'border-white/12 bg-white/[0.07] text-amber-100'} shadow-lg backdrop-blur-xl`}
-                animate={{ y: isOffline ? 0 : [0, -6, 0], opacity: isOffline ? 0.72 : [0.72, 1, 0.72] }}
-                transition={{ duration: 1.45, repeat: 3, delay: index * 0.18, ease: 'easeInOut' }}
-              >
-                <Icon size={18} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.5 }}
-          className="relative -mt-4 overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.075] px-6 py-6 shadow-[0_26px_90px_rgba(0,0,0,.38)] backdrop-blur-2xl"
-        >
-          <div className={`mx-auto mb-4 inline-flex items-center gap-2 rounded-full border ${isOffline ? 'border-rose-100/18 bg-rose-400/10 text-rose-100' : 'border-amber-200/25 bg-amber-300/10 text-amber-100'} px-4 py-2 text-xs font-black`}>
-            <motion.span
-              className={`h-2 w-2 rounded-full ${isOffline ? 'bg-rose-300' : 'bg-amber-300'}`}
-              animate={{ opacity: [0.35, 1, 0.35], scale: [0.88, 1.18, 0.88] }}
-              transition={{ duration: 1.25, repeat: 3, ease: 'easeInOut' }}
-            />
-            {statusLabel}
-          </div>
-
-          <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">{title}</h1>
-
-          {isOffline ? (
-            <p className="mx-auto mt-4 max-w-[420px] text-sm font-bold leading-7 text-slate-200">
-              تعذر الاتصال مؤقتاً. تم إيقاف التعديل لحماية البيانات حتى يعود الاتصال.
-            </p>
-          ) : (
-            <div className="mx-auto mt-6 h-1 w-full max-w-[200px] overflow-hidden rounded-full bg-white/10" aria-label="cloud-connection-loader">
-              <motion.span
-                className="block h-full w-full rounded-full bg-amber-200/80"
-                animate={{ opacity: [0.35, 0.9, 0.35] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </div>
-          )}
-
-          <div className="mt-5 text-xs font-bold text-slate-300">{name || 'شركة مطبخ التراث الكويتي'}</div>
-
-          {isOffline && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/15 active:scale-95"
-            >
-              <RefreshCw size={16} />
-              إعادة المحاولة
-            </button>
-          )}
-        </motion.div>
-      </motion.div>
-    </div>
-  </MotionConfig>
-  );
-};
 const getMoneyValue = (item: any) => Number(item?.total || item?.totalAmount || item?.amount || item?.price || 0) || 0;
 const getItemName = (item: any, fallback = 'بدون اسم') => item?.name || item?.customerName || item?.title || item?.code || item?.id || fallback;
 const getAdminPageMeta = (page: string) => {
@@ -4275,42 +4097,20 @@ const MainApp: React.FC = () => {
   // whenever internet/Firestore is lost. There is no timeout bypass and no local mode.
   const shouldHoldCloudEntry = isAuthenticated && (!isOnline || dataLoading || !hasLoadedDataRef.current);
 
-  if (authLoading || shouldHoldCloudEntry) {
-    // One boot screen from the session check through the cloud sync: the auth and
-    // sync phases render the SAME element in the same tree position, so the shell
-    // stays mounted and only its status line changes (no remount, no flash between
-    // two loaders). Entry still waits for the cloud: the dashboard renders only
-    // after the authoritative cloud data has loaded.
-    // Offline stays on the authoritative full gate with its retry action.
+  if (authLoading || shouldHoldCloudEntry || (!isAuthenticated && !isOnline)) {
+    // The single boot screen: splash, session check, cloud sync and cloud loss all
+    // render the SAME AdminBootShell in the same tree position, so it stays mounted
+    // and only its status line changes. Entry still waits for the cloud: the
+    // dashboard renders only after the authoritative cloud data has loaded, and the
+    // shell returns (offline phase, with retry) whenever the cloud is lost.
+    const bootPhase = !isOnline
+      ? (cloudChecking ? 'checking' : 'offline')
+      : authLoading ? 'auth' : 'sync';
     return (
       <>
         {renderAuthError()}
         {renderQuotaError()}
-        {isOnline ? (
-          <AdminBootShell phase={authLoading ? 'auth' : 'sync'} />
-        ) : (
-          <CloudConnectionGate
-            logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
-            name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-            phase={cloudChecking ? 'sync' : 'offline'}
-            onRetry={handleManualRetryOffline}
-          />
-        )}
-        <Toaster richColors position="bottom-right" closeButton />
-      </>
-    );
-  }
-
-  if (!isAuthenticated && !isOnline) {
-    return (
-      <>
-        {renderAuthError()}
-        <CloudConnectionGate
-          logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
-          name={data?.settings?.companyName || 'شركة مطبخ التراث الكويتي'}
-          phase={cloudChecking ? 'sync' : 'offline'}
-          onRetry={handleManualRetryOffline}
-        />
+        <AdminBootShell phase={bootPhase} onRetry={handleManualRetryOffline} retrying={retryingOffline} />
         <Toaster richColors position="bottom-right" closeButton />
       </>
     );
@@ -4324,7 +4124,6 @@ const MainApp: React.FC = () => {
         <Login 
           logo={data?.settings?.companyLogo || DEFAULT_GLOBAL_LOGO}
           onLogin={() => {
-            armLoginIntro();
             hasLoadedDataRef.current = false;
             setDataLoading(true);
             setData(INITIAL_DATA);
@@ -4468,11 +4267,9 @@ const MainApp: React.FC = () => {
   return (
     <div className={`admin-heritage-shell${userRole === 'partner' ? ' partner-brand' : ''} flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font`} dir="rtl">
       <AmbientBackground />
-      <LoginIntro />
 
       {renderAuthError()}
       {renderQuotaError()}
-      <DataRefreshNotice show={Boolean(dataLoading && isAuthenticated)} mode={appMode} />
       <NetworkStatusNotice online={isOnline} />
       <AdminOnboardingModal
         open={onboardingOpen}
@@ -4703,7 +4500,7 @@ const MainApp: React.FC = () => {
       <div className={cn(
         "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
       )}>
-        {/* Runtime cloud loss is handled by the full-screen CloudConnectionGate above. */}
+        {/* Runtime cloud loss is handled by the full-screen AdminBootShell above. */}
         {/* Top Header */}
         <header 
           onClick={closeAllMenus}
