@@ -4823,10 +4823,6 @@ html body .login-brand-stage h1 {
   .supplier-transfer-modal textarea{
     min-height: 54px !important;
   }
-  .supplier-transfer-modal .grid.grid-cols-1.sm\:grid-cols-2{
-    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
-    gap: 9px !important;
-  }
   .supplier-transfer-modal .bg-slate-50.border.border-slate-100.rounded-3xl{
     border-radius: 18px !important;
     padding: 9px !important;
