@@ -23,6 +23,11 @@ interface SupplierAuditProps {
 
 const SUPPLIER_AUDIT_SEARCH_INPUT_ID = 'supplier-audit-search-input';
 
+// Keep payment adjustments in integer fils (1 KWD = 1000 fils), not floating-point subtraction.
+const kwdFils = (value: number) => Math.round(Number(value || 0) * 1000);
+const netAfterDiscount = (total: number, discount: number) =>
+  Math.max(0, kwdFils(total) - kwdFils(discount)) / 1000;
+
 const getInvoiceDeliverySettlement = (inv: any, supId: string, data: any) => { return getInvoiceDeliverySettlementForSupplier(inv, supId, data); };
 const getInvoiceDeliverySettlement_old = () => 0;
 
@@ -190,7 +195,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  setTransferForm(prev => ({ 
  ...prev, 
  supplierId: initialSupplierId,
- amount: Math.max(0, initialBalance - suggestedDiscount),
+ amount: netAfterDiscount(initialBalance, suggestedDiscount),
  discountAmount: suggestedDiscount
  }));
  }
@@ -211,7 +216,8 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      const rounded = Math.max(0, Math.round(nextBalance * 1000) / 1000);
      const supplier = (data?.suppliers || []).find(s => s.id === prev.supplierId);
      const discount = Math.round(rounded * Math.max(0, Number((supplier as any)?.discountPercent || 0)) / 100 * 1000) / 1000;
-     return prev.amount === Math.max(0, rounded - discount) && prev.discountAmount === discount ? prev : { ...prev, amount: Math.max(0, rounded - discount), discountAmount: discount };
+     const cashAmount = netAfterDiscount(rounded, discount);
+      return prev.amount === cashAmount && prev.discountAmount === discount ? prev : { ...prev, amount: cashAmount, discountAmount: discount };
    });
  }, [transferForm.supplierId, transferForm.id, supplierOutstandingMap, data?.suppliers]);
  
@@ -239,7 +245,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
      return;
    }
    const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
-   if (enteredAmount + discountAmount > Math.round(currentBalance * 1000) / 1000) {
+   if (kwdFils(enteredAmount) + kwdFils(discountAmount) > kwdFils(currentBalance)) {
      toast.error("المبلغ المدخل يتجاوز مديونية المورد!", {
        description: `التحويل والخصم معاً يتجاوزان المستحق ${Number(currentBalance).toFixed(3)} د.ك.`,
        position: 'bottom-right'
@@ -252,7 +258,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    const oldDiscount = oldTransfer ? Number((oldTransfer as any).discountAmount || 0) : 0;
    const maxAllowed = currentBalance + oldAmount + oldDiscount;
    const enteredAmount = Math.round(transferForm.amount * 1000) / 1000;
-   if (enteredAmount + discountAmount > Math.round(maxAllowed * 1000) / 1000) {
+   if (kwdFils(enteredAmount) + kwdFils(discountAmount) > kwdFils(maxAllowed)) {
      toast.error("تعديل المبلغ يتجاوز إجمالي مديونية المورد!", {
        description: `أقصى مبلغ متاح للتحويل هو ${Number(maxAllowed).toFixed(3)} د.ك.`,
        position: 'bottom-right'
@@ -636,7 +642,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
    setTransferForm({
      ...transferForm,
      supplierId: nextSupplierId,
-     amount: transferForm.id ? transferForm.amount : Math.max(0, Math.round(nextBalance * 1000) / 1000 - discountAmount),
+     amount: transferForm.id ? transferForm.amount : netAfterDiscount(nextBalance, discountAmount),
      discountAmount: transferForm.id ? Number((transferForm as any).discountAmount || 0) : discountAmount
    });
  }}
@@ -657,7 +663,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  const clean = Math.round(((selectedSupplierSummary?.balance ?? 0)) * 1000) / 1000;
  const supplier = (data?.suppliers || []).find(s => s.id === transferForm.supplierId);
  const discountAmount = Math.round(clean * Math.max(0, Number((supplier as any)?.discountPercent || 0)) / 100 * 1000) / 1000;
- setTransferForm({ ...transferForm, amount: Math.max(0, clean - discountAmount), discountAmount });
+ setTransferForm({ ...transferForm, amount: netAfterDiscount(clean, discountAmount), discountAmount });
  }}
  className="text-[11px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded border border-emerald-100 font-bold hover:bg-emerald-100 cursor-pointer transition-colors"
  >
@@ -693,7 +699,7 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  )}
  <input 
  type="number" 
- step="0.25"
+ step="0.001"
  className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 px-4 outline-none focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all font-bold text-slate-800 text-right"
  placeholder="0.000"
  value={transferForm.amount || ''}
@@ -709,9 +715,13 @@ const SupplierAudit: React.FC<SupplierAuditProps> = ({ data, setData, initialSup
  aria-label="خصم المورد المتفق عليه بالدينار الكويتي"
  value={transferForm.discountAmount || ''}
  onChange={(e) => {
-   const discountAmount = Math.max(0, Number(e.target.value) || 0);
-   const combinedSettlement = Number(transferForm.amount || 0) + Number(transferForm.discountAmount || 0);
-   setTransferForm({ ...transferForm, discountAmount, amount: Math.max(0, combinedSettlement - discountAmount) });
+   const discountAmount = Math.max(0, kwdFils(Number(e.target.value))) / 1000;
+   const combinedSettlementFils = kwdFils(transferForm.amount) + kwdFils(transferForm.discountAmount);
+   setTransferForm({
+     ...transferForm,
+     discountAmount,
+     amount: Math.max(0, combinedSettlementFils - kwdFils(discountAmount)) / 1000
+   });
  }}
  className="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-3 font-bold text-slate-800 text-right disabled:cursor-not-allowed disabled:opacity-60"
  placeholder={transferForm.supplierId ? '0.000' : 'اختر المورد أولاً'}
