@@ -21,10 +21,20 @@ interface Particle {
   type: ParticleType;
 }
 
+// Only recent items count as live work; an invoice left unpaid for weeks kept the orb "busy" forever.
+const ACTIVE_WINDOW_MS = 48 * 60 * 60 * 1000;
+export function countActivePending(data: Pick<AppState, 'orders' | 'invoices'>, now = Date.now()) {
+  const isRecent = (item: any) => {
+    const time = new Date(item?.createdAt || item?.date || 0).getTime();
+    return Number.isFinite(time) && now - time <= ACTIVE_WINDOW_MS;
+  };
+  const pendingOrders = (data.orders || []).filter((o: any) => (o.status === 'pending' || o.status === 'failed') && isRecent(o)).length;
+  const pendingInvoices = (data.invoices || []).filter((i: any) => i.paymentStatus === 'pending' && !i.isDeleted && isRecent(i)).length;
+  return pendingOrders + pendingInvoices;
+}
+
 const SystemPulseOrb: React.FC<Props> = ({ data }) => {
-  const pendingOrders = (data.orders || []).filter(o => o.status === 'pending' || o.status === 'failed').length;
-  const pendingInvoices = (data.invoices || []).filter(i => i.paymentStatus === 'pending' && !i.isDeleted).length;
-  const pendingCount = pendingOrders + pendingInvoices;
+  const pendingCount = countActivePending(data);
   const isBusy = pendingCount > 0;
   
   const [showTooltip, setShowTooltip] = useState(false);
