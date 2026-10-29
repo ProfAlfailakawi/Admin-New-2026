@@ -152,7 +152,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  playKey="expense:donut"
  centerLabel={Number(totalExpenses || 0).toFixed(3)}
  centerSub="د.ك"
- slices={categoryTotals.map(([cat, amt]) => ({ key: cat, label: cat, value: amt, valueLabel: `${amt.toFixed(3)} د.ك` }))}
+ slices={categoryTotals.map(([cat, amt]) => ({ key: cat, label: String(displayLabel(cat)), value: amt, valueLabel: `${amt.toFixed(3)} د.ك` }))}
  />
  </div>
  </div>
@@ -230,7 +230,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  <div className="flex items-center gap-2 text-slate-500 font-bold text-[11px] uppercase tracking-tighter">
  {expense.paymentMethod === 'BankTransfer' ? 'حوالة' : 
  expense.paymentMethod === 'KNet' ? displayLabel('KNET') :
- expense.paymentMethod === 'Cash' ? 'كاش' : expense.paymentMethod}
+ expense.paymentMethod === 'Cash' ? 'كاش' : displayLabel(expense.paymentMethod)}
  </div>
  </td>
  <td className="p-3 md:p-3 text-left">
@@ -255,13 +255,29 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
 ))}
  {(filteredExpenses || []).length === 0 && (
  <tr key="empty-state"><td colSpan={5} className="py-20 px-4 text-center">
+ {(data?.expenses || []).length > 0 ? (
+ <DnaEmpty
+ icon={<Search />}
+ title="ما لقينا مصروف يطابق البحث"
+ hint="جرّب كلمة ثانية، أو امسح البحث لترجع كل المصروفات."
+ action={
+ <button
+ type="button"
+ onClick={() => setSearch('')}
+ className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95 mx-auto"
+ >
+ مسح البحث
+ </button>
+ }
+ />
+ ) : (
  <DnaEmpty
  icon={<Wallet />}
  title="ماكو مصاريف!"
  hint="لم تسجل أي مصروفات حتى الآن. أضف أول مصروف لتبدأ بتتبع تدفقاتك النقدية بدقة."
  action={
  <button 
- onClick={() => { setShowModal(true); }} 
+ onClick={openAddModal} 
  className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95 mx-auto"
  >
  <Plus size={24} />
@@ -269,6 +285,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  </button>
  }
  />
+ )}
  </td>
  </tr>
 )}
@@ -284,7 +301,7 @@ const ExpensePage: React.FC<ExpensePageProps> = ({ data, setData, deepLinkData, 
  animate={{ opacity: 1 }} 
  exit={{ opacity: 0 }} 
  className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
- onClick={() => setShowModal(false)}
+ onClick={closeModal}
  >
  <motion.div 
  initial={{ opacity: 0, scale: 0.95, y: 20 }}

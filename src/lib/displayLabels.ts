@@ -7,6 +7,8 @@ const LABELS: Record<string, string> = {
   KNet: 'كي-نت',
   VIP: 'مميز',
   Ctrl: 'كنترول',
+  General: 'عام',
+  Link: 'رابط دفع',
 };
 
 /** Returns the Arabic display label for a raw value, or the raw value when none is mapped. */
