@@ -3045,7 +3045,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {items.map((item, idx) => (
                   <button key={idx} onClick={() => { setGeneratedImage(item.url); setAiImage(item.url); setAiCaption(item.caption); if (item.format) setSelectedFormat(item.format); if (item.mode) setRealityMode(item.mode); if (item.background) setBackgroundPreset(item.background); if (item.packId) setSelectedPulseId(item.packId); if (item.place) setSelectedOrderPlace(item.place); if (item.mood) setSelectedMood(item.mood); if (item.customIdea) { setCustomThemeQuery(item.customIdea); setSelectedTheme('مخصص'); } setShowImageSettings(true); setStudioTab(archiveTab === 'image' ? 'product' : 'create'); }} className="group break-inside-avoid rounded-3xl overflow-hidden border border-slate-200/50 bg-white shadow-sm hover:shadow-xl hover:-translate-y-1 opacity-90 saturate-[0.85] hover:opacity-100 hover:saturate-100 transition-all duration-500 block w-full text-right outline-none">
-                    <img src={item.url} className="w-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
+                    <img src={item.url} alt="" className="w-full object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" />
                     <div className="p-4 bg-white/80 backdrop-blur-sm text-[11px] font-bold text-slate-600 line-clamp-2 md:leading-relaxed">{archiveTab === 'image' ? 'صورة منتج' : 'صورة من فكرة'}</div>
                   </button>
                 ))}

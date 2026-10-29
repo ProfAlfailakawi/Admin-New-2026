@@ -130,7 +130,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
               {history.slice(0, 8).map((item, idx) => (
                 <button key={idx} onClick={() => { setGeneratedBaseImage(item.url); setResultText(item.text); setTopic(item.topic); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
                   {item.url ? (
-                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                  <img src={item.url} alt="" className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
                   ) : (
                   <div className="w-full aspect-square bg-gradient-to-br from-rose-50 to-orange-50 flex items-center justify-center text-rose-400"><ImageIcon size={28} /></div>
                   )}
