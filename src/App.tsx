@@ -1672,6 +1672,9 @@ const MainApp: React.FC = () => {
 
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [deepLinkData, setDeepLinkData] = useState<any>(getInitialPushDeepLink() || {});
+  // Stable: pages list it in effect deps, so an inline () => {} re-applied the deep-link
+  // search on every App re-render (each scroll) and the search could never be cleared.
+  const clearDeepLink = React.useCallback(() => setDeepLinkData({}), []);
 
   // Removed ADMIN_PUSH_DEEPLINK_FORCE_REPORTS_EFFECT causing navigation lock
 
@@ -3928,6 +3931,8 @@ const MainApp: React.FC = () => {
     preloadAdminPage(page);
     if (options?.resetInvoice) setEditingInvoiceId(null);
     setCurrentPage(page);
+    // A deep link (push, Ctrl+K) belongs to the page it opened; never carry its search into the next page.
+    setDeepLinkData({});
     setNotifOpen(false);
     setCommandBarOpen(false);
     // On desktop the navigation stays open and stable. On phones it closes
@@ -4207,10 +4212,10 @@ const MainApp: React.FC = () => {
           onClearDeepLink={() => {}}
         />
       );
-      case 'customers': return <CustomerPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
-      case 'products': return <ProductPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
+      case 'customers': return <CustomerPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={clearDeepLink} />;
+      case 'products': return <ProductPage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={clearDeepLink} />;
       case 'suppliers': return <SupplierPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
-      case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={() => {}} />;
+      case 'expenses': return <ExpensePage data={data} setData={setData} deepLinkData={deepLinkData} onClearDeepLink={clearDeepLink} />;
       case 'orders': return <OrderPage data={data} setData={setData} setCurrentPage={setCurrentPage} setDeepLinkData={setDeepLinkData} isPartner={false} />;
       case 'coupons':
       case 'loyalty':
