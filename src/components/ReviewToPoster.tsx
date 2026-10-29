@@ -8,6 +8,7 @@ import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { buildTextRealityPrompt } from '../lib/studioReality';
 import { buildStudioTastePrompt, recordStudioTasteChoice } from '../lib/studioLearning';
+import { apiAuthHeaders } from '../lib/apiAuthHeaders';
 
 export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,7 @@ export const ReviewToPoster: React.FC<{ data: any; setData: any }> = ({ data, se
       const imgPrompt = buildTextRealityPrompt('Review-to-poster real Kuwaiti home-order hero image', review, 'Represent the food/service mentioned in the review as a believable photographed Kuwaiti order moment. Use realistic home table, diwaniya, delivery packaging, chalet, or prep counter context. Make it feel like a real customer or photographer in Kuwait actually captured it. Do not imply a dine-in restaurant.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json();

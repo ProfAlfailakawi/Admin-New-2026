@@ -8,6 +8,7 @@ import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { buildTextRealityPrompt } from '../lib/studioReality';
 import { buildStudioTastePrompt, recordStudioTasteChoice } from '../lib/studioLearning';
+import { apiAuthHeaders } from '../lib/apiAuthHeaders';
 
 export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [loading, setLoading] = useState(false);
@@ -72,7 +73,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       
       const txtRes = await fetch('/api/smart-studio/text-ideas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ prompt })
       });
       const txtData = await txtRes.json();
@@ -81,7 +82,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
       const imgPrompt = buildTextRealityPrompt('Realtime Kuwaiti home-order trend social image', eventLabel, 'Connect the event to a believable Kuwaiti home-order or gathering scene for rice dishes, fish, mahshi, grape leaves, or occasional grills: if rain use warm home table, if traffic use delivery packaging, if weekend use chalet/diwaniya gathering, if sports/national use casual Kuwaiti diwaniya/home gathering without flags/text/heritage props. Never show coffee, incense, dallah, sadu, lanterns, cafe props, or fantasy decor. Do not imply a dine-in restaurant.');
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json();
@@ -129,7 +130,7 @@ export const RealtimeRadar: React.FC<{ data: any; setData: any }> = ({ data, set
               {history.slice(0, 8).map((item, idx) => (
                 <button key={idx} onClick={() => { setGeneratedBaseImage(item.url); setResultText(item.text); setTopic(item.topic); }} className="group rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all text-right">
                   {item.url ? (
-                  <img src={item.url} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
+                  <img src={item.url} alt="" className="w-full aspect-square object-cover group-hover:scale-105 transition-transform" />
                   ) : (
                   <div className="w-full aspect-square bg-gradient-to-br from-rose-50 to-orange-50 flex items-center justify-center text-rose-400"><ImageIcon size={28} /></div>
                   )}

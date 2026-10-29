@@ -11325,6 +11325,11 @@ ${JSON.stringify(allComments)}
     throw lastError || new Error("No smart studio image model available");
   };
 
+  // SECURITY: same gate as /api/ai — every studio route calls a paid image/video/text model,
+  // so only an authorized admin/partner session may call it. The studio front end sends the
+  // Firebase ID token on each call (src/lib/apiAuthHeaders.ts).
+  app.use("/api/smart-studio", waRequireConsoleAuth);
+
   app.post("/api/smart-studio/generate", express.json({ limit: '50mb' }), async (req, res) => {
     try {
       const { imageContent, mimeType, format, theme, mood, realityMode, backgroundPreset, strictPlateLock, realityBoost, correctionHint, tasteProfile, sceneLabel, shotType, directorSceneDirection, shotDirectorDirection, sceneProductionGuide } = req.body;

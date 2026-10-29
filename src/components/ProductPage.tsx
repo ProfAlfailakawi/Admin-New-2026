@@ -1234,13 +1234,29 @@ const ProductPage: React.FC<ProductPageProps> = ({
           >
           {(visibleProducts || []).length === 0 ? (
             <div className="col-span-full">
+              {(data?.products || []).length > 0 ? (
+              <DnaEmpty
+                icon={<Search />}
+                title="ما لقينا منتج يطابق البحث"
+                hint="جرّب كلمة ثانية، أو امسح البحث والفلاتر لترجع القائمة كاملة."
+                action={
+                  <button
+                    type="button"
+                    onClick={() => { setSearch(""); setFilterType("all"); setSelectedSupplierId("all"); }}
+                    className="bg-primary text-white hover:bg-primary/90 px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
+                  >
+                    مسح البحث والفلاتر
+                  </button>
+                }
+              />
+              ) : (
               <DnaEmpty
                 icon={<Package />}
                 title="ماكو منتجات حالياً!"
                 hint="قائمتك فارغة تماماً. أضف أول صنف وابدأ في رحلة الأرباح وتحليل التكاليف."
                 action={
                   <button
-                    onClick={() => setShowModal(true)}
+                    onClick={openAddModal}
                     className="bg-primary text-white hover:bg-primary/90 px-3 min-[360px]:px-4 md:px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95"
                   >
                     <Plus size={24} />
@@ -1248,6 +1264,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
                   </button>
                 }
               />
+              )}
             </div>
           ) : (
             (visibleProducts || []).map((product) => {
@@ -1567,7 +1584,7 @@ const ProductPage: React.FC<ProductPageProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3"
-            onClick={() => setShowModal(false)}
+            onClick={closeModal}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
