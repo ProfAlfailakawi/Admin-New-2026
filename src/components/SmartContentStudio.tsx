@@ -17,6 +17,7 @@ import { KUWAIT_CONTENT_GOALS, KUWAIT_PLACES, KUWAIT_PULSE_PACKS, buildKuwaitCap
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { analyzeAlturathStudioIdea, getAlturathDishProfile, getAlturathProductGroups, getAlturathProductName, getAlturathProductSuggestions, type AlturathStudioBrainResult } from '../lib/alturathStudioBrain';
 import { buildAITrainingContext, recordAITrainingSignal, runAISelfTrainingCycle } from '../lib/aiLearningCore';
+import { apiAuthHeaders } from '../lib/apiAuthHeaders';
 
 
 // Display-only: maps the emoji kept in scene/place/mood config to calm line icons.
@@ -1255,7 +1256,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
       const imagePayload = sourceImage ? getDataImagePayload(sourceImage) : null;
       const response = await fetch('/api/smart-studio/live-director', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({
           imageContent: imagePayload?.imageContent,
           mimeType: imagePayload?.mimeType,
@@ -1294,7 +1295,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
         .filter(Boolean);
       const response = await fetch('/api/smart-studio/recommend-scene', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({
           image: imageDataUrl,
           productHints,
@@ -1513,7 +1514,7 @@ export const SmartContentStudio: React.FC<SmartContentStudioProps> = ({ data, se
     try {
       const response = await fetch('/api/smart-studio/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({
           imageContent: sourceImage.split(',')[1],
           mimeType: sourceImage.split(';')[0].split(':')[1],
@@ -1620,7 +1621,7 @@ ${isKuwaitTowersScene(activeStudioScene) ? KUWAIT_TOWERS_STRICT_REFERENCE_LOCK :
 Generate a believable Kuwaiti occasion / delivery / gathering image without requiring a product upload. The selected scene is mandatory: ${activeStudioScene.label}. ${sceneDirectorLock(activeStudioScene)} Make it look like a real photographed Kuwaiti order moment, suitable for menu/social/product use. No readable text inside the image. ${STUDIO_NEGATIVE_PROMPT}`;
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ prompt, format: selectedFormat, realityBoost: true, sceneId: activeStudioScene.id, sceneLabel: activeStudioScene.label, shotType: reelShot, directorSceneDirection: sceneDirectorLock(activeStudioScene), shotDirectorDirection: shotDirectorLock(reelShot), sceneProductionGuide: getSceneProductionGuide(activeStudioScene), tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json().catch(() => ({}));
@@ -1701,7 +1702,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
         const payload = getDataImagePayload(current);
         const response = await fetch('/api/smart-studio/reality-audit', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await apiAuthHeaders(),
           body: JSON.stringify({ ...payload, publishGate: true, sourcePrompt: `${buildSettingsText()} / ${candidate.label}` })
         });
         const audit = await response.json().catch(() => null) as RealityAuditResult | null;
@@ -1736,7 +1737,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       const payload = getDataImagePayload(source);
       const response = await fetch('/api/smart-studio/reality-audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify(payload)
       });
       if (!response.ok) throw new Error('ما قدرنا نفحص الواقعية');
@@ -1759,7 +1760,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       const payload = getDataImagePayload(source);
       const response = await fetch('/api/smart-studio/reality-audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ ...payload, publishGate: true, sourcePrompt: buildSettingsText() })
       });
       if (!response.ok) throw new Error('ما قدرنا نفحص جودة الصورة');
@@ -1811,7 +1812,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
     try {
       const response = await fetch('/api/smart-studio/reel-quality-audit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify(buildReelQualityPayload())
       });
       if (!response.ok) throw new Error('ما قدرنا نفحص جودة الريل');
@@ -2146,7 +2147,7 @@ Generate a believable Kuwaiti occasion / delivery / gathering image without requ
       }
       const response = await fetch('/api/smart-studio/generate-reel', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify(payload)
       });
       const result = await response.json().catch(() => null);

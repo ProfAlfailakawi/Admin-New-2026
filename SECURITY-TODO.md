@@ -26,6 +26,10 @@
 ### B) ثغرات موثّقة ومتروكة للمالك (LEFT — need owner decision)
 
 **B1. نقاط `/api/smart-studio/*` بلا مصادقة — MEDIUM (auth gap + AI cost abuse)**
+- **الحالة (2026-10-29): أُصلحت.** الحارس `app.use("/api/smart-studio", waRequireConsoleAuth)`
+  مضاف في `server.ts` قبل كل مسارات الاستوديو، وكل نداءات الواجهة الـ14 ترسل توكن الجلسة عبر
+  `src/lib/apiAuthHeaders.ts`. الاختبار `src/tests/smartStudioAuth.test.ts` يمنع رجوع الثغرة
+  (نداء بلا توكن → 401، حساب غير مصرّح → 403، الأدمن والشريك يمرّون). الوصف أدناه للتاريخ.
 - الملف: `server.ts` (تعريفات المسارات ~`11165`–`12166`).
 - الوصف: مسارات `/api/ai/*` محميّة عبر `app.use("/api/ai", waRequireConsoleAuth)`
   (`server.ts:10345`)، لكن مسارات `/api/smart-studio/*` (generate, generate-from-text,

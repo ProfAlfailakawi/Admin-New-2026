@@ -7,6 +7,7 @@ import { BrandingControls } from './BrandingControls';
 import { loadStudioArchive, saveStudioArchive } from '../lib/studioArchive';
 import { buildTextRealityPrompt } from '../lib/studioReality';
 import { buildStudioTastePrompt, recordStudioTasteChoice } from '../lib/studioLearning';
+import { apiAuthHeaders } from '../lib/apiAuthHeaders';
 
 export const AdaptiveBranding: React.FC<{ data: any; setData: any }> = ({ data, setData }) => {
   const [activeTheme, setActiveTheme] = useState('morning');
@@ -75,7 +76,7 @@ No markdown formatting, just pure JSON.`;
       
       const res = await fetch('/api/smart-studio/text-ideas', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ prompt })
       });
       
@@ -89,7 +90,7 @@ No markdown formatting, just pure JSON.`;
       
       const imgRes = await fetch('/api/smart-studio/generate-from-text', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await apiAuthHeaders(),
         body: JSON.stringify({ prompt: imgPrompt, format: selectedFormat, realityBoost: true, tasteProfile: buildStudioTastePrompt() })
       });
       const imgData = await imgRes.json();
