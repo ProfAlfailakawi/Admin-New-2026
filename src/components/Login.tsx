@@ -169,7 +169,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
               className="bg-[#fbf7ee] rounded-3xl shadow-xl border border-[#d4af37]/40 p-6 max-w-sm w-full relative"
               dir="rtl"
             >
-              <button onClick={handleCloseIOSPrompt} className="absolute top-3 left-3 p-3 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
+              <button onClick={handleCloseIOSPrompt} aria-label="إغلاق" className="absolute top-3 left-3 p-3 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
                 <X size={20} />
               </button>
               <div className="flex items-center gap-3 mb-4 border-b border-slate-100 pb-4">
