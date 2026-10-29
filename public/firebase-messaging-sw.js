@@ -4,12 +4,90 @@ const PUSH_DEDUPE_CACHE = "alturath-push-dedupe-v1";
 const PUSH_DEDUPE_TTL_MS = 48 * 60 * 60 * 1000;
 const PUSH_IN_FLIGHT_KEYS = new Set();
 
+/* "We are updating" page instead of Google's English error page.
+   While Cloud Run swaps servers during a deploy, Google's front end can answer with a
+   500/502/503/504 HTML page our server never wrote. This worker stores /updating.html
+   at install and serves it (503, no-store) for a GET navigation that gets one of those
+   statuses, or that drops while the device says it is online. The page polls
+   /api/health and reopens the same URL when the server is back.
+   It never answers /api, non-GET or non-navigation requests, never changes a
+   successful response, and never stores a 5xx. Nothing here touches push. */
+const UPDATING_CACHE = "alturath-updating";
+const UPDATING_PAGE = "/updating.html";
+
+function isUpdatingStatus(status) {
+  return status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+async function storeUpdatingPage() {
+  try {
+    const response = await fetch(UPDATING_PAGE, { cache: "no-store" });
+    if (!response.ok || !String(response.headers.get("content-type") || "").includes("text/html")) return;
+    const cache = await caches.open(UPDATING_CACHE);
+    await cache.put(UPDATING_PAGE, response);
+  } catch (e) {
+    // Stored again after the next successful navigation.
+  }
+}
+
+// A cache purge (app-update.ts) may have removed it: refill without waiting.
+async function refillUpdatingPage() {
+  try {
+    const cache = await caches.open(UPDATING_CACHE);
+    if (!(await cache.match(UPDATING_PAGE))) await storeUpdatingPage();
+  } catch (e) {}
+}
+
+async function updatingResponse() {
+  try {
+    const cache = await caches.open(UPDATING_CACHE);
+    const page = await cache.match(UPDATING_PAGE);
+    if (!page) return null;
+    return new Response(await page.text(), {
+      status: 503,
+      statusText: "Service Unavailable",
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Retry-After": "5", "X-Alturath-Updating": "1" },
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function navigateOrUpdating(request) {
+  let response;
+  try {
+    response = await fetch(request);
+  } catch (error) {
+    if (self.navigator?.onLine !== false) {
+      const page = await updatingResponse();
+      if (page) return page;
+    }
+    throw error;
+  }
+  if (isUpdatingStatus(response.status)) return (await updatingResponse()) || response;
+  if (response.ok) void refillUpdatingPage();
+  return response;
+}
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
+  event.waitUntil(storeUpdatingPage());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.mode !== "navigate" || request.method !== "GET") return;
+  try {
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname === "/run-alerts") return;
+  } catch (e) {
+    return;
+  }
+  event.respondWith(navigateOrUpdating(request));
 });
 
 async function wasPushAlreadyShown(eventId) {
