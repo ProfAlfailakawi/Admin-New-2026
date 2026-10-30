@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import vm from 'node:vm';
-import { isPlatformUpdating, UPDATING_MESSAGE } from '../lib/updatingNotice';
+import { isPlatformUpdating, UPDATING_MESSAGE, UPDATING_TITLE } from '../lib/updatingNotice';
 
 // During a Cloud Run deploy Google's front end answers with an English 5xx HTML page
 // our server never wrote. The push worker serves public/updating.html instead for a
@@ -64,7 +64,7 @@ const deploying = (status: number | 'drop'): Net => async (pathname) => {
 };
 const isUpdatingPage = async (response: Response | null) =>
   Boolean(response) && response!.status === 503 && response!.headers.get('cache-control') === 'no-store'
-  && /text\/html/.test(response!.headers.get('content-type') || '') && (await response!.clone().text()).includes('نُحدّث البرنامج الآن');
+  && /text\/html/.test(response!.headers.get('content-type') || '') && (await response!.clone().text()).includes('يجري تحديث لوحة الإدارة');
 
 describe('the push worker serves the updating page mid-deploy', () => {
   for (const status of [500, 502, 503, 504]) {
@@ -143,7 +143,8 @@ describe('public/updating.html', () => {
     expect(PAGE).toMatch(/prefers-color-scheme:dark/);
     expect(PAGE).toMatch(/prefers-reduced-motion/);
     expect(PAGE).toMatch(/<title>[^<]*التراث<\/title>/);
-    for (const text of ['نُحدّث البرنامج الآن ✨', 'لحظاتٍ ونعود', 'أعد المحاولة الآن']) expect(PAGE).toContain(text);
+    for (const text of ['صيانة جارية', 'يجري تحديث لوحة الإدارة', 'تلقائياً', 'إعادة الفحص الآن', 'آخر فحص للخادم']) expect(PAGE).toContain(text);
+    expect(PAGE).toMatch(/id="note" role="status" aria-live="polite"/);
   });
 
   const script = /<script>([\s\S]*?)<\/script>/.exec(PAGE)?.[1] || '';
@@ -199,7 +200,7 @@ describe('public/updating.html', () => {
     const offline = run({ health: [true], online: false });
     await offline.step();
     expect(offline.asked.length).toBe(0);
-    expect(offline.nodes.title.textContent).toContain('لا اتصال');
+    expect(offline.nodes.title.textContent).toContain('غير متصل');
   });
 });
 
@@ -211,7 +212,8 @@ describe('in the app', () => {
     expect(isPlatformUpdating(500, 'application/json; charset=utf-8')).toBe(false);
     expect(isPlatformUpdating(404, 'text/html')).toBe(false);
     expect(isPlatformUpdating(200, 'text/html')).toBe(false);
-    expect(UPDATING_MESSAGE).toContain('نُحدّث البرنامج');
+    expect(UPDATING_TITLE).toBe('صيانة جارية');
+    expect(UPDATING_MESSAGE).toContain('تحديث لوحة الإدارة');
   });
 
   it('the watch is installed at boot and passes every response through unchanged', () => {

@@ -1,9 +1,10 @@
 /**
- * «نُحدّث البرنامج» داخل التطبيق.
+ * إشعار «صيانة جارية» داخل التطبيق.
  *
  * أثناء النشر تجيب واجهةُ Google الأمامية طلباتِ /api بصفحة HTML إنجليزية
  * (500/502/503/504) لا يكتبها خادمُنا، فهو يجيب /api بـJSON دائماً. هنا يُعرف ذلك
- * الجواب، ويظهر شريطٌ هادئ واحد أسفل الشاشة، ويُسأل /api/health حتى يعود الخادم،
+ * الجواب، ويظهر إشعارٌ واحد بشكل إشعارات اللوحة (sonner: أسفل اليمين، حوافّ 22px،
+ * عنوان ووصف)، ويُسأل /api/health حتى يعود الخادم،
  * فيختفي الشريط ويُطلق حدث SERVER_BACK_EVENT.
  *
  * المراقبة لا تغيّر أيّ جواب: الطلبُ يعود إلى صاحبه كما جاء، فلا يتغيّر سلوكُ أيّ شاشة.
@@ -11,7 +12,8 @@
 
 const UPDATING_STATUSES = new Set([500, 502, 503, 504]);
 
-export const UPDATING_MESSAGE = 'نُحدّث البرنامج الآن ✨ لحظاتٍ ونعود.';
+export const UPDATING_TITLE = 'صيانة جارية';
+export const UPDATING_MESSAGE = 'يجري تحديث لوحة الإدارة، وتعود تلقائياً فور اكتماله.';
 /** يُطلق على window حين يعود الخادم. */
 export const SERVER_BACK_EVENT = 'alturath:server-back';
 export const HEALTH_URL = '/api/health';
@@ -42,13 +44,26 @@ export function showUpdatingNotice(probe: () => Promise<boolean> = serverAnswers
   bar.setAttribute('role', 'status');
   bar.setAttribute('aria-live', 'polite');
   bar.dir = 'rtl';
-  bar.textContent = UPDATING_MESSAGE;
   bar.style.cssText = [
-    'position:fixed', 'inset-inline:0', 'bottom:max(18px,env(safe-area-inset-bottom))', 'margin:0 auto', 'width:max-content', 'max-width:calc(100vw - 32px)',
-    'z-index:2147483000', 'padding:11px 18px', 'border-radius:14px', 'font-family:inherit', 'font-size:14px', 'font-weight:700', 'line-height:1.6',
-    'background:var(--dna-surface,#fff)', 'color:var(--dna-ink,#14231a)', 'border:1px solid var(--dna-line-2,rgba(20,35,26,.16))',
-    'box-shadow:0 14px 36px rgba(15,61,31,.18)', 'text-align:center', 'pointer-events:none',
+    'position:fixed', 'right:max(16px,env(safe-area-inset-right))', 'bottom:max(16px,env(safe-area-inset-bottom))',
+    'width:356px', 'max-width:calc(100vw - 32px)', 'z-index:2147483000',
+    'display:flex', 'align-items:flex-start', 'gap:10px', 'padding:13px 16px', 'border-radius:22px',
+    'font-family:inherit', 'line-height:1.6', 'text-align:start', 'pointer-events:none',
+    'background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(255,250,242,.94))', 'color:var(--dna-ink,#14231a)',
+    'border:1px solid rgba(200,148,47,.28)', 'box-shadow:0 22px 62px rgba(24,51,38,.18)',
   ].join(';');
+  const dot = document.createElement('span');
+  dot.setAttribute('aria-hidden', 'true');
+  dot.style.cssText = 'flex:none;width:8px;height:8px;margin-top:8px;border-radius:50%;background:#9a6b17;box-shadow:0 0 0 4px rgba(154,107,23,.16)';
+  const text = document.createElement('span');
+  const title = document.createElement('strong');
+  title.textContent = UPDATING_TITLE;
+  title.style.cssText = 'display:block;font-size:14px;font-weight:700';
+  const line = document.createElement('span');
+  line.textContent = UPDATING_MESSAGE;
+  line.style.cssText = 'display:block;font-size:13px;font-weight:500;color:var(--dna-muted,#5f6b63)';
+  text.append(title, line);
+  bar.append(dot, text);
   document.body.appendChild(bar);
   notice = bar;
   let tries = 0;
