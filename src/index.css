@@ -6892,3 +6892,16 @@ body:has(.ktk-boot) {
   .ktk-boot-logo::after { animation: none; opacity: 0.28; }
   .ktk-boot-rail span { animation: none; width: 92%; transform: none; }
 }
+
+
+/* iPhone Duo folded postures only. Unsupported/disabled Safari preview features
+   leave the existing site styles unchanged on every other device and posture. */
+@media (device-posture: folded) and (horizontal-viewport-segments: 2) {
+  html, body, #root { min-width: 0; max-width: 100%; }
+}
+@media (device-posture: folded) and (vertical-viewport-segments: 2) {
+  html, body, #root { min-width: 0; max-width: 100%; }
+}
+@media (device-posture: folded) and (orientation: landscape) and (max-height: 520px) {
+  html { scroll-padding-block: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom)); }
+}
