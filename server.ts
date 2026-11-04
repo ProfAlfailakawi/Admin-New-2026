@@ -3189,6 +3189,15 @@ async function waFindByBusinessId(id: string): Promise<WhatsAppLookupResult | nu
   return null;
 }
 
+// An order/invoice identifier is searchable, but it is not proof of ownership. When
+// the customer supplies an identifier in chat, only disclose data if the record's
+// phone matches the WhatsApp sender. Phone-based lookup already uses the sender.
+function waLookupBelongsToSender(result: WhatsAppLookupResult, senderPhone: string) {
+  const sender = waNormalizeKuwaitPhone8(senderPhone);
+  const owner = waNormalizeKuwaitPhone8(waCustomerPhone(result.data));
+  return Boolean(sender && owner && sender === owner);
+}
+
 async function waFindLatestByPhone(phone: string): Promise<WhatsAppLookupResult | null> {
   const last8 = waNormalizeKuwaitPhone8(phone);
   if (!last8) return null;
@@ -4168,7 +4177,12 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   const businessId = waExtractBusinessId(messageText);
   if (businessId) {
     const found = await waFindByBusinessId(businessId);
-    if (found) return waOrderReply(found);
+    if (found && waLookupBelongsToSender(found, fromPhone)) return waOrderReply(found);
+    if (found) return [
+      "لخصوصيتك، ما أقدر أعرض تفاصيل طلب اعتماداً على رقم الطلب وحده.",
+      "أقدر أتحقق من الطلب المرتبط برقم واتساب اللي تراسلنا منه، أو أحولك لموظف للمساعدة.",
+      `رابط التتبع الآمن: ${waTrackHomeUrl()}`,
+    ].join("\n");
     return [
       `ما حصلت هذا الرقم حالياً.`,
       "تأكد من رقم الطلب/الفاتورة أو جرّب رابط التتبع:",
@@ -4278,23 +4292,24 @@ function waExtractMessageText(message: any) {
 // messages: they would land in the inbox as real customers and make the bot send
 // WhatsApp messages to numbers of their choosing, which risks the number itself.
 //
-// Deliberately permissive while WHATSAPP_APP_SECRET is unset, so adding this cannot
-// take the live bot down. Set the secret to turn enforcement on.
+// Fail closed: accepting unsigned events would let anyone spoof customer messages and
+// trigger replies from the business number. A missing secret means the webhook is not
+// ready and must not process events.
 const WHATSAPP_APP_SECRET = () => String(process.env.WHATSAPP_APP_SECRET || "").trim();
 
 function waWebhookSignatureValid(req: any) {
   const secret = WHATSAPP_APP_SECRET();
-  if (!secret) return true;
+  if (!secret) return false;
 
   const raw = req?.rawBody;
   if (!Buffer.isBuffer(raw) || !raw.length) return false;
 
-  const received = waString(req?.headers?.["x-hub-signature-256"]);
+  const received = waString(req?.headers?.["x-hub-signature-256"]).toLowerCase();
   if (!received.startsWith("sha256=")) return false;
 
   const expected = `sha256=${crypto.createHmac("sha256", secret).update(raw).digest("hex")}`;
-  const a = Buffer.from(received);
-  const b = Buffer.from(expected);
+  const a = Buffer.from(received, "ascii");
+  const b = Buffer.from(expected, "ascii");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
