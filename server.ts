@@ -1702,7 +1702,7 @@ app.use((req, res, next) => {
     // to verify the signature. Kept to that one path: buffering every request would
     // hold a copy of uploads up to the 30mb limit for no reason.
     verify: (req: any, _res, buf) => {
-      if (String(req.originalUrl || req.url || "").startsWith("/api/whatsapp/webhook")) {
+      if (waShouldCaptureWhatsAppRawBody(req.originalUrl || req.url || "")) {
         req.rawBody = buf;
       }
     },
@@ -4336,6 +4336,11 @@ function waKapsoWebhookSignatureValid(req: any) {
   const a = Buffer.from(received, "ascii");
   const b = Buffer.from(expected, "ascii");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function waShouldCaptureWhatsAppRawBody(url: string) {
+  const pathname = waString(url).split("?", 1)[0];
+  return pathname === "/api/whatsapp/webhook" || pathname === "/api/whatsapp/kapso/webhook";
 }
 
 // Anything whose meaning lives outside the text: a photo of a dish, a voice note,

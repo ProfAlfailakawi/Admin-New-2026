@@ -43,6 +43,17 @@ describe('WhatsApp webhook signatures', () => {
     expect(kapso({})({ rawBody: raw, headers: { 'x-webhook-signature': signature } })).toBe(false);
   });
 
+  it('captures original request bytes for both signed WhatsApp webhook routes only', () => {
+    const stringHelpers = source.slice(source.indexOf('function waString'), source.indexOf('function waDigits'));
+    const rawBodyHelper = source.slice(source.indexOf('function waShouldCaptureWhatsAppRawBody'), source.indexOf('// Anything whose meaning lives outside the text'));
+    const compiled = ts.transpile(`${stringHelpers}\n${rawBodyHelper}\nreturn waShouldCaptureWhatsAppRawBody;`, { target: ts.ScriptTarget.ES2022 });
+    const shouldCapture = new Function(compiled)();
+    expect(shouldCapture('/api/whatsapp/webhook')).toBe(true);
+    expect(shouldCapture('/api/whatsapp/kapso/webhook?source=sandbox')).toBe(true);
+    expect(shouldCapture('/api/whatsapp/bridge/inbound')).toBe(false);
+    expect(shouldCapture('/api/whatsapp/webhook-malicious')).toBe(false);
+  });
+
   it('builds stable provider-scoped keys for deduplicating repeated deliveries', () => {
     const key = extractFunction('waKapsoMessageIdempotencyKey', 'function waStableIdempotencyKey', 'async function waClaimInboundMessage');
     expect(key('wamid.123')).toBe('kapso:wamid.123');
