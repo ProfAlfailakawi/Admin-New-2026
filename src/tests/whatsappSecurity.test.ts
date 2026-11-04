@@ -49,6 +49,22 @@ describe('WhatsApp webhook signatures', () => {
     expect(key('', 'event-456')).toBe('kapso:event-456');
     expect(key('', '')).toBe('');
   });
+
+  it('normalizes Kapso v2 message and buffered batch payloads without replying to passive/outbound events', () => {
+    const stringHelpers = source.slice(source.indexOf('function waString'), source.indexOf('function waDigits'));
+    const digitHelpers = source.slice(source.indexOf('function waDigits'), source.indexOf('function waMaskPhone'));
+    const arrays = source.slice(source.indexOf('function waAsArray'), source.indexOf('function waUnique'));
+    const textExtractor = source.slice(source.indexOf('function waExtractMessageText'), source.indexOf('// Meta signs every webhook POST'));
+    const normalizer = source.slice(source.indexOf('function waKapsoWebhookPayloads'), source.indexOf('async function waClaimInboundMessage'));
+    const compiled = ts.transpile(`${stringHelpers}\n${digitHelpers}\n${arrays}\n${textExtractor}\n${normalizer}\nreturn { waKapsoWebhookPayloads, waNormalizeKapsoInbound };`, { target: ts.ScriptTarget.ES2022 });
+    const { waKapsoWebhookPayloads, waNormalizeKapsoInbound } = new Function(compiled)();
+    const sample = { message: { id: 'wamid.1', type: 'text', from: '96550001234', from_user_id: 'KW.scoped', text: { body: 'السلام عليكم' }, kapso: { direction: 'inbound' } }, conversation: { phone_number: '96550001234', business_scoped_user_id: 'KW.scoped', contact_name: 'عميل' } };
+    expect(waKapsoWebhookPayloads({ batch: true, data: [sample] })).toEqual([sample]);
+    const normalized = waNormalizeKapsoInbound(sample, 'whatsapp.message.received');
+    expect(normalized).toMatchObject({ from: '96550001234', bsuid: 'KW.scoped', text: 'السلام عليكم', messageId: 'wamid.1', contactName: 'عميل', incoming: true });
+    expect(waNormalizeKapsoInbound({ ...sample, message: { ...sample.message, kapso: { passive: true } } }, 'whatsapp.message.received').incoming).toBe(false);
+    expect(waNormalizeKapsoInbound(sample, 'whatsapp.message.sent').incoming).toBe(false);
+  });
 });
 
 describe('WhatsApp privacy and normalized event handling', () => {

@@ -4396,6 +4396,28 @@ function waKapsoMessageIdempotencyKey(messageId: string, eventKey = "") {
   return waStableIdempotencyKey("kapso", messageId, eventKey);
 }
 
+function waKapsoWebhookPayloads(event: any) {
+  return event?.batch === true ? waAsArray(event.data) : [event];
+}
+
+function waNormalizeKapsoInbound(payload: any, eventName = "") {
+  const message = payload?.message || {};
+  const conversation = payload?.conversation || {};
+  const from = waDigits(message?.from || conversation?.phone_number || "");
+  const bsuid = waString(message?.from_user_id || conversation?.business_scoped_user_id || "");
+  return {
+    from,
+    bsuid,
+    text: waExtractMessageText(message),
+    type: waString(message?.type || "unknown"),
+    messageId: waString(message?.id || ""),
+    contactName: waString(conversation?.contact_name || message?.username || ""),
+    incoming: (!eventName || eventName === "whatsapp.message.received") && !message?.kapso?.passive && !conversation?.kapso?.thread?.passive && (!message?.kapso?.direction || message.kapso.direction === "inbound"),
+    raw: message,
+    conversation,
+  };
+}
+
 async function waClaimInboundMessage(source: string, messageId: string) {
   const cleanId = waString(messageId);
   if (!cleanId || !db || !firebaseInitialized) return true;
@@ -6093,37 +6115,38 @@ app.post("/api/whatsapp/kapso/webhook", async (req, res) => {
   if (WHATSAPP_TRANSPORT() !== "kapso") return res.status(409).json({ success: false, error: "Kapso is not the active WhatsApp transport" });
   if (!waKapsoWebhookSignatureValid(req)) return res.status(401).json({ success: false, error: "Invalid signature" });
   const event = req.body || {};
-  const messages = waAsArray(event.messages || event.value?.messages || (event.message ? [event.message] : []));
+  const eventName = waString(req.headers?.["x-webhook-event"]);
+  const payloads = waKapsoWebhookPayloads(event);
   const webhookIdempotencyKey = waString(req.headers?.["x-idempotency-key"]);
   const sendResults: any[] = [];
   let handledMessages = 0;
   try {
-    for (const message of messages) {
-      if (message?.from_me === true || message?.fromMe === true) continue;
-      const from = waDigits(message?.from || message?.from_phone || message?.wa_id || "");
-      const text = waExtractMessageText(message);
-      const type = waString(message?.type || "unknown");
-      const messageId = waString(message?.id || message?.message_id || "");
-      const bsuid = waString(message?.business_scoped_user_id || message?.from_user_id || "");
-      const identityRaw = from ? message : { ...message, business_scoped_user_id: bsuid };
+    for (const payload of payloads) {
+      const normalized = waNormalizeKapsoInbound(payload, eventName);
+      const message = payload?.message;
+      if (!message) continue;
+      const conversation = payload?.conversation || {};
+      for (const status of waAsArray(message?.kapso?.statuses)) {
+        const messageId = waString(status?.id || message?.id);
+        const state = waString(status?.status);
+        if (!messageId || !state || !db || !firebaseInitialized) continue;
+        await db.collection("whatsappProviderStatuses").doc(waBridgeDocId("kapso", messageId)).set({ messageId, provider: "kapso", status: state, timestamp: status?.timestamp || waNowIso(), recipientId: waMaskPhone(status?.recipient_id), updatedAt: waNowIso() }, { merge: true });
+      }
+
+      const { from, bsuid, text, type, messageId, contactName } = normalized;
+      if (!normalized.incoming) continue;
       if (!from && !bsuid) continue;
       handledMessages += 1;
       const processed = await waProcessInboundMessage({
         from,
         text,
         type,
-        contactName: waString(message?.username || message?.contact?.profile?.name || ""),
+        contactName,
         messageId,
-        raw: { ...identityRaw, idempotencyKey: waKapsoMessageIdempotencyKey(messageId, webhookIdempotencyKey) },
+        raw: { ...message, ...conversation, ...(!from ? { business_scoped_user_id: bsuid } : {}), idempotencyKey: waKapsoMessageIdempotencyKey(messageId, webhookIdempotencyKey) },
         source: "kapso",
       });
       sendResults.push(...waAsArray(processed?.sendResults));
-    }
-    for (const status of waAsArray(event.statuses || event.value?.statuses)) {
-      const messageId = waString(status?.id || status?.message_id);
-      const state = waString(status?.status || status?.event);
-      if (!messageId || !state || !db || !firebaseInitialized) continue;
-      await db.collection("whatsappProviderStatuses").doc(waBridgeDocId("kapso", messageId)).set({ messageId, provider: "kapso", status: state, timestamp: status?.timestamp || waNowIso(), updatedAt: waNowIso() }, { merge: true });
     }
     return res.status(200).json({ success: true, handledMessages, sendResults });
   } catch (error: any) {
