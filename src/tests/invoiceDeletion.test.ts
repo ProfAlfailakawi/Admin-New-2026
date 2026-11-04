@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deletionCovers, isHiddenAsDeleted } from '../lib/invoiceDeletion';
+import { deletionCovers, isHiddenAsDeleted, mergedInvoiceIsDeleted } from '../lib/invoiceDeletion';
 
 describe('invoice deletion visibility', () => {
   it('hides a deleted unpaid invoice', () => {
@@ -31,5 +31,17 @@ describe('invoice deletion visibility', () => {
 
   it('keeps the old behaviour when no deletion time is recorded', () => {
     expect(deletionCovers({ id: 'INV-1', isDeleted: true }, { id: 'INV-1', date: '2026-10-02T09:00:00Z' })).toBe(true);
+  });
+
+  it('hides an invoice when both archive and mirror confirm deletion despite an old archive tombstone', () => {
+    const archive = { id: 'INV-5138', isDeleted: true, deletedAt: '2026-11-03T12:40:39Z', createdAt: '2026-11-03T16:44:26Z', paymentStatus: 'pending' };
+    const mirror = { id: 'INV-5138', isDeleted: true, deletedAt: '2026-11-04T21:29:05Z', createdAt: '2026-11-03T16:44:26Z', paymentStatus: 'pending' };
+    expect(mergedInvoiceIsDeleted(archive, mirror)).toBe(true);
+  });
+
+  it('still shows a new invoice when only the old copy was deleted', () => {
+    const old = { id: 'INV-1', isDeleted: true, deletedAt: '2026-10-01T12:00:00Z' };
+    const fresh = { id: 'INV-1', isDeleted: false, createdAt: '2026-10-02T09:00:00Z' };
+    expect(mergedInvoiceIsDeleted(old, fresh)).toBe(false);
   });
 });
