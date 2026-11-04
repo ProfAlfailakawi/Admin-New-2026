@@ -3609,12 +3609,23 @@ const MainApp: React.FC = () => {
     if (!(data.invoices || []).some(needsDelete)) return;
     setData(prev => {
       let changed = false;
+      const restoredQuantities = new Map<string, number>();
       const invoices = (prev.invoices || []).map((inv: any) => {
         if (!needsDelete(inv)) return inv;
         changed = true;
+        (inv.items || []).forEach((item: any) => {
+          if (!item.productId) return;
+          const key = String(item.productId);
+          restoredQuantities.set(key, (restoredQuantities.get(key) || 0) + Number(item.quantity || 0));
+        });
         return { ...inv, isDeleted: true, deletedAt: byId.get(String(inv.id))?.deletedAt || inv.deletedAt };
       });
-      return changed ? recalculateStateBalances({ ...prev, invoices }) : prev;
+      if (!changed) return prev;
+      const products = (prev.products || []).map((product: any) => {
+        const quantity = restoredQuantities.get(String(product.id)) || 0;
+        return quantity ? { ...product, stock: (product.stock || 0) + quantity } : product;
+      });
+      return recalculateStateBalances({ ...prev, invoices, products });
     });
   }, [data.invoices, ledgerTombstonesVersion]);
 

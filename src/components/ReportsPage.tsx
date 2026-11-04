@@ -72,7 +72,7 @@ import {
   isFailedStatus,
   isCancelledStatus,
 } from "../lib/status-utils";
-import { deletionCovers, isHiddenAsDeleted } from "../lib/invoiceDeletion";
+import { deletionCovers, isHiddenAsDeleted, isInvoicePaid } from "../lib/invoiceDeletion";
 import {
   computeInvoiceTotal,
   computeInvoiceCost,
@@ -414,6 +414,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       null,
     );
     const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+    const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
     const [deliveryManagerInvoice, setDeliveryManagerInvoice] = useState<Invoice | null>(null);
     const [deliveryManagerType, setDeliveryManagerType] = useState<ReportsDeliveryType>("company");
     const [deliveryManagerSupplierId, setDeliveryManagerSupplierId] = useState("");
@@ -665,7 +666,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       setDeliveryManagerInvoice(null);
     };
 
-    const handleDeleteInvoice = (id: string) => {
+    const handleDeleteInvoice = async (id: string) => {
+      if (isDeletingInvoice) return;
       if (id.startsWith("ORD-")) {
         import("sonner").then((m) =>
           m.toast.error(
@@ -679,7 +681,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       );
       if (!invoiceToDeleteObj) return;
 
-      if (isPaidStatus(invoiceToDeleteObj.paymentStatus)) {
+      if (isInvoicePaid(invoiceToDeleteObj)) {
         import("sonner").then((m) =>
           m.toast.error(
             "هذه الفاتورة مدفوعة ولا يمكن حذفها نهائياً! 🚫",
@@ -689,55 +691,64 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
       }
 
       const deletedAt = new Date().toISOString();
-      setData((prev) => {
-        // Pressing delete again must not return the items to stock a second time.
-        const alreadyDeleted = (prev?.invoices || []).some(
-          (inv) => inv.id === id && (inv as any).isDeleted === true,
-        );
-        if (alreadyDeleted) return prev;
-        const updatedInvoices = (prev?.invoices || []).map((inv) =>
-          inv.id === id
-            ? ({ ...inv, isDeleted: true, deletedAt, updatedAt: deletedAt } as any)
-            : inv,
-        );
-        const updatedProducts = (prev?.products || []).map((p) => {
-          const item = invoiceToDeleteObj.items.find(
-            (it) => it.productId === p.id,
-          );
-          if (item) {
-            return { ...p, stock: (p.stock || 0) + item.quantity };
-          }
-          return p;
-        });
-        const nextState = {
-          ...prev,
-          invoices: updatedInvoices,
-          products: updatedProducts,
-        };
-        return recalculateStateBalances(nextState);
-      });
-      // The ledger also reads the lightweight `invoices` mirror, which still says the
-      // invoice is live. Hide it there now and record the deletion in the mirror so
-      // it stays hidden on every device and after reopening.
-      setLiveLedgerInvoices((prevRows) =>
-        (prevRows || []).map((row: any) =>
-          String(row.id) === String(id)
-            ? { ...row, isDeleted: true, deletedAt, updatedAt: deletedAt }
-            : row,
-        ),
-      );
-      if (liveLedgerInvoices.some((row: any) => String(row.id) === String(id))) {
-        setDoc(
+      setIsDeletingInvoice(true);
+      try {
+        // The archive is saved separately with a debounce. Write the tombstone first:
+        // it also covers invoices that exist only in the live mirror or whose archive
+        // has not loaded yet. Never claim success before Firestore confirms the write.
+        await setDoc(
           doc(db, "invoices", String(id)),
-          { isDeleted: true, deletedAt, updatedAt: deletedAt, updatedAtServer: serverTimestamp() },
+          { id: String(id), isDeleted: true, deletedAt, updatedAt: deletedAt, updatedAtServer: serverTimestamp() },
           { merge: true },
-        ).catch((err) => console.warn("Invoice ledger mirror delete failed:", err));
+        );
+        setData((prev) => {
+          // Pressing delete again must not return the items to stock a second time.
+          const alreadyDeleted = (prev?.invoices || []).some(
+            (inv) => inv.id === id && (inv as any).isDeleted === true,
+          );
+          if (alreadyDeleted) return prev;
+          const updatedInvoices = (prev?.invoices || []).map((inv) =>
+            inv.id === id
+              ? ({ ...inv, isDeleted: true, deletedAt, updatedAt: deletedAt } as any)
+              : inv,
+          );
+          const updatedProducts = (prev?.products || []).map((p) => {
+            const item = (invoiceToDeleteObj.items || []).find(
+              (it) => it.productId === p.id,
+            );
+            if (item) {
+              return { ...p, stock: (p.stock || 0) + item.quantity };
+            }
+            return p;
+          });
+          const nextState = {
+            ...prev,
+            invoices: updatedInvoices,
+            products: updatedProducts,
+          };
+          return recalculateStateBalances(nextState);
+        });
+        // The ledger also reads the lightweight `invoices` mirror, which still says the
+        // invoice is live. Hide it there now and record the deletion in the mirror so
+        // it stays hidden on every device and after reopening.
+        setLiveLedgerInvoices((prevRows) =>
+          (prevRows || []).map((row: any) =>
+            String(row.id) === String(id)
+              ? { ...row, isDeleted: true, deletedAt, updatedAt: deletedAt }
+              : row,
+          ),
+        );
+        toast.info("تم حذف الفاتورة", {
+          description: `تم إخفاء الفاتورة #${id} واستعادة المخزون وتحديث الحسابات بنجاح.`,
+          position: "bottom-right",
+        });
+        setInvoiceToDelete(null);
+      } catch (error) {
+        console.error("Invoice deletion failed:", error);
+        toast.error("تعذر حذف الفاتورة. حاول مرة أخرى.");
+      } finally {
+        setIsDeletingInvoice(false);
       }
-      toast.info("تم حذف الفاتورة", {
-        description: `تم إخفاء الفاتورة #${id} واستعادة المخزون وتحديث الحسابات بنجاح.`,
-        position: "bottom-right",
-      });
-      setInvoiceToDelete(null);
     };
 
     const handlePrint = (invoice: Invoice) => {
