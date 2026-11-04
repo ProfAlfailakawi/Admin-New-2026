@@ -37,3 +37,13 @@ export const deletionCovers = (deletedCopy: any, otherCopy: any): boolean => {
   const bornAt = toMs(otherCopy?.createdAt || otherCopy?.date);
   return !bornAt || bornAt <= deletedAt;
 };
+
+/** Both sources independently confirm deletion, even if one carries an older tombstone. */
+export const mergedInvoiceIsDeleted = (first: any, second: any): boolean => {
+  if (first?.isDeleted === true && second?.isDeleted === true) {
+    return !isInvoicePaid(first) && !isInvoicePaid(second);
+  }
+  if (first?.isDeleted === true) return deletionCovers(first, second);
+  if (second?.isDeleted === true) return deletionCovers(second, first);
+  return false;
+};

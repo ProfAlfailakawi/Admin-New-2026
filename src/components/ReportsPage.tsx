@@ -72,7 +72,7 @@ import {
   isFailedStatus,
   isCancelledStatus,
 } from "../lib/status-utils";
-import { deletionCovers, isHiddenAsDeleted, isInvoicePaid } from "../lib/invoiceDeletion";
+import { mergedInvoiceIsDeleted, isHiddenAsDeleted, isInvoicePaid } from "../lib/invoiceDeletion";
 import {
   computeInvoiceTotal,
   computeInvoiceCost,
@@ -259,10 +259,8 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
         // creation with isDeleted: false and is newer than the archive row, so without
         // this the invoice reappears right after "تم حذف الفاتورة". It does not win over
         // a copy born after the deletion (a new invoice that reused the number).
-        const deletedCopy = existing.isDeleted === true ? existing : incoming.isDeleted === true ? incoming : null;
-        if (deletedCopy) {
-          const otherCopy = deletedCopy === existing ? incoming : existing;
-          next.isDeleted = deletionCovers(deletedCopy, otherCopy);
+        if (existing.isDeleted === true || incoming.isDeleted === true) {
+          next.isDeleted = mergedInvoiceIsDeleted(existing, incoming);
         }
         merged.set(id, next);
       };
