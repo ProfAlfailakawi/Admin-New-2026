@@ -2263,6 +2263,14 @@ const WHATSAPP_TRANSPORT = () => {
 const KAPSO_API_KEY = () => String(process.env.KAPSO_API_KEY || "").trim();
 const KAPSO_PHONE_NUMBER_ID = () => String(process.env.KAPSO_PHONE_NUMBER_ID || "").trim();
 const KAPSO_WEBHOOK_SECRET = () => String(process.env.KAPSO_WEBHOOK_SECRET || "").trim();
+// Free-tier guard: Kapso's free plan counts inbound + outbound messages. Outbound is
+// capped per calendar month (default 800 of the 2,000 allowance) so the bot can never run
+// up a bill; set KAPSO_MONTHLY_OUTBOUND_CAP to change it. Text-only replies are service
+// messages, so Meta charges nothing inside the 24h customer window.
+const KAPSO_MONTHLY_OUTBOUND_CAP = () => {
+  const n = Number(process.env.KAPSO_MONTHLY_OUTBOUND_CAP);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 800;
+};
 const WHATSAPP_BOT_ENABLED = () => !/^(0|false|off|disabled)$/i.test(String(process.env.WHATSAPP_BOT_ENABLED ?? "true").trim());
 const WHATSAPP_BRIDGE_SECRET = () => String(process.env.WHATSAPP_BRIDGE_SECRET || "").trim();
 const WHATSAPP_BRIDGE_LEASE_SECONDS = Math.max(20, Math.min(300, Number(process.env.WHATSAPP_BRIDGE_LEASE_SECONDS || 60)));
@@ -4513,6 +4521,20 @@ async function waCancelPendingBotOutbox(to: string, reason = "human_reply") {
   }
 }
 
+async function waReserveKapsoQuota(): Promise<{ allowed: boolean; used: number; cap: number }> {
+  const cap = KAPSO_MONTHLY_OUTBOUND_CAP();
+  // Fail closed: if usage cannot be counted, do not send.
+  if (!db || !firebaseInitialized) return { allowed: false, used: 0, cap };
+  const ref = db.collection("whatsappUsage").doc(`kapso-${new Date().toISOString().slice(0, 7)}`);
+  return db.runTransaction(async (tx: any) => {
+    const snap = await tx.get(ref);
+    const used = Number(snap.exists ? snap.data()?.outbound : 0) || 0;
+    if (used >= cap) return { allowed: false, used, cap };
+    tx.set(ref, { outbound: used + 1, cap, updatedAt: waNowIso() }, { merge: true });
+    return { allowed: true, used: used + 1, cap };
+  });
+}
+
 async function waSendText(to: string, body: string, options: any = {}) {
   if (WHATSAPP_TRANSPORT() === "web_bridge") {
     return waQueueBridgeText(to, body, options);
@@ -4524,6 +4546,11 @@ async function waSendText(to: string, body: string, options: any = {}) {
     if (!apiKey || !phoneNumberId) {
       console.warn("[WHATSAPP] Kapso transport is not configured. Reply not sent.");
       return { ok: false, skipped: true, reason: "missing_kapso_env" };
+    }
+    const quota = await waReserveKapsoQuota().catch(() => ({ allowed: false, used: 0, cap: KAPSO_MONTHLY_OUTBOUND_CAP() }));
+    if (!quota.allowed) {
+      console.warn(`[WHATSAPP] Kapso monthly outbound cap reached (${quota.used}/${quota.cap}). Reply not sent.`);
+      return { ok: false, skipped: true, reason: "kapso_monthly_cap_reached" };
     }
     const response = await fetch(`https://api.kapso.ai/meta/whatsapp/${encodeURIComponent(WHATSAPP_GRAPH_VERSION)}/${encodeURIComponent(phoneNumberId)}/messages`, {
       method: "POST",
