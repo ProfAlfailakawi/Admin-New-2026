@@ -25,6 +25,7 @@ async function waAuthFetch(input: string, init: RequestInit = {}) {
 type Conversation = {
   id: string;
   phone: string;
+  identityType?: 'phone' | 'business_scoped_user_id';
   customerName?: string;
   mode?: 'bot' | 'human' | string;
   status?: string;
@@ -36,6 +37,7 @@ type Conversation = {
   lastMessageDirection?: string;
   lastMessageAt?: string;
   tags?: string[];
+  assignedTo?: string;
 };
 
 type ChatMessage = {
@@ -676,15 +678,14 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const loadMessages = async (phone: string, scrollToEnd = false) => {
     if (!phone) return;
-    const cleanedPhone = cleanPhone(phone);
     try {
-      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/messages`, { cache: 'no-store' });
+      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(phone.startsWith('bsuid:') ? phone : cleanPhone(phone))}/messages`, { cache: 'no-store' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر تحميل الرسائل');
       setSelected(json.conversation || null);
       setMessages(json.messages || []);
       setQuickReplies(json.quickReplies || []);
-      void waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
+      void waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(phone.startsWith('bsuid:') ? phone : cleanPhone(phone))}/read`, { method: 'POST' }).catch(() => {});
       if (scrollToEnd) setTimeout(() => endRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' }), 20);
     } catch (e: any) {
       setError(e?.message || 'تعذر تحميل المحادثة');
@@ -964,7 +965,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     loadConversations();
     loadAutoReplyRules();
     let timer = 0;
-    const start = () => { if (!timer) timer = window.setInterval(() => loadConversations(true), 1200); };
+    const start = () => { if (!timer) timer = window.setInterval(() => loadConversations(true), 8000); };
     const stop = () => { if (timer) { window.clearInterval(timer); timer = 0; } };
     const onVisibility = () => {
       if (document.hidden) { stop(); return; }
@@ -1014,7 +1015,7 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     if (!selectedPhone) return;
     loadMessages(selectedPhone, true);
     let timer = 0;
-    const start = () => { if (!timer) timer = window.setInterval(() => loadMessages(selectedPhone, false), 1000); };
+    const start = () => { if (!timer) timer = window.setInterval(() => loadMessages(selectedPhone, false), 5000); };
     const stop = () => { if (timer) { window.clearInterval(timer); timer = 0; } };
     const onVisibility = () => {
       if (document.hidden) { stop(); return; }
@@ -1375,7 +1376,9 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     setSending(true);
     showNotice('info', 'جارٍ إرسال الرد عبر واتساب...');
     try {
-      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/reply`, {
+      const selectedIdentity = selectedPhone.startsWith('bsuid:') ? selectedPhone : cleanPhone(selectedPhone);
+      if (selectedPhone.startsWith('bsuid:')) throw new Error('تم تسجيل المحادثة للإدارة؛ الرد بهوية BSUID غير مفعّل بعد. تواصل مع العميل عبر وسيلة موثقة.');
+      const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(selectedIdentity)}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: body, sentBy: 'admin' }),
@@ -1397,7 +1400,8 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const setMode = async (mode: 'bot' | 'human') => {
     if (!selectedPhone) return;
-    await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/mode`, {
+    const selectedIdentity = selectedPhone.startsWith('bsuid:') ? selectedPhone : cleanPhone(selectedPhone);
+    await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(selectedIdentity)}/mode`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode })
     }).catch(() => {});
     await loadMessages(selectedPhone, false);
@@ -1407,7 +1411,8 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
 
   const closeConversation = async () => {
     if (!selectedPhone) return;
-    await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/close`, { method: 'POST' }).catch(() => {});
+    const selectedIdentity = selectedPhone.startsWith('bsuid:') ? selectedPhone : cleanPhone(selectedPhone);
+    await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(selectedIdentity)}/close`, { method: 'POST' }).catch(() => {});
     await loadMessages(selectedPhone, false);
     await loadConversations(true);
     showNotice('success', 'تم إغلاق المحادثة.');
@@ -1418,6 +1423,10 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   // since there's no delivery-tracking signal. Sends the 1/2/3 rating question.
   const requestRating = async () => {
     if (!selectedPhone || requestingRating) return;
+    if (selectedPhone.startsWith('bsuid:')) {
+      showNotice('error', 'إرسال التقييم غير متاح لهذه الهوية دون رقم هاتف موثّق.');
+      return;
+    }
     setRequestingRating(true);
     try {
       const res = await waAuthFetch(`/api/whatsapp/conversations/${encodeURIComponent(cleanPhone(selectedPhone))}/request-rating`, { method: 'POST' });
@@ -1627,8 +1636,8 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
                       </span>
                     );
                   })}
-                  <span className={cn('rounded-xl px-2.5 py-1.5 border', dataCheck.result?.whatsappAppSecretSet ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700')}>
-                    توقيع ميتا: <b>{dataCheck.result?.whatsappAppSecretSet ? <>مفعّل <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /></> : 'غير مفعّل'}</b>
+                  <span className={cn('rounded-xl px-2.5 py-1.5 border', dataCheck.result?.transportConfigReady ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700')}>
+                    إعداد القناة ({dataCheck.result?.transport || 'غير معروف'}): <b>{dataCheck.result?.transportConfigReady ? <>جاهز <CheckCircle2 size={14} className="inline-block align-[-2px] text-emerald-600" aria-hidden="true" /></> : 'ناقص — لن تُعالج Webhooks بأمان'}</b>
                   </span>
                 </div>
                 {Number(dataCheck.result?.visibleToBot?.productsShownInMenu || 0) === 0 && (

@@ -1702,7 +1702,7 @@ app.use((req, res, next) => {
     // to verify the signature. Kept to that one path: buffering every request would
     // hold a copy of uploads up to the 30mb limit for no reason.
     verify: (req: any, _res, buf) => {
-      if (String(req.originalUrl || req.url || "").startsWith("/api/whatsapp/webhook")) {
+      if (waShouldCaptureWhatsAppRawBody(req.originalUrl || req.url || "")) {
         req.rawBody = buf;
       }
     },
@@ -2166,7 +2166,7 @@ const ALTURATH_CUSTOMER_BASE_URL = String(process.env.ALTURATH_CUSTOMER_BASE_URL
 const ALTURATH_ADMIN_BASE_URL = String(process.env.ALTURATH_ADMIN_BASE_URL || "https://admin.alturathkw.shop").replace(/\/$/, "");
 // Customers track on the customer site, never on the admin domain.
 const ALTURATH_TRACK_BASE_URL = String(process.env.ALTURATH_TRACK_BASE_URL || ALTURATH_CUSTOMER_BASE_URL || ALTURATH_ADMIN_BASE_URL).replace(/\/$/, "");
-const WHATSAPP_VERIFY_TOKEN = String(process.env.WHATSAPP_VERIFY_TOKEN || "alturath_whatsapp_verify_2026");
+const WHATSAPP_VERIFY_TOKEN = () => String(process.env.WHATSAPP_VERIFY_TOKEN || "").trim();
 const WHATSAPP_GRAPH_VERSION = String(process.env.WHATSAPP_GRAPH_VERSION || "v24.0");
 const WHATSAPP_ACCESS_TOKEN = () => String(process.env.WHATSAPP_ACCESS_TOKEN || "").trim();
 const WHATSAPP_PHONE_NUMBER_ID = () => String(process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
@@ -2258,8 +2258,20 @@ function waRedactPhonesDeep(value: any, depth = 0): void {
 }
 const WHATSAPP_TRANSPORT = () => {
   const value = String(process.env.WHATSAPP_TRANSPORT || "cloud").trim().toLowerCase();
-  return value === "web_bridge" ? "web_bridge" : "cloud";
+  return value === "kapso" || value === "web_bridge" ? value : "cloud";
 };
+const KAPSO_API_KEY = () => String(process.env.KAPSO_API_KEY || "").trim();
+const KAPSO_PHONE_NUMBER_ID = () => String(process.env.KAPSO_PHONE_NUMBER_ID || "").trim();
+const KAPSO_WEBHOOK_SECRET = () => String(process.env.KAPSO_WEBHOOK_SECRET || "").trim();
+// Free-tier guard: Kapso's free plan counts inbound + outbound messages. Outbound is
+// capped per calendar month (default 800 of the 2,000 allowance) so the bot can never run
+// up a bill; set KAPSO_MONTHLY_OUTBOUND_CAP to change it. Text-only replies are service
+// messages, so Meta charges nothing inside the 24h customer window.
+const KAPSO_MONTHLY_OUTBOUND_CAP = () => {
+  const n = Number(process.env.KAPSO_MONTHLY_OUTBOUND_CAP);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 800;
+};
+const WHATSAPP_BOT_ENABLED = () => !/^(0|false|off|disabled)$/i.test(String(process.env.WHATSAPP_BOT_ENABLED ?? "true").trim());
 const WHATSAPP_BRIDGE_SECRET = () => String(process.env.WHATSAPP_BRIDGE_SECRET || "").trim();
 const WHATSAPP_BRIDGE_LEASE_SECONDS = Math.max(20, Math.min(300, Number(process.env.WHATSAPP_BRIDGE_LEASE_SECONDS || 60)));
 const WHATSAPP_HUMAN_AUTO_RESUME_MINUTES = 30;
@@ -2545,9 +2557,10 @@ function waConversationDoc(phone: string) {
 
 async function waGetConversation(phone: string) {
   const ref = waConversationDoc(phone);
-  if (!ref) return null;
+  if (!ref && !waString(phone).startsWith("bsuid:")) return null;
+  const identityKey = !ref ? waString(phone) : "";
   try {
-    const snap = await ref.get();
+    const snap = await (ref || db.collection("whatsappConversations").doc(identityKey)).get();
     return snap.exists ? { id: snap.id, ...(snap.data() || {}) } : null;
   } catch (error: any) {
     console.warn("[WHATSAPP] Could not read conversation:", error?.message || error);
@@ -2556,11 +2569,13 @@ async function waGetConversation(phone: string) {
 }
 
 async function waUpsertConversation(phone: string, patch: any = {}) {
-  const ref = waConversationDoc(phone);
+  const identityKey = waString(phone).startsWith("bsuid:") ? waString(phone) : "";
+  const ref = waConversationDoc(phone) || (identityKey && db && firebaseInitialized ? db.collection("whatsappConversations").doc(identityKey) : null);
   if (!ref) return;
-  const clean = waDigits(phone);
+  const clean = identityKey || waDigits(phone);
   const base = removeUndefinedDeep({
     phone: clean,
+    identityType: identityKey ? "business_scoped_user_id" : "phone",
     customerName: patch.customerName,
     mode: patch.mode || undefined,
     status: patch.status || undefined,
@@ -2607,7 +2622,9 @@ async function waUpsertConversation(phone: string, patch: any = {}) {
 }
 
 async function waIncrementUnread(phone: string) {
-  const ref = waConversationDoc(phone);
+  const phoneRef = waConversationDoc(phone);
+  const identityKey = waString(phone).startsWith("bsuid:") ? waString(phone) : "";
+  const ref = phoneRef || (identityKey && db && firebaseInitialized ? db.collection("whatsappConversations").doc(identityKey) : null);
   if (!ref) return;
   try {
     await ref.set({ unreadCount: admin.firestore.FieldValue.increment(1), updatedAt: waNowIso() }, { merge: true });
@@ -2615,11 +2632,13 @@ async function waIncrementUnread(phone: string) {
 }
 
 async function waAppendConversationMessage(phone: string, message: any) {
-  const ref = waConversationDoc(phone);
+  const phoneRef = waConversationDoc(phone);
+  const identityKey = waString(phone).startsWith("bsuid:") ? waString(phone) : "";
+  const ref = phoneRef || (identityKey && db && firebaseInitialized ? db.collection("whatsappConversations").doc(identityKey) : null);
   if (!ref) return;
   try {
     await ref.collection("messages").add(removeUndefinedDeep({
-      phone: waDigits(phone),
+      phone: identityKey || waDigits(phone),
       direction: message.direction,
       type: message.type || "text",
       text: waString(message.text).slice(0, 4000),
@@ -3189,6 +3208,15 @@ async function waFindByBusinessId(id: string): Promise<WhatsAppLookupResult | nu
   return null;
 }
 
+// An order/invoice identifier is searchable, but it is not proof of ownership. When
+// the customer supplies an identifier in chat, only disclose data if the record's
+// phone matches the WhatsApp sender. Phone-based lookup already uses the sender.
+function waLookupBelongsToSender(result: WhatsAppLookupResult, senderPhone: string) {
+  const sender = waNormalizeKuwaitPhone8(senderPhone);
+  const owner = waNormalizeKuwaitPhone8(waCustomerPhone(result.data));
+  return Boolean(sender && owner && sender === owner);
+}
+
 async function waFindLatestByPhone(phone: string): Promise<WhatsAppLookupResult | null> {
   const last8 = waNormalizeKuwaitPhone8(phone);
   if (!last8) return null;
@@ -3302,8 +3330,9 @@ async function waSendHumanSupportPush({
   messageId?: string;
   reason?: string;
 }) {
+  const isScopedIdentity = waString(phone).startsWith("bsuid:");
   const cleanPhone = waDigits(phone);
-  if (!cleanPhone) return { success: false, skipped: true, reason: "missing_phone" };
+  if (!cleanPhone && !isScopedIdentity) return { success: false, skipped: true, reason: "missing_phone" };
 
   const safeText = waString(text || "").replace(/\s+/g, " ").slice(0, 140);
   const safeName = waString(contactName || "").slice(0, 60);
@@ -3312,22 +3341,22 @@ async function waSendHumanSupportPush({
     : "عميل يطلب دعم واتساب";
   const body = safeText
     ? `${safeName ? `${safeName}: ` : ""}${safeText}`
-    : `${safeName || cleanPhone} يحتاج متابعة من الدعم.`;
+    : `${safeName || (isScopedIdentity ? "هوية واتساب تجارية" : cleanPhone)} يحتاج متابعة من الدعم.`;
   const stableMessageId = waString(messageId || "").replace(/[^a-zA-Z0-9_:\-.]/g, "").slice(0, 120);
   const eventId = stableMessageId
     ? `whatsapp-support-${stableMessageId}`
-    : `whatsapp-support-${cleanPhone}-${Date.now()}`;
+    : `whatsapp-support-${isScopedIdentity ? waHashText(phone) : cleanPhone}-${Date.now()}`;
 
   try {
     return await sendSmartAlertPushNotification({
       title,
       body,
       alertType: "whatsapp_support",
-      url: waAdminSupportInboxUrl(cleanPhone),
+      url: waAdminSupportInboxUrl(isScopedIdentity ? "" : cleanPhone),
       eventId,
       ttlSeconds: 86400,
       requireInteraction: true,
-      notificationTag: `whatsapp-support-${cleanPhone}`,
+      notificationTag: `whatsapp-support-${isScopedIdentity ? waHashText(phone) : cleanPhone}`,
       targetRoles: ["admin"],
     });
   } catch (error: any) {
@@ -4168,7 +4197,12 @@ async function waBuildAutoReply(messageText: string, fromPhone: string) {
   const businessId = waExtractBusinessId(messageText);
   if (businessId) {
     const found = await waFindByBusinessId(businessId);
-    if (found) return waOrderReply(found);
+    if (found && waLookupBelongsToSender(found, fromPhone)) return waOrderReply(found);
+    if (found) return [
+      "لخصوصيتك، ما أقدر أعرض تفاصيل طلب اعتماداً على رقم الطلب وحده.",
+      "أقدر أتحقق من الطلب المرتبط برقم واتساب اللي تراسلنا منه، أو أحولك لموظف للمساعدة.",
+      `رابط التتبع الآمن: ${waTrackHomeUrl()}`,
+    ].join("\n");
     return [
       `ما حصلت هذا الرقم حالياً.`,
       "تأكد من رقم الطلب/الفاتورة أو جرّب رابط التتبع:",
@@ -4278,24 +4312,43 @@ function waExtractMessageText(message: any) {
 // messages: they would land in the inbox as real customers and make the bot send
 // WhatsApp messages to numbers of their choosing, which risks the number itself.
 //
-// Deliberately permissive while WHATSAPP_APP_SECRET is unset, so adding this cannot
-// take the live bot down. Set the secret to turn enforcement on.
+// Fail closed: accepting unsigned events would let anyone spoof customer messages and
+// trigger replies from the business number. A missing secret means the webhook is not
+// ready and must not process events.
 const WHATSAPP_APP_SECRET = () => String(process.env.WHATSAPP_APP_SECRET || "").trim();
 
 function waWebhookSignatureValid(req: any) {
   const secret = WHATSAPP_APP_SECRET();
-  if (!secret) return true;
+  if (!secret) return false;
 
   const raw = req?.rawBody;
   if (!Buffer.isBuffer(raw) || !raw.length) return false;
 
-  const received = waString(req?.headers?.["x-hub-signature-256"]);
+  const received = waString(req?.headers?.["x-hub-signature-256"]).toLowerCase();
   if (!received.startsWith("sha256=")) return false;
 
   const expected = `sha256=${crypto.createHmac("sha256", secret).update(raw).digest("hex")}`;
-  const a = Buffer.from(received);
-  const b = Buffer.from(expected);
+  const a = Buffer.from(received, "ascii");
+  const b = Buffer.from(expected, "ascii");
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function waKapsoWebhookSignatureValid(req: any) {
+  const secret = KAPSO_WEBHOOK_SECRET();
+  if (!secret) return false;
+  const raw = req?.rawBody;
+  if (!Buffer.isBuffer(raw) || !raw.length) return false;
+  const received = waString(req?.headers?.["x-webhook-signature"]).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(received)) return false;
+  const expected = crypto.createHmac("sha256", secret).update(raw).digest("hex");
+  const a = Buffer.from(received, "ascii");
+  const b = Buffer.from(expected, "ascii");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function waShouldCaptureWhatsAppRawBody(url: string) {
+  const pathname = waString(url).split("?", 1)[0];
+  return pathname === "/api/whatsapp/webhook" || pathname === "/api/whatsapp/kapso/webhook";
 }
 
 // Anything whose meaning lives outside the text: a photo of a dish, a voice note,
@@ -4345,6 +4398,37 @@ function waBridgeRequestAuthorized(req: any) {
 function waBridgeDocId(source: string, messageId: string) {
   const raw = `${source}:${messageId}`;
   return Buffer.from(raw, "utf8").toString("base64url").slice(0, 700);
+}
+
+function waStableIdempotencyKey(channel: string, messageId: string, eventKey = "") {
+  const stableId = waString(messageId || eventKey);
+  return stableId ? `${waString(channel)}:${stableId}` : "";
+}
+
+function waKapsoMessageIdempotencyKey(messageId: string, eventKey = "") {
+  return waStableIdempotencyKey("kapso", messageId, eventKey);
+}
+
+function waKapsoWebhookPayloads(event: any) {
+  return event?.batch === true ? waAsArray(event.data) : [event];
+}
+
+function waNormalizeKapsoInbound(payload: any, eventName = "") {
+  const message = payload?.message || {};
+  const conversation = payload?.conversation || {};
+  const from = waDigits(message?.from || conversation?.phone_number || "");
+  const bsuid = waString(message?.from_user_id || conversation?.business_scoped_user_id || "");
+  return {
+    from,
+    bsuid,
+    text: waExtractMessageText(message),
+    type: waString(message?.type || "unknown"),
+    messageId: waString(message?.id || ""),
+    contactName: waString(conversation?.contact_name || message?.username || ""),
+    incoming: (!eventName || eventName === "whatsapp.message.received") && !message?.kapso?.passive && !conversation?.kapso?.thread?.passive && (!message?.kapso?.direction || message.kapso.direction === "inbound"),
+    raw: message,
+    conversation,
+  };
 }
 
 async function waClaimInboundMessage(source: string, messageId: string) {
@@ -4437,9 +4521,52 @@ async function waCancelPendingBotOutbox(to: string, reason = "human_reply") {
   }
 }
 
+async function waReserveKapsoQuota(): Promise<{ allowed: boolean; used: number; cap: number }> {
+  const cap = KAPSO_MONTHLY_OUTBOUND_CAP();
+  // Fail closed: if usage cannot be counted, do not send.
+  if (!db || !firebaseInitialized) return { allowed: false, used: 0, cap };
+  const ref = db.collection("whatsappUsage").doc(`kapso-${new Date().toISOString().slice(0, 7)}`);
+  return db.runTransaction(async (tx: any) => {
+    const snap = await tx.get(ref);
+    const used = Number(snap.exists ? snap.data()?.outbound : 0) || 0;
+    if (used >= cap) return { allowed: false, used, cap };
+    tx.set(ref, { outbound: used + 1, cap, updatedAt: waNowIso() }, { merge: true });
+    return { allowed: true, used: used + 1, cap };
+  });
+}
+
 async function waSendText(to: string, body: string, options: any = {}) {
   if (WHATSAPP_TRANSPORT() === "web_bridge") {
     return waQueueBridgeText(to, body, options);
+  }
+
+  if (WHATSAPP_TRANSPORT() === "kapso") {
+    const apiKey = KAPSO_API_KEY();
+    const phoneNumberId = KAPSO_PHONE_NUMBER_ID();
+    if (!apiKey || !phoneNumberId) {
+      console.warn("[WHATSAPP] Kapso transport is not configured. Reply not sent.");
+      return { ok: false, skipped: true, reason: "missing_kapso_env" };
+    }
+    const quota = await waReserveKapsoQuota().catch(() => ({ allowed: false, used: 0, cap: KAPSO_MONTHLY_OUTBOUND_CAP() }));
+    if (!quota.allowed) {
+      console.warn(`[WHATSAPP] Kapso monthly outbound cap reached (${quota.used}/${quota.cap}). Reply not sent.`);
+      return { ok: false, skipped: true, reason: "kapso_monthly_cap_reached" };
+    }
+    const response = await fetch(`https://api.kapso.ai/meta/whatsapp/${encodeURIComponent(WHATSAPP_GRAPH_VERSION)}/${encodeURIComponent(phoneNumberId)}/messages`, {
+      method: "POST",
+      headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: waDigits(to),
+        type: "text",
+        text: { preview_url: true, body: body.slice(0, 3500) },
+        ...(options?.idempotencyKey ? { biz_opaque_callback_data: waString(options.idempotencyKey).slice(0, 512) } : {}),
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) console.warn("[WHATSAPP] Kapso send failed:", response.status, waSafeProviderError(payload));
+    return { ok: response.ok, status: response.status, payload };
   }
 
   const token = WHATSAPP_ACCESS_TOKEN();
@@ -4471,6 +4598,11 @@ async function waSendText(to: string, body: string, options: any = {}) {
   return { ok: response.ok, status: response.status, payload };
 }
 
+function waSafeProviderError(payload: any) {
+  const message = waString(payload?.error?.message || payload?.message || payload?.error || "provider_error");
+  return message.replace(/(?:Bearer\s+|api[_ -]?key\s*[=:]\s*)\S+/gi, "[redacted]").slice(0, 240);
+}
+
 async function waProcessInboundMessage({
   from,
   text,
@@ -4489,11 +4621,46 @@ async function waProcessInboundMessage({
   source?: string;
 }) {
   const cleanFrom = waDigits(from);
+  if (!cleanFrom && waString((raw as any)?.business_scoped_user_id || (raw as any)?.from_user_id)) {
+    const scopedId = waString((raw as any)?.business_scoped_user_id || (raw as any)?.from_user_id);
+    const claimed = await waClaimInboundMessage(source, messageId);
+    if (!claimed) return { handled: false, duplicate: true, sendResults: [] as any[] };
+// Store this as a support conversation without inventing a phone identity or replying
+// automatically. The team may inspect the messages, but manual sends remain disabled.
+    await waUpsertConversation(`bsuid:${scopedId}`, {
+      mode: "human",
+      status: "needs_support",
+      priority: "high",
+      identityType: "business_scoped_user_id",
+      identity: scopedId,
+      customerName: contactName || undefined,
+      unreadCount: admin.firestore.FieldValue.increment(1),
+      lastInboundText: waString(text) || `[${waString(type || "unknown")}]`,
+      lastInboundAt: waNowIso(),
+      lastMessageText: waString(text) || `[${waString(type || "unknown")}]`,
+      lastMessageDirection: "inbound",
+      supportRequestedAt: waNowIso(),
+      botPausedAt: waNowIso(),
+    });
+    await waAppendConversationMessage(`bsuid:${scopedId}`, {
+      direction: "inbound",
+      type: waString(type || "unknown"),
+      text: waString(text) || `[${waString(type || "unknown")}]`,
+      waMessageId: messageId,
+      identityType: "business_scoped_user_id",
+      identity: scopedId,
+      raw,
+    });
+    return { handled: true, humanHandoff: true, reason: "bsuid_identity_unlinked", sendResults: [] as any[] };
+  }
+  const stableEventKey = waStableIdempotencyKey(source, messageId);
+  const idempotencyHeaderKey = waString((raw as any)?.idempotencyKey || (raw as any)?.idempotency_key);
+  const inboundClaimId = stableEventKey || idempotencyHeaderKey;
   const cleanText = waString(text);
   const cleanType = waString(type || "unknown") || "unknown";
   if (!cleanFrom) return { handled: false, reason: "missing_from", sendResults: [] as any[] };
 
-  const claimed = await waClaimInboundMessage(source, messageId);
+  const claimed = await waClaimInboundMessage(source, inboundClaimId);
   if (!claimed) {
     console.log(`[WHATSAPP] Duplicate inbound skipped source=${source} idHash=${waLogToken(messageId)}`);
     return { handled: false, duplicate: true, sendResults: [] as any[] };
@@ -4521,6 +4688,12 @@ async function waProcessInboundMessage({
     waMessageId: messageId,
     raw,
   });
+
+  if (!WHATSAPP_BOT_ENABLED()) {
+    await waUpsertConversation(cleanFrom, { mode: "human", status: "needs_support", priority: "high", supportRequestedAt: waNowIso(), botPausedAt: waNowIso() });
+    const pushResult = await waSendHumanSupportPush({ phone: cleanFrom, text: cleanText || `[${cleanType}]`, contactName, messageId, reason: "bot_globally_disabled" });
+    return { handled: true, botDisabled: true, sendResults: [{ channel: "admin_push", ...(pushResult || {}) }] };
+  }
 
   let conversation = await waGetConversation(cleanFrom);
 
@@ -4752,7 +4925,7 @@ async function waProcessInboundMessage({
 
   if (reply) {
     const replyKeySource = messageId
-      ? `auto:${source}:${messageId}`
+      ? `auto:${stableEventKey || `${source}:${messageId}`}`
       : `auto:${source}:${cleanFrom}:${waHashText(cleanText)}:${Math.floor(Date.now() / 10000)}`;
     const result: any = await waSendText(cleanFrom, reply, { idempotencyKey: replyKeySource, sentBy: "bot", source: "auto_reply" });
     sendResults.push({
@@ -4787,7 +4960,7 @@ app.use("/api/whatsapp", (req, res, next) => {
   // /webhook is Meta's, /bridge is the Mac bridge's (both carry their own auth), and
   // /health must answer without a login: it is what the bridge's own check script and
   // any uptime probe call, and it reports liveness only — no customer data.
-  if (subPath.startsWith("/webhook") || subPath.startsWith("/bridge") || subPath.startsWith("/health")) return next();
+  if (subPath.startsWith("/webhook") || subPath.startsWith("/kapso/webhook") || subPath.startsWith("/bridge") || subPath.startsWith("/health")) return next();
   return waRequireConsoleAuth(req, res, next);
 });
 
@@ -5815,6 +5988,12 @@ app.get("/api/whatsapp/daily-summary/preview", async (_req, res) => {
 
 app.get("/api/whatsapp/diagnostics", async (_req, res) => {
   try {
+    const transport = WHATSAPP_TRANSPORT();
+    const transportConfigReady = transport === "cloud"
+      ? Boolean(WHATSAPP_APP_SECRET() && WHATSAPP_VERIFY_TOKEN() && WHATSAPP_ACCESS_TOKEN() && WHATSAPP_PHONE_NUMBER_ID())
+      : transport === "kapso"
+        ? Boolean(KAPSO_WEBHOOK_SECRET() && KAPSO_API_KEY() && KAPSO_PHONE_NUMBER_ID())
+        : waBridgeSecretReady();
     const shared = await waLoadSharedData(["products", "orders", "invoices", "customers"]);
     const products = waAsArray(shared.products);
     const sellable = products.filter((p: any) =>
@@ -5836,8 +6015,17 @@ app.get("/api/whatsapp/diagnostics", async (_req, res) => {
       sampleCustomerFields: waAsArray(shared.customers).length ? Object.keys(waAsArray(shared.customers)[0] || {}).slice(0, 25) : [],
       menuWouldSay: sellable.length ? "قائمة المنتجات الحقيقية" : "رابط الموقع فقط (البوت لا يرى المنتجات)",
       whatsappAppSecretSet: Boolean(WHATSAPP_APP_SECRET()),
+      whatsappWebhookReady: WHATSAPP_TRANSPORT() === "kapso"
+        ? Boolean(KAPSO_WEBHOOK_SECRET() && KAPSO_API_KEY() && KAPSO_PHONE_NUMBER_ID())
+        : Boolean(WHATSAPP_APP_SECRET() && WHATSAPP_VERIFY_TOKEN()),
+      kapsoWebhookSecretSet: Boolean(KAPSO_WEBHOOK_SECRET()),
+      kapsoApiKeySet: Boolean(KAPSO_API_KEY()),
+      kapsoPhoneNumberIdSet: Boolean(KAPSO_PHONE_NUMBER_ID()),
+      botEnabled: WHATSAPP_BOT_ENABLED(),
+      transportConfigReady,
+      ready: firebaseInitialized && transportConfigReady,
       // Reading the data is only half the job; this is the half that actually delivers.
-      transport: WHATSAPP_TRANSPORT(),
+      transport,
       bridge: await waBridgeStatus(),
     });
   } catch (error: any) {
@@ -5850,7 +6038,7 @@ app.get("/api/whatsapp/webhook", (req, res) => {
   const token = waString(req.query["hub.verify_token"]);
   const challenge = waString(req.query["hub.challenge"]);
 
-  if (mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN) {
+  if (WHATSAPP_TRANSPORT() === "cloud" && WHATSAPP_VERIFY_TOKEN() && mode === "subscribe" && token === WHATSAPP_VERIFY_TOKEN()) {
     console.log("[WHATSAPP] Webhook verified successfully.");
     return res.status(200).send(challenge);
   }
@@ -5860,6 +6048,7 @@ app.get("/api/whatsapp/webhook", (req, res) => {
 });
 
 app.post("/api/whatsapp/webhook", async (req, res) => {
+  if (WHATSAPP_TRANSPORT() !== "cloud") return res.status(409).json({ success: false, error: "Meta webhook is not the active WhatsApp transport" });
   if (!waWebhookSignatureValid(req)) {
     console.warn("[WHATSAPP] Rejected a webhook call with a missing or invalid signature.");
     return res.status(401).json({ success: false, error: "Invalid signature" });
@@ -5876,7 +6065,12 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
       for (const change of waAsArray(entry?.changes)) {
         const value = change?.value || {};
         if (waAsArray(value?.statuses).length) {
-          console.log(`[WHATSAPP] Status event received: ${waAsArray(value.statuses).length}`);
+          for (const status of waAsArray(value.statuses)) {
+            const messageId = waString(status?.id);
+            const state = waString(status?.status);
+            if (!messageId || !state || !db || !firebaseInitialized) continue;
+            await db.collection("whatsappProviderStatuses").doc(waBridgeDocId("cloud_api", messageId)).set({ messageId, provider: "cloud_api", status: state, timestamp: status?.timestamp || waNowIso(), recipientId: waMaskPhone(status?.recipient_id), updatedAt: waNowIso() }, { merge: true });
+          }
         }
 
         // Replies your team sends from the WhatsApp app itself land here, not in
@@ -5921,7 +6115,8 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
           const from = waDigits(message?.from);
           const text = waExtractMessageText(message);
           const type = waString(message?.type || "unknown");
-          if (!from) continue;
+          const scopedId = waString(message?.business_scoped_user_id || message?.from_user_id || "");
+          if (!from && !scopedId) continue;
 
           handledMessages += 1;
           const contactName = waString(value?.contacts?.[0]?.profile?.name || "");
@@ -5931,7 +6126,7 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
             type,
             contactName,
             messageId: waString(message?.id),
-            raw: message,
+            raw: from ? message : { ...message, business_scoped_user_id: scopedId },
             source: "cloud_api",
           });
           sendResults.push(...waAsArray(processed?.sendResults));
@@ -5942,7 +6137,53 @@ app.post("/api/whatsapp/webhook", async (req, res) => {
     return res.status(200).json({ success: true, handledMessages, sendResults });
   } catch (error: any) {
     console.error("[WHATSAPP] Webhook processing failed:", error?.message || error);
-    return res.status(200).json({ success: false, error: error?.message || String(error), handledMessages, sendResults });
+    return res.status(500).json({ success: false, error: "Webhook processing failed", handledMessages, sendResults });
+  }
+});
+
+// Kapso uses its own webhook signing secret and header; never accept its signature as
+// a Meta signature or allow both providers to process events concurrently.
+app.post("/api/whatsapp/kapso/webhook", async (req, res) => {
+  if (WHATSAPP_TRANSPORT() !== "kapso") return res.status(409).json({ success: false, error: "Kapso is not the active WhatsApp transport" });
+  if (!waKapsoWebhookSignatureValid(req)) return res.status(401).json({ success: false, error: "Invalid signature" });
+  const event = req.body || {};
+  const eventName = waString(req.headers?.["x-webhook-event"]);
+  const payloads = waKapsoWebhookPayloads(event);
+  const webhookIdempotencyKey = waString(req.headers?.["x-idempotency-key"]);
+  const sendResults: any[] = [];
+  let handledMessages = 0;
+  try {
+    for (const payload of payloads) {
+      const normalized = waNormalizeKapsoInbound(payload, eventName);
+      const message = payload?.message;
+      if (!message) continue;
+      const conversation = payload?.conversation || {};
+      for (const status of waAsArray(message?.kapso?.statuses)) {
+        const messageId = waString(status?.id || message?.id);
+        const state = waString(status?.status);
+        if (!messageId || !state || !db || !firebaseInitialized) continue;
+        await db.collection("whatsappProviderStatuses").doc(waBridgeDocId("kapso", messageId)).set({ messageId, provider: "kapso", status: state, timestamp: status?.timestamp || waNowIso(), recipientId: waMaskPhone(status?.recipient_id), updatedAt: waNowIso() }, { merge: true });
+      }
+
+      const { from, bsuid, text, type, messageId, contactName } = normalized;
+      if (!normalized.incoming) continue;
+      if (!from && !bsuid) continue;
+      handledMessages += 1;
+      const processed = await waProcessInboundMessage({
+        from,
+        text,
+        type,
+        contactName,
+        messageId,
+        raw: { ...message, ...conversation, ...(!from ? { business_scoped_user_id: bsuid } : {}), idempotencyKey: waKapsoMessageIdempotencyKey(messageId, webhookIdempotencyKey) },
+        source: "kapso",
+      });
+      sendResults.push(...waAsArray(processed?.sendResults));
+    }
+    return res.status(200).json({ success: true, handledMessages, sendResults });
+  } catch (error: any) {
+    console.error("[WHATSAPP] Kapso webhook processing failed:", waSafeProviderError({ message: error?.message }));
+    return res.status(500).json({ success: false, error: "Webhook processing failed" });
   }
 });
 
@@ -6194,7 +6435,7 @@ app.get("/api/whatsapp/conversations", async (req, res) => {
 app.get("/api/whatsapp/conversations/:phone/messages", async (req, res) => {
   try {
     if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
-    const phone = waDigits(req.params.phone);
+    const phone = decodeURIComponent(String(req.params.phone || "")).startsWith("bsuid:") ? decodeURIComponent(String(req.params.phone)) : waDigits(req.params.phone);
     const conv = await waGetConversation(phone);
     // Newest 200 (was "asc", which returned the OLDEST 200 and hid recent messages in long
     // conversations), then flipped back to chronological order for the UI.
@@ -6208,10 +6449,15 @@ app.get("/api/whatsapp/conversations/:phone/messages", async (req, res) => {
 
 app.post("/api/whatsapp/conversations/:phone/reply", async (req, res) => {
   try {
-    const phone = waDigits(req.params.phone);
+    const phone = decodeURIComponent(String(req.params.phone || "")).startsWith("bsuid:") ? decodeURIComponent(String(req.params.phone)) : waDigits(req.params.phone);
     const text = waString(req.body?.text || req.query.text);
     const sentBy = waString(req.body?.sentBy || "admin") || "admin";
     if (!phone || !text) return res.status(400).json({ success: false, error: "Missing phone or text" });
+    const conversationBeforeReply = await waGetConversation(phone);
+    if (conversationBeforeReply?.identityType === "business_scoped_user_id") return res.status(409).json({ success: false, error: "This BSUID conversation is recorded for handoff; sending by BSUID is not enabled" });
+    if (conversationBeforeReply?.mode === "human" && conversationBeforeReply?.assignedTo && String(conversationBeforeReply.assignedTo).toLowerCase() !== String((req as any).waConsoleUser?.email || "").toLowerCase()) {
+      return res.status(409).json({ success: false, error: "Conversation is assigned to another staff member" });
+    }
     const cancelledBotReplies = await waCancelPendingBotOutbox(phone, "human_reply_started");
     await waUpsertConversation(phone, {
       mode: "human",
@@ -6273,8 +6519,9 @@ app.post("/api/whatsapp/conversations/:phone/request-rating", async (req, res) =
 
 app.post("/api/whatsapp/conversations/:phone/mode", async (req, res) => {
   try {
-    const phone = waDigits(req.params.phone);
+    const phone = String(req.params.phone || "").startsWith("bsuid:") ? String(req.params.phone) : waDigits(req.params.phone);
     const mode = waString(req.body?.mode || req.query.mode) === "bot" ? "bot" : "human";
+    if (mode === "bot" && !WHATSAPP_BOT_ENABLED()) return res.status(409).json({ success: false, error: "Automatic replies are globally disabled" });
     const patch = mode === "bot"
       ? { mode, status: "open", botResumedAt: waNowIso(), autoResumeAt: "", unreadCount: 0 }
       : { mode, status: "needs_support", botPausedAt: waNowIso(), autoResumeAt: waHumanAutoResumeAt() };
@@ -6287,7 +6534,8 @@ app.post("/api/whatsapp/conversations/:phone/mode", async (req, res) => {
 
 app.post("/api/whatsapp/conversations/:phone/read", async (req, res) => {
   try {
-    const phone = waDigits(req.params.phone);
+    const requestedIdentity = decodeURIComponent(String(req.params.phone || ""));
+    const phone = requestedIdentity.startsWith("bsuid:") ? requestedIdentity : waDigits(requestedIdentity);
     await waUpsertConversation(phone, { unreadCount: 0 });
     res.json({ success: true });
   } catch (error: any) {
@@ -6297,7 +6545,8 @@ app.post("/api/whatsapp/conversations/:phone/read", async (req, res) => {
 
 app.post("/api/whatsapp/conversations/:phone/close", async (req, res) => {
   try {
-    const phone = waDigits(req.params.phone);
+    const requestedIdentity = decodeURIComponent(String(req.params.phone || ""));
+    const phone = requestedIdentity.startsWith("bsuid:") ? requestedIdentity : waDigits(requestedIdentity);
     await waUpsertConversation(phone, { status: "closed", mode: "bot", unreadCount: 0, botResumedAt: waNowIso() });
     res.json({ success: true });
   } catch (error: any) {
