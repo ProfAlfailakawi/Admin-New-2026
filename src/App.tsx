@@ -4319,6 +4319,8 @@ const MainApp: React.FC = () => {
       {/* Sidebar Navigation */}
       <motion.aside 
         ref={sidebarRef}
+        // A closed mobile drawer sits off-screen but stayed in the tab order and the accessibility tree.
+        inert={isMobile && !sidebarOpen}
         initial={false}
         animate={{ 
           width: isMobile ? (sidebarOpen ? 280 : 0) : (sidebarOpen ? 280 : 80),
