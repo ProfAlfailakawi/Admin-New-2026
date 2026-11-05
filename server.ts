@@ -9476,15 +9476,6 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     return lastResponse;
   }
 
-  app.get("/api/test-upayments-raw", async (req, res) => {
-    try {
-      const apiKey = getUPaymentsApiKey();
-      res.send(`Key length: ${apiKey?.length}, first 3: ${apiKey?.substring(0,3)}`);
-    } catch(e: any) {
-      res.send("Error: " + e.message);
-    }
-  });
-
   app.get("/api/test", (req, res) => {
     res.json({ message: "BACKEND OK", status: 200, time: new Date().toISOString() });
   });
