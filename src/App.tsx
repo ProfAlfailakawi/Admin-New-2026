@@ -4528,6 +4528,7 @@ const MainApp: React.FC = () => {
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
                 className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
                 title="القائمة الجانبية"
+                aria-label="القائمة الجانبية"
               >
                 <Menu size={18} className="group-hover:rotate-180 transition-transform duration-500" />
               </button>
@@ -4544,7 +4545,7 @@ const MainApp: React.FC = () => {
               title="العودة للصفحة الرئيسية"
               aria-label="العودة للصفحة الرئيسية"
               className={cn(
-                "flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all group shrink-0",
+                "flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-[0.8rem] sm:rounded-2xl transition-all group shrink-0",
                 currentPage === 'dashboard' ? "bg-slate-900 text-white shadow-xl shadow-slate-200" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
               )}
             >
@@ -4576,6 +4577,7 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setCommandBarOpen(true); }}
                 title="البحث السريع (Ctrl+K)"
+                aria-label="البحث السريع"
                 className="hidden md:flex items-center gap-2 sm:gap-4 glass-surface hover:bg-white p-3 sm:px-5 sm:py-3 rounded-[1rem] sm:rounded-2xl transition-all group overflow-hidden hover:shadow-md hover:border-amber-400"
               >
                   <Search size={16} className="text-slate-500 group-hover:text-amber-500 group-hover:scale-125 transition-all" />
@@ -4600,7 +4602,8 @@ const MainApp: React.FC = () => {
                   setSidebarOpen(false);
                 }}
                 title="إنشاء فاتورة جديدة"
-                className="flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 bg-slate-900 text-white rounded-[0.8rem] sm:rounded-2xl font-bold shadow-md sm:shadow-xl hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group shrink-0"
+                aria-label="إنشاء فاتورة جديدة"
+                className="flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] bg-slate-900 text-white rounded-[0.8rem] sm:rounded-2xl font-bold shadow-md sm:shadow-xl hover:bg-slate-800 transition-all transform hover:scale-105 active:scale-95 group shrink-0"
               >
                 <Plus size={16} className="sm:size-5 group-hover:rotate-90 transition-transform" />
               </button>
@@ -4609,8 +4612,9 @@ const MainApp: React.FC = () => {
                 <button 
                   onClick={() => { try { localStorage.setItem('ai_context_page', currentPage); } catch {} setCurrentPage('ai'); setSidebarOpen(false); }}
                   title="مساعد التراث الذكي"
+                  aria-label="مساعد التراث الذكي"
                   className={cn(
-                    "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden shrink-0",
+                    "flex w-11 h-11 min-w-[44px] min-h-[44px] rounded-[0.8rem] sm:rounded-2xl transition-all items-center justify-center relative group overflow-hidden shrink-0",
                     currentPage === 'ai' ? "bg-slate-900 text-white shadow-xl scale-105" : "bg-slate-100/50 text-slate-500 hover:bg-white hover:shadow-lg border border-transparent hover:border-amber-200/40"
                   )}
                 >
@@ -4630,7 +4634,7 @@ const MainApp: React.FC = () => {
               <button 
                 onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); }}
                 className={cn(
-                  "flex w-9 h-9 sm:w-11 sm:h-11 rounded-[0.8rem] sm:rounded-2xl items-center justify-center transition-all relative z-50",
+                  "flex w-11 h-11 min-w-[44px] min-h-[44px] rounded-[0.8rem] sm:rounded-2xl items-center justify-center transition-all relative z-50",
                   notifOpen ? "bg-slate-200 text-slate-800 animate-none" : "bg-slate-100/50 hover:bg-slate-200 text-slate-600"
                 )}
                 title="عرض التنبيهات"
@@ -4662,7 +4666,7 @@ const MainApp: React.FC = () => {
                       <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                         <span className="font-bold text-slate-800 text-sm sm:text-base">التنبيهات الذكية</span>
                         <div className="flex items-center gap-1">
-                           <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="p-2 hover:bg-slate-100 rounded-full transition-colors" title={isSoundEnabled ? "إيقاف التنبيه الصوتي" : "تفعيل التنبيه الصوتي"}>
+                           <button onClick={() => setIsSoundEnabled(!isSoundEnabled)} className="p-2 min-w-[44px] min-h-[44px] inline-flex items-center justify-center hover:bg-slate-100 rounded-full transition-colors" aria-label={isSoundEnabled ? "إيقاف التنبيه الصوتي" : "تفعيل التنبيه الصوتي"} title={isSoundEnabled ? "إيقاف التنبيه الصوتي" : "تفعيل التنبيه الصوتي"}>
                                {isSoundEnabled ? <Volume2 size={18} className="text-emerald-600" /> : <VolumeX size={18} className="text-slate-500" />}
                            </button>
                            <button 
@@ -4786,8 +4790,9 @@ const MainApp: React.FC = () => {
 
           <button 
             onClick={handleLogout}
-            className="flex p-2 sm:p-2.5 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[0.8rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50 shrink-0 cursor-pointer w-9 h-9 sm:w-11 sm:h-11 items-center justify-center"
+            className="flex items-center justify-center min-w-[44px] min-h-[44px] p-2 sm:p-2.5 bg-rose-50 hover:bg-rose-600 text-rose-500 hover:text-white rounded-[0.8rem] sm:rounded-2xl transition-all shadow-sm group active:scale-95 border border-rose-100/50 shrink-0 cursor-pointer w-9 h-9 sm:w-11 sm:h-11 items-center justify-center"
             title="تسجيل الخروج"
+            aria-label="تسجيل الخروج"
           >
             <LogOut size={16} className="transition-transform group-hover:scale-110 group-hover:rotate-12" />
           </button>
@@ -4982,6 +4987,7 @@ const MainApp: React.FC = () => {
               onClick={() => setCommandBarOpen(true)}
               className="flex items-center justify-center w-11 h-11 bg-slate-950/95 backdrop-blur-3xl rounded-full shadow-[0_16px_35px_rgba(0,0,0,0.7)] border border-white/10 active:scale-95 transition-all relative group overflow-hidden"
               title="مركز الأوامر الذكي"
+              aria-label="مركز الأوامر الذكي"
             >
               <motion.div 
                 className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/20 to-indigo-500/0 opacity-50"
