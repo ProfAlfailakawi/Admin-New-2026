@@ -67,7 +67,7 @@ body:has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(76px +
 
 /* ---- 4. Header: ten controls shared 951px. Keep the actions, drop the decoration. ---- */
 @media (min-width:600px) and (max-width:1180px){
-  .admin-app-header{height:64px!important}
+  .admin-app-header{height:calc(64px + env(safe-area-inset-top,0px))!important}
   .admin-app-header .text-right.md\:flex{display:none!important}
   .admin-app-header [title="متصل بالسحابة"]{display:none!important}
   .admin-app-header .h-4.w-\[1px\],.admin-app-header .h-6.w-\[1px\]{display:none!important}
