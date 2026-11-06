@@ -13,7 +13,7 @@ const DemoBanner: React.FC = () => (
   >
     <span className="demo-banner__text">
       <span className="demo-banner__long">نسخة تجريبية — بيانات وهمية معزولة، لا ترتبط بأي طلبات أو عملاء أو مدفوعات حقيقية</span>
-      <span className="demo-banner__short" aria-hidden="true">نسخة تجريبية — بيانات وهمية</span>
+      <span className="demo-banner__short">نسخة تجريبية — بيانات وهمية</span>
     </span>
     <button type="button" onClick={exitDemoMode} className="demo-banner__exit">
       خروج
