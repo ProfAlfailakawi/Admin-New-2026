@@ -161,3 +161,8 @@ body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
   body:has(.ktk-install-sheet) .admin-app-main{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important}
   body:has(.ktk-install-sheet):has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(228px + env(safe-area-inset-bottom,0px))!important}
 }
+
+/* the full-window scrim (shown below 768px) greyed the whole page; keep it as an invisible tap-to-dismiss layer */
+@media (max-width:767px){
+  .fixed.inset-0.bg-slate-900\/10{background:transparent!important;backdrop-filter:none!important}
+}
