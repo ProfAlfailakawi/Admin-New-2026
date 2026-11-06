@@ -166,3 +166,10 @@ body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
 @media (max-width:767px){
   .fixed.inset-0.bg-slate-900\/10{background:transparent!important;backdrop-filter:none!important}
 }
+
+/* real-table mode: action icons share one row instead of a tall vertical stack */
+@media (min-width:900px) and (max-width:1180px){
+  table.mobile-card-table tbody td:last-child .flex-col,
+  table.mobile-card-table tbody td:last-child .flex.flex-col{flex-direction:row!important;flex-wrap:wrap;align-items:center}
+  table.mobile-card-table tbody td:last-child{white-space:nowrap}
+}
