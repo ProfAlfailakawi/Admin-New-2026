@@ -43,9 +43,6 @@ body:has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(76px +
   .ktk-install-sheet button{padding-block:10px!important;min-height:44px;border-radius:14px!important;font-size:14px!important}
   .ktk-install-sheet button.px-8{padding-inline:18px!important}
 }
-@media (min-width:600px) and (max-height:700px){
-  .ktk-install-sheet p{display:none}
-}
 
 /* ---- 3. Page heading: a slim, calm strip on wide-but-short windows, so the work area starts
    at ~35% of the height instead of ~55% ---- */
@@ -87,4 +84,93 @@ body:has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(76px +
 body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
   --offset:calc(76px + env(safe-area-inset-bottom,0px));
   bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;
+}
+
+
+/* ---- 7. Install sheet becomes ONE slim row (icon, text, buttons) on windows >=600px, and both it
+   and the demo banner reserve their own space in the scroller, so the last card can always be
+   scrolled clear of them (dismiss behaviour untouched). ---- */
+@media (min-width:600px){
+  .ktk-install-sheet{
+    display:flex!important;align-items:center;gap:14px;
+    width:min(600px,calc(100vw - 32px))!important;padding:10px 14px!important;
+  }
+  .ktk-install-sheet > .flex.items-start{flex:1 1 auto;min-width:0;margin:0!important;align-items:center;gap:12px!important}
+  .ktk-install-sheet > .flex.items-start > .flex-1{margin-top:0!important}
+  .ktk-install-sheet > .flex.items-center{flex:none;gap:8px!important}
+  .ktk-install-sheet > .flex.items-center > button{flex:none!important;padding-inline:18px!important}
+  .ktk-install-sheet p{font-size:12.5px!important;line-height:1.5!important;display:block!important}
+  body:has(.ktk-install-sheet) .admin-app-main{padding-bottom:calc(112px + env(safe-area-inset-bottom,0px))!important}
+  body:has(.ktk-install-sheet):has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(176px + env(safe-area-inset-bottom,0px))!important}
+}
+@media (min-width:600px) and (max-width:759px){
+  .ktk-install-sheet p{display:none!important}
+}
+
+/* ---- 8. Real tables on the opened Duo landscape (900-1180px). The card conversion now stops at
+   899px (index.css), so wide ledgers read as tables: fixed header row, compact cells, wrapping text,
+   no horizontal scroll hunting. ---- */
+@media (min-width:900px) and (max-width:1180px){
+  table.mobile-card-table{min-width:0!important;width:100%;font-size:13px;white-space:normal!important;table-layout:auto}
+  table.mobile-card-table thead th{
+    position:sticky;top:0;z-index:1;padding:10px 10px!important;font-size:12px!important;
+    letter-spacing:0!important;white-space:nowrap;background:#f6f3ea;color:#4b5a52;
+    border-bottom:1px solid rgba(183,133,47,.35)
+  }
+  table.mobile-card-table tbody td{padding:9px 10px!important;vertical-align:middle;line-height:1.5}
+  table.mobile-card-table tbody tr{border-bottom:1px solid rgba(226,232,240,.9)}
+  table.mobile-card-table tbody tr:nth-child(even){background:rgba(248,246,239,.55)}
+  table.mobile-card-table td button,table.mobile-card-table td a{min-height:44px;min-width:44px}
+  table.mobile-card-table td .flex{flex-wrap:wrap}
+  .admin-app-main :has(> table.mobile-card-table){overflow-x:auto}
+}
+
+/* ---- 9. KPI stat cards on landscape-short windows: one compact row (icon + label | value) instead of
+   a 170px tall stack, so two or three of them fit above the fold at 951x600 ---- */
+@media (min-width:600px) and (max-height:760px){
+  .bp-statcard{display:flex!important;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px!important}
+  .bp-statcard > div:first-child{display:flex!important;align-items:center;gap:10px;margin:0!important;width:auto!important;flex-direction:row}
+  .bp-statcard > div:first-child > div:last-child{margin-top:0!important;display:block!important}
+  .bp-statcard > div:last-child{text-align:start}
+  .bp-statcard .bp-statvalue{margin:0}
+}
+/* three KPIs share one row on the 600-767 band (was 2 + an orphan) */
+@media (min-width:600px) and (max-width:767px){
+  .admin-content-polish .grid:has(> .bp-kpi){grid-template-columns:repeat(3,minmax(0,1fr))}
+  .admin-content-polish .grid:has(> .bp-kpi) > .bp-kpi{grid-column:auto!important}
+}
+
+/* ---- 10. Phones and the folded Duo (<600px): the install sheet was ~390px of a 580px window.
+   Compact bottom sheet (icon + title + two buttons, ~150px), invisible scrim, and reserved scroll
+   space so content is never trapped under it. Dismiss behaviour is unchanged. ---- */
+@media (max-width:599px){
+  .ktk-install-sheet{
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:22px 22px 0 0!important;
+  }
+  .ktk-install-sheet > .w-12{margin-bottom:8px!important;height:5px}
+  .ktk-install-sheet .mb-8,.ktk-install-sheet .mb-6{margin-bottom:10px!important}
+  .ktk-install-sheet .gap-4{gap:12px!important}
+  .ktk-install-sheet [class*="w-[72px]"]{width:48px!important;height:48px!important;border-radius:14px!important}
+  .ktk-install-sheet [class*="w-[72px]"] span{font-size:26px!important;margin:0!important}
+  .ktk-install-sheet h3{font-size:17px!important;margin:0!important}
+  .ktk-install-sheet p{display:none!important}
+  .ktk-install-sheet > .flex.items-start > .flex-1{margin-top:0!important;align-self:center}
+  .ktk-install-sheet button{padding-block:10px!important;min-height:44px;border-radius:14px!important;font-size:14px!important}
+  .ktk-install-sheet button.px-8{padding-inline:20px!important}
+  .fixed.inset-0.bg-slate-900\/10{background:transparent!important;backdrop-filter:none!important}
+  body:has(.ktk-install-sheet) .admin-app-main{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important}
+  body:has(.ktk-install-sheet):has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(228px + env(safe-area-inset-bottom,0px))!important}
+}
+
+/* the full-window scrim (shown below 768px) greyed the whole page; keep it as an invisible tap-to-dismiss layer */
+@media (max-width:767px){
+  .fixed.inset-0.bg-slate-900\/10{background:transparent!important;backdrop-filter:none!important}
+}
+
+/* real-table mode: action icons share one row instead of a tall vertical stack */
+@media (min-width:900px) and (max-width:1180px){
+  table.mobile-card-table tbody td:last-child .flex-col,
+  table.mobile-card-table tbody td:last-child .flex.flex-col{flex-direction:row!important;flex-wrap:wrap;align-items:center}
+  table.mobile-card-table tbody td:last-child{white-space:nowrap}
 }
