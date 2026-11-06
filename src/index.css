@@ -6498,7 +6498,7 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
   .dashboard > .\-top-32.pointer-events-none{top:0!important;height:100%!important;max-height:800px}
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   /* Wide data tables become stacked cards on phones and tablets */
   .admin-app-main :has(> table.mobile-card-table){overflow-x:visible!important}
   table.mobile-card-table{min-width:0!important;width:100%!important;white-space:normal!important;border-collapse:separate!important;border-spacing:0!important}
@@ -6532,7 +6532,7 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
   /* Plain-text empty-state row: give the message breathing room and centre it (the card reset above zeroed the padding and left it flush with the dashed edge) */
   table.mobile-card-table tbody > tr:has(> td[colspan]:only-child) > td[colspan]:not(:has(*)){padding:28px 16px!important;text-align:center!important;line-height:1.7}
 }
-@media (min-width: 640px) and (max-width: 1023px) {
+@media (min-width: 640px) and (max-width: 899px) {
   table.mobile-card-table tbody{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
   table.mobile-card-table tbody > tr:has(> td[colspan]:only-child){grid-column:1 / -1}
 }
