@@ -138,3 +138,26 @@ body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
 @media (min-width:600px) and (max-width:767px){
   .admin-content-polish .grid:has(> .bp-kpi){grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+/* ---- 10. Phones and the folded Duo (<600px): the install sheet was ~390px of a 580px window.
+   Compact bottom sheet (icon + title + two buttons, ~150px), invisible scrim, and reserved scroll
+   space so content is never trapped under it. Dismiss behaviour is unchanged. ---- */
+@media (max-width:599px){
+  .ktk-install-sheet{
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))!important;
+    border-radius:22px 22px 0 0!important;
+  }
+  .ktk-install-sheet > .w-12{margin-bottom:8px!important;height:5px}
+  .ktk-install-sheet .mb-8,.ktk-install-sheet .mb-6{margin-bottom:10px!important}
+  .ktk-install-sheet .gap-4{gap:12px!important}
+  .ktk-install-sheet [class*="w-[72px]"]{width:48px!important;height:48px!important;border-radius:14px!important}
+  .ktk-install-sheet [class*="w-[72px]"] span{font-size:26px!important;margin:0!important}
+  .ktk-install-sheet h3{font-size:17px!important;margin:0!important}
+  .ktk-install-sheet p{display:none!important}
+  .ktk-install-sheet > .flex.items-start > .flex-1{margin-top:0!important;align-self:center}
+  .ktk-install-sheet button{padding-block:10px!important;min-height:44px;border-radius:14px!important;font-size:14px!important}
+  .ktk-install-sheet button.px-8{padding-inline:20px!important}
+  .fixed.inset-0.bg-slate-900\/10{background:transparent!important;backdrop-filter:none!important}
+  body:has(.ktk-install-sheet) .admin-app-main{padding-bottom:calc(168px + env(safe-area-inset-bottom,0px))!important}
+  body:has(.ktk-install-sheet):has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(228px + env(safe-area-inset-bottom,0px))!important}
+}
