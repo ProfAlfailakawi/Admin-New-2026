@@ -6893,15 +6893,78 @@ body:has(.ktk-boot) {
   .ktk-boot-rail span { animation: none; width: 92%; transform: none; }
 }
 
+/* ==========================================================================
+   iPhone Duo / width-based layout pass (real media queries only: device-posture
+   and viewport-segments are preview-only, so nothing here depends on them).
+   Sizes: folded 382x580 · Split 320/470/620 · opened portrait ~669 · landscape ~951
+   ========================================================================== */
 
-/* iPhone Duo folded postures only. Unsupported/disabled Safari preview features
-   leave the existing site styles unchanged on every other device and posture. */
-@media (device-posture: folded) and (horizontal-viewport-segments: 2) {
-  html, body, #root { min-width: 0; max-width: 100%; }
+/* Demo banner: slim pill inside the safe area; sentence shortens on narrow windows */
+.demo-banner{
+  position:fixed;z-index:99999;left:50%;transform:translateX(-50%);
+  bottom:calc(8px + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:center;gap:10px;
+  max-width:min(620px,calc(100vw - 24px));
+  padding:3px 4px 3px 14px;border-radius:999px;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1c1917;
+  font-size:12px;font-weight:800;line-height:1.45;
+  box-shadow:0 10px 30px -10px rgba(120,53,15,.55),0 0 0 1px rgba(255,255,255,.35) inset;
 }
-@media (device-posture: folded) and (vertical-viewport-segments: 2) {
-  html, body, #root { min-width: 0; max-width: 100%; }
+.demo-banner__short{display:none}
+.demo-banner__exit{
+  position:relative;flex:none;min-height:44px;min-width:56px;padding:4px 16px;border:0;border-radius:999px;
+  background:#0f172a;color:#fff;font-weight:900;font-size:12px;white-space:nowrap;cursor:pointer;
 }
-@media (device-posture: folded) and (orientation: landscape) and (max-height: 520px) {
-  html { scroll-padding-block: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom)); }
+@media (max-width:599px){
+  .demo-banner__long{display:none}
+  .demo-banner__short{display:inline}
+  /* park between the two corner floating buttons (44px each + 8px margin) */
+  .demo-banner{max-width:calc(100vw - 120px);padding-inline-start:10px;gap:8px}
+}
+@media (max-width:359px){
+  .demo-banner{font-size:12px;max-width:calc(100vw - 112px)}
+}
+/* The install sheet must never sit under the banner */
+body:has([data-testid="demo-banner"]) .ktk-install-sheet{bottom:calc(52px + env(safe-area-inset-bottom,0px))!important;border-radius:28px!important}
+@media (min-width:600px) and (max-width:767px){
+  .ktk-install-sheet{max-width:520px;margin-inline:auto;border-radius:32px 32px 0 0}
+}
+.ktk-install-sheet{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain}
+
+/* Drawer never wider than the window (Split View 320) and keeps both safe-area sides */
+.bp-sidebar{max-width:min(280px,88vw)}
+
+/* Legibility floor: 12px for every micro label (iOS minimum readable size) */
+.admin-app-main :is(.text-\[8px\],.text-\[9px\],.text-\[10px\],.text-\[11px\]),
+aside.bg-slate-950 :is(.text-\[8px\],.text-\[9px\],.text-\[10px\],.text-\[11px\]),
+.admin-app-header :is(.text-\[8px\],.text-\[9px\],.text-\[10px\],.text-\[11px\]){font-size:12px!important;line-height:1.45}
+
+/* Double-tap zoom off without blocking pinch zoom */
+.admin-app-main button,.admin-app-main a,.admin-app-header button,aside.bg-slate-950 button{touch-action:manipulation}
+
+/* Short windows (folded landscape ~600x350, opened portrait with pinned video ~669x520):
+   compress chrome so the content gets the height */
+@media (max-height:520px){
+  .admin-app-header{
+    height:calc(3.25rem + env(safe-area-inset-top,0px))!important;
+  }
+  .admin-drawer-header{height:calc(4.25rem + env(safe-area-inset-top,0px))!important;padding-block-end:.5rem!important}
+  .admin-app-main{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+  .demo-banner{bottom:calc(4px + env(safe-area-inset-bottom,0px))}
+  .ktk-install-sheet{padding:14px 18px calc(10px + env(safe-area-inset-bottom,0px))!important}
+  .ktk-install-sheet .mb-8{margin-bottom:.75rem!important}
+  .ktk-install-sheet .mb-6{margin-bottom:.5rem!important}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .demo-banner{left:auto;right:auto;inset-inline-start:calc(60px + env(safe-area-inset-left,0px));transform:none;max-width:min(520px,calc(100vw - 200px))}
+}
+@media (prefers-reduced-motion:reduce){
+  .demo-banner,.ktk-install-sheet{transition:none!important;animation:none!important}
+}
+
+/* Banner: one line when the window is wide enough */
+@media (min-width:900px){.demo-banner{max-width:min(820px,calc(100vw - 48px))}}
+/* Short windows: the centred command button would sit on the content, so it joins the corner buttons */
+@media (max-height:520px){
+  [data-floating='secondary'].left-1\/2{left:auto!important;right:calc(60px + env(safe-area-inset-right,0px));transform:none!important;bottom:calc(.75rem + env(safe-area-inset-bottom,0px))!important}
 }
