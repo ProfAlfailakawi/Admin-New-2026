@@ -129,6 +129,7 @@ const InstagramMagicWand = React.lazy(() => import('./components/InstagramMagicW
 import { recalculateStateBalances } from './lib/business-logic';
 import { INITIAL_DATA, GET_DEMO_DATA, DEFAULT_SQUADS } from './data';
 import { IS_DEMO_MODE, exitDemoMode } from './lib/demoMode';
+import DemoBanner from './components/DemoBanner';
 import PageHeroIcon from './components/ui/PageHeroIcon';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS, DEFAULT_GLOBAL_LOGO } from './constants';
 import { AppState } from './types';
@@ -5015,6 +5016,7 @@ const MainApp: React.FC = () => {
           <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />
         </React.Suspense>
       )}
+      {IS_DEMO_MODE && <DemoBanner />}
       <Toaster richColors position="bottom-right" closeButton />
       {renderBeautifulOfflineModal()}
       

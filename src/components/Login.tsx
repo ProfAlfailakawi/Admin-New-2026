@@ -3,6 +3,7 @@ import { Chrome, DownloadCloud, Share, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
+import { enterDemoMode } from '../lib/demoMode';
 
 interface LoginProps {
  onLogin: (mode: 'local' | 'cloud') => void;
@@ -143,6 +144,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
             <Chrome size={20} />
             <span>{loading ? 'نحمّل...' : 'تسجيل الدخول السحابي Google'}</span>
           </button>
+
+          <button onClick={() => enterDemoMode()} className="login-google-btn" type="button" data-testid="enter-demo" style={{ marginTop: 12, background: 'transparent', border: '2px solid currentColor' }}>
+            <span>جرّب النسخة التجريبية (بدون حساب)</span>
+          </button>
+          <p style={{ fontSize: 12, opacity: 0.75, marginTop: 6, textAlign: 'center' }}>
+            بيانات وهمية معزولة تماماً — لا تلمس الطلبات أو العملاء أو المدفوعات الحقيقية.
+          </p>
 
           {error && (
             <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="login-error-box">

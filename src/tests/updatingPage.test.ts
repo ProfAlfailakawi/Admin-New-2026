@@ -218,7 +218,7 @@ describe('in the app', () => {
 
   it('the watch is installed at boot and passes every response through unchanged', () => {
     const main = read('src/main.tsx');
-    expect(main.indexOf('installUpdatingWatch()')).toBeGreaterThan(main.indexOf('installDemoNetworkGuard()'));
+    expect(main.indexOf('installUpdatingWatch()')).toBeGreaterThan(main.indexOf("import './lib/demoMode'"));
     const watch = read('src/lib/updatingNotice.ts');
     expect(watch).toMatch(/return response;\s*\}\);\s*\}\) as typeof window\.fetch;/);
   });
