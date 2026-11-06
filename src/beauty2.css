@@ -137,6 +137,7 @@ body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
 /* three KPIs share one row on the 600-767 band (was 2 + an orphan) */
 @media (min-width:600px) and (max-width:767px){
   .admin-content-polish .grid:has(> .bp-kpi){grid-template-columns:repeat(3,minmax(0,1fr))}
+  .admin-content-polish .grid:has(> .bp-kpi) > .bp-kpi{grid-column:auto!important}
 }
 
 /* ---- 10. Phones and the folded Duo (<600px): the install sheet was ~390px of a 580px window.
