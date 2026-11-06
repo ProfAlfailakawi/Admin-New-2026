@@ -15,6 +15,7 @@ import './components/dna/beauty-pass.css';
 import './components/dna/ledger.css';
 import './motion.css';
 import './quality.css';
+import './beauty2.css';
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 
