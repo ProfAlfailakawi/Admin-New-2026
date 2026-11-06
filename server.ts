@@ -16,6 +16,7 @@ import 'dotenv/config';
 import { GoogleGenAI, Type } from "@google/genai";
 import LZString from "lz-string";
 import { packBootInlineAssets } from "./src/lib/bootAssetTransport.ts";
+import { runWithDeadlineAndRetry } from "./src/lib/paymentWebhookRetry.ts";
 
 let firebaseInitialized = false;
 let db: any = null;
@@ -7275,30 +7276,44 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
     }
   };
 
+  // A stuck Firestore call must not hold a paid webhook until Cloud Run kills it.
+  // Nothing is saved in that case, so report it instead of answering OK.
+  const respondToPaymentWebhook = async (res: any, params: any) => {
+    const outcome = await runWithDeadlineAndRetry(() => handlePaymentUpdate(params), {
+      onAttemptFailed: (attempt, error) =>
+        console.warn(`[PAYMENT_WEBHOOK] attempt ${attempt} failed: ${error}`),
+    });
+    if (outcome.ok) return res.status(200).send('OK');
+    console.error("[PAYMENT_WEBHOOK_UNPROCESSED]", JSON.stringify({
+      error: outcome.error,
+      result: params?.result,
+      requestedOrderId: params?.requested_order_id,
+      trackId: params?.track_id,
+      paymentId: params?.payment_id,
+    }));
+    return res.status(503).send('Payment update not processed');
+  };
+
   app.post("/api/webhook/upayments", async (req, res) => {
     console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
     const mergedParams = { ...req.body, ...req.params, ...req.query };
-    await handlePaymentUpdate(mergedParams);
-    res.status(200).send('OK');
+    await respondToPaymentWebhook(res, mergedParams);
   });
   app.post("/api/payment-webhook/:orderId", async (req, res) => {
     console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
     const mergedParams = { ...req.body, ...req.params, ...req.query };
-    await handlePaymentUpdate(mergedParams);
-    res.status(200).send('OK');
+    await respondToPaymentWebhook(res, mergedParams);
   });
 
   app.get("/api/webhook/upayments", async (req, res) => {
      console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
      const mergedParams = { ...req.query, ...req.params, ...req.body };
-     await handlePaymentUpdate(mergedParams);
-     res.status(200).send('OK');
+     await respondToPaymentWebhook(res, mergedParams);
   });
   app.get("/api/payment-webhook/:orderId", async (req, res) => {
      console.log("UPayments Webhook Received (GET):", JSON.stringify(req.query));
      const mergedParams = { ...req.query, ...req.params, ...req.body };
-     await handlePaymentUpdate(mergedParams);
-     res.status(200).send('OK');
+     await respondToPaymentWebhook(res, mergedParams);
   });
 
   // API logging middleware
