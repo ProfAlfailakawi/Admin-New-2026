@@ -2,8 +2,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
-import { installDemoNetworkGuard } from './lib/demoMode';
-installDemoNetworkGuard();
+import './lib/demoMode'; // installs the fail-closed demo network guard on import
 import { installUpdatingWatch } from './lib/updatingNotice';
 // A 5xx HTML page on /api is Google's front end mid-deploy: one calm bar, not an error.
 installUpdatingWatch();

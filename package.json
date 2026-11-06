@@ -12,13 +12,14 @@
   ],
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "npm run verify:pwa && vite build",
+    "build": "npm run verify:pwa && npm run verify:demo-entry && vite build",
     "build:server": "esbuild server.ts --bundle --platform=node --format=esm --packages=external --target=node20 --outfile=dist-server/server.mjs --log-level=warning",
     "start": "npx tsx server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify:demo-entry": "node scripts/verify-demo-entry.mjs",
     "verify:pwa": "PWA_GUARD_SPLASH_IN_ROOT=ok node scripts/verify-pwa.mjs"
   },
   "dependencies": {
