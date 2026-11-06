@@ -124,3 +124,17 @@ body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
   table.mobile-card-table td .flex{flex-wrap:wrap}
   .admin-app-main :has(> table.mobile-card-table){overflow-x:auto}
 }
+
+/* ---- 9. KPI stat cards on landscape-short windows: one compact row (icon + label | value) instead of
+   a 170px tall stack, so two or three of them fit above the fold at 951x600 ---- */
+@media (min-width:600px) and (max-height:760px){
+  .bp-statcard{display:flex!important;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px!important}
+  .bp-statcard > div:first-child{display:flex!important;align-items:center;gap:10px;margin:0!important;width:auto!important;flex-direction:row}
+  .bp-statcard > div:first-child > div:last-child{margin-top:0!important;display:block!important}
+  .bp-statcard > div:last-child{text-align:start}
+  .bp-statcard .bp-statvalue{margin:0}
+}
+/* three KPIs share one row on the 600-767 band (was 2 + an orphan) */
+@media (min-width:600px) and (max-width:767px){
+  .admin-content-polish .grid:has(> .bp-kpi){grid-template-columns:repeat(3,minmax(0,1fr))}
+}
