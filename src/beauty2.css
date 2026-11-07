@@ -182,18 +182,18 @@ body:has([data-testid="demo-banner"]) [data-sonner-toaster]{
 /* ---- A. AI assistant: while the conversation is only the greeting, the console is as tall as its
    content (greeting, suggestions, input) instead of a 70vh blank slab. Once a second message exists the
    original full-height chat returns untouched. ---- */
-html body .ai-executive-assistant-shell:has(.ai-executive-messages:not(:has(.ai-chat-row ~ .ai-chat-row))){
+html body .ai-executive-assistant-shell:has(.ai-executive-messages > .ai-chat-row:first-child:nth-last-child(2)){
   height:auto!important;min-height:0!important;max-height:none!important;
 }
-html body .ai-executive-console:has(.ai-executive-messages:not(:has(.ai-chat-row ~ .ai-chat-row))){
+html body .ai-executive-console:has(.ai-executive-messages > .ai-chat-row:first-child:nth-last-child(2)){
   flex:0 0 auto!important;height:auto!important;max-height:none!important;min-height:0!important;
 }
-html body .ai-executive-messages:not(:has(.ai-chat-row ~ .ai-chat-row)){
+html body .ai-executive-messages:has(> .ai-chat-row:first-child:nth-last-child(2)){
   flex:0 0 auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
   padding-block:16px!important;
 }
-html body .ai-executive-messages:not(:has(.ai-chat-row ~ .ai-chat-row)) .ai-chat-bubble{min-height:0!important}
-html body .ai-executive-console:has(.ai-executive-messages:not(:has(.ai-chat-row ~ .ai-chat-row))) .ai-executive-inputbar{
+html body .ai-executive-messages:has(> .ai-chat-row:first-child:nth-last-child(2)) .ai-chat-bubble{min-height:0!important}
+html body .ai-executive-console:has(.ai-executive-messages > .ai-chat-row:first-child:nth-last-child(2)) .ai-executive-inputbar{
   position:sticky;bottom:0;z-index:5;
 }
 
@@ -246,4 +246,10 @@ html body .ai-executive-console:has(.ai-executive-messages:not(:has(.ai-chat-row
     transform:none!important;
   }
   body:has(.admin-order-details-modal) .admin-app-main{padding-left:calc(min(460px,46vw) + 14px)!important}
+}
+
+/* the side panel keeps clear of the banner / install sheet stack */
+@media (min-width:900px) and (max-width:1180px){
+  body:has([data-testid="demo-banner"]) .admin-order-details-modal > div:nth-child(2){bottom:calc(60px + env(safe-area-inset-bottom,0px))}
+  body:has([data-testid="demo-banner"]):has(.ktk-install-sheet) .admin-order-details-modal > div:nth-child(2){bottom:calc(168px + env(safe-area-inset-bottom,0px))}
 }
