@@ -321,3 +321,16 @@ html body .ktk-install-sheet.is-chip [class*="w-[72px]"] span{font-size:20px!imp
 html body .ktk-install-sheet.is-chip h3{font-size:14px!important;margin:0!important;white-space:nowrap}
 /* a chip must never block taps on the page: the full-window dismiss scrim only exists for the expanded prompt */
 body:has(.ktk-install-sheet.is-chip) .fixed.inset-0.bg-slate-900\/10{pointer-events:none!important}
+
+/* ---- Round 7: floating helpers (AI button, alerts badge, scroll-to-top, Instagram wand) sat on the
+   banner strip. With the banner present they ride above the strip instead. ---- */
+body:has([data-testid="demo-banner"]) [data-floating='secondary'].fixed{
+  bottom:calc(var(--demo-strip) + 12px)!important;
+}
+body:has([data-testid="demo-banner"]) [data-floating='secondary'].fixed.left-1\/2{
+  bottom:calc(var(--demo-strip) + 8px)!important;
+}
+/* the wand's wide-screen launcher is a tall tab: keep its 3rem lift but above the strip */
+body:has([data-testid="demo-banner"]) .fixed.left-0.bottom-12[data-floating='secondary']{
+  bottom:calc(var(--demo-strip) + 12px)!important;
+}
