@@ -399,12 +399,59 @@ html body:has(.ktk-install-sheet:not(.is-chip)) .ktk-install-sheet:not(.is-chip)
   bottom:calc(var(--bs,0px) + 4px)!important;
 }
 
-/* ---- Round 11: on the executive dashboard the centred command button sat on top of the period selector
-   (it covered the "30" option at 382/620). Below 900px it now has its own slot ABOVE the selector row,
-   and the dock grows by that slot, so neither covers content or each other. ---- */
-@media (max-width:899px){
-  body:has(.admin-date-filter-elegant):has([data-floating='secondary'].left-1\/2){--dock:116px}
-  html body:has(.admin-date-filter-elegant) [data-floating='secondary'].fixed.left-1\/2{
-    bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 66px)!important;
-  }
+
+
+/* ==========================================================================
+   Closing round: ONE dock. Every floating control lives in a single row inside the reserved
+   bottom strip (64px + safe area) next to the banner pill; nothing is positioned over page content.
+   Row (phones/<900px, left to right): install button | command | wand | alerts | scroll-top | banner pill
+   Row (>=900px, right to left):      install chip | wand | alerts | scroll-top ... banner pill at the left
+   The period selector is the page's own control: a row of its own directly above the strip.
+   ========================================================================== */
+:root{--strip:calc(64px + env(safe-area-inset-bottom,0px));--row-b:calc(10px + env(safe-area-inset-bottom,0px))}
+html body:not(#x):has(.demo-banner),
+html body:not(#x):has(.ktk-install-sheet.is-chip),
+html body:not(#x):has(.fixed[data-floating='secondary']:not(.bottom-6):not([aria-label^='الرجوع'])){
+  --bs:var(--strip);--demo-strip:var(--strip);
 }
+html body:not(#x):has(.admin-date-filter-elegant){--dock:62px}
+
+/* common: floaters share the strip row */
+html body:not(#x) .fixed[data-floating='secondary']:not(.bottom-6){
+  bottom:var(--row-b)!important;top:auto!important;margin:0!important;transform:none!important;translate:none!important;
+}
+/* phones and narrow windows: icon cluster at the leading edge, pill fills the rest */
+@media (max-width:899px){
+  html body:not(#x) .ktk-install-sheet.is-chip{left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;margin:0!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important}
+  html body:not(#x) .fixed[data-floating='secondary'].left-1\/2{left:60px!important;right:auto!important}
+  html body:not(#x) .fixed.bottom-40.left-6[data-floating='secondary'],
+  html body:not(#x) .fixed.left-0.bottom-12[data-floating='secondary']{left:108px!important;right:auto!important}
+  html body:not(#x) .fixed.bottom-44.right-6[data-floating='secondary']{left:156px!important;right:auto!important}
+  html body:not(#x) .fixed.right-2\.5[data-floating='secondary'][aria-label^='الرجوع']{left:204px!important;right:auto!important;bottom:var(--row-b)!important}
+  html body:not(#x):has(.fixed[data-floating='secondary']:not(.bottom-6):not([aria-label^='الرجوع'])) .demo-banner{max-width:calc(100vw - 76px - 144px)!important}
+}
+/* wide windows: cluster at the trailing edge beside the chip, banner pill stays at the leading edge */
+@media (min-width:900px){
+  html body:not(#x) .fixed.left-0.bottom-12[data-floating='secondary']{left:auto!important;right:196px!important}
+  html body:not(#x) .fixed.bottom-44.right-6[data-floating='secondary']{left:auto!important;right:248px!important}
+  html body:not(#x) .fixed.right-2\.5[data-floating='secondary'][aria-label^='الرجوع'],
+  html body:not(#x) .fixed.sm\:right-6[data-floating='secondary'][aria-label^='الرجوع']{left:auto!important;right:300px!important;bottom:var(--row-b)!important}
+  html body:not(#x):has(.ktk-install-sheet.is-chip) .demo-banner{max-width:calc(100vw - 380px)!important}
+}
+html body:not(#x) .fixed[data-floating='secondary']:not(.bottom-6) button{min-width:44px;min-height:44px}
+
+/* period selector: its own row directly above the strip, in the layout, never over cards */
+html body:not(#x) [data-floating='secondary'].fixed.bottom-6.left-0.right-0{
+  bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 17px)!important;
+}
+
+/* toasts clear the whole dock (strip + selector row + open prompt) */
+html body:not(#x) [data-sonner-toaster]{
+  --offset:calc(var(--bs,0px) + var(--dock,0px) + var(--sheet-h,0px) + 12px)!important;
+  --mobile-offset-bottom:calc(var(--bs,0px) + var(--dock,0px) + var(--sheet-h,0px) + 12px)!important;
+  bottom:calc(var(--bs,0px) + var(--dock,0px) + var(--sheet-h,0px) + 12px)!important;
+}
+
+/* AI console: the 65px-blur shadow was cut by the scroller's edge and read as a stray grey block under the panel */
+html body:not(#x) .ai-executive-console{box-shadow:0 10px 26px -16px rgba(15,23,42,.30)!important}
+html body:not(#x) .admin-app-main{scroll-padding-bottom:16px}
