@@ -291,6 +291,11 @@ body:not(:has([data-testid="demo-banner"])) .ktk-install-sheet.ktk-install-sheet
   bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
 }
 @media (min-width:900px){
+  /* the banner steps aside to the reading-start edge so the chip has its own slot beside it */
+  body:has(.ktk-install-sheet.is-chip) .demo-banner{
+    left:auto;right:auto;margin-inline:0;inset-inline-start:calc(12px + env(safe-area-inset-left,0px));
+    max-width:calc(100vw - 270px);
+  }
   body:has([data-testid="demo-banner"]) .ktk-install-sheet.ktk-install-sheet.is-chip{
     left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;margin-inline:0!important;
     bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
