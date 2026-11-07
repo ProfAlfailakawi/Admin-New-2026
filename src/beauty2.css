@@ -340,7 +340,7 @@ body:has([data-testid="demo-banner"]) .fixed.left-0.bottom-12[data-floating='sec
    Demo banner = single 44px pill (short text, ellipsis) with the install prompt as a round 44px
    button at the end of the same line, instead of two stacked rows (110px).
    ========================================================================== */
-@media (max-width:599px){
+@media (max-width:899px){
   body:has(.ktk-install-sheet.is-chip):has([data-testid="demo-banner"]){--demo-strip:calc(64px + env(safe-area-inset-bottom,0px))}
   body:has([data-testid="demo-banner"]){--demo-strip:calc(64px + env(safe-area-inset-bottom,0px))}
   body:has([data-testid="demo-banner"]) .demo-banner{
