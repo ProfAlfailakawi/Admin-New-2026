@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import type { AppState, Customer, Product } from '../types';
 import { isPaidStatus } from '../lib/status-utils';
 import { auth } from '../firebase';
+import { latestConversationStamp, mergeConversationDelta } from '../utils/whatsappConversationsDelta';
 
 // The WhatsApp console endpoints are protected server-side: customer phone numbers,
 // conversation content, and "send as the business" must never be publicly reachable.
@@ -654,22 +655,38 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
   const quickReplyTitleInputRef = useRef<HTMLInputElement | null>(null);
   const autoReplyEditorRef = useRef<HTMLDivElement | null>(null);
   const deepLinkConsumedRef = useRef(false);
+  const conversationsSyncRef = useRef('');
 
   const showNotice = (type: 'info' | 'success' | 'error', text: string) => {
     setNotice({ type, text });
     window.setTimeout(() => setNotice((current) => current?.text === text ? null : current), 3200);
   };
 
-  const loadConversations = async (silent = false) => {
+  // `delta` asks only for conversations that changed since the last sync (one Firestore
+  // read when nothing did); a full load refreshes everything and re-anchors the sync point.
+  const loadConversations = async (silent = false, delta = false) => {
     try {
       if (!silent) setLoading(true);
-      const res = await waAuthFetch('/api/whatsapp/conversations?limit=80', { cache: 'no-store' });
+      const since = delta ? conversationsSyncRef.current : '';
+      const url = since
+        ? `/api/whatsapp/conversations?limit=80&since=${encodeURIComponent(since)}`
+        : '/api/whatsapp/conversations?limit=80';
+      const res = await waAuthFetch(url, { cache: 'no-store' });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'تعذر تحميل المحادثات');
-      setConversations(json.conversations || []);
+      const incoming = (json.conversations || []) as any[];
+      if (since && json.delta) {
+        setConversations((prev) => mergeConversationDelta(prev as any[], incoming, 80) as any);
+        const stamp = latestConversationStamp(incoming);
+        if (stamp > conversationsSyncRef.current) conversationsSyncRef.current = stamp;
+      } else {
+        setConversations(incoming as any);
+        conversationsSyncRef.current = latestConversationStamp(incoming);
+      }
       setError('');
     } catch (e: any) {
-      setConversations([]);
+      // A background refresh that fails must not blank a list the user is reading.
+      if (!silent) setConversations([]);
       setError(e?.message || 'تعذر الاتصال بخدمة واتساب');
     } finally {
       setLoading(false);
@@ -965,7 +982,17 @@ export default function WhatsAppSupportInbox({ data = null }: WhatsAppSupportInb
     loadConversations();
     loadAutoReplyRules();
     let timer = 0;
-    const start = () => { if (!timer) timer = window.setInterval(() => loadConversations(true), 8000); };
+    let tick = 0;
+    // Every 15s ask only for what changed; every 10 minutes (40 ticks) do one full refresh
+    // so edits that do not move lastMessageAt (read marks, mode changes) still appear.
+    const start = () => {
+      if (timer) return;
+      timer = window.setInterval(() => {
+        tick += 1;
+        if (tick % 40 === 0) void loadConversations(true);
+        else void loadConversations(true, true);
+      }, 15000);
+    };
     const stop = () => { if (timer) { window.clearInterval(timer); timer = 0; } };
     const onVisibility = () => {
       if (document.hidden) { stop(); return; }
