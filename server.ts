@@ -6400,7 +6400,15 @@ app.post("/api/whatsapp/bridge/heartbeat", async (req, res) => {
       }
     } catch { /* a control read failure must never break the heartbeat */ }
 
-    return res.json({ success: true, serverTime: waNowIso(), restartRequested, relinkRequested });
+    // Cost control: tell the bridge whether replies are waiting so it can stay idle
+    // (no fast polling) and only fetch the queue when there is something to send.
+    let pendingOutbox = false;
+    try {
+      const pending = await db.collection("whatsappBridgeOutbox").where("status", "in", ["pending", "processing"]).limit(1).get();
+      pendingOutbox = !pending.empty;
+    } catch { /* a hint failure must never break the heartbeat */ }
+
+    return res.json({ success: true, serverTime: waNowIso(), restartRequested, relinkRequested, pendingOutbox });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
