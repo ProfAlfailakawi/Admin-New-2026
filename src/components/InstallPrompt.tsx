@@ -8,15 +8,17 @@ import { LAYER, setInstallSheetOpen } from '../lib/floatingLayers';
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  // Starts as a small chip so the first open never covers the page; a tap expands the full prompt.
+  const [expanded, setExpanded] = useState(false);
 
   // Tell the rest of the app to stand down while the sheet is up: the floating buttons in
   // the same corner stay legible through the light scrim otherwise, and the moment we ask
   // for a decision is the worst moment to crowd it. Cleared on unmount so a hot reload or
   // a route change can never leave the flag stuck and the buttons permanently hidden.
   useEffect(() => {
-    setInstallSheetOpen(showPrompt);
+    setInstallSheetOpen(showPrompt && expanded);
     return () => setInstallSheetOpen(false);
-  }, [showPrompt]);
+  }, [showPrompt, expanded]);
 
   useEffect(() => {
     // 1. Prevent showing if already installed (standalone mode)
@@ -110,7 +112,12 @@ export default function InstallPrompt() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: 'spring', stiffness: 350, damping: 30, mass: 1 }}
-            className="ktk-install-sheet fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-[#fbf7ee] rounded-t-[32px] md:rounded-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-[#d4af37]/40"
+            className={cn("ktk-install-sheet fixed bottom-0 left-0 right-0 md:bottom-6 md:left-auto md:right-8 md:w-[420px] bg-[#fbf7ee] rounded-t-[32px] md:rounded-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-t md:border border-[#d4af37]/40", !expanded && "is-chip")}
+            onClick={!expanded ? () => setExpanded(true) : undefined}
+            onKeyDown={!expanded ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(true); } } : undefined}
+            role={!expanded ? 'button' : undefined}
+            tabIndex={!expanded ? 0 : undefined}
+            aria-label={!expanded ? 'تثبيت التطبيق' : undefined}
             style={{ zIndex: LAYER.sheet }}
             dir="rtl"
           >
