@@ -374,7 +374,7 @@ body:has([data-testid="demo-banner"]) .fixed.left-0.bottom-12[data-floating='sec
    ========================================================================== */
 body:has([data-testid="demo-banner"]){--bs:var(--demo-strip)}
 body:has(.ktk-install-sheet.is-chip):not(:has([data-testid="demo-banner"])){--bs:calc(58px + env(safe-area-inset-bottom,0px))}
-body:has(.admin-date-filter-elegant){--dock:44px}
+body:has(.admin-date-filter-elegant){--dock:62px}
 body:has(.ktk-install-sheet:not(.is-chip)){--sheet-h:156px}
 @media (min-width:600px){ body:has(.ktk-install-sheet:not(.is-chip)){--sheet-h:88px} }
 
@@ -388,7 +388,11 @@ html body:has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(1
 /* period selector: docked at the bottom of the shortened shell, above the strip, in the layout */
 body:has([data-testid="demo-banner"]) [data-floating='secondary'].fixed.bottom-6.left-0.right-0,
 [data-floating='secondary'].fixed.bottom-6.left-0.right-0{
-  bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 6px)!important;
+  bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 17px)!important;
+}
+/* corner floaters share the dock row, so they never sit on cards either */
+html body:has(.admin-date-filter-elegant) [data-floating='secondary'].fixed:not(.bottom-6){
+  bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 3px)!important;
 }
 /* expanded prompt: sits in the space carved for it */
 html body:has(.ktk-install-sheet:not(.is-chip)) .ktk-install-sheet:not(.is-chip){
