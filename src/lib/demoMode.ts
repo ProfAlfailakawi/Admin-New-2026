@@ -83,6 +83,14 @@ export function installDemoNetworkGuard(): void {
   if (w.__ktkDemoFetchGuard) return;
   w.__ktkDemoFetchGuard = true;
   w.__ktkDemoBlocked = [];
+  // The guard refuses the Firebase SDK's own background request, which the SDK then reports as an
+  // unhandled `auth/network-request-failed` rejection. That is the guard working as designed, so it is
+  // swallowed here (demo only; no auth or data behaviour changes, nothing is retried or faked).
+  window.addEventListener('unhandledrejection', (ev) => {
+    const r: any = (ev as PromiseRejectionEvent).reason;
+    const text = String(r?.code || '') + ' ' + String(r?.message || r || '');
+    if (/auth\/network-request-failed/.test(text) || text.includes(BLOCK_MESSAGE)) ev.preventDefault();
+  });
   const realFetch = window.fetch.bind(window);
   const localJson = (body: unknown) =>
     new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });

@@ -334,3 +334,32 @@ body:has([data-testid="demo-banner"]) [data-floating='secondary'].fixed.left-1\/
 body:has([data-testid="demo-banner"]) .fixed.left-0.bottom-12[data-floating='secondary']{
   bottom:calc(var(--demo-strip) + 12px)!important;
 }
+
+/* ==========================================================================
+   Round 8: phones and the folded Duo (<600px): the bottom strip is ONE ~64px line.
+   Demo banner = single 44px pill (short text, ellipsis) with the install prompt as a round 44px
+   button at the end of the same line, instead of two stacked rows (110px).
+   ========================================================================== */
+@media (max-width:599px){
+  body:has(.ktk-install-sheet.is-chip):has([data-testid="demo-banner"]){--demo-strip:calc(64px + env(safe-area-inset-bottom,0px))}
+  body:has([data-testid="demo-banner"]){--demo-strip:calc(64px + env(safe-area-inset-bottom,0px))}
+  body:has([data-testid="demo-banner"]) .demo-banner{
+    left:auto!important;right:calc(8px + env(safe-area-inset-right,0px))!important;margin-inline:0!important;transform:none;
+    width:auto!important;max-width:calc(100vw - 16px)!important;
+    bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+  }
+  body:has(.ktk-install-sheet.is-chip):has([data-testid="demo-banner"]) .demo-banner{
+    max-width:calc(100vw - 76px)!important;
+  }
+  .demo-banner__text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  html body:has([data-testid="demo-banner"]) .ktk-install-sheet.ktk-install-sheet.is-chip{
+    left:calc(8px + env(safe-area-inset-left,0px))!important;right:auto!important;margin-inline:0!important;
+    width:48px!important;height:48px!important;min-height:48px;padding:0!important;justify-content:center;
+    border-radius:999px!important;bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+  }
+  html body .ktk-install-sheet.is-chip h3{display:none!important}
+  html body .ktk-install-sheet.is-chip > .flex.items-start{margin:0!important;gap:0!important}
+  html body .ktk-install-sheet.is-chip [class*="w-[72px]"]{width:40px!important;height:40px!important}
+  /* expanded prompt sits just above the one-line strip */
+  html body:has([data-testid="demo-banner"]) .ktk-install-sheet:not(.is-chip){bottom:calc(var(--demo-strip) + 4px)!important}
+}
