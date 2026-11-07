@@ -418,7 +418,7 @@ html body:not(#x):has(.admin-date-filter-elegant){--dock:62px}
 
 /* common: floaters share the strip row */
 html body:not(#x) .fixed[data-floating='secondary']:not(.bottom-6){
-  bottom:var(--row-b)!important;top:auto!important;margin:0!important;transform:none!important;
+  bottom:var(--row-b)!important;top:auto!important;margin:0!important;transform:none!important;translate:none!important;
 }
 /* phones and narrow windows: icon cluster at the leading edge, pill fills the rest */
 @media (max-width:899px){
@@ -451,3 +451,7 @@ html body:not(#x) [data-sonner-toaster]{
   --mobile-offset-bottom:calc(var(--bs,0px) + var(--dock,0px) + var(--sheet-h,0px) + 12px)!important;
   bottom:calc(var(--bs,0px) + var(--dock,0px) + var(--sheet-h,0px) + 12px)!important;
 }
+
+/* AI console: the 65px-blur shadow was cut by the scroller's edge and read as a stray grey block under the panel */
+html body:not(#x) .ai-executive-console{box-shadow:0 10px 26px -16px rgba(15,23,42,.30)!important}
+html body:not(#x) .admin-app-main{scroll-padding-bottom:16px}
