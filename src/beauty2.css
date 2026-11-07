@@ -275,14 +275,42 @@ body:has([data-testid="demo-banner"]){background:#f4efe3}
 /* expanded prompt sits just above the strip (or at the edge when there is no banner) */
 html body:has([data-testid="demo-banner"]) .ktk-install-sheet:not(.is-chip){bottom:calc(var(--demo-strip) + 6px)!important}
 
+/* The chip lives in the same reserved bottom strip as the demo banner:
+   - >=900px: beside the banner (inline-end corner of the strip)
+   - <900px: stacked directly above the banner (the strip grows by one row)
+   - no banner (real users): its own one-row strip, centred
+   so it never overlaps page content. */
 html body .ktk-install-sheet.ktk-install-sheet.is-chip{
   display:flex!important;align-items:center;gap:10px;cursor:pointer;
-  left:0!important;right:0!important;margin-inline:auto!important;
   width:max-content!important;max-width:calc(100vw - 24px)!important;min-height:44px;
-  padding:4px 16px 4px 6px!important;border-radius:999px!important;
-  bottom:calc(var(--demo-strip) + 6px)!important;
+  padding:4px 14px 4px 6px!important;border-radius:999px!important;
+  left:0!important;right:0!important;margin-inline:auto!important;
+  bottom:calc(58px + env(safe-area-inset-bottom,0px))!important;
 }
-body:not(:has([data-testid="demo-banner"])) .ktk-install-sheet.ktk-install-sheet.is-chip{bottom:calc(10px + env(safe-area-inset-bottom,0px))!important}
+body:not(:has([data-testid="demo-banner"])) .ktk-install-sheet.ktk-install-sheet.is-chip{
+  bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
+}
+@media (min-width:900px){
+  /* the banner steps aside to the reading-start edge so the chip has its own slot beside it */
+  body:has(.ktk-install-sheet.is-chip) .demo-banner{
+    left:calc(12px + env(safe-area-inset-left,0px));right:auto;margin-inline:0;
+    max-width:calc(100vw - 270px);
+  }
+  body:has([data-testid="demo-banner"]) .ktk-install-sheet.ktk-install-sheet.is-chip{
+    left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;margin-inline:0!important;
+    bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
+/* strip heights */
+body:has(.ktk-install-sheet.is-chip):not(:has([data-testid="demo-banner"])) .admin-heritage-shell{
+  height:calc(100dvh - 58px - env(safe-area-inset-bottom,0px))!important;
+}
+@media (max-width:899px){
+  body:has(.ktk-install-sheet.is-chip):has([data-testid="demo-banner"]){--demo-strip:calc(110px + env(safe-area-inset-bottom,0px))}
+}
+@media (max-width:899px) and (max-height:520px) and (orientation:landscape){
+  body:has(.ktk-install-sheet.is-chip):has([data-testid="demo-banner"]){--demo-strip:calc(104px + env(safe-area-inset-bottom,0px))}
+}
 html body .ktk-install-sheet.is-chip > .w-12,
 html body .ktk-install-sheet.is-chip p,
 html body .ktk-install-sheet.is-chip > .flex.items-center{display:none!important}
