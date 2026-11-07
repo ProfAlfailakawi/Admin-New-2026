@@ -398,3 +398,13 @@ html body:has(.admin-date-filter-elegant) [data-floating='secondary'].fixed:not(
 html body:has(.ktk-install-sheet:not(.is-chip)) .ktk-install-sheet:not(.is-chip){
   bottom:calc(var(--bs,0px) + 4px)!important;
 }
+
+/* ---- Round 11: on the executive dashboard the centred command button sat on top of the period selector
+   (it covered the "30" option at 382/620). Below 900px it now has its own slot ABOVE the selector row,
+   and the dock grows by that slot, so neither covers content or each other. ---- */
+@media (max-width:899px){
+  body:has(.admin-date-filter-elegant):has([data-floating='secondary'].left-1\/2){--dock:116px}
+  html body:has(.admin-date-filter-elegant) [data-floating='secondary'].fixed.left-1\/2{
+    bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 66px)!important;
+  }
+}
