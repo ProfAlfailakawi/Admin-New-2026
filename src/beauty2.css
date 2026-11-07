@@ -251,7 +251,7 @@ html body .ai-executive-console:has(.ai-executive-messages > .ai-chat-row:first-
 /* the side panel keeps clear of the banner / install sheet stack */
 @media (min-width:900px) and (max-width:1180px){
   body:has([data-testid="demo-banner"]) .admin-order-details-modal > div:nth-child(2){bottom:calc(60px + env(safe-area-inset-bottom,0px))}
-  body:has([data-testid="demo-banner"]):has(.ktk-install-sheet) .admin-order-details-modal > div:nth-child(2){bottom:calc(168px + env(safe-area-inset-bottom,0px))}
+  body:has([data-testid="demo-banner"]):has(.ktk-install-sheet) .admin-order-details-modal > div:nth-child(2){bottom:calc(128px + env(safe-area-inset-bottom,0px))}
 }
 
 /* the drag handle only makes sense on the phone bottom sheet; at 600-767px it became a stray bar in the one-row layout */
