@@ -253,3 +253,8 @@ html body .ai-executive-console:has(.ai-executive-messages > .ai-chat-row:first-
   body:has([data-testid="demo-banner"]) .admin-order-details-modal > div:nth-child(2){bottom:calc(60px + env(safe-area-inset-bottom,0px))}
   body:has([data-testid="demo-banner"]):has(.ktk-install-sheet) .admin-order-details-modal > div:nth-child(2){bottom:calc(168px + env(safe-area-inset-bottom,0px))}
 }
+
+/* the drag handle only makes sense on the phone bottom sheet; at 600-767px it became a stray bar in the one-row layout */
+@media (min-width:600px){
+  .ktk-install-sheet > .w-12{display:none!important}
+}
