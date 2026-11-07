@@ -378,7 +378,7 @@ body:has(.admin-date-filter-elegant){--dock:44px}
 body:has(.ktk-install-sheet:not(.is-chip)){--sheet-h:156px}
 @media (min-width:600px){ body:has(.ktk-install-sheet:not(.is-chip)){--sheet-h:88px} }
 
-html body .admin-heritage-shell{
+html body:not(#x) .admin-heritage-shell{
   height:calc(100dvh - var(--bs,0px) - var(--dock,0px) - var(--sheet-h,0px))!important;
 }
 /* the strip's padding hacks are no longer needed: the shell itself is shorter */
