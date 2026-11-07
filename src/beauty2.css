@@ -363,3 +363,38 @@ body:has([data-testid="demo-banner"]) .fixed.left-0.bottom-12[data-floating='sec
   /* expanded prompt sits just above the one-line strip */
   html body:has([data-testid="demo-banner"]) .ktk-install-sheet:not(.is-chip){bottom:calc(var(--demo-strip) + 4px)!important}
 }
+
+/* ==========================================================================
+   Round 9: the bottom dock. Everything that lives at the bottom (demo banner, install chip /
+   expanded prompt, the dashboard period selector) is carved OUT of the app shell's height instead
+   of floating over it, so cards are never covered, even mid-scroll.
+   --bs   : height of the banner / chip strip (0 when there is none)
+   --dock : period selector row (dashboard, loyalty, coupons)
+   --sheet-h : the expanded install prompt, while it is open
+   ========================================================================== */
+body:has([data-testid="demo-banner"]){--bs:var(--demo-strip)}
+body:has(.ktk-install-sheet.is-chip):not(:has([data-testid="demo-banner"])){--bs:calc(58px + env(safe-area-inset-bottom,0px))}
+body:has(.admin-date-filter-elegant){--dock:62px}
+body:has(.ktk-install-sheet:not(.is-chip)){--sheet-h:156px}
+@media (min-width:600px){ body:has(.ktk-install-sheet:not(.is-chip)){--sheet-h:88px} }
+
+html body:not(#x) .admin-heritage-shell{
+  height:calc(100dvh - var(--bs,0px) - var(--dock,0px) - var(--sheet-h,0px))!important;
+}
+/* the strip's padding hacks are no longer needed: the shell itself is shorter */
+html body:has(.ktk-install-sheet) .admin-app-main,
+html body:has([data-testid="demo-banner"]) .admin-app-main{padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}
+
+/* period selector: docked at the bottom of the shortened shell, above the strip, in the layout */
+body:has([data-testid="demo-banner"]) [data-floating='secondary'].fixed.bottom-6.left-0.right-0,
+[data-floating='secondary'].fixed.bottom-6.left-0.right-0{
+  bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 17px)!important;
+}
+/* corner floaters share the dock row, so they never sit on cards either */
+html body:has(.admin-date-filter-elegant) [data-floating='secondary'].fixed:not(.bottom-6){
+  bottom:calc(var(--bs,0px) + var(--sheet-h,0px) + 3px)!important;
+}
+/* expanded prompt: sits in the space carved for it */
+html body:has(.ktk-install-sheet:not(.is-chip)) .ktk-install-sheet:not(.is-chip){
+  bottom:calc(var(--bs,0px) + 4px)!important;
+}
