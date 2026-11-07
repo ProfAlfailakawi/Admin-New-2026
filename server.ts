@@ -6431,11 +6431,18 @@ app.get("/api/whatsapp/conversations", async (req, res) => {
   try {
     if (!db || !firebaseInitialized) return res.status(503).json({ success: false, error: "Firestore Admin is not ready" });
     const status = waString(req.query.status || "");
-    let ref: any = db.collection("whatsappConversations").orderBy("lastMessageAt", "desc").limit(Math.min(100, Math.max(10, Number(req.query.limit || 50))));
+    // Delta mode: the inbox polls with ?since=<newest lastMessageAt it has> and only the
+    // conversations that changed are read (one read when nothing did), instead of
+    // re-reading the whole list every few seconds.
+    const since = waString(req.query.since || "");
+    const sinceValid = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(since);
+    let ref: any = db.collection("whatsappConversations");
+    if (sinceValid) ref = ref.where("lastMessageAt", ">", since);
+    ref = ref.orderBy("lastMessageAt", "desc").limit(Math.min(100, Math.max(10, Number(req.query.limit || 50))));
     const snap = await ref.get();
     let items = snap.docs.map((d: any) => ({ id: d.id, ...(d.data() || {}) }));
     if (status && status !== "all") items = items.filter((x: any) => x.status === status || x.mode === status);
-    res.json({ success: true, conversations: items });
+    res.json({ success: true, conversations: items, delta: sinceValid });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error?.message || String(error) });
   }
