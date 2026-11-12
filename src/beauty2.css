@@ -519,9 +519,9 @@ html body:not(#x) .order-slot-ampm button{border-radius:11px!important;min-heigh
    Rounds #134-#140 pulled every floater into one row inside a strip carved out of the bottom of
    the screen. On a real account that strip was an empty band and the buttons sat in a place they
    had never been. This restores the corner layout used from 2 Oct until 6 Nov:
-   phones   - AI wand bottom-left, alerts bottom-right, period selector (or the command button)
-              centred on the same line, scroll-to-top above the right corner; the command button
-              steps up above the selector when a page has one.
+   phones   - AI wand bottom-left with the alerts badge stacked right above it, period selector
+              (or the command button) centred on the same line, scroll-to-top bottom-right; the
+              command (search) button sits just above the selector when a page has one.
    >=768px  - each button at the position its own component gives it.
    The shell keeps the full height; the scroller reserves room at its end instead, so the last
    card still scrolls clear of the buttons. With the install chip showing, everything sits just
@@ -543,19 +543,19 @@ html body:not(#x):not(#y):not(#z):not(:has(.demo-banner)):not(:has([data-testid=
     bottom:calc(var(--fb,0px) + .75rem + env(safe-area-inset-bottom,0px))!important;
   }
   html body:not(#x):not(#y):not(#z):not(:has(.demo-banner)):not(:has([data-testid="demo-banner"])):not(:has(.partner-brand)) .fixed.bottom-44.right-6[data-floating='secondary']{
-    right:calc(.5rem + env(safe-area-inset-right,0px))!important;left:auto!important;top:auto!important;transform:none!important;
-    bottom:calc(var(--fb,0px) + .75rem + env(safe-area-inset-bottom,0px))!important;
+    left:calc(.5rem + env(safe-area-inset-left,0px))!important;right:auto!important;top:auto!important;transform:none!important;
+    bottom:calc(var(--fb,0px) + .75rem + 52px + env(safe-area-inset-bottom,0px))!important;
   }
   html body:not(#x):not(#y):not(#z):not(:has(.demo-banner)):not(:has([data-testid="demo-banner"])):not(:has(.partner-brand)) .fixed[data-floating='secondary'][aria-label^='الرجوع']{
     right:calc(.5rem + env(safe-area-inset-right,0px))!important;left:auto!important;top:auto!important;
-    bottom:calc(var(--fb,0px) + 4.25rem + env(safe-area-inset-bottom,0px))!important;
+    bottom:calc(var(--fb,0px) + .75rem + env(safe-area-inset-bottom,0px))!important;
   }
   html body:not(#x):not(#y):not(#z):not(:has(.demo-banner)):not(:has([data-testid="demo-banner"])):not(:has(.partner-brand)) .fixed[data-floating='secondary'].left-1\/2{
     left:50%!important;right:auto!important;top:auto!important;transform:translateX(-50%)!important;translate:none!important;
     bottom:calc(var(--fb,0px) + .75rem + env(safe-area-inset-bottom,0px))!important;
   }
   html body:not(#x):not(#y):not(#z):has(.admin-date-filter-elegant):not(:has(.demo-banner)):not(:has([data-testid="demo-banner"])):not(:has(.partner-brand)) .fixed[data-floating='secondary'].left-1\/2{
-    bottom:calc(var(--fb,0px) + 4.25rem + env(safe-area-inset-bottom,0px))!important;
+    bottom:calc(var(--fb,0px) + .75rem + 28px + 8px + env(safe-area-inset-bottom,0px))!important;
   }
   html body:not(#x):not(#y):not(#z):not(:has(.demo-banner)):not(:has([data-testid="demo-banner"])):not(:has(.partner-brand)) [data-floating='secondary'].fixed.bottom-6.left-0.right-0{
     bottom:calc(var(--fb,0px) + .75rem + env(safe-area-inset-bottom,0px))!important;
