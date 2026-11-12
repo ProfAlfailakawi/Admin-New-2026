@@ -581,3 +581,26 @@ html body:not(#x):not(#y):not(#z):not(:has(.demo-banner)):not(:has([data-testid=
     right:2.5rem!important;bottom:calc(var(--fb,0px) + 10rem)!important;
   }
 }
+
+/* ==========================================================================
+   Responsive audit 2026-11 (presentation only).
+   1. iOS zoom: index.css already lifts phone form fields to 16px, but `.admin-app-main .text-xs`
+      (12.5px, higher specificity) won on selects/inputs that also carry `text-xs`, so iOS
+      Safari zoomed the page on focus (new invoice delivery selects, customer filter, product
+      category). Same rule, enough specificity to win.
+   2. Legibility floor: the phone floor only caught `text-[11px]` utilities. These 11px labels
+      come from component CSS: order-card journey steps, the order card "address & items"
+      expander, AI suggestion chips and the WhatsApp urgent-card metadata. 12px on phones.
+   ========================================================================== */
+@media (max-width:767px){
+  .admin-app-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(#x),
+  .admin-app-main select:not(#x),.admin-app-main textarea:not(#x){font-size:16px!important}
+
+  .admin-app-main .dna-steps[data-size='xs'][data-xslabels] .dna-lbl:not(#x),
+  .admin-app-main .order-card-more > summary:not(#x),
+  .admin-app-main .ai-suggestion-chip:not(#x),
+  .admin-app-main .wa-urgent-kind:not(#x),
+  .admin-app-main .wa-urgent-top small:not(#x),.admin-app-main .wa-urgent-foot small:not(#x),
+  .admin-app-main .wa-urgent-foot > span:not(#x),
+  .admin-app-main .wa-hub-wrap .dna-hubl:not(#x){font-size:12px!important}
+}
