@@ -270,7 +270,7 @@ export const RealProfitGuard: React.FC<RealProfitGuardProps> = ({ insights, data
    </div>
  )}
 
- <div className="flex justify-between items-center px-1 text-[11px] font-black text-slate-400 uppercase tracking-widest">
+ <div className="flex justify-between items-center px-1 text-xs font-black text-slate-600">
  <span>{filteredInsights.length} منتج تحت المراقبة</span>
  <span>تحليل الهوامش والنزيف</span>
  </div>
