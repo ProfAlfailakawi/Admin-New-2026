@@ -7025,12 +7025,14 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
     // Customer phone numbers travel only to a signed-in, allow-listed admin. Any other
     // caller (the customer site, or someone who just knows the URL) gets the same
     // leaderboard with phones blanked — so nothing breaks, and no PII leaks.
-    if (!(await waIsConsoleAuthed(req))) {
+    // Orders (names, addresses, amounts) never leave the server for an anonymous
+    // caller; the signed-in admin console always sends its token.
+    const authed = await waIsConsoleAuthed(req);
+    if (!authed) {
       waRedactPhonesDeep(squads);
-      waRedactPhonesDeep(sharedOrders);
     }
 
-    return res.json({ success: true, squads, orders: sharedOrders });
+    return res.json({ success: true, squads, orders: authed ? sharedOrders : [] });
   } catch (err: any) {
     console.error("[admin-dashboard-data] Total failure loading diwaniyas:", err?.message || err);
     return res.status(500).json({ success: false, squads: [], orders: [], message: String(err?.message || "Internal server error") });

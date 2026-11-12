@@ -37,7 +37,7 @@ service cloud.firestore {
       allow read, write: if isAuthorized();
     }
 
-    // Client App Access
+    // ── Public, read-only catalogue (the storefront reads these directly) ──
     match /products/{productId} {
       allow read: if true;
     }
@@ -47,43 +47,32 @@ service cloud.firestore {
     match /regions/{regionId} {
       allow read: if true;
     }
-    match /pushTokens/{token} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if true;
-    }
+
+    // ── Per-user documents ──
     match /appData/{userId} {
       allow read, write: if request.auth != null && (request.auth.uid == userId || isAuthorized());
-      
+
       match /{allSubDocs=**} {
         allow read, write: if request.auth != null && (request.auth.uid == userId || isAuthorized());
       }
     }
-    match /appData/shared_company_data {
-      allow read: if true; 
-      allow write: if isAuthorized();
-      
-      match /{allSubDocs=**} {
-        allow read: if true;
-        allow write: if isAuthorized();
-      }
-    }
 
-    match /squads/{squadId} {
-      allow read: if true;
-      allow write: if isAuthorized();
-    }
-
-    match /orders/{orderId} {
-      allow create: if true;
-      allow read: if true; // In a production app, we would restrict this by token or phone, but for simplicity here we allow reading by ID/Query
-      allow update: if true; // temporarily allow all updates to fix issues
-      allow delete: if isAuthorized();
-    }
-    match /invoices/{invoiceId} {
-      allow read: if true; // To check payment status
-      allow update: if true;
-      allow delete: if isAuthorized();
-    }
+    // ── Admin/partner only (2026-11-12 hardening) ──
+    // appData/shared_company_data (orders, invoices, customers incl. phones and
+    // addresses), squads, orders, invoices and pushTokens are reachable only by
+    // the allow-listed admin/partner accounts via the catch-all above. Every
+    // public page now goes through the servers, which use the Admin SDK and
+    // bypass these rules:
+    //   - Order /split/:id   -> GET /api/track-orders?order_id=  (one order)
+    //   - Order /track       -> GET /api/track-orders
+    //   - Admin /success...  -> POST /api/invoice/confirm (server marks paid)
+    //   - Admin /track       -> redirects to the storefront /track
+    //   - Order /admin       -> redirects to the admin app
+    // Previously anyone could read every customer's data, mark any invoice or
+    // order as paid, and read/delete every push token.
+    //
+    // This file is the single source of truth for the shared database
+    // (ai-studio-7058254a-...). Order-New-2026/firestore.rules must stay
+    // byte-identical so a deploy from either repo cannot reopen it.
   }
 }
