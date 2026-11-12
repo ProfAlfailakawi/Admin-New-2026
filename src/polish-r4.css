@@ -1,0 +1,20 @@
+/* ==========================================================================
+   Round 4: visual polish (presentation only), loaded last.
+   No logic, data, routes or hooks change here.
+   ========================================================================== */
+
+/* Dashboard: the active tab is already highlighted in the tab bar, so the
+   "القسم النشط: ..." chip repeated it as text. Hide the duplicate. */
+.dashboard-active-section-badge { display: none !important; }
+
+/* The page hero above already names the screen; the inner "مركز القيادة التنفيذي"
+   header repeated it (already hidden for loyalty/coupons in beauty2.css). */
+.admin-content-polish:is([data-page="dashboard"], [data-page="dashboard-ai"]) .dashboard-command-header { display: none !important; }
+
+/* Horizontal chip strips: a soft fade on the far (left) edge hints there is more to scroll. */
+@media (max-width: 767px) {
+  .admin-content-polish .dashboard-tab-shell > div {
+    -webkit-mask-image: linear-gradient(to left, #000 88%, transparent);
+            mask-image: linear-gradient(to left, #000 88%, transparent);
+  }
+}

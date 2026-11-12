@@ -498,7 +498,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             {String(customer.name || "ع").charAt(0)}
            </div>
            <div>
-             <div className="font-black text-slate-800 text-base lg:text-lg tracking-tight">{customer.name || "عميل بدون اسم"}</div>
+             <div className="font-black text-slate-800 text-base">{customer.name || "عميل بدون اسم"}</div>
             <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(customer.lastOrderDate)}` : 'عميل جديد'}</div>
            </div>
           </div>
@@ -509,7 +509,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               <MapPin size={12} className="text-rose-500" />
               {customer.area || 'غير محدد'}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5 font-bold">
+            <div className="text-[11px] text-slate-500 mt-0.5 font-bold leading-relaxed">
               {formatFullAddress(customer.address) || 'لا يوجد عنوان'}
             </div>
           </div>
