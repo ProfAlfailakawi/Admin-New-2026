@@ -11,6 +11,7 @@ import {
     computeInvoiceAddonsTotal,
     computeInvoiceGatewayFee
 } from '../lib/invoice-calculations';
+import { createPortal } from "react-dom";
 import React, {
   useState,
   useMemo,
@@ -6202,7 +6203,8 @@ const [isPending, startTransition] = useTransition();
 
          {/* Soft-Laser Micro-Thread Filter (Ultra-slim, luxury minimalist design, perfect for mobile layout) */}
          {(activeTab === "pulse" || activeTab === "financials" || activeTab === "advanced" || activeTab === "growth" || activeTab === "intelligence") && (
-           <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono" style={{ zIndex: LAYER.bar }} data-floating="secondary">
+           typeof document !== "undefined" && createPortal(
+           <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center pointer-events-none font-mono" style={{ zIndex: LAYER.bar }} data-floating="secondary">
              {(() => {
                const options = [
                  { id: "day", label: "1" },
@@ -6213,7 +6215,7 @@ const [isPending, startTransition] = useTransition();
                ];
 
                return (
-                 <div className="admin-date-filter-elegant bg-slate-950/80 border border-white/5 text-white backdrop-blur-3xl rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[190px] max-w-[90vw] h-7 shadow-[0_12px_28px_rgba(0,0,0,0.85),_inset_0_1px_0_rgba(255,255,255,0.03)] relative overflow-visible transform-gpu translate-z-0 backface-hidden">
+                 <div className="admin-date-filter-elegant bg-slate-950/95 border border-white/5 text-white rounded-full py-0.5 px-1 flex items-center justify-between gap-0.5 pointer-events-auto w-[190px] max-w-[90vw] h-7 shadow-[0_10px_24px_-8px_rgba(0,0,0,0.55),_inset_0_1px_0_rgba(255,255,255,0.04)] relative overflow-visible">
                    
                    {options.map((opt) => {
                      const isActive = dateFilter === opt.id;
@@ -6223,7 +6225,7 @@ const [isPending, startTransition] = useTransition();
                          type="button"
                          onClick={() => startTransition(() => setDateFilter(opt.id as any))}
                          className={cn(
-                           "relative flex-1 text-center h-full text-[10px] font-bold transition-colors duration-200 z-10 select-none cursor-pointer outline-none flex flex-col items-center justify-center transform-gpu translate-z-0",
+                           "relative flex-1 text-center h-full text-[10px] font-bold transition-colors duration-200 z-10 select-none cursor-pointer outline-none flex flex-col items-center justify-center",
                            isActive ? "text-amber-400 font-extrabold" : "text-slate-400 hover:text-white"
                          )}
                        >
@@ -6232,13 +6234,13 @@ const [isPending, startTransition] = useTransition();
                              {/* Ultra-soft background capsule glow */}
                              <motion.div
                                layoutId="softCapsuleAdmin"
-                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/5 to-orange-500/5 border border-amber-400/10 rounded-full -z-10 transform-gpu translate-z-0"
+                               className="absolute inset-[1px] bg-gradient-to-r from-amber-400/5 to-orange-500/5 border border-amber-400/10 rounded-full -z-10"
                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
                              />
                              {/* Micro Laser Glowing Dot/Thread at bottom of option */}
                              <motion.span 
                                layoutId="microThreadAdmin"
-                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_4px_rgba(245,158,11,0.8)] transform-gpu translate-z-0"
+                               className="absolute bottom-0 w-1.5 h-[1.5px] rounded-full bg-gradient-to-r from-amber-400 to-orange-400 shadow-[0_1px_4px_rgba(245,158,11,0.8)]"
                                transition={{ type: "spring", stiffness: 450, damping: 30 }}
                              />
                            </>
@@ -6250,7 +6252,8 @@ const [isPending, startTransition] = useTransition();
                  </div>
                );
              })()}
-           </div>
+           </div>,
+           document.body)
          )}
 
       </div>
