@@ -560,7 +560,7 @@ const {
 
         {/* Soft-Laser Micro-Thread Filter (Ultra-slim, luxury minimalist design, perfect for mobile layout) */}
         {!activeWidget && (
-          <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono" style={{ zIndex: LAYER.bar }} data-floating="secondary">
+          <div className="partner-period-bar fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform font-mono" style={{ zIndex: LAYER.bar }} data-floating="secondary">
             {(() => {
               const options = [
                 { id: "day", label: "1" },
@@ -612,7 +612,7 @@ const {
         )}
 
         {!activeWidget && (
-          <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform" style={{ zIndex: LAYER.bar + 1 }} data-floating="secondary">
+          <div className="partner-invoice-bar fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 flex justify-center pointer-events-none transform-gpu translate-z-0 will-change-transform" style={{ zIndex: LAYER.bar + 1 }} data-floating="secondary">
             <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-slate-200/65 bg-white/88 px-1.5 py-1.5 shadow-[0_10px_26px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
               <button
                 type="button"

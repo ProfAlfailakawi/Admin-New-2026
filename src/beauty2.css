@@ -455,3 +455,38 @@ html body:not(#x) [data-sonner-toaster]{
 /* AI console: the 65px-blur shadow was cut by the scroller's edge and read as a stray grey block under the panel */
 html body:not(#x) .ai-executive-console{box-shadow:0 10px 26px -16px rgba(15,23,42,.30)!important}
 html body:not(#x) .admin-app-main{scroll-padding-bottom:16px}
+
+/* ==========================================================================
+   Partner surface keeps its own two-row bottom layout.
+   The one-dock row above pulled every floater to the same 10px line, so the partner's
+   invoice buttons (new invoice / invoice log) landed on top of the period selector and
+   looked gone. Partner: period selector on its row, invoice buttons right above it,
+   wand back in its own corner, and no empty strip carved out of the shell.
+   ========================================================================== */
+html body:not(#x):not(#y):has(.admin-heritage-shell.partner-brand):not(:has([data-testid="demo-banner"])):not(:has(.ktk-install-sheet)){--bs:0px}
+html body:not(#x):not(#y):has(.partner-brand) .fixed[data-floating='secondary'].partner-period-bar{
+  bottom:calc(var(--bs,0px) + 1.5rem + env(safe-area-inset-bottom,0px))!important;
+}
+html body:not(#x):not(#y):has(.partner-brand) .fixed[data-floating='secondary'].partner-invoice-bar{
+  bottom:calc(var(--bs,0px) + 4.75rem + env(safe-area-inset-bottom,0px))!important;
+}
+html body:not(#x):not(#y):has(.partner-brand) .fixed.bottom-40.left-6[data-floating='secondary']{
+  bottom:calc(var(--bs,0px) + 10rem)!important;left:1.5rem!important;right:auto!important;
+}
+html body:not(#x):not(#y):has(.partner-brand) .fixed.left-0.bottom-12[data-floating='secondary']{
+  bottom:calc(var(--bs,0px) + 3rem)!important;left:0!important;right:auto!important;
+}
+
+/* ==========================================================================
+   Desktop (>=900px) without a demo banner or install chip: the shell keeps the full window
+   height. Carving 64px + 62px out of it left a bare grey band under the sidebar and the
+   page. The scroller reserves that room at its end instead, so the last card still scrolls
+   clear of the period selector and the corner buttons.
+   ========================================================================== */
+@media (min-width:900px){
+  html body:not(#x):not(#y):not(:has([data-testid="demo-banner"])):not(:has(.ktk-install-sheet)){--bs:0px;--dock:0px}
+  html body:not(#x):not(#y):not(:has([data-testid="demo-banner"])):not(:has(.ktk-install-sheet)) .admin-app-main{
+    padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
+    scroll-padding-bottom:96px;
+  }
+}
