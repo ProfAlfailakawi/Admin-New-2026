@@ -2952,7 +2952,7 @@ Alturath.kw`;
                                       updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryDate: val });
                                     }
                                   }}
-                                  className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-2.5 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50 [color-scheme:dark]"
+                                  className="order-slot-input w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-2.5 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50 [color-scheme:dark]"
                                 />
                               </div>
                               <div>
@@ -2976,9 +2976,9 @@ Alturath.kw`;
                                         updateOrderStatus(selectedOrder.id, selectedOrder.status, { deliveryTime: cleaned });
                                       }
                                     }}
-                                    className="w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-3 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50"
+                                    className="order-slot-input w-full bg-slate-800/90 border border-amber-400/40 text-white rounded-lg px-3 py-1.5 text-center font-bold text-xs outline-none focus:ring-2 focus:ring-amber-400/50"
                                   />
-                                  <div className="flex border border-slate-700 rounded-lg p-0.5 bg-slate-900/50 shrink-0 gap-0.5">
+                                  <div className="order-slot-ampm flex border border-slate-700 rounded-lg p-0.5 bg-slate-900/50 shrink-0 gap-0.5">
                                     <button
                                       type="button"
                                       onClick={() => {
