@@ -498,13 +498,13 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             {String(customer.name || "ع").charAt(0)}
            </div>
            <div>
-             <div className="font-black text-slate-800 text-base lg:text-lg whitespace-nowrap">{customer.name || "عميل بدون اسم"}</div>
+             <div className="font-black text-slate-800 text-base">{customer.name || "عميل بدون اسم"}</div>
             <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{customer.lastOrderDate ? `آخر طلب: ${formatKuwaitiDateOnly(customer.lastOrderDate)}` : 'عميل جديد'}</div>
            </div>
           </div>
          </td>
          <td className="p-2.5">
-          <div className="bg-slate-50 group-hover:bg-white p-2 rounded-xl border border-slate-100 transition-all inline-block min-w-[140px] max-w-[220px]">
+          <div className="bg-slate-50 group-hover:bg-white p-2 rounded-xl border border-slate-100 transition-all inline-block min-w-[120px] max-w-[160px]">
             <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
               <MapPin size={12} className="text-rose-500" />
               {customer.area || 'غير محدد'}
