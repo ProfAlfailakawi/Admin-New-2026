@@ -593,7 +593,10 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
        }
     }, 10000); // 10 seconds max wait for backend verification
 
-    getDoc(doc(db, 'invoices', invoiceId)).then(snapshot => {
+    // The server resolves the payment identifiers from the invoice id itself
+    // (collectPaymentContextForTarget), so the browser no longer reads the
+    // invoice document; anonymous reads are closed by the Firestore rules.
+    Promise.resolve({ exists: () => false, data: () => ({}) } as any).then(snapshot => {
        let actualPaymentId = paymentIdParam || '';
        let actualTrackId = paymentIdParam || '';
        let actualGatewayOrderId = '';
@@ -625,48 +628,13 @@ const PaymentFeedbackView = ({ invoiceId, path, searchParams, isUpaymentsCallbac
              clearTimeout(verificationTimeout);
              let finalStatus: 'success' | 'failed' = 'failed';
              if (verifyObj.verified) {
+                 // Marked paid server-side by /api/invoice/confirm (syncPaymentStatusEverywhere).
                  finalStatus = 'success';
-                 try {
-                    await updateDoc(doc(db, 'invoices', invoiceId), {
-                      paymentStatus: 'paid',
-                      status: 'تم الدفع بنجاح',
-                      paymentId: actualPaymentId || actualTrackId,
-                      payment_id: actualPaymentId || actualTrackId,
-                      paymentTrackId: actualTrackId || actualPaymentId,
-                      trackId: actualTrackId || actualPaymentId,
-                      gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
-                      verifiedByBackend: true
-                    });
-                    const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
-                    const updatePromises: Promise<any>[] = [];
-                    ordersSnap.forEach((orderDoc) => {
-                       updatePromises.push(updateDoc(doc(db, 'orders', orderDoc.id), { status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' }));
-                    });
-                    await Promise.all(updatePromises);
-                 } catch (e) {}
-             } else {
-                if (urlIndicatesSuccess) {
-                    finalStatus = 'success';
-                    try {
-                       await updateDoc(doc(db, 'invoices', invoiceId), {
-                         paymentStatus: 'paid',
-                         status: 'تم الدفع بنجاح',
-                         paymentId: actualPaymentId || actualTrackId,
-                         payment_id: actualPaymentId || actualTrackId,
-                         paymentTrackId: actualTrackId || actualPaymentId,
-                         trackId: actualTrackId || actualPaymentId,
-                         gatewayOrderId: actualGatewayOrderId || verifyObj?.syncResult?.identifiers?.gatewayOrderIds?.[0] || '',
-                         verifiedByBackend: false,
-                         verificationError: verifyObj.debugData || 'not_found'
-                       });
-                        const ordersSnap = await getDocs(query(collection(db, 'orders'), where('linkedInvoiceId', '==', invoiceId)));
-                        const updatePromises: Promise<any>[] = [];
-                        ordersSnap.forEach((orderDoc) => {
-                           updatePromises.push(updateDoc(doc(db, 'orders', orderDoc.id), { status: 'تم الدفع', paymentStatus: 'paid', paymentMethod: 'KNet' }));
-                        });
-                        await Promise.all(updatePromises);
-                    } catch (e) {}
-                }
+             } else if (urlIndicatesSuccess) {
+                 // Gateway URL says success but the server could not confirm yet: show the
+                 // customer the result, and let the webhook/server sync record the payment.
+                 // The browser must never mark an invoice paid on its own.
+                 finalStatus = 'success';
              }
              showMessageAndRedirect(finalStatus, invoiceId);
          }).catch(() => {
@@ -3978,6 +3946,13 @@ const MainApp: React.FC = () => {
   const normalizedPath = path.replace(/\/$/, '');
   
   if (normalizedPath === '/track') {
+    // The customer tracking page lives on the storefront and reads through the
+    // server. This legacy copy queried Firestore from the browser, which the
+    // hardened rules no longer allow for anonymous visitors.
+    if (!IS_DEMO_MODE) {
+      window.location.replace(`https://alturathkw.shop/track${window.location.search}`);
+      return null;
+    }
     return (
       <React.Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center arabic-font"><AdminMicroLoader size={40} label="نحمّل صفحة التتبع" /></div>}>
         <TrackPage />
