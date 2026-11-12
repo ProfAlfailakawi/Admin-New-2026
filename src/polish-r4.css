@@ -1,0 +1,8 @@
+/* ==========================================================================
+   Round 4: visual polish (presentation only), loaded last.
+   No logic, data, routes or hooks change here.
+   ========================================================================== */
+
+/* Dashboard: the active tab is already highlighted in the tab bar, so the
+   "القسم النشط: ..." chip repeated it as text. Hide the duplicate. */
+.dashboard-active-section-badge { display: none !important; }

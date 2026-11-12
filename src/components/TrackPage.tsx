@@ -116,7 +116,7 @@ export default function TrackPage() {
  await new Promise(r => setTimeout(r, 350));
  setOrders(found);
  if (found.length === 0) toast.info('لم يتم العثور على طلبات مطابقة للرقم أو المعرف المدخل');
- else toast.success(`تم العثور على ${found.length} طلب/طلبات`);
+ else toast.success(`طلبات مطابقة: ${found.length}`);
  setLoading(false);
  return;
  }
@@ -233,7 +233,7 @@ export default function TrackPage() {
  if (userOrders.length === 0) {
  toast.info('لم يتم العثور على طلبات مطابقة للرقم أو المعرف المدخل');
  } else {
- toast.success(`تم العثور على ${userOrders.length} طلب/طلبات`);
+ toast.success(`طلبات مطابقة: ${userOrders.length}`);
  }
  } catch(err) {
  console.error(err);
