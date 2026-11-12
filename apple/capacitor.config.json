@@ -1,0 +1,30 @@
+{
+  "appId": "com.dralfailakawi.alturath.admin",
+  "appName": "Alturath Admin",
+  "webDir": "www",
+  "server": {
+    "url": "https://admin.alturathkw.shop",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "admin.alturathkw.shop",
+      "alturath-admin-0200723670.web.app",
+      "*.firebaseapp.com",
+      "*.googleapis.com"
+    ]
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#0F172A",
+    "scheme": "AlturathAdmin",
+    "limitsNavigationsToAppBoundDomains": false,
+    "preferredContentMode": "mobile"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "launchAutoHide": true,
+      "backgroundColor": "#0F172A",
+      "showSpinner": false
+    }
+  }
+}

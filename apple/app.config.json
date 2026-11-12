@@ -1,0 +1,22 @@
+{
+  "repo": "Admin-New-2026",
+  "appId": "com.dralfailakawi.alturath.admin",
+  "nameAr": "إدارة التراث",
+  "nameEn": "Alturath Admin",
+  "displayName": "إدارة التراث",
+  "url": "https://admin.alturathkw.shop",
+  "allowNavigation": [
+    "alturath-admin-0200723670.web.app",
+    "*.firebaseapp.com",
+    "*.googleapis.com"
+  ],
+  "icon": "public/ios-icon-512-v8.png",
+  "background": "#0F172A",
+  "backgroundDark": "#0F172A",
+  "accent": "#38BDF8",
+  "lsCategory": "public.app-category.business",
+  "camera": true,
+  "photos": true,
+  "version": "1.0.0",
+  "build": 1
+}
