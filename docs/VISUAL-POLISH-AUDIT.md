@@ -102,3 +102,19 @@ in-out motion (still the existing framer config, not changed or re-measured); er
 loading-failure screens that demo mode cannot reach; screenshots of invoices-list,
 suppliers-audit and reports could not be captured reliably on the loaded machine (the
 Playwright screenshot timed out or caught the skeleton), overflow was still measured 0px.
+
+---
+
+# Round 4 (2026-11-12): duplicates, print sheet, quiet motion
+
+Visual only (new last layer `src/polish-r4.css` + class/copy edits). Audited all 20 admin routes
+and /track, /success, /failed at 390px and 1440px in demo mode, plus the invoice print sheet.
+- Dashboard / AI lab: the inner "مركز القيادة التنفيذي" header and the "القسم النشط" chip repeated
+  the page hero and the highlighted tab; hidden (same treatment loyalty/coupons already had).
+- Phone tab strip: soft fade on the far edge as a scroll hint.
+- Invoice print (`printUtils.ts`, `invoiceShare.ts`): no negative tracking on the Arabic title,
+  legal line readable (contrast/size), phone numbers on one line, title clear of the top bar in
+  print, stripe kept inside the page. No totals, items or amounts touched.
+- Decorative infinite loops removed (settings gear spin, simulator zap pulse, tooltip sparkle spin).
+- Copy trims: settings section title, version card line, simulator title quotes, track toast.
+- Profit guard list header and customer address lines: AA contrast.
