@@ -5630,7 +5630,7 @@ const [isPending, startTransition] = useTransition();
                                       </p>
                                       <Sparkles
                                         size={12}
-                                        className="text-indigo-400 animate-spin-slow"
+                                        className="text-indigo-400"
                                       />
                                     </div>
                                     <div className="flex flex-wrap gap-2 justify-end">

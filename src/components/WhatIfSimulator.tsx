@@ -194,7 +194,7 @@ export const WhatIfSimulator: React.FC<WhatIfSimulatorProps> = ({ data, onUpdate
  <div className="absolute top-3 md:p-4 left-3 sm:left-10 opacity-10 text-white rotate-12 pointer-events-none" aria-hidden="true"><Calculator size={200} className="w-[104px] h-[104px] sm:w-[200px] sm:h-[200px]" /></div>
  
  <h2 className="text-2xl md:text-xl md:text-2xl font-bold text-white mb-4 md:mb-6 relative z-10 flex items-center gap-4 text-right px-4">
- محرك محاكاة"ماذا لو؟" <Zap className="text-cyan-400 animate-pulse" size={24} />
+ محرك محاكاة"ماذا لو؟" <Zap className="text-cyan-400" size={24} aria-hidden="true" />
  </h2>
  <p className="text-indigo-100 text-sm md:text-lg font-bold leading-relaxed max-w-2xl relative z-10 mb-6 md:mb-8 text-right px-4 opacity-90">
  اختبر السعر أو التكلفة أو الحملة قبل التنفيذ.
