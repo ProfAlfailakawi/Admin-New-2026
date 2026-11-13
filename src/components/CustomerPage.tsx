@@ -439,7 +439,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               key={t.id}
               onClick={() => setFilterType(t.id)}
               className={cn(
-                "px-3 py-2 min-h-[44px] sm:min-h-0 whitespace-nowrap rounded-xl text-[11px] font-bold transition-all flex-1",
+                "px-3 py-2 min-h-[44px] pointer-fine:min-h-0 whitespace-nowrap rounded-xl text-[11px] font-bold transition-all flex-1",
                 filterType === t.id ?"bg-white text-indigo-600 shadow-sm" :"text-slate-500 hover:bg-white/50"
               )}
             >
@@ -453,7 +453,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
             aria-label="تصفية حسب الانطباع"
             value={sentimentFilter}
             onChange={(e) => setSentimentFilter(e.target.value)}
-            className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full text-[11px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
+            className="bg-slate-100 border border-slate-200/60 rounded-2xl py-2.5 pr-3 pl-8 w-full min-h-[44px] pointer-fine:min-h-0 text-[11px] font-bold text-slate-600 outline-none appearance-none cursor-pointer"
           >
             <option value="all">كل الانطباعات</option>
             <option value="positive">سعيد</option>

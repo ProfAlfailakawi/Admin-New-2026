@@ -169,13 +169,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
 
       <AnimatePresence>
         {showIOSPrompt && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-            <motion.div 
+          // Scrolls when the window is shorter than the card (folded landscape, Split View
+          // with a pinned panel); my-auto keeps it centred otherwise without clipping its top.
+          <div className="login-ios-prompt fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto overscroll-contain bg-slate-900/40 backdrop-blur-sm">
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#fbf7ee] rounded-3xl shadow-xl border border-[#d4af37]/40 p-6 max-w-sm w-full relative"
+              className="login-ios-prompt-card bg-[#fbf7ee] rounded-3xl shadow-xl border border-[#d4af37]/40 p-6 max-w-sm w-full my-auto relative"
               dir="rtl"
+              role="dialog"
+              aria-modal="true"
+              aria-label="تثبيت التطبيق"
             >
               <button onClick={handleCloseIOSPrompt} aria-label="إغلاق" className="absolute top-3 left-3 p-3 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-full transition-colors">
                 <X size={20} />

@@ -81,7 +81,10 @@
         justify-content: center;
         padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
           max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
-        overflow: hidden;
+        /* Scroll instead of clipping when the window is shorter than the card
+           (folded landscape ~600x350, phone landscape, Split View with a pinned panel). */
+        overflow-x: hidden;
+        overflow-y: auto;
         background-color: #07140b;
         background-image: radial-gradient(circle at 50% 28%, rgba(212, 175, 55, 0.26), transparent 30%),
           radial-gradient(circle at 16% 84%, rgba(23, 96, 47, 0.38), transparent 36%),
@@ -100,6 +103,8 @@
         position: relative;
         width: 100%;
         max-width: 420px;
+        /* auto margins centre the card but fall back to the top edge when it is taller than the window */
+        margin: auto;
         border-radius: 2.2rem;
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: rgba(255, 255, 255, 0.075);
@@ -226,6 +231,28 @@
           width: 92%;
           transform: none;
         }
+      }
+      /* Short windows: a compact card; when there is also width, the logo sits beside the text.
+         Keep in sync with .ktk-boot in src/duo-adaptive.css. */
+      @media (max-height: 520px) {
+        #preboot-splash .pb-card { padding: 20px 24px; border-radius: 1.8rem; }
+        #preboot-splash .pb-logo { height: 76px; width: 76px; margin-bottom: 16px; border-radius: 1.4rem; }
+        #preboot-splash .pb-logo::after { inset: -10px; border-radius: 1.9rem; }
+        #preboot-splash .pb-logo img { height: 52px; width: 52px; }
+        #preboot-splash .pb-title { margin-top: 10px; font-size: 24px; }
+        #preboot-splash .pb-rail { margin-top: 16px; }
+      }
+      @media (max-height: 520px) and (min-width: 560px) {
+        #preboot-splash .pb-card {
+          max-width: 600px;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          column-gap: 28px;
+          align-items: center;
+          text-align: start;
+        }
+        #preboot-splash .pb-logo { grid-row: 1 / span 3; margin: 0 6px; }
+        #preboot-splash .pb-badge { justify-self: start; }
       }
     </style>
 

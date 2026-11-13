@@ -1,0 +1,124 @@
+/* ==========================================================================
+   iPhone Duo adaptive pass, 2026-11-13 (presentation only).
+   Loaded last. Decisions come from the window's own size, never the device:
+   - short windows (max-height:520px): folded landscape ~600x350, phone landscape
+     ~852x393, opened landscape with a pinned panel ~951x350;
+   - short AND wide (min-width:560px): there is room beside, not above, so panels
+     sit side by side instead of stacking past the bottom edge.
+   Hinge-aware blocks at the end only apply when the Viewport Segments API is on
+   (behind a flag in Safari 27.1); without it nothing there matches.
+   See docs/IPHONE-DUO-ADAPTIVE-QUALITY.md.
+   ========================================================================== */
+
+/* ---- 1. Boot screen (AdminBootShell). Mirrors #preboot-splash in index.html. ----
+   It was a fixed, centred, overflow:hidden box: on a 350px-tall window the 620px card
+   lost its logo top and its status line. Now it scrolls, and auto margins centre the
+   card without ever pushing its top above the window. */
+.ktk-boot{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+.ktk-boot-card{margin:auto}
+@media (max-height:520px){
+  .ktk-boot-card{padding:20px 24px;border-radius:1.8rem}
+  .ktk-boot-logo{height:76px;width:76px;margin-bottom:16px;border-radius:1.4rem}
+  .ktk-boot-logo::after{inset:-10px;border-radius:1.9rem}
+  .ktk-boot-logo img{height:52px;width:52px}
+  .ktk-boot-title{margin-top:10px;font-size:24px}
+  .ktk-boot-rail{margin-top:16px}
+  .ktk-boot-status{margin-top:12px}
+}
+@media (max-height:520px) and (min-width:560px){
+  .ktk-boot-card{
+    max-width:600px;display:grid;grid-template-columns:auto minmax(0,1fr);
+    column-gap:28px;align-items:center;text-align:start;
+  }
+  .ktk-boot-logo{grid-row:1 / span 6;margin:0 6px}
+  .ktk-boot-badge,.ktk-boot-retry{justify-self:start}
+  .ktk-boot-slow{margin-inline:0;text-align:start}
+}
+
+/* ---- 2. Sign-in on short, wide windows ----
+   Below 900px the sign-in stacks the brand panel over the form, so at 600x350 and
+   852x393 the Google button started ~430px down, under the bottom edge. With the
+   height this short and the width available, brand and form sit side by side and
+   the brand panel drops its decorative metrics. */
+@media (max-height:520px) and (min-width:560px){
+  html body:not(#duo) .admin-login-showcase{
+    min-height:100dvh!important;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right))
+            max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;
+  }
+  html body:not(#duo) .login-showcase-shell{
+    width:min(100%,900px)!important;margin:auto!important;
+    min-height:0!important;max-height:none!important;height:auto!important;overflow:hidden!important;
+    display:grid!important;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)!important;grid-template-rows:none!important;
+    border-radius:28px!important;padding:0!important;gap:0!important;
+  }
+  /* the stacked layout rounds the top of the form and the bottom of the brand panel;
+     side by side, the shell's own clip gives the corners */
+  html body:not(#duo) .login-brand-stage{border-radius:0 28px 28px 0!important}
+  html body:not(#duo) .login-form-stage{border-radius:28px 0 0 28px!important}
+  html body:not(#duo) .login-brand-stage{
+    min-height:0!important;height:auto!important;padding:16px 18px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+  }
+  html body:not(#duo) .login-stage-content{align-items:center!important;justify-content:center!important;text-align:center!important}
+  html body:not(#duo) .login-hero-logo{margin:0 0 6px!important;transform:scale(.72)!important}
+  html body:not(#duo) .login-brand-stage h1{
+    font-size:clamp(1.8rem,4.6vw,2.6rem)!important;line-height:1.1!important;margin:0!important;
+  }
+  html body:not(#duo) .login-metrics-row{display:none!important}
+  html body:not(#duo) .login-form-stage{
+    min-height:0!important;margin:0!important;justify-content:center!important;
+    padding:16px 18px!important;
+  }
+  html body:not(#duo) .login-form-stage:before{inset:8px!important;border-radius:22px!important}
+  html body:not(#duo) .login-cloud-note{margin-bottom:10px!important;padding:9px 12px!important;font-size:12px!important;line-height:1.6!important}
+  html body:not(#duo) .login-google-btn{min-height:48px!important}
+  html body:not(#duo) .login-form-stage p{margin-top:4px!important;line-height:1.5!important}
+  html body:not(#duo) .login-install-btn{margin-top:6px!important;margin-bottom:22px!important}
+}
+
+/* ---- 3. Install instructions dialog on short windows: compact, and it scrolls (Login.tsx). ---- */
+@media (max-height:520px){
+  .login-ios-prompt-card{padding:16px 20px!important}
+  .login-ios-prompt-card > div:first-of-type{margin-bottom:10px!important;padding-bottom:10px!important}
+  .login-ios-prompt-card ul{margin-top:6px!important;padding:8px 12px!important}
+  .login-ios-prompt-card ul > li + li{margin-top:6px!important}
+  .login-ios-prompt-card > button:last-child{margin-top:12px!important}
+}
+@media (max-height:520px) and (min-width:560px){
+  .login-ios-prompt-card{max-width:520px!important}
+}
+
+/* ---- 4. Hinge (progressive enhancement; only when Safari exposes viewport segments) ----
+   Book posture: the sign-in brand panel takes one page and the form the other, with
+   the hinge in the gap. Tabletop: boot and sign-in cards stay in the top half. */
+@media (horizontal-viewport-segments:2){
+  html body:not(#duo) .admin-login-showcase{padding:0!important;align-items:stretch!important}
+  html body:not(#duo) .login-showcase-shell{
+    width:100%!important;max-width:none!important;min-height:100dvh!important;max-height:none!important;
+    border-radius:0!important;border:0!important;
+    display:grid!important;grid-template-rows:none!important;
+    grid-template-columns:env(viewport-segment-width 0 0) env(viewport-segment-width 1 0)!important;
+    column-gap:calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0))!important;
+  }
+  /* RTL: the card sits on the first (right-hand) page, clear of the hinge */
+  .ktk-boot{justify-content:flex-start}
+  .ktk-boot-card{margin-inline:0;max-width:min(420px,calc(env(viewport-segment-width 1 0) - 40px))}
+}
+@media (vertical-viewport-segments:2){
+  /* the compact, logo-beside-text card fits the top half */
+  .ktk-boot{align-items:flex-start}
+  .ktk-boot-card{
+    margin-block:0 auto;max-width:600px;padding:20px 24px;border-radius:1.8rem;
+    display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:28px;align-items:center;text-align:start;
+  }
+  .ktk-boot-logo{grid-row:1 / span 6;margin:0 6px;height:76px;width:76px;border-radius:1.4rem}
+  .ktk-boot-logo::after{inset:-10px;border-radius:1.9rem}
+  .ktk-boot-logo img{height:52px;width:52px}
+  .ktk-boot-badge,.ktk-boot-retry{justify-self:start}
+  .ktk-boot-title{margin-top:10px;font-size:24px}
+  .ktk-boot-rail{margin-top:16px}
+  .ktk-boot-status{margin-top:12px}
+  .ktk-boot-slow{margin-inline:0;text-align:start}
+}

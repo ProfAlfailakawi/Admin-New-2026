@@ -17,6 +17,7 @@ import './motion.css';
 import './quality.css';
 import './beauty2.css';
 import './polish-r4.css';
+import './duo-adaptive.css'; // iPhone Duo adaptive pass: keep last
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 
