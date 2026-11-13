@@ -20,11 +20,7 @@ Do not change these areas without a focused test plan:
 
 ## Cleanup Performed
 
-Legacy patch scripts, temporary outputs, file-tree dumps, and broken component backups were moved to:
-
-- `_project_archive/legacy-patches`
-- `_project_archive/legacy-output`
-- `_project_archive/broken-backups`
+Legacy patch scripts, temporary outputs, file-tree dumps, and broken component backups were moved out of the repository into a local, untracked `_project_archive/` folder (`legacy-patches`, `legacy-output`, `broken-backups`). That folder was never committed, so it is not in this repo or its git history.
 
 This was an archive-only cleanup. No operational code was deleted.
 
