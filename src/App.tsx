@@ -1766,11 +1766,17 @@ const MainApp: React.FC = () => {
   }, [notifOpen, isMobile, sidebarOpen]);
   
   useEffect(() => {
+    // Only reset the drawer when the window actually crosses the 1024px line.
+    // iOS fires resize for height-only changes (Safari toolbar collapsing, keyboard,
+    // Split View or Duo height changes); closing the drawer on each of those lost the
+    // open drawer mid-use and on every live fold/unfold transition.
+    let lastMobile: boolean | null = null;
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024;
+      if (mobile === lastMobile) return;
+      lastMobile = mobile;
       setIsMobile(mobile);
-      if (!mobile) setSidebarOpen(true);
-      else setSidebarOpen(false);
+      setSidebarOpen(!mobile);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
