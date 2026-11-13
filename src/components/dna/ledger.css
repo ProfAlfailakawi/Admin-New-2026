@@ -245,9 +245,12 @@ html body :is(button, a, [role="button"], [tabindex]):focus-visible {
   }
 }
 
-/* ---- dashboard shells: flat paper panels instead of gold-washed glass ---- */
+/* ---- dashboard shells: flat paper panels instead of gold-washed glass ----
+   The AI suggestions card is the one intentionally dark panel (white text, its own
+   ink/indigo surface in index.css). Painting it paper left white text on a light
+   background, so it is excluded here rather than out-ranked elsewhere. */
 html body :is(.dashboard-executive-shell, .dashboard-command-header, .dashboard-tab-shell,
-              .dashboard-glass-card, .dashboard-bento-card, .heritage-command-brief) {
+              .dashboard-glass-card:not(:where(.heritage-ai-suggestions-card)), .dashboard-bento-card, .heritage-command-brief) {
   background: var(--lg-paper) !important;
   background-image: none !important;
   border: 1px solid var(--lg-rule) !important;
