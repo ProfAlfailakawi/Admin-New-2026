@@ -69,7 +69,7 @@ Status: **يعمل** = wired into the live app. **تجريبي** = present in co
 | سياسة الخصوصية — Privacy policy | Static privacy page, intentionally not linked from the UI | [/privacy-policy.html](https://admin.alturathkw.shop/privacy-policy.html) | [public/privacy-policy.html](public/privacy-policy.html) | يعمل |
 | جسر واتساب للماك — WhatsApp web bridge | Optional Mac process that links a WhatsApp device to the server (legacy `web_bridge` transport) and reports a heartbeat | — | [whatsapp-web-bridge/index.mjs](whatsapp-web-bridge/index.mjs), [whatsapp-web-bridge/README_AR.md](whatsapp-web-bridge/README_AR.md) | تجريبي (legacy path) |
 | تطبيق آبل — iOS/iPadOS/Mac shell | Capacitor native shell, store metadata and release script; not part of the web build | — | [apple/capacitor.config.json](apple/capacitor.config.json), [apple/apple-release.sh](apple/apple-release.sh), [apple-release/checklists/release.md](apple-release/checklists/release.md) | تجريبي (not yet submitted to the App Store) |
-| مساعد الرئيس التنفيذي — CEO copilot | Explain metrics, draft WhatsApp messages, supplier intel, campaign flow. Server endpoints exist, but the component is not mounted in any screen | — | [src/components/CEOCopilot.tsx](src/components/CEOCopilot.tsx), [src/lib/ceo-copilot.ts](src/lib/ceo-copilot.ts), [server.ts `/api/ai/ceo-copilot/*`](server.ts#L11088) | تجريبي (not reachable from the UI) |
+| مساعد الرئيس التنفيذي — CEO copilot | Explain metrics, draft WhatsApp messages, supplier intel, campaign flow. Server endpoints exist; the unmounted UI component was removed | — | [src/lib/ceo-copilot.ts](src/lib/ceo-copilot.ts), [server.ts `/api/ai/ceo-copilot/*`](server.ts#L11088) | تجريبي (not reachable from the UI) |
 
 Server routes that are stubs today: `GET /api/search-order/:phone` always returns `[]` ([server.ts](server.ts#L10148)) and `GET /api/invoice/:id` always returns 503 ([server.ts](server.ts#L10213)).
 
@@ -94,7 +94,7 @@ Key server endpoints:
 | [`/api/whatsapp/*`](server.ts#L4959) | WhatsApp centre; console session required except the Meta/Kapso webhooks, the bridge and `/health` |
 | [`POST /api/ai/*`](server.ts#L10778), [`POST /api/smart-studio/*`](server.ts#L11601) | Gemini features; console session required |
 
-Other folders: [scripts](scripts) (build guards and build stamp), [public](public) (static assets, service worker, updating page), [apple](apple) and [apple-release](apple-release) (native shell), [whatsapp-web-bridge](whatsapp-web-bridge), [docs](docs) (operations notes, quality scorecard, older change notes in [docs/changelog](docs/changelog)). [src/pages/Admin.tsx](src/pages/Admin.tsx) and [src/pages/OrderPage.tsx](src/pages/OrderPage.tsx) are not imported by the app.
+Other folders: [scripts](scripts) (build guards and build stamp), [public](public) (static assets, service worker, updating page), [apple](apple) and [apple-release](apple-release) (native shell), [whatsapp-web-bridge](whatsapp-web-bridge), [docs](docs) (operations notes, quality scorecard, older change notes in [docs/changelog](docs/changelog)).
 
 ## Setup and Installation
 
