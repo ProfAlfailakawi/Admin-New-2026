@@ -4978,17 +4978,17 @@ const [isPending, startTransition] = useTransition();
                       <div className="space-y-3 relative z-10 text-right">
                         {!ltv || !cac ? (
                           <div className="bg-white/10 p-3 rounded-xl border border-white/15 text-center">
-                            <p className="text-xs text-white/75 font-bold">
+                            <p className="text-xs text-white/85 font-bold">
                               لا توجد بيانات كافية لإصدار توصية تخص النمو
                             </p>
                           </div>
                         ) : (
                           <div className="bg-white/10 p-3 rounded-xl border border-white/15 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-200 font-bold">
+                              <div className="text-[10px] text-indigo-100 font-bold">
                                 النمو الاستراتيجي
                               </div>
-                              <span className="text-[10px] text-white/65 font-bold italic">
+                              <span className="text-[10px] text-white/85 font-bold italic">
                                 العميل يجلب {ltvCacRatio.toFixed(1)} مرة تكلفته
                               </span>
                             </div>
@@ -5004,17 +5004,17 @@ const [isPending, startTransition] = useTransition();
 
                         {totalGatewayFees === 0 ? (
                           <div className="bg-white/10 p-3 rounded-xl border border-white/15 text-center">
-                            <p className="text-xs text-white/75 font-bold">
+                            <p className="text-xs text-white/85 font-bold">
                               لا توجد رسوم بوابات الدفع لإصدار توصية
                             </p>
                           </div>
                         ) : (
                           <div className="bg-white/10 p-3 rounded-xl border border-white/15 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-200 font-bold">
+                              <div className="text-[10px] text-indigo-100 font-bold">
                                 كفاءة التكاليف
                               </div>
-                              <span className="text-[10px] text-white/65 font-bold italic">
+                              <span className="text-[10px] text-white/85 font-bold italic">
                                 الرسوم = {totalGatewayFees.toFixed(3)} د.ك
                               </span>
                             </div>
@@ -5028,17 +5028,17 @@ const [isPending, startTransition] = useTransition();
 
                         {profitMargin === 0 && totalSalesVal === 0 ? (
                           <div className="bg-white/10 p-3 rounded-xl border border-white/15 text-center">
-                            <p className="text-xs text-white/75 font-bold">
+                            <p className="text-xs text-white/85 font-bold">
                               لا توجد مبيعات كافية لتحليل الأرباح
                             </p>
                           </div>
                         ) : (
                           <div className="bg-white/10 p-3 rounded-xl border border-white/15 group hover:bg-white/10 transition-all">
                             <div className="flex justify-between items-center mb-1 flex-row-reverse">
-                              <div className="text-[10px] text-indigo-200 font-bold">
+                              <div className="text-[10px] text-indigo-100 font-bold">
                                 الصحة المالية
                               </div>
-                              <span className="text-[10px] text-white/65 font-bold italic">
+                              <span className="text-[10px] text-white/85 font-bold italic">
                                 هامش الربح = {profitMargin.toFixed(1)}%
                               </span>
                             </div>
