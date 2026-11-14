@@ -86,8 +86,10 @@ import { LAYER } from './lib/floatingLayers';
 // Same query as the `.duo-spread` rules in src/duo-adaptive.css: an opened inner screen
 // (roughly 669x867 portrait, 951x585 landscape) that is wider than a phone, narrower than the
 // desktop sidebar layout and tall enough for two pages; or a real hinge reported by the
-// Viewport Segments API (behind a flag in Safari 27.1).
-const BOOK_SPREAD_QUERY = '(min-width: 640px) and (max-width: 1023.98px) and (min-height: 521px), (horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)';
+// Viewport Segments API (behind a flag in Safari 27.1). In em (640/1023/521px at the default
+// 16px) so a larger default font size steps back to the one-page layout instead of squeezing
+// two narrow pages; Safari page zoom already narrows the CSS viewport the same way.
+const BOOK_SPREAD_QUERY = '(min-width: 40em) and (max-width: 63.99em) and (min-height: 32.5625em), (horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)';
 const useMediaQueryMatch = (query: string) => {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches);
   useEffect(() => {

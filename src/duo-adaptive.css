@@ -261,7 +261,7 @@ html body .admin-heritage-shell.duo-spread .admin-app-header{padding-inline:10px
    Sign-in: the brand panel is the right page, the form the left page, the spine
    between them. Mirrors the hinge-only blocks in section 4, now also without the API.
    Keep the boot rule in sync with #preboot-splash in index.html. */
-@media (min-width:640px) and (max-width:1023.98px) and (min-height:521px){
+@media (min-width:40em) and (max-width:63.99em) and (min-height:32.5625em){
   .ktk-boot{padding-left:calc(50% + 16px + 20px)}
   .ktk-boot::after,
   .admin-login-showcase .login-showcase-shell::after{
@@ -336,3 +336,6 @@ html body:has(.duo-spread) .command-bar-layer{padding-right:calc(50% + 16px + 12
 html body:has(.duo-spread) .fixed.inset-0.flex.items-center.justify-center:not(.admin-order-details-modal):not(.login-ios-prompt){
   padding-right:calc(50% + 16px + 12px);
 }
+/* the period selector keeps its phone sizing on the work page: five 44px targets */
+html body:has(.duo-spread) .admin-date-filter-elegant{width:236px!important;max-width:calc(var(--duo-half,50vw) - 24px)!important}
+html body:has(.duo-spread) .admin-date-filter-elegant button{min-width:44px!important}
