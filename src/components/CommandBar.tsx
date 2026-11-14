@@ -1968,7 +1968,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-start justify-center px-3 pt-16 sm:pt-20 md:pt-24">
+        <div className="command-bar-layer fixed inset-0 z-[10000] flex items-start justify-center px-3 pt-16 sm:pt-20 md:pt-24">
           <motion.button
             type="button"
             aria-label="إغلاق البحث"

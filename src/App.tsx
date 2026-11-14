@@ -82,6 +82,24 @@ const CommandBrief = React.lazy(() => import('./components/CommandBrief').then(m
 import Login from './components/Login';
 import AdminMicroLoader from './components/ui/AdminMicroLoader';
 import { LAYER } from './lib/floatingLayers';
+
+// Same query as the `.duo-spread` rules in src/duo-adaptive.css: an opened inner screen
+// (roughly 669x867 portrait, 951x585 landscape) that is wider than a phone, narrower than the
+// desktop sidebar layout and tall enough for two pages; or a real hinge reported by the
+// Viewport Segments API (behind a flag in Safari 27.1).
+const BOOK_SPREAD_QUERY = '(min-width: 640px) and (max-width: 1023.98px) and (min-height: 521px), (horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)';
+const useMediaQueryMatch = (query: string) => {
+  const [matches, setMatches] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const mq = window.matchMedia(query);
+    const update = () => setMatches(mq.matches);
+    update();
+    mq.addEventListener?.('change', update);
+    return () => mq.removeEventListener?.('change', update);
+  }, [query]);
+  return matches;
+};
 const GeneralSettings = React.lazy(() => import('./components/GeneralSettings'));
 const SupplierAudit = React.lazy(() => import('./components/SupplierAudit'));
 const LoyaltyProgramPage = React.lazy(() => import('./components/LoyaltyProgramPage').then(m => ({ default: m.LoyaltyProgramPage })));
@@ -1676,6 +1694,10 @@ const MainApp: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Default to closed on mobile
   const [commandBarOpen, setCommandBarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  // Book spread (presentation only): on an opened inner screen (or real hinge segments)
+  // the navigation stays open as the index page and the work sits on the facing page.
+  // See BOOK_SPREAD_QUERY and src/duo-adaptive.css section 5.
+  const isSpread = useMediaQueryMatch(BOOK_SPREAD_QUERY);
   const [notifOpen, setNotifOpen] = useState(false);
   // Visual only: floating helpers step aside while a drawer or the command bar is open.
   useEffect(() => {
@@ -1833,6 +1855,11 @@ const MainApp: React.FC = () => {
       setExpandedMenus(prev => prev.operations ? prev : { ...prev, operations: true, invoices: false });
     }
   }, [currentPage]);
+  // In the book spread the navigation is the index page: both groups stay open, like a
+  // table of contents (the accordion above still applies to the phone drawer).
+  useEffect(() => {
+    if (isSpread) setExpandedMenus(prev => (prev.invoices && prev.operations) ? prev : { ...prev, invoices: true, operations: true });
+  }, [isSpread, currentPage]);
   
   const [data, setRawData] = useState<AppState>(() => IS_DEMO_MODE ? GET_DEMO_DATA() : INITIAL_DATA);
   // Keep an immediate, synchronous pointer to the newest accepted state. Firestore shard
@@ -4263,7 +4290,7 @@ const MainApp: React.FC = () => {
   const showSecondFloatingTools = (floatingToolRole === 'admin' || (floatingToolRole as any) === 'local') && showExecutiveFloatingTools;
 
   return (
-    <div className={`admin-heritage-shell${userRole === 'partner' ? ' partner-brand' : ''} flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font`} dir="rtl">
+    <div className={`admin-heritage-shell${userRole === 'partner' ? ' partner-brand' : ''}${isSpread ? ' duo-spread' : ''} flex h-[100dvh] w-full overflow-hidden bg-atmospheric text-slate-900 arabic-font`} dir="rtl">
       <AmbientBackground />
 
       {renderAuthError()}
@@ -4287,7 +4314,7 @@ const MainApp: React.FC = () => {
       />
       {/* Sidebar Overlay (Mobile Only) */}
       <AnimatePresence>
-        {isMobile && sidebarOpen && (
+        {isMobile && !isSpread && sidebarOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -4302,17 +4329,19 @@ const MainApp: React.FC = () => {
       <motion.aside 
         ref={sidebarRef}
         // A closed mobile drawer sits off-screen but stayed in the tab order and the accessibility tree.
-        inert={isMobile && !sidebarOpen}
+        inert={isMobile && !isSpread && !sidebarOpen}
+        aria-label={isSpread ? 'فهرس اللوحة' : undefined}
         initial={false}
-        animate={{ 
+        animate={isSpread ? { width: 'auto', x: 0, opacity: 1 } : {
           width: isMobile ? (sidebarOpen ? 280 : 0) : (sidebarOpen ? 280 : 80),
           x: isMobile ? (sidebarOpen ? 0 : 280) : 0,
           opacity: isMobile ? (sidebarOpen ? 1 : 0) : 1
         }}
-        transition={{ type: 'tween', ease: "easeOut", duration: 0.3 }}
+        transition={isSpread ? { duration: 0 } : { type: 'tween', ease: "easeOut", duration: 0.3 }}
         className={cn(
           "bp-sidebar bg-slate-950 text-white flex flex-col transition-all relative",
-          isMobile ? "fixed right-0 top-0 bottom-0 shadow-[0_0_80px_rgba(0,0,0,0.8)] z-[1001]" : "relative z-40 border-l border-white/5 overflow-hidden"
+          isSpread ? "duo-index-page relative z-40 overflow-hidden"
+            : isMobile ? "fixed right-0 top-0 bottom-0 shadow-[0_0_80px_rgba(0,0,0,0.8)] z-[1001]" : "relative z-40 border-l border-white/5 overflow-hidden"
         )}
       >
         {/* Sidebar Background Accents */}
@@ -4333,7 +4362,7 @@ const MainApp: React.FC = () => {
               </div>
             )}
           </div>
-          {isMobile && (
+          {isMobile && !isSpread && (
             <button onClick={() => setSidebarOpen(false)} aria-label="إغلاق القائمة" className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-white/10 rounded-full text-white/40 transition-all hover:text-white">
               <X size={20} />
             </button>
@@ -4497,8 +4526,10 @@ const MainApp: React.FC = () => {
       </motion.aside>
 
       {/* Main Content Area */}
+      {isSpread && <div className="duo-spine" aria-hidden="true" />}
       <div className={cn(
-        "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000"
+        "flex-1 flex flex-col relative overflow-hidden transition-colors duration-1000",
+        isSpread && "duo-work-page"
       )}>
         {/* Runtime cloud loss is handled by the full-screen AdminBootShell above. */}
         {/* Top Header */}
@@ -4507,7 +4538,7 @@ const MainApp: React.FC = () => {
           className="admin-app-header h-16 md:h-20 glass-surface border-b border-slate-200/60 flex items-center justify-between px-3 xs:px-4 lg:px-4 xl:px-10 z-[100] sticky top-0 shadow-sm shrink-0"
         >
           <div className="flex items-center gap-2 sm:gap-3 xl:gap-4 shrink min-w-0">
-            {userRole !== 'partner' && (
+            {userRole !== 'partner' && !isSpread && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setSidebarOpen(!sidebarOpen); }}
                 className="min-w-[44px] min-h-[44px] inline-flex items-center justify-center p-2 hover:bg-slate-900 group rounded-[0.8rem] sm:rounded-2xl transition-all text-slate-600 hover:text-white shadow-sm shrink-0"
