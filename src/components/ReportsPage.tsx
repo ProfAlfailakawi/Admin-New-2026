@@ -1323,13 +1323,13 @@ Alturath.kw`;
                       className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl py-3 pr-11 pl-4 outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-right"
                     />
                   </div>
-                  <div className="flex p-1 bg-slate-100 rounded-xl">
+                  <div className="flex w-full min-w-0 md:w-auto p-1 bg-slate-100 rounded-xl">
                     {["all", "today", "week", "month", "custom"].map((f) => (
                       <button
                         key={f}
                         onClick={() => setTimeFilter(f as any)}
                         className={cn(
-                          "px-4 py-1.5 max-md:min-h-[44px] rounded-lg text-[11px] font-bold uppercase transition-all",
+                          "flex-1 md:flex-none whitespace-nowrap px-2 sm:px-4 py-1.5 max-md:min-h-[44px] rounded-lg text-[11px] font-bold uppercase transition-all",
                           timeFilter === f
                             ? "bg-white text-slate-900 shadow-sm"
                             : "text-slate-500 hover:text-slate-600",

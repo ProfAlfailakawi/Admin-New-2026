@@ -439,7 +439,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
               key={t.id}
               onClick={() => setFilterType(t.id)}
               className={cn(
-                "px-3 py-2 min-h-[44px] pointer-fine:min-h-0 whitespace-nowrap rounded-xl text-[11px] font-bold transition-all flex-1",
+                "px-2.5 sm:px-3 py-2 min-h-[44px] pointer-fine:min-h-0 whitespace-nowrap rounded-xl text-[11px] font-bold transition-all flex-1",
                 filterType === t.id ?"bg-white text-indigo-600 shadow-sm" :"text-slate-500 hover:bg-white/50"
               )}
             >

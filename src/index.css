@@ -6683,7 +6683,7 @@ aside.bg-slate-950 nav button.text-amber-300 { color: #fcd34d; background-color:
 @media (max-width:520px){
   .coupon-theater-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
   .coupon-ticket{min-width:0}
-  .coupon-ticket span{white-space:normal;line-height:1.4}
+  .coupon-ticket span{white-space:normal;line-height:1.4;padding:6px;font-size:10.5px;justify-content:center;text-align:center;max-width:100%}
 }
 .panel-head span{font-size:11px}
 
@@ -6967,4 +6967,15 @@ aside.bg-slate-950 :is(.text-\[8px\],.text-\[9px\],.text-\[10px\],.text-\[11px\]
 /* Short windows: the centred command button would sit on the content, so it joins the corner buttons */
 @media (max-height:520px){
   [data-floating='secondary'].left-1\/2{left:auto!important;right:calc(60px + env(safe-area-inset-right,0px));transform:none!important;bottom:calc(.75rem + env(safe-area-inset-bottom,0px))!important}
+}
+
+/* Phones: centred z-50 / z-[100] modals sat partly under the 64px sticky app header (their title was cut off).
+   Reserve the header height above them and cap the card to the space that is left. */
+@media (max-width: 767px) {
+  .fixed.inset-0.items-center[class*="bg-slate-900/60"]:is(.z-50, .z-\[100\]) {
+    padding-top: calc(4rem + 8px);
+  }
+  .fixed.inset-0.items-center[class*="bg-slate-900/60"]:is(.z-50, .z-\[100\]) > :first-child {
+    max-height: calc(100dvh - 4rem - 20px) !important;
+  }
 }

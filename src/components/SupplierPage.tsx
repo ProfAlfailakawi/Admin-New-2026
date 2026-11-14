@@ -423,19 +423,19 @@ const SupplierPage: React.FC<SupplierPageProps> = React.memo(({ data, setData, s
  </div>
 
  <div className="grid grid-cols-3 gap-2">
- <div className="bg-white border border-slate-100 rounded-2xl p-2 text-center">
- <div className="text-[11px] font-bold text-slate-400 mb-1">الإجمالي</div>
+ <div className="bg-white border border-slate-100 rounded-2xl p-2 text-center min-w-0">
+ <div className="text-[11px] font-bold text-slate-400 mb-1 whitespace-nowrap">الإجمالي</div>
  <div className="text-lg font-extrabold text-slate-800 leading-none">{invoiceStats.totalInvoices}</div>
  </div>
- <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-2 text-center">
- <div className="text-[11px] font-bold text-emerald-600 mb-1 flex items-center justify-center gap-1">
- <CheckCircle2 size={11} /> مسددة
+ <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-2 text-center min-w-0">
+ <div className="text-[11px] font-bold text-emerald-600 mb-1 whitespace-nowrap flex items-center justify-center gap-1">
+ <CheckCircle2 size={11} className="hidden min-[360px]:block shrink-0" /> مسددة
  </div>
  <div className="text-lg font-extrabold text-emerald-700 leading-none">{invoiceStats.paidInvoices}</div>
  </div>
- <div className="bg-red-50 border border-red-100 rounded-2xl p-2 text-center">
- <div className="text-[11px] font-bold text-red-500 mb-1 flex items-center justify-center gap-1">
- <Clock3 size={11} /> غير مسددة
+ <div className="bg-red-50 border border-red-100 rounded-2xl p-2 text-center min-w-0">
+ <div className="text-[11px] font-bold text-red-500 mb-1 whitespace-nowrap flex items-center justify-center gap-1">
+ <Clock3 size={11} className="hidden min-[360px]:block shrink-0" /> غير مسددة
  </div>
  <div className="text-lg font-extrabold text-red-600 leading-none">{invoiceStats.pendingInvoices}</div>
  </div>
