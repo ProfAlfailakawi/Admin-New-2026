@@ -1509,7 +1509,7 @@ Alturath.kw`;
                           const cleaned = validateAndCleanTime(e.target.value);
                           setDeliveryTime(cleaned);
                         }}
-                        className="w-full bg-white border border-amber-200/90 rounded-xl px-3 py-2 text-center font-bold text-xs outline-none transition-all focus:ring-2 focus:ring-amber-500/30"
+                        className="w-full min-w-0 bg-white border border-amber-200/90 rounded-xl px-2 py-2 text-center font-bold text-xs placeholder:text-[11px] outline-none transition-all focus:ring-2 focus:ring-amber-500/30"
                       />
                       <div className="flex border border-slate-200/80 rounded-lg p-0.5 bg-slate-100 shrink-0 gap-0.5">
                         <button
