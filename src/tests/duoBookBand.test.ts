@@ -19,7 +19,7 @@ describe('iPhone Duo round 2: book = landscape only', () => {
   });
   it('keeps the widget keep-out on the inner screen bands (tab and installed app)', () => {
     const css = read('src/duo-adaptive.css');
-    expect(css).toContain('--duo-cutout-w:116px;--duo-cutout-h:116px');
+    expect(css).toContain('--duo-cutout-w:116px;--duo-cutout-h:116px;--duo-cutout-reach:268px');
     expect(css).toContain(`@media ${PORTRAIT}`);
     expect(css).toContain(`@media ${BOOK},`);
   });
@@ -63,6 +63,24 @@ describe('iPhone Duo keep-out: browser tab AND installed app, inner screen only'
     const i = css.indexOf('System widget keep-out');
     expect(css.slice(i, css.indexOf('Book pages are sized by the PAGE', i))).not.toMatch(/display-mode/);
     expect(root.map((q) => q.text)).toEqual(expect.arrayContaining([BOOK, PORTRAIT]));
+  });
+  it('declares the whole box (w x reach, plus the header band) once, only inside the two inner-screen bands', () => {
+    const decl = css.match(/:root\{(--duo-cutout-w:[^}]*)\}/g) || [];
+    expect(decl).toHaveLength(1);
+    expect(decl[0]).toContain('--duo-cutout-w:116px');
+    expect(decl[0]).toContain('--duo-cutout-h:116px');
+    expect(decl[0]).toContain('--duo-cutout-reach:268px');
+    // every media query that uses the variables is one of the two bands, nothing else
+    for (const q of qs) expect([BOOK, PORTRAIT]).toContain(q.text);
+    // and no rule outside a media query touches them (so iPhone/iPad/desktop/367x740 never see them)
+    let outside = css, i;
+    while ((i = outside.indexOf('@media')) >= 0) {
+      let j = outside.indexOf('{', i), depth = 1; j++;
+      while (j < outside.length && depth) { depth += outside[j] === '{' ? 1 : outside[j] === '}' ? -1 : 0; j++; }
+      outside = outside.slice(0, i) + outside.slice(j);
+    }
+    // the explanatory comment names the variables; strip comments before checking
+    expect(outside.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/--duo-cutout/);
   });
   it.each([[951, 669], [951, 585], [669, 867], [720, 900]])('applies at %ix%i', (w, h) => {
     expect(applies(w, h)).toBe(true);

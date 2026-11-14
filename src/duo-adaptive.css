@@ -342,43 +342,74 @@ html body:has(.duo-spread) .admin-date-filter-elegant{width:236px!important;max-
 html body:has(.duo-spread) .admin-date-filter-elegant button{min-width:44px!important}
 
 /* ==========================================================================
-   6. System widget keep-out (iPhone Duo round 2, browser tab and installed app alike)
-   The opened inner screen (Safari tab or installed app) has a system status widget floating at
-   the physical top-right (about 55-80px wide, 20-110px in from the right edge, down to
-   y=110..125). We cannot know its exact box, so a generous corner is reserved:
-   --duo-cutout-w x --duo-cutout-h, physical right/top, regardless of RTL. Content and
-   controls stay out of it; the page background still runs full-bleed behind it.
-   Conditions (the same two bands as every site of this family), applied in a browser tab and in the installed app alike:
+   6. System widget keep-out (iPhone Duo round 2, browser tab, installed app and the iOS app alike)
+   The opened inner screen has a system status widget floating at the physical top-right.
+   Measured on the native iOS app (page y = screen y, content under the status area): about
+   80px wide, 30-110px in from the right edge, from y~92 down to y~245-265. In a Safari tab the
+   browser bar pushes the page down, so only its lower part (about 125px) reaches the page.
+   We cannot know the exact box, so a generous one is reserved at the physical top-right,
+   regardless of RTL:  --duo-cutout-w (116px) x --duo-cutout-reach (268px).
+   --duo-cutout-h (116px) is the header band. Nothing readable or tappable may sit in the box;
+   backgrounds still run full-bleed behind it. Content is moved BESIDE the box (a right inset
+   on the rows/blocks that start in that band), not pushed down.
+   Conditions (the same two bands as every site of this family), not tied to the installed app:
      - BOOK (landscape): the box belongs to the RIGHT page, i.e. the index page here;
-     - inner portrait 640-720px wide: the single column's header band.
+     - inner portrait 640-720px wide: the single column.
    Ordinary phones (notch, no widget), iPads and desktops are untouched; a 367x740 folded
    screen cannot be told apart from an iPhone, so it is deliberately NOT covered.
    ========================================================================== */
 @media screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape),
        screen and (min-width:640px) and (max-width:720px) and (min-height:520px) and (max-height:960px) and (orientation:portrait){
-  :root{--duo-cutout-w:116px;--duo-cutout-h:116px}
+  :root{--duo-cutout-w:116px;--duo-cutout-h:116px;--duo-cutout-reach:268px}
 }
 /* book: the index page's header clears the box (padding) and is tall enough that the
-   first entry of the table of contents starts below it */
+   first entry of the table of contents starts below it; the list itself keeps a right gutter
+   so its first rows (which still sit in the box's vertical reach) stay beside it */
 @media screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape){
   html body .admin-heritage-shell.duo-spread > aside.duo-index-page .admin-drawer-header{
     min-height:calc(var(--duo-cutout-h) - 12px);padding-right:calc(var(--duo-cutout-w) - 12px);box-sizing:border-box;
   }
+  html body .admin-heritage-shell.duo-spread > aside.duo-index-page > nav{
+    padding-right:calc(var(--duo-cutout-w) + 4px)!important;box-sizing:border-box;
+  }
   /* the order inspector takes the same page: its top band clears the box too */
   html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :first-child{
-    padding-right:calc(var(--duo-cutout-w) - 12px);min-height:calc(var(--duo-cutout-h) - 12px);box-sizing:border-box;
+    padding-right:calc(var(--duo-cutout-w) - 4px);min-height:calc(var(--duo-cutout-h) - 12px);box-sizing:border-box;
+  }
+  /* ...and so does the first content that starts in the box's reach (progress stepper, first section title) */
+  html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :nth-child(2) .grid > :first-child > :first-child > :nth-child(-n+2){
+    margin-right:calc(var(--duo-cutout-w) - 29px);
   }
 }
 /* inner portrait: one column. The sticky header becomes a band as tall as the box with
-   its controls to the left of it; the drawer opens wider so its logo fits beside the box */
+   its controls to the left of it; the drawer opens wider so its logo and rows fit beside the box */
 @media screen and (min-width:640px) and (max-width:720px) and (min-height:520px) and (max-height:960px) and (orientation:portrait){
   html body .admin-app-header{
     height:auto!important;min-height:var(--duo-cutout-h)!important;
     padding-right:calc(var(--duo-cutout-w) + 8px)!important;box-sizing:border-box;
   }
-  html body aside.bp-sidebar.fixed{width:min(340px,86vw)!important}
+  html body aside.bp-sidebar.fixed{width:min(380px,92vw)!important;max-width:min(380px,92vw)!important}
   html body aside.bp-sidebar.fixed .admin-drawer-header{
     height:auto;min-height:var(--duo-cutout-h);padding-right:calc(var(--duo-cutout-w) + 8px);box-sizing:border-box;
+  }
+  html body aside.bp-sidebar.fixed > nav{padding-right:calc(var(--duo-cutout-w) + 8px)!important;box-sizing:border-box}
+  /* page content that starts in the box's vertical reach (116-268px): the hero card keeps its
+     full-bleed background but its content sits beside the box; the panel under it does too */
+  html body .admin-experience-stack > .admin-page-hero:first-child .admin-page-hero-main{
+    padding-right:calc(var(--duo-cutout-w) - 24px);box-sizing:border-box;
+  }
+  html body .admin-experience-stack > .admin-page-hero:first-child + .admin-smart-panel .smart-panel-toggle{
+    padding-right:calc(var(--duo-cutout-w) - 6px)!important;box-sizing:border-box;
+  }
+  /* the tab switch (Invoices / App orders) that opens the reports page starts in the box's reach too */
+  html body .admin-page-hero:first-child + .admin-content-polish .space-y-6 > .w-fit.shadow-inner:first-child{
+    margin-right:calc(var(--duo-cutout-w) - 13px);
+  }
+  /* the WhatsApp command hub keeps its live-status chips beside the box when the card starts in its reach */
+  html body .wa-command-deck .dna-hubp{inset-inline-start:calc(var(--duo-cutout-w) - 8px)}
+  /* home: the greeting card is a direct child of the scroll area */
+  html body .admin-app-main > section:first-of-type > div > div:first-child{
+    padding-right:calc(var(--duo-cutout-w) - 24px);box-sizing:border-box;
   }
 }
 
