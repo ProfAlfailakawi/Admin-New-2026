@@ -254,6 +254,11 @@
         #preboot-splash .pb-logo { grid-row: 1 / span 3; margin: 0 6px; }
         #preboot-splash .pb-badge { justify-self: start; }
       }
+      /* Opened inner screen (book spread): the card sits on the right-hand page, clear of
+         the spine. Keep in sync with section 5d of src/duo-adaptive.css. */
+      @media (min-width: 40em) and (max-width: 63.99em) and (min-height: 32.5625em) {
+        #preboot-splash { padding-left: calc(50% + 36px); }
+      }
     </style>
 
     <script>

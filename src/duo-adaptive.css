@@ -122,3 +122,220 @@
   .ktk-boot-status{margin-top:12px}
   .ktk-boot-slow{margin-inline:0;text-align:start}
 }
+
+/* ==========================================================================
+   5. Book spread, 2026-11-14: the opened inner screen as a designed two-page spread.
+   App.tsx adds `.duo-spread` to the shell when BOOK_SPREAD_QUERY matches (640-1023px
+   wide and at least 521px tall, or real hinge segments). The shell then reads, right
+   to left like an Arabic book:
+     [ index page: the navigation as a deep-green ledger card ] [ spine ] [ work page ]
+   Each page scrolls on its own; nothing is laid across the spine. The background is
+   the shell's own canvas, so it runs unbroken under both pages and the spine.
+   Below 640px or at 1024px and up nothing here applies: phone drawer / desktop sidebar.
+   ========================================================================== */
+.admin-heritage-shell{--duo-spine:32px;--duo-page-pad:12px}
+.admin-heritage-shell.duo-spread{position:relative;isolation:isolate}
+
+/* index page: a full-height ledger card inset on the paper */
+.admin-heritage-shell.duo-spread > aside.duo-index-page{
+  flex:0 0 calc((100% - var(--duo-spine)) / 2 - var(--duo-page-pad) * 2);
+  min-width:0;max-width:none;height:auto;
+  margin:max(var(--duo-page-pad),env(safe-area-inset-top)) max(var(--duo-page-pad),env(safe-area-inset-right))
+         var(--duo-page-pad) var(--duo-page-pad);
+  border-radius:26px;
+  box-shadow:0 18px 40px -22px rgba(8,37,26,.55),0 0 0 1px rgba(184,134,74,.28),inset 0 1px 0 rgba(255,255,255,.06);
+}
+/* deep green + copper (the "operational heritage desk"); index.css paints every shell
+   aside navy with !important, so this one rule has to answer in kind */
+html body .admin-heritage-shell.duo-spread > aside.duo-index-page{
+  background:
+    radial-gradient(120% 60% at 100% 0%,rgba(196,140,82,.16),transparent 60%),
+    linear-gradient(180deg,#0f3b2b 0%,#0b2f22 55%,#08241a 100%)!important;
+}
+.admin-heritage-shell.duo-spread > aside.duo-index-page .admin-drawer-header{height:auto;min-height:76px;padding:14px 18px}
+.admin-heritage-shell.duo-spread > aside.duo-index-page nav{padding:14px 16px 24px;scrollbar-width:thin}
+.admin-heritage-shell.duo-spread > aside.duo-index-page nav::-webkit-scrollbar{width:4px}
+
+/* the spine: a quiet paper crease, no ink line across content */
+.admin-heritage-shell.duo-spread > .duo-spine{
+  flex:0 0 var(--duo-spine);position:relative;pointer-events:none;align-self:stretch;
+  background:linear-gradient(90deg,rgba(74,52,24,0) 0%,rgba(74,52,24,.045) 30%,rgba(74,52,24,.10) 50%,rgba(74,52,24,.045) 70%,rgba(74,52,24,0) 100%);
+}
+.admin-heritage-shell.duo-spread > .duo-spine::after{
+  content:"";position:absolute;inset-block:18px;left:50%;width:1px;transform:translateX(-.5px);
+  background:linear-gradient(180deg,transparent,rgba(156,112,58,.32) 14%,rgba(156,112,58,.32) 86%,transparent);
+}
+
+/* work page: the header becomes the page's own running head, inset like the index card */
+.admin-heritage-shell.duo-spread > .duo-work-page{flex:1 1 0;min-width:0}
+.admin-heritage-shell.duo-spread > .duo-work-page > .admin-app-header{
+  margin:max(var(--duo-page-pad),env(safe-area-inset-top)) max(var(--duo-page-pad),env(safe-area-inset-left)) 0 var(--duo-page-pad);
+  border-radius:22px;border:1px solid rgba(15,23,42,.07);
+}
+.admin-heritage-shell.duo-spread > .duo-work-page > .admin-app-main{
+  padding-inline:var(--duo-page-pad) max(var(--duo-page-pad),env(safe-area-inset-left));
+}
+.admin-heritage-shell.duo-spread .admin-page-frame{padding-inline:0}
+
+/* real hinge (flags on): pages snap to the segments, the spine is the hinge itself */
+@media (horizontal-viewport-segments:2){
+  .admin-heritage-shell.duo-spread{
+    --duo-spine:calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0));
+  }
+  .admin-heritage-shell.duo-spread > aside.duo-index-page{
+    flex-basis:calc(env(viewport-segment-width 1 0) - var(--duo-page-pad) * 2);
+  }
+}
+/* tabletop / laptop (flags on): work above the fold, the index (controls) below it */
+@media (vertical-viewport-segments:2){
+  .admin-heritage-shell.duo-spread{
+    flex-direction:column-reverse;
+    --duo-spine:calc(env(viewport-segment-top 0 1) - env(viewport-segment-bottom 0 0));
+  }
+  .admin-heritage-shell.duo-spread > .duo-work-page{flex:0 0 env(viewport-segment-height 0 0)}
+  .admin-heritage-shell.duo-spread > aside.duo-index-page{flex:1 1 0;margin:var(--duo-page-pad)}
+  .admin-heritage-shell.duo-spread > .duo-spine{
+    background:linear-gradient(180deg,rgba(74,52,24,0),rgba(74,52,24,.10) 50%,rgba(74,52,24,0));
+  }
+  .admin-heritage-shell.duo-spread > .duo-spine::after{inset-block:auto;top:50%;left:18px;right:18px;width:auto;height:1px}
+}
+
+/* ---- 5b. The bottom strip is split by the spine too ----
+   beauty2.css parks every floating control in one bottom strip and centres the period
+   selector and the demo pill across the whole window, i.e. right over the spine. In the
+   spread the work page owns its controls (period selector, demo pill) and the index page
+   holds the small round helpers (install chip, wand, alerts, back to top). The selectors
+   repeat beauty2's own (with its !important) one notch more specific; there is no other
+   lever on those positions. */
+html body:not(#x):not(#duo):has(.duo-spread){--duo-half:calc((100vw - var(--duo-spine,32px)) / 2)}
+html body:not(#x):not(#duo):has(.duo-spread) [data-floating='secondary'].fixed.bottom-6.left-0.right-0{
+  left:0!important;right:calc(100vw - var(--duo-half))!important;
+}
+html body:not(#x):not(#duo):has(.duo-spread) .demo-banner{
+  left:calc(12px + env(safe-area-inset-left,0px))!important;right:auto!important;margin-inline:0!important;transform:none!important;
+  max-width:calc(var(--duo-half) - 24px)!important;white-space:nowrap;
+}
+html body:not(#x):not(#duo):has(.duo-spread) .demo-banner__long{display:none}
+html body:not(#x):not(#duo):has(.duo-spread) .demo-banner__short{display:inline}
+html body:not(#x):not(#duo):has(.duo-spread) .ktk-install-sheet.ktk-install-sheet.is-chip{
+  left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;margin:0!important;
+  bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;max-width:calc(var(--duo-half) - 24px)!important;
+}
+html body:not(#x):not(#duo):has(.duo-spread) .ktk-install-sheet:not(.is-chip){
+  left:auto!important;right:calc(12px + env(safe-area-inset-right,0px))!important;margin:0!important;
+  width:calc(var(--duo-half) - 24px)!important;max-width:420px!important;border-radius:28px!important;
+}
+html body:not(#x):not(#duo):has(.duo-spread) .fixed[data-floating='secondary'].left-1\/2{left:auto!important;right:220px!important}
+html body:not(#x):not(#duo):has(.duo-spread) .fixed.bottom-40.left-6[data-floating='secondary'],
+html body:not(#x):not(#duo):has(.duo-spread) .fixed.left-0.bottom-12[data-floating='secondary']{left:auto!important;right:64px!important}
+html body:not(#x):not(#duo):has(.duo-spread) .fixed.bottom-44.right-6[data-floating='secondary']{left:auto!important;right:116px!important}
+html body:not(#x):not(#duo):has(.duo-spread) .fixed[data-floating='secondary'][aria-label^='الرجوع']{left:auto!important;right:168px!important;bottom:var(--row-b)!important}
+/* with no install chip the helpers start at the page edge */
+html body:not(#x):not(#duo):has(.duo-spread):not(:has(.ktk-install-sheet.is-chip)) .fixed.bottom-40.left-6[data-floating='secondary'],
+html body:not(#x):not(#duo):has(.duo-spread):not(:has(.ktk-install-sheet.is-chip)) .fixed.left-0.bottom-12[data-floating='secondary']{right:16px!important}
+html body:not(#x):not(#duo):has(.duo-spread):not(:has(.ktk-install-sheet.is-chip)) .fixed.bottom-44.right-6[data-floating='secondary']{right:68px!important}
+html body:not(#x):not(#duo):has(.duo-spread):not(:has(.ktk-install-sheet.is-chip)) .fixed[data-floating='secondary'][aria-label^='الرجوع']{right:120px!important}
+html body:not(#x):not(#duo):has(.duo-spread):not(:has(.ktk-install-sheet.is-chip)) .fixed[data-floating='secondary'].left-1\/2{right:172px!important}
+/* both halves of the strip share one height */
+html body:not(#x):not(#duo):has(.duo-spread){--demo-strip:var(--strip)}
+
+/* ---- 5c. Running head on the work page ----
+   The work page is 300-460px wide while the window is 640-1023px, so the header's
+   width-based rules (written for a 669-951px header) overfill it. Keep the actions at
+   44px, drop the two duplicates on the narrow page: the search opens from the
+   command trigger and Ctrl+K, and the cloud state stays as the dot beside home. */
+html body .admin-heritage-shell.duo-spread .admin-app-header > div{gap:6px!important}
+html body .admin-heritage-shell.duo-spread .admin-app-header{padding-inline:10px!important;height:64px!important}
+@media (max-width:829px){
+  .admin-heritage-shell.duo-spread .admin-app-header [aria-label="البحث السريع"],
+  .admin-heritage-shell.duo-spread .admin-app-header [class*="w-[33px]"]{display:none}
+  html body .admin-heritage-shell.duo-spread .admin-app-header > div{gap:4px!important}
+  html body .admin-heritage-shell.duo-spread .admin-app-header{padding-inline:6px!important}
+  .admin-heritage-shell.duo-spread > .duo-work-page > .admin-app-header{margin-inline:8px}
+  .admin-heritage-shell.duo-spread .admin-app-header .max-w-\[150px\].cursor-pointer{padding:0}
+  .admin-heritage-shell.duo-spread .admin-app-header > div:first-child{flex:none}
+}
+
+/* ---- 5d. Boot and sign-in as spreads (same size band as BOOK_SPREAD_QUERY) ----
+   Boot: the card sits on the right-hand (first) page; a gold crease marks the spine.
+   Sign-in: the brand panel is the right page, the form the left page, the spine
+   between them. Mirrors the hinge-only blocks in section 4, now also without the API.
+   Keep the boot rule in sync with #preboot-splash in index.html. */
+@media (min-width:40em) and (max-width:63.99em) and (min-height:32.5625em){
+  .ktk-boot{padding-left:calc(50% + 16px + 20px)}
+  .ktk-boot::after,
+  .admin-login-showcase .login-showcase-shell::after{
+    content:"";position:absolute;pointer-events:none;top:24px;bottom:24px;left:50%;width:32px;transform:translateX(-50%);
+    background:
+      linear-gradient(180deg,transparent,rgba(212,175,55,.30) 16%,rgba(212,175,55,.30) 84%,transparent) center/1px 100% no-repeat,
+      linear-gradient(90deg,transparent,rgba(0,0,0,.16) 50%,transparent);
+  }
+  html body:not(#duo) .admin-login-showcase{
+    min-height:100dvh!important;height:auto!important;overflow-x:hidden!important;overflow-y:auto!important;
+    display:flex!important;align-items:stretch!important;justify-content:center!important;
+    padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right))
+            max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important;
+  }
+  html body:not(#duo) .login-showcase-shell{
+    position:relative!important;width:100%!important;max-width:none!important;margin:0!important;
+    min-height:calc(100dvh - 24px)!important;height:auto!important;max-height:none!important;
+    display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:none!important;
+    column-gap:32px!important;gap:0 32px!important;padding:0!important;
+    border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;overflow:visible!important;
+  }
+  html body:not(#duo) .login-brand-stage,
+  html body:not(#duo) .login-form-stage{
+    min-height:0!important;height:auto!important;margin:0!important;border-radius:28px!important;overflow:hidden!important;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.6),0 0 0 1px rgba(212,175,55,.18)!important;
+  }
+  html body:not(#duo) .login-brand-stage{
+    padding:28px 22px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  }
+  html body:not(#duo) .login-stage-content{align-items:center!important;justify-content:center!important;text-align:center!important}
+  html body:not(#duo) .login-brand-stage h1{font-size:clamp(2rem,6vw,3.4rem)!important;line-height:1.05!important}
+  html body:not(#duo) .login-brand-stage p{font-size:14px!important;line-height:1.8!important}
+  html body:not(#duo) .login-metrics-row{grid-template-columns:1fr!important;gap:8px!important;margin-top:20px!important;max-width:260px}
+  html body:not(#duo) .login-form-stage{padding:28px 22px!important;justify-content:center!important}
+  html body:not(#duo) .login-form-stage:before{inset:10px!important;border-radius:22px!important}
+  html body:not(#duo) .login-copyright{display:none!important}
+  /* the install instructions open over the form page, where the install button is */
+  .login-ios-prompt{padding-right:calc(50% + 16px + 12px)}
+}
+
+/* ---- 5e. Overlays take a page, never the spine ----
+   - Order details: the index page turns into the order inspector while the list stays
+     live on the work page (clicking another order swaps the inspector), like the
+     900-1180px side panel in beauty2.css section F but on the right-hand page.
+   - Command palette and notifications open on the work page they were called from. */
+html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal{
+  pointer-events:none;padding:0!important;overflow:visible!important;
+}
+html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:first-child{display:none!important}
+html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2){
+  pointer-events:auto;position:fixed!important;margin:0!important;transform:none!important;
+  left:auto!important;right:max(12px,env(safe-area-inset-right))!important;
+  top:max(12px,env(safe-area-inset-top))!important;bottom:12px!important;
+  width:calc((100vw - var(--duo-spine,32px)) / 2 - 24px)!important;max-width:none!important;
+  height:auto!important;max-height:none!important;border-radius:26px!important;
+  box-shadow:0 24px 60px -28px rgba(8,37,26,.55),0 0 0 1px rgba(184,134,74,.30)!important;
+}
+html body:not(#x):not(#duo):has(.duo-spread):is(:has(.demo-banner),:has(.ktk-install-sheet.is-chip)) .admin-order-details-modal > div:nth-child(2){
+  bottom:calc(var(--strip,64px) + 12px)!important;
+}
+html body:not(#x):not(#duo):has(.duo-spread):has(.admin-order-details-modal) .admin-app-main{padding-left:12px!important}
+html body:has(.duo-spread) .command-bar-layer{padding-right:calc(50% + 16px + 12px)}
+.admin-heritage-shell.duo-spread .admin-app-header .relative:has(> button[aria-label="تنبيهات"]){position:static}
+.admin-heritage-shell.duo-spread .admin-app-header .relative:has(> button[aria-label="تنبيهات"]) > .absolute{
+  left:0;right:0;top:100%;width:auto;margin-top:8px;max-height:min(70dvh,560px);overflow-y:auto;
+}
+/* Any other centred dialog (confirmations, editors, product and invoice modals) opens on
+   the work page; its backdrop still dims the whole spread. The work page is lifted over
+   the index card while one of its overlays is open (the page frame is z-10, the index z-40). */
+.admin-heritage-shell.duo-spread > .duo-work-page:has(.fixed.inset-0.flex){z-index:50}
+html body:has(.duo-spread) .fixed.inset-0.flex.items-center.justify-center:not(.admin-order-details-modal):not(.login-ios-prompt){
+  padding-right:calc(50% + 16px + 12px);
+}
+/* the period selector keeps its phone sizing on the work page: five 44px targets */
+html body:has(.duo-spread) .admin-date-filter-elegant{width:236px!important;max-width:calc(var(--duo-half,50vw) - 24px)!important}
+html body:has(.duo-spread) .admin-date-filter-elegant button{min-width:44px!important}
