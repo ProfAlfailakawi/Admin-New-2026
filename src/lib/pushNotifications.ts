@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
+import { isNativePushAvailable, readNativePushPermission, registerNativePushToken, requestNativePushPermission } from "../native-push";
 import { deleteToken, getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
 import rawConfig from "../../firebase-applet-config.json";
 import { auth } from "../firebase";
@@ -230,6 +231,17 @@ if (typeof window !== "undefined") {
 }
 
 export async function getPushSupportStatus() {
+  // iPhone app: there is no Notification / Service Worker; the system permission is the real one.
+  if (isNativePushAvailable()) {
+    const native = await readNativePushPermission();
+    return {
+      supported: native !== "unsupported",
+      hasNotification: true,
+      hasServiceWorker: false,
+      permission: (native === "unsupported" ? "default" : native) as NotificationPermission | "unsupported",
+      isStandalone: true,
+    };
+  }
   const hasNotification = typeof Notification !== "undefined";
   const hasServiceWorker = typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
@@ -446,12 +458,42 @@ function serializePushRegistration<T>(operation: () => Promise<T>): Promise<T> {
   return result;
 }
 
+/** iPhone app: registers the APNs device token with the server (own collection, own endpoint). */
+async function registerNativeToken(options?: PushRegistrationOptions): Promise<string> {
+  const token = await registerNativePushToken();
+  if (!token) throw new Error("تعذّر الحصول على رمز الإشعارات من الجهاز");
+  const currentUser = auth?.currentUser;
+  const response = await fetch("/api/push/save-apns-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      token,
+      deviceId: getStablePushDeviceId(),
+      userId: options?.userId || currentUser?.uid || "admin",
+      userEmail: options?.userEmail || currentUser?.email || "",
+      userName: options?.userName || currentUser?.displayName || currentUser?.email || "",
+      userRole: options?.userRole || "",
+      restaurantId: options?.restaurantId || "default",
+    }),
+  });
+  if (!response.ok) throw new Error("الخادم رفض رمز الإشعارات");
+  localStorage.setItem("push_notifications_enabled", "true");
+  localStorage.setItem("last_push_token", token);
+  return token;
+}
+
 export async function registerPushNotifications(options?: PushRegistrationOptions): Promise<{
   success: boolean;
   token?: string;
   error?: string;
 }> {
   try {
+    if (isNativePushAvailable()) {
+      const nativePermission = await requestNativePushPermission();
+      if (nativePermission !== "granted") return { success: false, error: "لم يتم السماح بالإشعارات" };
+      return { success: true, token: await registerNativeToken(options) };
+    }
+
     const support = await getPushSupportStatus();
 
     if (!support.supported) {
@@ -497,6 +539,11 @@ async function refreshAllowedPushRegistration(
   forceRenew = false,
 ): Promise<{ success: boolean; token?: string; skipped?: boolean; error?: string }> {
   try {
+    if (isNativePushAvailable()) {
+      if ((await readNativePushPermission()) !== "granted") return { success: false, skipped: true, error: "الإشعارات غير مفعّلة من النظام" };
+      return { success: true, token: await registerNativeToken(options) };
+    }
+
     const support = await getPushSupportStatus();
 
     if (!support.supported || support.permission !== "granted") {
