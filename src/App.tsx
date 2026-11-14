@@ -83,13 +83,12 @@ import Login from './components/Login';
 import AdminMicroLoader from './components/ui/AdminMicroLoader';
 import { LAYER } from './lib/floatingLayers';
 
-// Same query as the `.duo-spread` rules in src/duo-adaptive.css: an opened inner screen
-// (roughly 669x867 portrait, 951x585 landscape) that is wider than a phone, narrower than the
-// desktop sidebar layout and tall enough for two pages; or a real hinge reported by the
-// Viewport Segments API (behind a flag in Safari 27.1). In em (640/1023/521px at the default
-// 16px) so a larger default font size steps back to the one-page layout instead of squeezing
-// two narrow pages; Safari page zoom already narrows the CSS viewport the same way.
-const BOOK_SPREAD_QUERY = '(min-width: 40em) and (max-width: 63.99em) and (min-height: 32.5625em), (horizontal-viewport-segments: 2), (vertical-viewport-segments: 2)';
+// BOOK condition shared by every site (iPhone Duo round 2): the opened inner screen held
+// in landscape (about 951x585..669) is a two-page book. Portrait (about 669x867) is NOT a
+// book: it is the normal single-column phone/tablet layout. Same query as the `.duo-spread`
+// rules in src/duo-adaptive.css and #preboot-splash in index.html; phones in landscape
+// (height < 520), iPad portrait/landscape and desktop never match.
+const BOOK_SPREAD_QUERY = 'screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape)';
 const useMediaQueryMatch = (query: string) => {
   const [matches, setMatches] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(query).matches);
   useEffect(() => {
