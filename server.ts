@@ -12,6 +12,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import fsSync from 'fs';
 import os from 'os';
 import crypto from 'crypto';
+import nodeHttp2 from 'node:http2';
 import 'dotenv/config';
 import { GoogleGenAI, Type } from "@google/genai";
 import LZString from "lz-string";
@@ -8624,6 +8625,35 @@ app.post("/api/push/test-smart-alert", async (req, res) => {
     }
   });
 
+  // iPhone app: an APNs device token (hex) instead of an FCM token. Same recipient allowlist as /api/push/save-token.
+  app.post("/api/push/save-apns-token", async (req, res) => {
+    try {
+      const { token, deviceId, userId, userEmail, userName, userRole, restaurantId } = req.body || {};
+      if (!isApnsDeviceToken(token)) return res.status(400).json({ error: "invalid device token" });
+      const email = String(userEmail || "").trim().toLowerCase();
+      if (!ALLOWED_PUSH_RECIPIENT_EMAILS.has(email)) return res.status(403).json({ error: "recipient not allowed" });
+      if (!db) return res.status(503).json({ success: false, error: "خدمة الإشعارات غير متاحة حالياً؛ حاول مرة أخرى" });
+      const id = crypto.createHash("sha256").update(token).digest("hex").slice(0, 40);
+      await db.collection("apnsAdminTokens").doc(id).set(removeUndefinedDeep({
+        token,
+        active: true,
+        platform: "ios-native",
+        deviceId: String(deviceId || "").slice(0, 120) || null,
+        userId: String(userId || "").slice(0, 120) || null,
+        userEmail: email,
+        userName: String(userName || "").slice(0, 200) || null,
+        userRole: String(userRole || "").slice(0, 60) || null,
+        restaurantId: String(restaurantId || "default").slice(0, 80),
+        notificationPermission: "granted",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }), { merge: true });
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("save-apns-token error:", error?.message || error);
+      return res.status(500).json({ error: "Failed to save token" });
+    }
+  });
+
   app.post("/api/push/save-token", async (req, res) => {
     try {
       const {
@@ -9072,6 +9102,122 @@ function dedupePushTokensPerDevice(records: PushTokenRecordForArchive[]) {
   return deduped as PushTokenRecordForArchive[];
 }
 
+
+// ═══ Direct APNs for the native iOS admin app ═════════════════════════════════
+// iPhone-app tokens are APNs tokens (hex), not FCM tokens, so they live in their own
+// collection (apnsAdminTokens) and are sent over HTTP/2 with the .p8 key. They are kept out
+// of `pushTokens` on purpose: the FCM paths (and the order server that shares that
+// collection) would treat a 64-hex token as invalid and could deactivate it.
+// Env: APNS_KEY_P8 (accepts \n), APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID
+// (default com.dralfailakawi.alturath.admin), APNS_ENV = production | sandbox (default production).
+const apnsB64Url = (input: Buffer | string) =>
+  Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+let apnsJwtCache: { jwt: string; issuedAt: number } | null = null;
+function getApnsJwt(): string | null {
+  const key = String(process.env.APNS_KEY_P8 || "").replace(/\\n/g, "\n").trim();
+  const keyId = String(process.env.APNS_KEY_ID || "").trim();
+  const teamId = String(process.env.APNS_TEAM_ID || "").trim();
+  if (!key || !keyId || !teamId) return null;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (apnsJwtCache && nowSec - apnsJwtCache.issuedAt < 40 * 60) return apnsJwtCache.jwt;
+  const header = apnsB64Url(JSON.stringify({ alg: "ES256", kid: keyId }));
+  const claims = apnsB64Url(JSON.stringify({ iss: teamId, iat: nowSec }));
+  const signature = crypto.sign("sha256", Buffer.from(`${header}.${claims}`), { key, dsaEncoding: "ieee-p1363" });
+  const jwt = `${header}.${claims}.${apnsB64Url(signature)}`;
+  apnsJwtCache = { jwt, issuedAt: nowSec };
+  return jwt;
+}
+
+const isApnsDeviceToken = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{64,200}$/i.test(value);
+
+async function sendApnsToToken(
+  deviceToken: string,
+  title: string,
+  body: string,
+  data: Record<string, string> = {},
+): Promise<{ sent: boolean; dead?: boolean; reason?: string }> {
+  const jwt = getApnsJwt();
+  if (!jwt || !deviceToken) return { sent: false, reason: "APNS_NOT_CONFIGURED" };
+  const topic = process.env.APNS_BUNDLE_ID || "com.dralfailakawi.alturath.admin";
+  const host = process.env.APNS_ENV === "sandbox" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com";
+  const payload = JSON.stringify({
+    aps: { alert: { title, body }, sound: "default", "thread-id": String(data.alertType || "admin") },
+    ...data,
+  });
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (r: { sent: boolean; dead?: boolean; reason?: string }) => {
+      if (settled) return;
+      settled = true;
+      try { client.close(); } catch {}
+      resolve(r);
+    };
+    const client = nodeHttp2.connect(host);
+    client.on("error", (e) => finish({ sent: false, reason: `APNS_CONN ${e.message}` }));
+    const timer = setTimeout(() => finish({ sent: false, reason: "APNS_TIMEOUT" }), 15000);
+    const req = client.request({
+      ":method": "POST",
+      ":path": `/3/device/${deviceToken}`,
+      authorization: `bearer ${jwt}`,
+      "apns-topic": topic,
+      "apns-push-type": "alert",
+      "apns-priority": "10",
+      "apns-expiration": String(Math.floor(Date.now() / 1000) + 900),
+      "content-type": "application/json",
+    });
+    let status = 0;
+    let text = "";
+    req.on("response", (h) => { status = Number(h[":status"] || 0); });
+    req.setEncoding("utf8");
+    req.on("data", (c) => (text += c));
+    req.on("end", () => {
+      clearTimeout(timer);
+      if (status === 200) return finish({ sent: true });
+      let reason = "";
+      try { reason = String(JSON.parse(text).reason || ""); } catch { reason = text.slice(0, 120); }
+      finish({ sent: false, dead: status === 410 || /BadDeviceToken|Unregistered|DeviceTokenNotForTopic/i.test(reason), reason: `APNS_${status} ${reason}` });
+    });
+    req.on("error", (e) => finish({ sent: false, reason: `APNS_REQ ${e.message}` }));
+    req.end(payload);
+  });
+}
+
+// One APNs delivery per (event, device): the smart-alert and new-order paths can both run for the same event.
+const apnsSentEvents = new Map<string, number>();
+async function fanOutApnsAdminAlert(input: { title: string; body: string; url: string; alertType: string; eventId: string; targetRoles?: string[] }) {
+  try {
+    if (!db || !getApnsJwt()) return;
+    const snap = await db.collection("apnsAdminTokens").where("active", "==", true).get();
+    if (snap.empty) return;
+    const now = Date.now();
+    for (const [key, at] of apnsSentEvents) if (now - at > 10 * 60 * 1000) apnsSentEvents.delete(key);
+    const batch = db.batch();
+    let dead = 0;
+    await Promise.all(snap.docs.map(async (doc: any) => {
+      const data = doc.data() || {};
+      const token = String(data.token || "");
+      const email = String(data.userEmail || "").trim().toLowerCase();
+      if (!isApnsDeviceToken(token) || !ALLOWED_PUSH_RECIPIENT_EMAILS.has(email)) return;
+      const asRecord = { ...data, token, tokenDocId: doc.id, userRole: data.userRole, userEmail: email } as PushTokenRecordForArchive;
+      if (!pushRecordMatchesTargetRoles(asRecord, input.targetRoles)) return;
+      const dedupeKey = `${input.eventId}|${token}`;
+      if (apnsSentEvents.has(dedupeKey)) return;
+      apnsSentEvents.set(dedupeKey, now);
+      const result = await sendApnsToToken(token, input.title, input.body, { url: input.url, alertType: input.alertType, eventId: input.eventId });
+      if (!result.sent && result.dead) {
+        batch.update(doc.ref, { active: false, invalidReason: result.reason || "dead", invalidatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        dead++;
+      } else if (!result.sent) {
+        console.warn("[APNS ADMIN] send failed:", result.reason);
+      }
+    }));
+    if (dead > 0) await batch.commit().catch((e: any) => console.warn("[APNS ADMIN CLEANUP]", e?.message || e));
+  } catch (error: any) {
+    // Never let the iPhone-app path affect the existing FCM alert pipeline.
+    console.warn("[APNS ADMIN] fan-out skipped:", error?.message || String(error));
+  }
+}
+
 async function sendSmartAlertPushNotification({
   title,
   body,
@@ -9102,6 +9248,16 @@ async function sendSmartAlertPushNotification({
         error: "Firebase not initialized",
       };
     }
+
+    // iPhone app (APNs): independent side path, never blocks or alters the FCM delivery below.
+    void fanOutApnsAdminAlert({
+      title: String(title || "تنبيه"),
+      body: String(body || ""),
+      url: String(url),
+      alertType: String(alertType || "general"),
+      eventId: String(eventId || `manual-smart-alert-${Date.now()}`),
+      targetRoles,
+    });
 
     const snap = await db.collection("pushTokens")
       .where("active", "==", true)
@@ -9276,6 +9432,16 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
     const url = `/?invoice=${orderId}`; 
     
     try {
+      // iPhone app (APNs): independent side path; the FCM flow below is unchanged.
+      if (!testNotificationOnly) {
+        void fanOutApnsAdminAlert({
+          title: "⏳ طلب بانتظار الدفع",
+          body: `الطلب ${orderNumber || orderId} بانتظار الدفع`,
+          url: String(url),
+          alertType: "payment_pending_immediate",
+          eventId: `safe-worker-payment-pending-immediate-${orderId}`,
+        });
+      }
       const snap = await db.collection("pushTokens").where("active", "==", true).get();
       if (snap.empty) return { success: false, error: "No active push tokens found", tokensCount: 0 };
       
