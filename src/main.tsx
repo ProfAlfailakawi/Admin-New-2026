@@ -77,3 +77,12 @@ if (typeof window.requestIdleCallback === 'function') {
 } else {
   window.setTimeout(startAILearning, 700);
 }
+
+// ?duo-debug=1: hidden diagnostic overlay for the iPhone Duo widget corner. Loaded only on request.
+try {
+  if (new URLSearchParams(window.location.search).get('duo-debug') === '1') {
+    void import('./lib/duoDebug').then((m) => m.installDuoDebug()).catch(() => {});
+  }
+} catch {
+  /* diagnostics only */
+}

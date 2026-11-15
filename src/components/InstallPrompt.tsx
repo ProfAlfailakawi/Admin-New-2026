@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { isInstalledAppShell } from '../lib/appShell';
 import { LAYER, setInstallSheetOpen } from '../lib/floatingLayers';
 
 export default function InstallPrompt() {
@@ -22,7 +23,8 @@ export default function InstallPrompt() {
 
   useEffect(() => {
     // 1. Prevent showing if already installed (standalone mode)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    // inside the installed app (Capacitor WKWebView has no standalone signal) the banner is pointless
+    const isStandalone = isInstalledAppShell();
     if (isStandalone) return;
 
     // 2. Check if dismissed recently (within session)

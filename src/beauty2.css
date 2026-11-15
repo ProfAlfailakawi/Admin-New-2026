@@ -75,7 +75,7 @@
 
 /* ---- 5. Wide-canvas rhythm: tighter gutters so cards use the opened Duo's width ---- */
 @media (min-width:600px) and (max-width:1180px){
-  .admin-app-main{padding:12px 14px calc(16px + env(safe-area-inset-bottom,0px))!important}
+  .admin-app-main{padding:max(12px,var(--duo-main-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))!important}
   .admin-experience-stack{gap:10px}
 }
 

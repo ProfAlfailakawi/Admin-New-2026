@@ -6432,12 +6432,14 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
     height:calc(4rem + env(safe-area-inset-top,0px))!important;
     padding-top:env(safe-area-inset-top,0px)!important;
     padding-left:max(.75rem, env(safe-area-inset-left,0px))!important;
-    padding-right:max(.75rem, env(safe-area-inset-right,0px))!important;
+    /* --duo-head-reserve is 0px everywhere except the iPhone Duo (src/duo-adaptive.css, section 6) */
+    padding-right:max(.75rem, env(safe-area-inset-right,0px), var(--duo-head-reserve,0px))!important;
   }
   /* Mobile drawer runs top:0 under the status bar: push its logo row below it. */
   .admin-drawer-header{
-    height:calc(6rem + env(safe-area-inset-top,0px))!important;
+    height:max(calc(6rem + env(safe-area-inset-top,0px)), var(--duo-widget-h,0px))!important;
     padding-top:calc(1rem + env(safe-area-inset-top,0px))!important;
+    padding-right:max(1rem, var(--duo-reserve,0px))!important;
   }
   .admin-app-main{
     padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))!important;
@@ -6448,7 +6450,7 @@ html:has(.safe-area-drawer-overlay) body{background:#020617!important;color-sche
 
 @media (max-width: 767px) {
   /* --- Shell spacing: reclaim the width lost to three nested gutters --- */
-  .admin-app-main{padding-left:10px!important;padding-right:10px!important;padding-top:10px!important}
+  .admin-app-main{padding-left:10px!important;padding-right:10px!important;padding-top:max(10px, var(--duo-main-top,0px))!important}
   .admin-page-frame{padding-left:0!important;padding-right:0!important}
   .admin-content-polish{padding:6px!important;padding-top:6px!important;border-radius:22px!important}
   .admin-page-hero{margin-top:4px!important;margin-bottom:12px!important}
@@ -6948,7 +6950,7 @@ aside.bg-slate-950 :is(.text-\[8px\],.text-\[9px\],.text-\[10px\],.text-\[11px\]
   .admin-app-header{
     height:calc(3.25rem + env(safe-area-inset-top,0px))!important;
   }
-  .admin-drawer-header{height:calc(4.25rem + env(safe-area-inset-top,0px))!important;padding-block-end:.5rem!important}
+  .admin-drawer-header{height:max(calc(4.25rem + env(safe-area-inset-top,0px)), var(--duo-widget-h,0px))!important;padding-block-end:.5rem!important}
   .admin-app-main{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
   .demo-banner{bottom:calc(4px + env(safe-area-inset-bottom,0px))}
   .ktk-install-sheet{padding:14px 18px calc(10px + env(safe-area-inset-bottom,0px))!important}

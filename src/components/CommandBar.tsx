@@ -1972,6 +1972,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
           <motion.button
             type="button"
             aria-label="إغلاق البحث"
+            data-duo-bleed
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

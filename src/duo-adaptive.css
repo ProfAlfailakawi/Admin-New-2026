@@ -342,44 +342,53 @@ html body:has(.duo-spread) .admin-date-filter-elegant{width:236px!important;max-
 html body:has(.duo-spread) .admin-date-filter-elegant button{min-width:44px!important}
 
 /* ==========================================================================
-   6. System widget keep-out (iPhone Duo round 2, browser tab and installed app alike)
-   The opened inner screen (Safari tab or installed app) has a system status widget floating at
-   the physical top-right (about 55-80px wide, 20-110px in from the right edge, down to
-   y=110..125). We cannot know its exact box, so a generous corner is reserved:
-   --duo-cutout-w x --duo-cutout-h, physical right/top, regardless of RTL. Content and
-   controls stay out of it; the page background still runs full-bleed behind it.
-   Conditions (the same two bands as every site of this family), applied in a browser tab and in the installed app alike:
-     - BOOK (landscape): the box belongs to the RIGHT page, i.e. the index page here;
-     - inner portrait 640-720px wide: the single column's header band.
-   Ordinary phones (notch, no widget), iPads and desktops are untouched; a 367x740 folded
-   screen cannot be told apart from an iPhone, so it is deliberately NOT covered.
+   6. System widget corner (iPhone Duo: inner screen, every posture, tab and installed app)
+   The device floats a system widget (torch capsule, account/location chip, clock, battery/wi-fi)
+   at the PHYSICAL top-right, outside the safe area. Estimated from the owner's in-app
+   screenshots (not a device measurement): about 54pt wide, 20pt off the right edge, from y=20pt
+   to ~166pt on a ~457x678 viewport; another reading gave ~80px wide, 30-110px off the edge,
+   down to y~270. So the box is uncertain between ~84-112px from the right and ~174-270px
+   from the top. One reserved rectangle covers both:
+     --duo-widget-w    96px
+     --duo-widget-gap   8px
+     --duo-widget-h    clamp(64px, 31vh, 270px)
+     --duo-reserve     w + gap (what a start-edge padding takes)
+   All are 0px outside the bands below. Always PHYSICAL right/top (never inline-end: in RTL that
+   is the left edge). Backgrounds and glass keep running under it; text, controls, logos and
+   images stay out (tests/duo-widget guards that). ?duo-debug=1&duo-w=..&duo-h=.. calibrates live.
+   Why the earlier keep-out failed: it only existed in the 640-720 portrait and 721-1000
+   landscape bands, reserved a 116px square instead of a tall column, and only padded the sticky
+   header and the drawer header, so page body, dialogs and sign-in still started under the widget.
+   Detection (no JS, no UA, no navigator.standalone: the installed Capacitor app has none of the
+   Safari signals and a taller viewport): any portrait window <=720px wide and >=360px tall
+   (so the app's ~457x678 and the book's 720x900 qualify, whatever the height), landscape
+   540-1000 wide and 300-960 tall (594x368, 780x470, 867x669, 951x585, 951x669 ...), or two
+   horizontal viewport segments. Ordinary phones are NOT excluded: the original brief's safe
+   default is that reserving a column there does no harm. iPads (744+ portrait, 1024+ landscape)
+   and desktops stay at 0.
+   Landscape geometry of the widget is NOT verified on a real device.
    ========================================================================== */
-@media screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape),
-       screen and (min-width:640px) and (max-width:720px) and (min-height:520px) and (max-height:960px) and (orientation:portrait){
-  :root{--duo-cutout-w:116px;--duo-cutout-h:116px}
-}
-/* book: the index page's header clears the box (padding) and is tall enough that the
-   first entry of the table of contents starts below it */
-@media screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape){
-  html body .admin-heritage-shell.duo-spread > aside.duo-index-page .admin-drawer-header{
-    min-height:calc(var(--duo-cutout-h) - 12px);padding-right:calc(var(--duo-cutout-w) - 12px);box-sizing:border-box;
+:root{--duo-widget-w:0px;--duo-widget-gap:0px;--duo-widget-h:0px;--duo-reserve:0px}
+@media screen and (max-width:720px) and (min-height:360px) and (orientation:portrait),
+       screen and (min-width:540px) and (max-width:1000px) and (min-height:300px) and (max-height:960px) and (orientation:landscape),
+       screen and (horizontal-viewport-segments:2){
+  :root{
+    --duo-widget-w:96px;--duo-widget-gap:8px;--duo-widget-h:clamp(64px,31vh,270px);
+    --duo-reserve:calc(var(--duo-widget-w) + var(--duo-widget-gap));
   }
-  /* the order inspector takes the same page: its top band clears the box too */
-  html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :first-child{
-    padding-right:calc(var(--duo-cutout-w) - 12px);min-height:calc(var(--duo-cutout-h) - 12px);box-sizing:border-box;
-  }
-}
-/* inner portrait: one column. The sticky header becomes a band as tall as the box with
-   its controls to the left of it; the drawer opens wider so its logo fits beside the box */
-@media screen and (min-width:640px) and (max-width:720px) and (min-height:520px) and (max-height:960px) and (orientation:portrait){
-  html body .admin-app-header{
-    height:auto!important;min-height:var(--duo-cutout-h)!important;
-    padding-right:calc(var(--duo-cutout-w) + 8px)!important;box-sizing:border-box;
-  }
-  html body aside.bp-sidebar.fixed{width:min(340px,86vw)!important}
-  html body aside.bp-sidebar.fixed .admin-drawer-header{
-    height:auto;min-height:var(--duo-cutout-h);padding-right:calc(var(--duo-cutout-w) + 8px);box-sizing:border-box;
-  }
+  /* The sticky head (padding-right) and the page top (padding-top) take these through
+     src/index.css, where those properties are already set with !important at <=1023px / <=767px.
+     The book spread's work page is the LEFT page, so the widget does not touch it. */
+  :root{--duo-head-reserve:var(--duo-reserve);--duo-main-top:calc(var(--duo-widget-h) - 3rem)}
+  .admin-heritage-shell.duo-spread{--duo-head-reserve:0px;--duo-main-top:0px}
+  .admin-heritage-shell:not(.duo-spread) .admin-app-main{padding-top:max(.75rem,var(--duo-main-top))}
+  /* drawer (portrait: fixed to the physical right edge) and the book's index page: its header is
+     as tall as the widget (src/index.css) with the logo beside it, so the first entry starts below */
+  aside.bp-sidebar.fixed{width:min(340px,92vw)}
+  /* centred toasts (top:92px / top:18px) are centred in the space left of the widget column */
+  .admin-sync-toast,.admin-offline-toast{left:calc((100vw - var(--duo-reserve)) / 2);max-width:calc(100vw - var(--duo-reserve) - 24px)}
+  /* dialogs, sheets and full-screen panels: the card is laid out left of the widget column */
+  .fixed.inset-0:is(.flex,.grid){padding-right:max(1rem,var(--duo-reserve))}
 }
 
 /* ==========================================================================

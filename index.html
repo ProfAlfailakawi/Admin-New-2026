@@ -79,7 +79,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+        padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right), var(--duo-reserve, 0px))
           max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
         /* Scroll instead of clipping when the window is shorter than the card
            (folded landscape ~600x350, phone landscape, Split View with a pinned panel). */

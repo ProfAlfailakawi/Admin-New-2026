@@ -3,6 +3,7 @@ import { Chrome, DownloadCloud, Share, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
+import { isInstalledAppShell } from '../lib/appShell';
 import { enterDemoMode } from '../lib/demoMode';
 
 interface LoginProps {
@@ -42,7 +43,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
   };
 
   useEffect(() => {
-    const checkIsStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    const checkIsStandalone = isInstalledAppShell();
     setIsStandalone(checkIsStandalone);
     
     const handleBeforeInstallPrompt = (e: Event) => {
