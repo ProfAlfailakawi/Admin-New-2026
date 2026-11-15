@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { isNativeShell, nativeGoogleSignIn } from './native-signin';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
   getFirestore,
   initializeFirestore,
@@ -22,6 +22,7 @@ import { getStorage } from 'firebase/storage';
 import { toast } from 'sonner';
 import firebaseConfig from '../firebase-applet-config.json';
 import { IS_DEMO_MODE } from './lib/demoMode';
+import { resolveAuthDomain, shouldFallbackToRedirect } from './lib/authDomain';
 import { AUTHORIZED_EMAILS, AUTHORIZED_PARTNERS, AUTHORIZED_UIDS, AUTHORIZED_PARTNER_UIDS } from './constants';
 
 // Suppress Firestore Warnings in dev environment
@@ -30,6 +31,12 @@ setLogLevel('error');
 // Prevent duplicate initialization
 const activeConfig = {
   ...firebaseConfig,
+  // Same-origin auth handler (Safari storage partitioning); see src/lib/authDomain.ts
+  authDomain: resolveAuthDomain(
+    firebaseConfig.authDomain,
+    typeof window !== 'undefined' ? window.location.hostname : undefined,
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined,
+  ),
   apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || firebaseConfig.apiKey || "AIzaSyBBVG0C-xjkuT3WeqiNAmJjw6lI8M6Gt6k"
 };
 export const app = getApps().length === 0 ? initializeApp(activeConfig) : getApp();
@@ -54,8 +61,26 @@ console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firesto
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// داخل تطبيق iPhone: دخول Google الأصلي (النافذة المنبثقة تُفتح في Safari ويضيع سياقها).
-export const loginWithGoogle = () => (isNativeShell() ? nativeGoogleSignIn(auth) : signInWithPopup(auth, googleProvider));
+// Complete a browser redirect sign-in at startup. Native iOS uses its own Google flow.
+export const authRedirectReady: Promise<void> = (typeof window === 'undefined' || IS_DEMO_MODE || isNativeShell()
+  ? Promise.resolve()
+  : getRedirectResult(auth).then(() => undefined)
+).catch((err) => {
+  console.error('Redirect sign-in failed:', err);
+});
+
+export const loginWithGoogle = async () => {
+  if (isNativeShell()) return nativeGoogleSignIn(auth);
+  try {
+    return await signInWithPopup(auth, googleProvider);
+  } catch (err) {
+    if (shouldFallbackToRedirect(err)) {
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw err;
+  }
+};
 export const logout = () => signOut(auth);
 
 export interface FirestoreErrorInfo {

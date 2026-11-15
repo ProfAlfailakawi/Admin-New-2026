@@ -80,8 +80,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
     setError('');
     try {
       localStorage.setItem('appMode', 'cloud');
-      await loginWithGoogle();
-      onLogin('cloud');
+      const result = await loginWithGoogle();
+      // null => redirect flow started; the page navigates away and startup handles the result.
+      if (result) onLogin('cloud');
     } catch (err: any) {
       const errString = String(err).toLowerCase();
       if (errString.includes('popup-closed-by-user') || errString.includes('cancelled by the user')) {
