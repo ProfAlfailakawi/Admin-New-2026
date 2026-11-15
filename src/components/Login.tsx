@@ -103,6 +103,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         setError('صار خلل داخلي في الدخول. 1- تأكد من Support Email في Firebase 2- افتح التطبيق بنافذة جديدة.');
         return;
       }
+      if (err?.code === 'admin/update-app') {
+        setError('حدّث تطبيق إدارة التراث من TestFlight لإكمال تسجيل الدخول، أو افتح الموقع في Safari.');
+        return;
+      }
       console.error('Login error:', err);
       setError(`تسجيل الدخول ما ضبط. الخطأ: ${err.message || String(err)}`);
     } finally {

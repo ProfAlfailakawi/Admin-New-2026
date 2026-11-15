@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { isNativeShell, nativeGoogleSignIn } from './native-signin';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
   getFirestore,
@@ -53,7 +54,8 @@ console.log("Firestore initialized with DB ID:", (firebaseConfig as any).firesto
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-export const loginWithGoogle = () => signInWithPopup(auth, googleProvider);
+// داخل تطبيق iPhone: دخول Google الأصلي (النافذة المنبثقة تُفتح في Safari ويضيع سياقها).
+export const loginWithGoogle = () => (isNativeShell() ? nativeGoogleSignIn(auth) : signInWithPopup(auth, googleProvider));
 export const logout = () => signOut(auth);
 
 export interface FirestoreErrorInfo {
