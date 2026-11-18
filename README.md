@@ -103,6 +103,8 @@ Other folders: [scripts](scripts) (build guards and build stamp), [public](publi
 3. Environment variables: create a `.env` file in the root directory. Variables read by the code include:
    - `VITE_FIREBASE_API_KEY`: Firebase API key
    - `UPAYMENTS_API_KEY`: UPayments gateway key
+   - `UPAYMENTS_API_SECRET`: UPayments HMAC secret (Merchant API Details). Signs outbound API calls (`X-Timestamp`/`X-Signature`) and validates webhook signatures. Mandatory at UPayments after 2026-12-31. Unset = legacy unsigned calls.
+   - `UPAYMENTS_HMAC_ENFORCE=true`: reject webhooks lacking a signature (a wrong signature is always rejected). Enable after the first signed webhook is seen.
    - `ADMIN_TEST_SECRET`: secret for internal/debug endpoints
    - `GEMINI_API_KEY`: Gemini API key (AI features)
    - `WHATSAPP_TRANSPORT` and the matching WhatsApp/Kapso/bridge secrets (see [docs/WHATSAPP_OPERATIONS_AR.md](docs/WHATSAPP_OPERATIONS_AR.md))

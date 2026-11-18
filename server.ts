@@ -19,6 +19,7 @@ import LZString from "lz-string";
 import { packBootInlineAssets } from "./src/lib/bootAssetTransport.ts";
 import { runWithDeadlineAndRetry } from "./src/lib/paymentWebhookRetry.ts";
 
+import { upaymentsHmacHeaders, upaymentsWebhookGate } from "./src/lib/upaymentsHmac";
 let firebaseInitialized = false;
 let db: any = null;
 const PAYMENT_PENDING_GRACE_SECONDS = Math.max(
@@ -1487,16 +1488,18 @@ async function fetchUPaymentsStatusByCandidate(candidateId: string, apiKey: stri
   const cleanId = normalizePaymentIdentifier(candidateId);
   if (!cleanId) return { ok: false, status: 0, data: null, candidateId: cleanId, endpoint: "" };
 
-  const headers = {
+  const baseHeaders = {
     "Accept": "application/json",
     "Authorization": `Bearer ${apiKey}`,
   };
+  const statusUrl = `${baseUrl}/get-payment-status/${encodeURIComponent(cleanId)}`;
+  const chargeUrl = `${baseUrl}/charge/${encodeURIComponent(cleanId)}`;
 
-  let response = await fetch(`${baseUrl}/get-payment-status/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
+  let response = await fetch(statusUrl, { method: "GET", headers: { ...baseHeaders, ...upaymentsHmacHeaders("GET", statusUrl) } });
   let endpoint = "get-payment-status";
 
   if (response.status === 404 || response.status === 400) {
-    response = await fetch(`${baseUrl}/charge/${encodeURIComponent(cleanId)}`, { method: "GET", headers });
+    response = await fetch(chargeUrl, { method: "GET", headers: { ...baseHeaders, ...upaymentsHmacHeaders("GET", chargeUrl) } });
     endpoint = "charge";
   }
 
@@ -1704,7 +1707,8 @@ app.use((req, res, next) => {
     // to verify the signature. Kept to that one path: buffering every request would
     // hold a copy of uploads up to the 30mb limit for no reason.
     verify: (req: any, _res, buf) => {
-      if (waShouldCaptureWhatsAppRawBody(req.originalUrl || req.url || "")) {
+      const reqUrl = String(req.originalUrl || req.url || "");
+      if (waShouldCaptureWhatsAppRawBody(reqUrl) || /^\/api\/(webhook\/upayments|payment-webhook)/.test(reqUrl)) {
         req.rawBody = buf;
       }
     },
@@ -7312,12 +7316,12 @@ app.get("/api/admin-dashboard-data", async (req, res) => {
     return res.status(503).send('Payment update not processed');
   };
 
-  app.post("/api/webhook/upayments", async (req, res) => {
+  app.post("/api/webhook/upayments", upaymentsWebhookGate(), async (req, res) => {
     console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
     const mergedParams = { ...req.body, ...req.params, ...req.query };
     await respondToPaymentWebhook(res, mergedParams);
   });
-  app.post("/api/payment-webhook/:orderId", async (req, res) => {
+  app.post("/api/payment-webhook/:orderId", upaymentsWebhookGate(), async (req, res) => {
     console.log("UPayments Webhook Received (POST):", JSON.stringify(req.body));
     const mergedParams = { ...req.body, ...req.params, ...req.query };
     await respondToPaymentWebhook(res, mergedParams);
@@ -9892,6 +9896,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           headers: {
             "Accept": "application/json",
             "Authorization": `Bearer ${apiKey}`,
+            ...upaymentsHmacHeaders("GET", endpoint),
           },
         });
 
@@ -10162,14 +10167,16 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
 
       console.log("UPayments Request Payload:", JSON.stringify(payload));
 
+      const chargeBody = JSON.stringify(payload);
       const response = await fetch(`${baseUrl}/charge`, {
         method: "POST",
         headers: {
           "Accept": "application/json",
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
+          ...upaymentsHmacHeaders("POST", `${baseUrl}/charge`, chargeBody),
         },
-        body: JSON.stringify(payload),
+        body: chargeBody,
       });
       
       const contentType = response.headers.get("content-type");
