@@ -241,6 +241,10 @@ html[data-device="duo"] .duo-dock-add{
   html[data-device="duo"] body:not(#x):not(#duo) .admin-app-header .relative:has(> button[aria-label="تنبيهات"])>.absolute{
     left:12px;right:calc(12px + var(--duo-sa-r));top:100%;width:auto;max-height:min(70dvh,560px);overflow-y:auto;
   }
+  /* the first row of the right pane is the app bar's place: a spacer, so any page starts below it */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main::before{
+    content:"";display:block;grid-column:1;grid-row:1;height:calc(60px + var(--duo-sa-t));
+  }
   /* the scroll area becomes the two panes */
   html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main{
     display:grid!important;grid-template-columns:var(--duo-pane-r) var(--duo-pane-l);column-gap:var(--duo-gap);
@@ -257,7 +261,7 @@ html[data-device="duo"] .duo-dock-add{
   }
   html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main>:is(section,div:not(.fixed):not(.admin-page-frame)):first-of-type,
   html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-experience-stack>.admin-page-hero{
-    margin-top:calc(68px + var(--duo-sa-t))!important;
+    margin-top:8px!important;
   }
   html[data-device="duo"] body:not(#x):not(#duo):has(.admin-app-main>section) .admin-app-main .admin-experience-stack>.admin-page-hero{margin-top:0!important}
   /* the right pane is about 400px: its cards stack as on a phone */
@@ -288,9 +292,9 @@ html[data-device="duo"] .duo-dock-add{
   html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden),
   html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden){display:contents!important}
   :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>*{grid-column:1;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important}
-  :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):not(:first-child){
+  :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden):not(button)):not(:first-child){
     grid-column:2;grid-row:1 / span 24;position:sticky;top:0;align-self:start;
-    height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 0 -100dvh!important;
+    max-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 0 -100dvh!important;
     padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
   }
   html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main{padding-bottom:calc(24px + var(--duo-sa-b))!important}
@@ -299,6 +303,7 @@ html[data-device="duo"] .duo-dock-add{
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid[class*="md:grid-cols-12"]>[class*="col-span-"]{grid-column:1 / -1!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-3"],[class*="md:grid-cols-4"],[class*="md:grid-cols-5"],[class*="md:grid-cols-6"],[class*="lg:grid-cols-3"],[class*="lg:grid-cols-4"]){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-3"],[class*="md:grid-cols-4"],[class*="md:grid-cols-5"],[class*="md:grid-cols-6"],[class*="lg:grid-cols-3"],[class*="lg:grid-cols-4"])>[class*="col-span-"]{grid-column:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="sm:grid-cols-4"],[class*="sm:grid-cols-5"],[class*="sm:grid-cols-6"],[class*="xl:grid-cols-4"],[class*="xl:grid-cols-5"],[class*="xl:grid-cols-6"],.grid-cols-4,.grid-cols-5,.grid-cols-6){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-2"],[class*="lg:grid-cols-2"]):not([class*="grid-cols-3"]){grid-template-columns:minmax(0,1fr)!important}
 
   /* the floating glass toolbar of the left pane, with the coloured «+» */
