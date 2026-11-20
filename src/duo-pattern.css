@@ -292,18 +292,32 @@ html[data-device="duo"] .duo-dock-add{
   html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden),
   html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden){display:contents!important}
   :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>*{grid-column:1;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important}
-  :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden):not(button)):not(:first-child){
+  :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)):not(:has(.admin-content-polish[data-page="settings"])) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden):not(button)):not(:first-child){
     grid-column:2;grid-row:1 / span 24;position:sticky;top:0;align-self:start;
     max-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 0 -100dvh!important;
     padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
   }
   html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main{padding-bottom:calc(24px + var(--duo-sa-b))!important}
+  /* a page of exactly two blocks (tabs, then everything else) splits the second one too:
+     its summaries join the tabs in the right pane, its last block is the left pane */
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:not([data-page="settings"])>:only-child:has(>:nth-child(2 of :not(.hidden))):not(:has(>:nth-child(3 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):has(>:nth-child(2 of :not(.hidden))){display:contents!important}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:not([data-page="settings"])>:only-child:has(>:nth-child(2 of :not(.hidden))):not(:has(>:nth-child(3 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):has(>:nth-child(2 of :not(.hidden)))>*{grid-column:1!important;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:not([data-page="settings"])>:only-child:has(>:nth-child(2 of :not(.hidden))):not(:has(>:nth-child(3 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):has(>:nth-child(2 of :not(.hidden)))>:nth-last-child(1 of :not(.hidden)){
+    grid-column:2!important;grid-row:1 / span 24;position:sticky;top:0;align-self:start;
+    max-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 0 -100dvh!important;
+    padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish :is(.ai-mission-strip,.ai-decision-deck,.ai-command-metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  /* settings is a stack of equal sections: they fill both panes row by row, the about card last */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]{display:contents!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]>*{grid-column:auto!important;min-width:0;margin:0 14px 12px!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]~*{grid-column:auto!important;grid-row:auto!important;position:static!important;max-height:none!important;margin:0 14px 12px!important;padding:0!important;overflow:visible!important}
   /* pages sized for a 450px pane, not the 950px window */
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid[class*="md:grid-cols-12"]{grid-template-columns:minmax(0,1fr)!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid[class*="md:grid-cols-12"]>[class*="col-span-"]{grid-column:1 / -1!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-3"],[class*="md:grid-cols-4"],[class*="md:grid-cols-5"],[class*="md:grid-cols-6"],[class*="lg:grid-cols-3"],[class*="lg:grid-cols-4"]){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-3"],[class*="md:grid-cols-4"],[class*="md:grid-cols-5"],[class*="md:grid-cols-6"],[class*="lg:grid-cols-3"],[class*="lg:grid-cols-4"])>[class*="col-span-"]{grid-column:auto!important}
-  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="sm:grid-cols-4"],[class*="sm:grid-cols-5"],[class*="sm:grid-cols-6"],[class*="xl:grid-cols-4"],[class*="xl:grid-cols-5"],[class*="xl:grid-cols-6"],.grid-cols-4,.grid-cols-5,.grid-cols-6){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="sm:grid-cols-4"],[class*="sm:grid-cols-5"],[class*="sm:grid-cols-6"],[class*="xl:grid-cols-4"],[class*="xl:grid-cols-5"],[class*="xl:grid-cols-6"],.grid-cols-4,.grid-cols-5,.grid-cols-6,.ai-mission-strip,.ai-decision-deck,.ai-command-metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-2"],[class*="lg:grid-cols-2"]):not([class*="grid-cols-3"]){grid-template-columns:minmax(0,1fr)!important}
 
   /* the floating glass toolbar of the left pane, with the coloured «+» */
@@ -356,4 +370,37 @@ html[data-device="duo"] .duo-dock-add{
 
 /* A dialog opened from inside a page lives in the page frame's stacking context (z-10); the
    header (z-100) used to cut its title. While one is open the header steps under it. */
-html[data-device="duo"] body .admin-heritage-shell:has(.admin-app-main .fixed.inset-0) .admin-app-header{z-index:1!important}
+html[data-device="duo"] body .admin-heritage-shell:has(.admin-app-main .fixed.inset-0.flex) .admin-app-header{z-index:1!important}
+
+/* While the navigation drawer is open, the floating rows step aside instead of sitting on its scrim. */
+html[data-device="duo"] body:has(.safe-area-drawer-overlay) :is(.ktk-install-sheet.is-chip,.demo-banner,[data-floating='secondary'],.duo-dock){
+  visibility:hidden!important;
+}
+html[data-device="duo"] body:not(#x):not(#duo):has(.safe-area-drawer-overlay)::after{display:none!important}
+/* ...and so do the Duo dock and the tools row while a dialog is open over the page */
+html[data-device="duo"] body:has(.fixed.inset-0.flex.items-center.justify-center) :is(.duo-dock,.ktk-install-sheet.is-chip,.demo-banner,[data-floating="secondary"]){visibility:hidden!important}
+html[data-device="duo"] body[data-overlay-open] .duo-dock{visibility:hidden!important}
+/* the open drawer is as wide as on a phone plus the clock column it keeps clear of */
+html[data-device="duo"] body:has(.safe-area-drawer-overlay) aside.bp-sidebar.fixed{
+  width:calc(280px + var(--duo-sa-r))!important;max-width:calc(100vw - 24px)!important;
+}
+/* the notifications list spans the page width between the insets, never under the clock column */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"] body .admin-app-header .relative:has(> button[aria-label="تنبيهات"]){position:static}
+  html[data-device="duo"] body .admin-app-header .relative:has(> button[aria-label="تنبيهات"])>.absolute{
+    position:fixed!important;top:calc(60px + var(--duo-sa-t))!important;
+    left:calc(12px + var(--duo-sa-l))!important;right:calc(12px + var(--duo-sa-r))!important;
+    width:auto!important;max-width:none!important;
+  }
+}
+/* boot and sign-in screens keep their card clear of the clock column and strip (single column) */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"] body .ktk-boot{
+    padding:max(12px,var(--duo-sa-t)) max(12px,var(--duo-sa-r)) max(12px,var(--duo-sa-b)) max(12px,var(--duo-sa-l))!important;
+    box-sizing:border-box;
+  }
+  html[data-device="duo"] body:not(#duo) .admin-login-showcase{
+    padding:max(12px,var(--duo-sa-t)) max(12px,var(--duo-sa-r)) max(12px,var(--duo-sa-b)) max(12px,var(--duo-sa-l))!important;
+    box-sizing:border-box;
+  }
+}
