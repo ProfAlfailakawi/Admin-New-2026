@@ -3,6 +3,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import { installLocalStorageDataGuard } from './lib/dataGuard';
 import './lib/demoMode'; // installs the fail-closed demo network guard on import
+import './lib/duoMarkers'; // iPhone Duo markers on <html>, before App renders
 import { installUpdatingWatch } from './lib/updatingNotice';
 // A 5xx HTML page on /api is Google's front end mid-deploy: one calm bar, not an error.
 installUpdatingWatch();
@@ -17,7 +18,8 @@ import './motion.css';
 import './quality.css';
 import './beauty2.css';
 import './polish-r4.css';
-import './duo-adaptive.css'; // iPhone Duo adaptive pass: keep last
+import './duo-adaptive.css'; // iPhone Duo adaptive pass
+import './duo-pattern.css'; // iPhone Duo pattern (html[data-device="duo"] only): keep last
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 
