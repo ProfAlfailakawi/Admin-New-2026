@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import LogoEngine from './ui/LogoEngine';
 import { loginWithGoogle } from '../firebase';
 import { enterDemoMode } from '../lib/demoMode';
+import { canOfferInstall, installStoreUrl } from '../lib/installBanner';
 
 interface LoginProps {
  onLogin: (mode: 'local' | 'cloud') => void;
@@ -19,8 +20,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
 
   const showInstallToast = async () => {
     const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-    if (checkStandalone) return;
-    
+    if (checkStandalone || !canOfferInstall()) return;
+
+    const storeUrl = installStoreUrl();
+    if (storeUrl) {
+      sessionStorage.setItem('pwa_prompt_dismissed', 'true');
+      window.location.href = storeUrl;
+      return;
+    }
+
     if (deferredPrompt) {
       try {
         deferredPrompt.prompt();
@@ -60,7 +68,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
        const ua = window.navigator.userAgent || '';
        const isIOSSafari = /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua);
        setTimeout(() => {
-         if (deferredPrompt || isIOSSafari) showInstallToast();
+         if (!installStoreUrl() && (deferredPrompt || isIOSSafari)) showInstallToast();
        }, 2000);
     }
 
@@ -163,8 +171,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
             </motion.div>
           )}
 
-          {!isStandalone && (
-            <button type="button" onClick={showInstallToast} className="login-install-btn" aria-label="تثبيت التطبيق">
+          {!isStandalone && canOfferInstall() && (
+            <button type="button" onClick={showInstallToast} className="login-install-btn" aria-label={installStoreUrl() ? 'حمّل التطبيق' : 'تثبيت التطبيق'}>
               <DownloadCloud size={20} />
             </button>
           )}

@@ -4,6 +4,7 @@ import { Download } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { LAYER, setInstallSheetOpen } from '../lib/floatingLayers';
+import { canOfferInstall, installStoreUrl } from '../lib/installBanner';
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -21,6 +22,8 @@ export default function InstallPrompt() {
   }, [showPrompt, expanded]);
 
   useEffect(() => {
+    // 0. داخل تطبيق آيفون لا يظهر أي عرض تثبيت.
+    if (!canOfferInstall()) return;
     // 1. Prevent showing if already installed (standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
     if (isStandalone) return;
@@ -60,6 +63,14 @@ export default function InstallPrompt() {
   }, []);
 
   const handleInstall = async () => {
+    // يوجد تطبيق منشور لهذا الجهاز: افتح صفحة المتجر بدل «إضافة للشاشة الرئيسية».
+    const storeUrl = installStoreUrl();
+    if (storeUrl) {
+      setShowPrompt(false);
+      sessionStorage.setItem('pwa_prompt_dismissed', 'true');
+      window.location.href = storeUrl;
+      return;
+    }
     if (!deferredPrompt) {
       // Elegant iOS fallback instructions
       toast.custom((t) => (
@@ -129,7 +140,7 @@ export default function InstallPrompt() {
                 <span className="text-4xl font-bold mb-1">ت</span>
               </div>
               <div className="flex-1 mt-1.5">
-                <h3 className="text-[22px] font-bold text-[#0f3d1f] mb-1.5 tracking-tight">ثبّت تطبيق التراث</h3>
+                <h3 className="text-[22px] font-bold text-[#0f3d1f] mb-1.5 tracking-tight">{installStoreUrl() ? 'حمّل تطبيق التراث' : 'ثبّت تطبيق التراث'}</h3>
                 <p className="text-[#55625a] text-[15px] font-bold leading-relaxed w-[90%]">
                   للوصول السريع وتجربة أسهل من الشاشة الرئيسية
                 </p>
@@ -142,7 +153,7 @@ export default function InstallPrompt() {
                 className="flex-1 bg-[#0f3d1f] hover:bg-[#17602f] text-white flex items-center justify-center gap-2 py-4 rounded-[20px] font-bold text-base shadow-lg shadow-[#0f3d1f]/20 active:scale-95 transition-all duration-300"
               >
                 <Download size={20} className="mb-0.5" />
-                <span>تثبيت التطبيق</span>
+                <span>{installStoreUrl() ? 'حمّل التطبيق' : 'تثبيت التطبيق'}</span>
               </button>
               <button
                 onClick={handleDismiss}
