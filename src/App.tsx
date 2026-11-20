@@ -164,6 +164,7 @@ import { refreshPushRegistrationIfAlreadyAllowed } from './lib/pushNotifications
 import { hasMeaningfulData, safeMergeData } from './lib/dataGuard';
 import { useLiveFaviconStatus } from './lib/faviconStatus';
 import { restoreBootInlineAssets } from './lib/bootAssetTransport';
+import { isDuoScreen } from './lib/duoMarkers';
 
 // ── Cloud-only data policy ───────────────────────────────────────────────────
 // The browser never stores or restores an operational copy of company data.
@@ -1698,7 +1699,10 @@ const MainApp: React.FC = () => {
   // Book spread (presentation only): on an opened inner screen (or real hinge segments)
   // the navigation stays open as the index page and the work sits on the facing page.
   // See BOOK_SPREAD_QUERY and src/duo-adaptive.css section 5.
-  const isSpread = useMediaQueryMatch(BOOK_SPREAD_QUERY);
+  // iPhone Duo (html[data-device="duo"]): no permanent index page. The inner landscape is two
+  // panes of the page itself (src/duo-pattern.css) and the index opens from the menu button.
+  const bookBand = useMediaQueryMatch(BOOK_SPREAD_QUERY);
+  const isSpread = bookBand && !isDuoScreen();
   const [notifOpen, setNotifOpen] = useState(false);
   // Visual only: floating helpers step aside while a drawer or the command bar is open.
   useEffect(() => {
@@ -5028,6 +5032,21 @@ const MainApp: React.FC = () => {
         <React.Suspense fallback={null}>
           <InstagramMagicWand data={data} currentPage={currentPage} userRole={floatingToolRole} />
         </React.Suspense>
+      )}
+      {/* iPhone Duo only (hidden elsewhere by src/duo-pattern.css): the page title for the clock
+          strip, a primary «+» and a small navigation capsule. Same actions as the header and drawer. */}
+      {userRole !== 'partner' && isAuthenticated && (
+        <div className="duo-dock" data-duo-dock="">
+          <span className="duo-strip-title" aria-hidden="true">{getAdminPageMeta(currentPage).title}</span>
+          <button type="button" className="duo-dock-add" onClick={() => navigateFromSidebar('new-invoice', { resetInvoice: true })} aria-label="فاتورة جديدة" title="فاتورة جديدة">
+            <Plus size={22} strokeWidth={2.4} />
+          </button>
+          <nav className="duo-dock-nav" aria-label="التنقل السريع">
+            <button type="button" onClick={() => setSidebarOpen(true)} aria-label="القائمة" title="القائمة"><Menu size={20} /></button>
+            <button type="button" className={currentPage === 'dashboard' ? 'is-active' : undefined} onClick={() => { setDeepLinkData({ exactId: 'pulse', _t: Date.now() }); setSidebarOpen(false); setCurrentPage('dashboard'); }} aria-label="الصفحة الرئيسية" title="الصفحة الرئيسية"><Home size={20} /></button>
+            <button type="button" onClick={() => setCommandBarOpen(true)} aria-label="البحث السريع" title="البحث السريع"><Search size={20} /></button>
+          </nav>
+        </div>
       )}
       {IS_DEMO_MODE && <DemoBanner />}
       <Toaster richColors position="bottom-right" closeButton />

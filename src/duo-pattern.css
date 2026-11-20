@@ -1,0 +1,406 @@
+/* ==========================================================================
+   iPhone Duo pattern (owner-approved 2026-11-19), presentation only. Loaded last.
+   Every rule is scoped to html[data-device="duo"] (src/lib/duoMarkers.ts): a near-square
+   screen. iPhone (ratio >= 1.7) and iPad (wider than 700) never match, so they never change.
+   - Forbidden zone: nothing tappable or readable under the clock/battery widget or under
+     Safari's own buttons and the home indicator. Backgrounds run full-bleed; content stops.
+     Safari: the clock lives in Safari's bar, so no reservation in the page.
+     App (data-shell="app"): the insets iOS reports (env(safe-area-inset-*)).
+   - Single column (outer portrait/landscape, inner portrait): top bar, compact heading,
+     ONE bottom row of tools in the page colour. In the app, the outer screen's clock column
+     holds the «+» and a navigation capsule; the inner portrait shows the page title in the
+     clock strip and a floating glass navigation bar with a separate «+».
+   - Inner landscape (open or book): two panes with the gap on the hinge. Right pane: app bar,
+     page heading and status/filters. Left pane: the page itself, scrolling alone, fading
+     before a floating glass toolbar with a coloured «+». The index opens from the menu.
+   Safari exposes no hinge API on the Duo: decisions are orientation and size only.
+   ========================================================================== */
+
+/* Duo-only controls are hidden everywhere else. */
+.duo-dock{display:none}
+
+/* ---- 0. Older fixed reservations follow the system insets on the Duo ----
+   duo-adaptive.css section 6 reserves a fixed 116x268 box for the clock widget. On the Duo
+   the clock column is what iOS reports: zero in Safari, the real column in the app. */
+:root[data-device="duo"]{
+  /* the system insets, named once (emulation runs override these to stand in for iOS) */
+  --duo-sa-t:env(safe-area-inset-top,0px);--duo-sa-r:env(safe-area-inset-right,0px);
+  --duo-sa-b:env(safe-area-inset-bottom,0px);--duo-sa-l:env(safe-area-inset-left,0px);
+  --duo-cutout-w:var(--duo-sa-r);
+  --duo-cutout-h:0px;
+  --duo-cutout-reach:var(--duo-sa-t);
+  --duo-gap:44px;
+  --duo-pane-r:calc(50vw - var(--duo-gap) / 2);
+  --duo-pane-l:calc(50vw - var(--duo-gap) / 2);
+  --duo-page:#f8f4ea;
+  --duo-tint:#efe6d2;
+  --duo-glass:rgb(15 23 42 / .86);
+  --duo-accent:#0f3d2b;
+  --duo-clock-end:160px;
+}
+
+/* ---- 1. Top bar: under the clock strip, beside the clock column ---- */
+html[data-device="duo"] body .admin-heritage-shell .admin-app-header{
+  flex-shrink:0!important;height:auto!important;min-height:calc(56px + var(--duo-sa-t))!important;
+  padding-top:var(--duo-sa-t)!important;
+  padding-right:calc(10px + var(--duo-sa-r))!important;
+  padding-left:calc(10px + var(--duo-sa-l))!important;
+  box-sizing:border-box;
+}
+html[data-device="duo"] body .admin-heritage-shell .admin-app-main{
+  padding-right:calc(12px + var(--duo-sa-r))!important;
+  padding-left:calc(12px + var(--duo-sa-l))!important;
+}
+html[data-device="duo"] body .admin-heritage-shell .admin-page-frame{padding-inline:0!important}
+
+/* ---- 2. Compact page heading: one line, no kicker, no subtitle ---- */
+html[data-device="duo"] body .admin-page-hero{
+  min-height:0!important;padding:10px 14px!important;margin-bottom:10px!important;border-radius:20px!important;
+}
+html[data-device="duo"] body .admin-page-hero .admin-page-hero-main{
+  display:flex!important;align-items:center!important;gap:10px!important;padding-right:0!important;min-height:0!important;
+}
+html[data-device="duo"] body .admin-page-hero .admin-page-kicker,
+html[data-device="duo"] body .admin-page-hero .admin-page-hero-text p{display:none!important}
+html[data-device="duo"] body .admin-page-hero h1{
+  font-size:20px!important;line-height:1.35!important;margin:0!important;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+html[data-device="duo"] body .admin-page-hero .admin-page-hero-main>:first-child:not(.admin-page-hero-text){
+  width:36px!important;height:36px!important;min-width:36px!important;border-radius:12px!important;
+}
+html[data-device="duo"] body .admin-page-hero .admin-page-hero-main>:first-child:not(.admin-page-hero-text) svg{width:18px;height:18px}
+
+/* ---- 3. Navigation drawer: scrolls as one, clear of the clock column and strip ---- */
+html[data-device="duo"] body aside.bp-sidebar.fixed{
+  overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding-top:var(--duo-sa-t);padding-bottom:var(--duo-sa-b);
+  padding-right:var(--duo-sa-r);box-sizing:border-box;
+}
+html[data-device="duo"] body aside.bp-sidebar.fixed>*{flex-shrink:0}
+html[data-device="duo"] body aside.bp-sidebar.fixed>nav{
+  flex:none!important;overflow:visible!important;padding-right:20px!important;
+  -webkit-mask-image:none;mask-image:none;
+}
+html[data-device="duo"] body aside.bp-sidebar.fixed .admin-drawer-header{
+  min-height:0!important;height:auto!important;padding-right:16px!important;padding-block:12px!important;
+}
+
+/* ---- 4. Dialogs, sheets, command bar and toasts stay clear of the clock and Safari's bar ---- */
+html[data-device="duo"] body .fixed.inset-0.flex.items-center.justify-center:not(.admin-order-details-modal){
+  padding-top:max(12px,var(--duo-sa-t));padding-bottom:max(12px,var(--duo-sa-b));
+  padding-right:max(12px,var(--duo-sa-r));padding-left:max(12px,var(--duo-sa-l));
+  box-sizing:border-box;
+}
+html[data-device="duo"] body .fixed.inset-0.flex.items-center.justify-center>*{max-height:100%;overflow-y:auto}
+html[data-device="duo"] body .admin-order-details-modal>div:nth-child(2){
+  margin-top:var(--duo-sa-t)!important;
+  margin-right:var(--duo-sa-r)!important;margin-left:var(--duo-sa-l)!important;
+}
+html[data-device="duo"] body .command-bar-layer{
+  padding-top:var(--duo-sa-t);
+  padding-right:var(--duo-sa-r);padding-left:var(--duo-sa-l);
+}
+html[data-device="duo"] body [data-sonner-toaster]{
+  --offset:12px;
+  right:calc(12px + var(--duo-sa-r))!important;
+  bottom:calc(var(--strip,64px) + 8px)!important;
+}
+
+/* ==========================================================================
+   5. Single column: outer portrait, outer landscape and inner portrait.
+   ONE bottom row in the page colour: the period selector joins the tools row
+   (beauty2.css used to give it a row of its own above the strip).
+   ========================================================================== */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"] body:not(#x):not(#duo){--dock:0px}
+  html[data-device="duo"] body:not(#x):not(#duo):has(.admin-date-filter-elegant)::after{
+    content:"";position:fixed;left:0;right:0;bottom:0;height:var(--strip);z-index:90;pointer-events:none;
+    background:var(--duo-page);box-shadow:0 -1px 0 rgb(15 23 42 / .06);
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) [data-floating='secondary'].fixed.bottom-6.left-0.right-0{
+    bottom:var(--row-b)!important;top:auto!important;
+    left:auto!important;right:calc(4px + var(--duo-sa-r))!important;
+    padding:0!important;justify-content:flex-start!important;width:auto!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-date-filter-elegant{
+    height:44px!important;width:168px!important;max-width:168px!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-date-filter-elegant button{min-width:30px!important;min-height:36px}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main{
+    padding-bottom:calc(var(--strip) + 16px)!important;
+  }
+  /* the tools cluster starts after the clock column when the column is on the left */
+  html[data-device="duo"] body:not(#x):not(#duo) .ktk-install-sheet.is-chip{left:calc(8px + var(--duo-sa-l))!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed[data-floating='secondary'].left-1\/2{left:calc(56px + var(--duo-sa-l))!important;right:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed.bottom-40.left-6[data-floating='secondary'],
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed.left-0.bottom-12[data-floating='secondary']{left:calc(102px + var(--duo-sa-l))!important;right:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed.bottom-44.right-6[data-floating='secondary']{left:calc(148px + var(--duo-sa-l))!important;right:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed[data-floating='secondary'][aria-label^='الرجوع']{left:calc(8px + var(--duo-sa-l))!important;right:auto!important;bottom:calc(var(--strip) + 8px)!important}
+  /* demo builds only: the notice is a short line just above the row */
+  html[data-device="duo"] body:not(#x):not(#duo) .demo-banner{
+    bottom:calc(var(--strip) + 4px)!important;right:calc(12px + var(--duo-sa-r))!important;
+    left:auto!important;margin:0!important;transform:none!important;max-width:calc(100vw - 80px)!important;white-space:nowrap;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .demo-banner__long{display:none}
+  html[data-device="duo"] body:not(#x):not(#duo) .demo-banner__short{display:inline}
+  html[data-device="duo"] body:not(#x):not(#duo):has(.demo-banner) .admin-heritage-shell{height:100dvh!important}
+  html[data-device="duo"] body:not(#x):not(#duo):has(.demo-banner) .admin-heritage-shell .admin-app-main{
+    padding-bottom:calc(var(--strip) + 64px)!important;
+  }
+}
+
+/* ---- 5a. App, outer screen: «+» and a navigation capsule in the clock column ---- */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock{
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+    position:fixed;z-index:120;top:var(--duo-clock-end);
+  }
+  html[data-device="duo"][data-shell="app"][data-widget-side="right"] .duo-dock{right:calc((var(--duo-sa-r) - 56px) / 2)}
+  html[data-device="duo"][data-shell="app"][data-widget-side="left"] .duo-dock{left:calc((var(--duo-sa-l) - 56px) / 2)}
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock-nav{flex-direction:column}
+}
+@media screen and (orientation:landscape){
+  html[data-device="duo"][data-shell="app"]{--duo-clock-end:110px}
+}
+
+/* ---- 5b. App, inner portrait: title in the clock strip; floating glass bar and «+» at the bottom ---- */
+@media screen and (orientation:portrait) and (min-width:560px){
+  html[data-device="duo"][data-shell="app"][data-widget-side="none"] .duo-dock{display:contents}
+  html[data-device="duo"][data-shell="app"][data-widget-side="none"] .duo-strip-title{
+    display:flex;align-items:center;position:fixed;z-index:120;top:0;left:24px;right:auto;
+    height:var(--duo-sa-t);max-width:calc(100vw - 200px);
+    font-size:22px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;
+  }
+  html[data-device="duo"][data-shell="app"][data-widget-side="none"] .admin-page-hero{display:none!important}
+  html[data-device="duo"][data-shell="app"][data-widget-side="none"] .duo-dock-nav{
+    position:fixed;z-index:120;bottom:var(--row-b);left:calc(50% - 98px);flex-direction:row;
+  }
+  html[data-device="duo"][data-shell="app"][data-widget-side="none"] .duo-dock-add{
+    position:fixed;z-index:120;bottom:var(--row-b);left:calc(50% + 66px);
+  }
+}
+
+/* where the Duo dock shows, the header drops its three duplicates (menu, home, new invoice) */
+html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) body .admin-app-header :is([title="القائمة الجانبية"],[title="العودة للصفحة الرئيسية"],[title="إنشاء فاتورة جديدة"]){display:none!important}
+@media screen and (orientation:portrait) and (min-width:560px){
+  html[data-device="duo"][data-shell="app"][data-widget-side="none"] body .admin-app-header :is([title="القائمة الجانبية"],[title="العودة للصفحة الرئيسية"],[title="إنشاء فاتورة جديدة"]){display:none!important}
+}
+@media screen and (orientation:landscape) and (min-width:800px) and (min-height:521px){
+  html[data-device="duo"] body .admin-app-header :is([title="القائمة الجانبية"],[title="العودة للصفحة الرئيسية"],[title="إنشاء فاتورة جديدة"]){display:none!important}
+}
+
+/* the dock's own look: glass capsules, a coloured «+» */
+html[data-device="duo"] .duo-strip-title{display:none}
+html[data-device="duo"] .duo-dock-nav{
+  display:flex;align-items:center;gap:4px;padding:5px;border-radius:999px;
+  background:var(--duo-glass);border:1px solid rgb(255 255 255 / .1);
+  box-shadow:0 1px 0 rgb(255 255 255 / .06) inset,0 12px 30px rgb(10 14 12 / .28);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);backdrop-filter:blur(18px) saturate(1.4);
+}
+html[data-device="duo"] .duo-dock-nav button{
+  width:44px;height:44px;min-width:44px;border-radius:50%;border:0;background:none;
+  display:grid;place-items:center;color:rgb(255 255 255 / .82);cursor:pointer;
+}
+html[data-device="duo"] .duo-dock-nav button.is-active{background:rgb(255 255 255 / .16);color:#fff}
+html[data-device="duo"] .duo-dock-add{
+  width:52px;height:52px;min-width:52px;border-radius:50%;border:0;cursor:pointer;
+  display:grid;place-items:center;color:#fff;
+  background:linear-gradient(160deg,#1f6b4a,var(--duo-accent));
+  box-shadow:0 0 0 1px rgb(212 175 55 / .45),0 12px 28px rgb(15 61 43 / .38);
+}
+
+/* ==========================================================================
+   6. Inner landscape (open or book): two panes, the gap on the hinge.
+   ========================================================================== */
+@media screen and (orientation:landscape) and (min-width:800px) and (min-height:521px){
+  html[data-device="duo"] body:not(#x):not(#duo){
+    --strip:calc(64px + var(--duo-sa-b));
+    --duo-pane-r:calc(50vw - var(--duo-gap) / 2 - var(--duo-sa-r));
+    --duo-pane-l:calc(50vw - var(--duo-gap) / 2 - var(--duo-sa-l));
+    --duo-right-x:calc(50vw + var(--duo-gap) / 2);
+    --dock:0px;
+    background:var(--duo-page);
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell{
+    height:100dvh!important;
+    background:linear-gradient(to right,var(--duo-page) 50%,var(--duo-tint) 50%)!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell>.fixed.inset-0.pointer-events-none{opacity:.35}
+  /* app bar over the right pane only */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-header{
+    position:fixed!important;top:0;right:0;left:auto;z-index:100;
+    width:calc(50vw - var(--duo-gap) / 2)!important;min-height:calc(60px + var(--duo-sa-t))!important;
+    padding-right:calc(12px + var(--duo-sa-r))!important;padding-left:12px!important;
+    background:var(--duo-tint)!important;border:0!important;box-shadow:none!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-header>div{gap:6px!important;min-width:0}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-header [aria-label="البحث السريع"]{display:none!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-header .relative:has(> button[aria-label="تنبيهات"]){position:static}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-header .relative:has(> button[aria-label="تنبيهات"])>.absolute{
+    left:12px;right:calc(12px + var(--duo-sa-r));top:100%;width:auto;max-height:min(70dvh,560px);overflow-y:auto;
+  }
+  /* the first row of the right pane is the app bar's place: a spacer, so any page starts below it */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main::before{
+    content:"";display:block;grid-column:1;grid-row:1;height:calc(60px + var(--duo-sa-t));
+  }
+  /* the scroll area becomes the two panes */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main{
+    display:grid!important;grid-template-columns:var(--duo-pane-r) var(--duo-pane-l);column-gap:var(--duo-gap);
+    align-content:start;align-items:start;grid-auto-flow:row dense;
+    padding:0 var(--duo-sa-r) 0 var(--duo-sa-l)!important;
+    background:none!important;overflow-y:auto;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-page-frame,
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-experience-stack{display:contents!important}
+  /* right pane: the page heading, the daily brief, status and filter panels */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main>:is(section,div:not(.fixed):not(.admin-page-frame)),
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-experience-stack>:not(.admin-content-polish){
+    grid-column:1;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main>:is(section,div:not(.fixed):not(.admin-page-frame)):first-of-type,
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-experience-stack>.admin-page-hero{
+    margin-top:8px!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo):has(.admin-app-main>section) .admin-app-main .admin-experience-stack>.admin-page-hero{margin-top:0!important}
+  /* the right pane is about 400px: its cards stack as on a phone */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main>section :is([class*="md:flex-row"],[class*="lg:flex-row"],[class*="sm:flex-row"]){
+    flex-direction:column!important;align-items:stretch!important;
+  }
+  /* left pane: the page itself, full height, scrolling alone, fading before the toolbar */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish{
+    grid-column:2;grid-row:1 / span 40;position:sticky;top:0;min-width:0;
+    height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin-top:0!important;margin-inline:0!important;
+    padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
+  }
+  /* the fade before the toolbar is a sticky veil, not a mask: a mask (like transform, filter or
+     backdrop-filter) would become the containing block of the page's own fixed dialogs and clip them */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish::after{
+    content:"";display:block;position:sticky;bottom:calc(-110px - var(--duo-sa-b));z-index:5;
+    height:calc(120px + var(--duo-sa-b));margin:-120px -14px calc(-110px - var(--duo-sa-b));
+    background:linear-gradient(to bottom,rgb(248 244 234 / 0),var(--duo-page) 70%);pointer-events:none;
+  }
+  /* pages without the daily brief would leave the right pane with a heading only. Their blocks
+     are shared instead: the summaries, tabs and filters go to the right pane under the heading,
+     and the last block (the list or the form) is the left pane, scrolling alone. A page made of a
+     single block is split one level deeper. */
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-heritage-shell .admin-app-main{grid-template-rows:none;grid-auto-rows:max-content}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:has(>:only-child){display:contents!important}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:has(>:only-child)::after{display:none!important}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child,
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden),
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden){display:contents!important}
+  :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>*{grid-column:1;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important}
+  :is(html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)):not(:has(.admin-content-polish[data-page="settings"])) .admin-app-main .admin-content-polish>:only-child:has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))), html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish>:only-child:not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):not(:has(>:nth-child(2 of :not(.hidden))))>:not(.hidden):has(>:nth-child(2 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden):not(button)):not(:first-child){
+    grid-column:2;grid-row:1 / span 24;position:sticky;top:0;align-self:start;
+    max-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 0 -100dvh!important;
+    padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main{padding-bottom:calc(24px + var(--duo-sa-b))!important}
+  /* a page of exactly two blocks (tabs, then everything else) splits the second one too:
+     its summaries join the tabs in the right pane, its last block is the left pane */
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:not([data-page="settings"])>:only-child:has(>:nth-child(2 of :not(.hidden))):not(:has(>:nth-child(3 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):has(>:nth-child(2 of :not(.hidden))){display:contents!important}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:not([data-page="settings"])>:only-child:has(>:nth-child(2 of :not(.hidden))):not(:has(>:nth-child(3 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):has(>:nth-child(2 of :not(.hidden)))>*{grid-column:1!important;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo):not(:has(.admin-app-main>section)) .admin-app-main .admin-content-polish:not([data-page="settings"])>:only-child:has(>:nth-child(2 of :not(.hidden))):not(:has(>:nth-child(3 of :not(.hidden))))>:nth-last-child(1 of :not(.hidden)):has(>:nth-child(2 of :not(.hidden)))>:nth-last-child(1 of :not(.hidden)){
+    grid-column:2!important;grid-row:1 / span 24;position:sticky;top:0;align-self:start;
+    max-height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 0 -100dvh!important;
+    padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish :is(.ai-mission-strip,.ai-decision-deck,.ai-command-metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  /* settings is a stack of equal sections: they fill both panes row by row, the about card last */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]{display:contents!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]>*{grid-column:auto!important;min-width:0;margin:0 14px 12px!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]~*{grid-column:auto!important;grid-row:auto!important;position:static!important;max-height:none!important;margin:0 14px 12px!important;padding:0!important;overflow:visible!important}
+  /* pages sized for a 450px pane, not the 950px window */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid[class*="md:grid-cols-12"]{grid-template-columns:minmax(0,1fr)!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid[class*="md:grid-cols-12"]>[class*="col-span-"]{grid-column:1 / -1!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-3"],[class*="md:grid-cols-4"],[class*="md:grid-cols-5"],[class*="md:grid-cols-6"],[class*="lg:grid-cols-3"],[class*="lg:grid-cols-4"]){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-3"],[class*="md:grid-cols-4"],[class*="md:grid-cols-5"],[class*="md:grid-cols-6"],[class*="lg:grid-cols-3"],[class*="lg:grid-cols-4"])>[class*="col-span-"]{grid-column:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="sm:grid-cols-4"],[class*="sm:grid-cols-5"],[class*="sm:grid-cols-6"],[class*="xl:grid-cols-4"],[class*="xl:grid-cols-5"],[class*="xl:grid-cols-6"],.grid-cols-4,.grid-cols-5,.grid-cols-6,.ai-mission-strip,.ai-decision-deck,.ai-command-metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish .grid:is([class*="md:grid-cols-2"],[class*="lg:grid-cols-2"]):not([class*="grid-cols-3"]){grid-template-columns:minmax(0,1fr)!important}
+
+  /* the floating glass toolbar of the left pane, with the coloured «+» */
+  html[data-device="duo"] .duo-dock{
+    display:flex;align-items:center;gap:10px;position:fixed;z-index:120;
+    bottom:max(10px,calc(var(--duo-sa-b) - 8px));
+    left:calc(var(--duo-sa-l) + var(--duo-pane-l) / 2);transform:translateX(-50%);
+  }
+  html[data-device="duo"] .duo-dock .duo-dock-nav{flex-direction:row}
+  html[data-device="duo"] .duo-dock .duo-strip-title{display:none}
+
+  /* status and filters live in the right pane: the tools row at its foot */
+  html[data-device="duo"] body:not(#x):not(#duo):has(.admin-date-filter-elegant)::after{
+    content:"";position:fixed;right:0;bottom:0;width:calc(50vw - var(--duo-gap) / 2);height:var(--strip);
+    z-index:90;pointer-events:none;background:var(--duo-tint);
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) [data-floating='secondary'].fixed.bottom-6.left-0.right-0{
+    bottom:var(--row-b)!important;top:auto!important;left:auto!important;right:calc(8px + var(--duo-sa-r))!important;
+    padding:0!important;width:auto!important;justify-content:flex-start!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-date-filter-elegant{height:44px!important;width:200px!important;max-width:200px!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-date-filter-elegant button{min-width:36px!important;min-height:36px}
+  html[data-device="duo"] body:not(#x):not(#duo) .ktk-install-sheet.is-chip{left:calc(var(--duo-right-x) + 8px)!important;right:auto!important;margin:0!important;bottom:var(--row-b)!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed[data-floating='secondary'].left-1\/2{display:none!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed.bottom-40.left-6[data-floating='secondary'],
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed.left-0.bottom-12[data-floating='secondary']{left:calc(var(--duo-right-x) + 60px)!important;right:auto!important;bottom:var(--row-b)!important;display:flex!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed.bottom-44.right-6[data-floating='secondary']{left:calc(var(--duo-right-x) + 108px)!important;right:auto!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .fixed[data-floating='secondary'][aria-label^='الرجوع']{display:none!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .demo-banner{
+    left:calc(var(--duo-right-x) + 12px)!important;right:calc(12px + var(--duo-sa-r))!important;
+    bottom:calc(var(--strip) + 4px)!important;margin:0!important;transform:none!important;max-width:none!important;white-space:nowrap;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .demo-banner__long{display:none}
+  html[data-device="duo"] body:not(#x):not(#duo) .demo-banner__short{display:inline}
+  html[data-device="duo"] body:not(#x):not(#duo) [data-sonner-toaster]{right:calc(12px + var(--duo-sa-r))!important;bottom:calc(var(--strip) + 56px)!important}
+
+  /* dialogs, the command bar and the order inspector open on the left pane, never on the hinge */
+  html[data-device="duo"] body .fixed.inset-0.flex.items-center.justify-center:not(.admin-order-details-modal){
+    padding-right:calc(var(--duo-right-x) + 12px)!important;padding-left:max(12px,var(--duo-sa-l))!important;
+  }
+  html[data-device="duo"] body .command-bar-layer{padding-right:calc(var(--duo-right-x) + 12px)!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-order-details-modal>div:nth-child(2){
+    position:fixed!important;margin:0!important;transform:none!important;
+    right:auto!important;left:max(12px,var(--duo-sa-l))!important;
+    top:max(12px,var(--duo-sa-t))!important;bottom:12px!important;
+    width:calc(var(--duo-pane-l) - 24px)!important;max-width:none!important;height:auto!important;max-height:none!important;
+    border-radius:26px!important;
+  }
+}
+
+/* A dialog opened from inside a page lives in the page frame's stacking context (z-10); the
+   header (z-100) used to cut its title. While one is open the header steps under it. */
+html[data-device="duo"] body .admin-heritage-shell:has(.admin-app-main .fixed.inset-0.flex) .admin-app-header{z-index:1!important}
+
+/* While the navigation drawer is open, the floating rows step aside instead of sitting on its scrim. */
+html[data-device="duo"] body:has(.safe-area-drawer-overlay) :is(.ktk-install-sheet.is-chip,.demo-banner,[data-floating='secondary'],.duo-dock){
+  visibility:hidden!important;
+}
+html[data-device="duo"] body:not(#x):not(#duo):has(.safe-area-drawer-overlay)::after{display:none!important}
+/* ...and so do the Duo dock and the tools row while a dialog is open over the page */
+html[data-device="duo"] body:has(.fixed.inset-0.flex.items-center.justify-center) :is(.duo-dock,.ktk-install-sheet.is-chip,.demo-banner,[data-floating="secondary"]){visibility:hidden!important}
+html[data-device="duo"] body[data-overlay-open] .duo-dock{visibility:hidden!important}
+/* the open drawer is as wide as on a phone plus the clock column it keeps clear of */
+html[data-device="duo"] body:has(.safe-area-drawer-overlay) aside.bp-sidebar.fixed{
+  width:calc(280px + var(--duo-sa-r))!important;max-width:calc(100vw - 24px)!important;
+}
+/* the notifications list spans the page width between the insets, never under the clock column */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"] body .admin-app-header .relative:has(> button[aria-label="تنبيهات"]){position:static}
+  html[data-device="duo"] body .admin-app-header .relative:has(> button[aria-label="تنبيهات"])>.absolute{
+    position:fixed!important;top:calc(60px + var(--duo-sa-t))!important;
+    left:calc(12px + var(--duo-sa-l))!important;right:calc(12px + var(--duo-sa-r))!important;
+    width:auto!important;max-width:none!important;
+  }
+}
+/* boot and sign-in screens keep their card clear of the clock column and strip (single column) */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"] body .ktk-boot{
+    padding:max(12px,var(--duo-sa-t)) max(12px,var(--duo-sa-r)) max(12px,var(--duo-sa-b)) max(12px,var(--duo-sa-l))!important;
+    box-sizing:border-box;
+  }
+  html[data-device="duo"] body:not(#duo) .admin-login-showcase{
+    padding:max(12px,var(--duo-sa-t)) max(12px,var(--duo-sa-r)) max(12px,var(--duo-sa-b)) max(12px,var(--duo-sa-l))!important;
+    box-sizing:border-box;
+  }
+}
