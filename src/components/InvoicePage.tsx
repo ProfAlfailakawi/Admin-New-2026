@@ -1471,12 +1471,12 @@ Alturath.kw`;
 
         {/* Cart Sidebar */}
         <div className="lg:col-span-1 space-y-4 lg:space-y-6 order-2 invoice-mobile-cart">
-          <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-200 lg:sticky lg:top-6">
+          <div className="invoice-cart-card bg-white rounded-3xl p-4 sm:p-6 shadow-xl border border-slate-200 lg:sticky lg:top-6">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
               السلة <ShoppingCart size={20} className="text-primary" />
             </h2>
 
-            <div className="space-y-4 mb-6">
+            <div className="invoice-entry-fields space-y-4 mb-6">
               <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 space-y-2">
                 <div className="flex items-center gap-1.5 text-amber-900 font-black text-xs">
                   <Clock size={15} className="text-amber-600" />
@@ -1810,7 +1810,7 @@ Alturath.kw`;
               </div>
 
               {/* Products List (المنتجات) list inside the sidebar - Moved here under the address */}
-              <div className="border-t border-b border-indigo-50/50 py-4 my-4">
+              <div className="invoice-cart-lines border-t border-b border-indigo-50/50 py-4 my-4">
                 <div className="text-sm font-black text-slate-800 text-right mb-3 flex items-center justify-between">
                   <span>المنتجات في السلة</span>
                   <span className="text-xs bg-rose-50 text-rose-600 px-2.5 py-1 rounded-full">{cartItems.length} أصناف</span>

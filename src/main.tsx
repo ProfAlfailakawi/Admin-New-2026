@@ -19,7 +19,8 @@ import './quality.css';
 import './beauty2.css';
 import './polish-r4.css';
 import './duo-adaptive.css'; // iPhone Duo adaptive pass
-import './duo-pattern.css'; // iPhone Duo pattern (html[data-device="duo"] only): keep last
+import './duo-pattern.css'; // iPhone Duo pattern (html[data-device="duo"] only)
+import './duo-stacked.css'; // iPhone Duo inner portrait: preview above the hinge, controls below; keep last
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
 
