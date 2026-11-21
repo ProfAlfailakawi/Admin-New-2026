@@ -361,54 +361,58 @@ html body:has(.duo-spread) .admin-date-filter-elegant button{min-width:44px!impo
 @media screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape),
        screen and (min-width:640px) and (max-width:720px) and (min-height:520px) and (max-height:960px) and (orientation:portrait){
   :root{--duo-cutout-w:116px;--duo-cutout-h:116px;--duo-cutout-reach:268px}
+  /* These two bands go by window size alone, so they also matched a narrow desktop or tablet window (640-720 portrait such as
+     700x900, or a 721-1000 landscape laptop window) and pushed the header 116px off the right edge. The box is real on the iPhone
+     Duo only (html[data-device="duo"], see duo-pattern.css): the rules below are scoped to it, and everywhere else it is 0. */
+  html:not([data-device="duo"]){--duo-cutout-w:0px;--duo-cutout-h:0px;--duo-cutout-reach:0px}
 }
 /* book: the index page's header clears the box (padding) and is tall enough that the
    first entry of the table of contents starts below it; the list itself keeps a right gutter
    so its first rows (which still sit in the box's vertical reach) stay beside it */
 @media screen and (min-width:721px) and (max-width:1000px) and (min-height:520px) and (max-height:960px) and (orientation:landscape){
-  html body .admin-heritage-shell.duo-spread > aside.duo-index-page .admin-drawer-header{
+  html:where([data-device="duo"]) body .admin-heritage-shell.duo-spread > aside.duo-index-page .admin-drawer-header{
     min-height:calc(var(--duo-cutout-h) - 12px);padding-right:calc(var(--duo-cutout-w) - 12px);box-sizing:border-box;
   }
-  html body .admin-heritage-shell.duo-spread > aside.duo-index-page > nav{
+  html:where([data-device="duo"]) body .admin-heritage-shell.duo-spread > aside.duo-index-page > nav{
     padding-right:calc(var(--duo-cutout-w) + 4px)!important;box-sizing:border-box;
   }
   /* the order inspector takes the same page: its top band clears the box too */
-  html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :first-child{
+  html:where([data-device="duo"]) body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :first-child{
     padding-right:calc(var(--duo-cutout-w) - 4px);min-height:calc(var(--duo-cutout-h) - 12px);box-sizing:border-box;
   }
   /* ...and so does the first content that starts in the box's reach (progress stepper, first section title) */
-  html body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :nth-child(2) .grid > :first-child > :first-child > :nth-child(-n+2){
+  html:where([data-device="duo"]) body:not(#x):not(#duo):has(.duo-spread) .admin-order-details-modal > div:nth-child(2) > :nth-child(2) .grid > :first-child > :first-child > :nth-child(-n+2){
     margin-right:calc(var(--duo-cutout-w) - 29px);
   }
 }
 /* inner portrait: one column. The sticky header becomes a band as tall as the box with
    its controls to the left of it; the drawer opens wider so its logo and rows fit beside the box */
 @media screen and (min-width:640px) and (max-width:720px) and (min-height:520px) and (max-height:960px) and (orientation:portrait){
-  html body .admin-app-header{
+  html:where([data-device="duo"]) body .admin-app-header{
     height:auto!important;min-height:var(--duo-cutout-h)!important;
     padding-right:calc(var(--duo-cutout-w) + 8px)!important;box-sizing:border-box;
   }
-  html body aside.bp-sidebar.fixed{width:min(380px,92vw)!important;max-width:min(380px,92vw)!important}
-  html body aside.bp-sidebar.fixed .admin-drawer-header{
+  html:where([data-device="duo"]) body aside.bp-sidebar.fixed{width:min(380px,92vw)!important;max-width:min(380px,92vw)!important}
+  html:where([data-device="duo"]) body aside.bp-sidebar.fixed .admin-drawer-header{
     height:auto;min-height:var(--duo-cutout-h);padding-right:calc(var(--duo-cutout-w) + 8px);box-sizing:border-box;
   }
-  html body aside.bp-sidebar.fixed > nav{padding-right:calc(var(--duo-cutout-w) + 8px)!important;box-sizing:border-box}
+  html:where([data-device="duo"]) body aside.bp-sidebar.fixed > nav{padding-right:calc(var(--duo-cutout-w) + 8px)!important;box-sizing:border-box}
   /* page content that starts in the box's vertical reach (116-268px): the hero card keeps its
      full-bleed background but its content sits beside the box; the panel under it does too */
-  html body .admin-experience-stack > .admin-page-hero:first-child .admin-page-hero-main{
+  html:where([data-device="duo"]) body .admin-experience-stack > .admin-page-hero:first-child .admin-page-hero-main{
     padding-right:calc(var(--duo-cutout-w) - 24px);box-sizing:border-box;
   }
-  html body .admin-experience-stack > .admin-page-hero:first-child + .admin-smart-panel .smart-panel-toggle{
+  html:where([data-device="duo"]) body .admin-experience-stack > .admin-page-hero:first-child + .admin-smart-panel .smart-panel-toggle{
     padding-right:calc(var(--duo-cutout-w) - 6px)!important;box-sizing:border-box;
   }
   /* the tab switch (Invoices / App orders) that opens the reports page starts in the box's reach too */
-  html body .admin-page-hero:first-child + .admin-content-polish .space-y-6 > .w-fit.shadow-inner:first-child{
+  html:where([data-device="duo"]) body .admin-page-hero:first-child + .admin-content-polish .space-y-6 > .w-fit.shadow-inner:first-child{
     margin-right:calc(var(--duo-cutout-w) - 13px);
   }
   /* the WhatsApp command hub keeps its live-status chips beside the box when the card starts in its reach */
-  html body .wa-command-deck .dna-hubp{inset-inline-start:calc(var(--duo-cutout-w) - 8px)}
+  html:where([data-device="duo"]) body .wa-command-deck .dna-hubp{inset-inline-start:calc(var(--duo-cutout-w) - 8px)}
   /* home: the greeting card is a direct child of the scroll area */
-  html body .admin-app-main > section:first-of-type > div > div:first-child{
+  html:where([data-device="duo"]) body .admin-app-main > section:first-of-type > div > div:first-child{
     padding-right:calc(var(--duo-cutout-w) - 24px);box-sizing:border-box;
   }
 }
