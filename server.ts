@@ -20,6 +20,7 @@ import { packBootInlineAssets } from "./src/lib/bootAssetTransport.ts";
 import { runWithDeadlineAndRetry } from "./src/lib/paymentWebhookRetry.ts";
 
 import { upaymentsHmacHeaders, upaymentsWebhookGate } from "./src/lib/upaymentsHmac";
+import { isUPaymentsRateLimited, upaymentsStatusThrottle } from "./src/lib/upaymentsThrottle";
 let firebaseInitialized = false;
 let db: any = null;
 const PAYMENT_PENDING_GRACE_SECONDS = Math.max(
@@ -1505,7 +1506,8 @@ async function fetchUPaymentsStatusByCandidate(candidateId: string, apiKey: stri
 
   const contentType = response.headers.get("content-type") || "";
   const data = contentType.includes("application/json") ? await response.json() : await response.text();
-  return { ok: response.ok, status: response.status, data, candidateId: cleanId, endpoint };
+  const rateLimited = isUPaymentsRateLimited(response.status, data);
+  return { ok: response.ok, status: response.status, data, candidateId: cleanId, endpoint, rateLimited };
 }
 
 function buildUPaymentsLookupCandidates(identifiers: PaymentSyncIdentifiers, provided: any = {}) {
@@ -1541,9 +1543,18 @@ async function verifyAndSyncUPaymentsInvoice(invoiceId: any, provided: any, apiK
   let firstFailed: any = null;
 
   for (const candidateId of candidates) {
+    if (upaymentsStatusThrottle.cooldownRemainingMs() > 0) {
+      attempts.push({ candidateId, skipped: "rate-limit-cooldown" });
+      break;
+    }
     try {
       const attempt = await fetchUPaymentsStatusByCandidate(candidateId, apiKey);
       attempts.push({ candidateId, endpoint: attempt.endpoint, status: attempt.status, ok: attempt.ok });
+      if (attempt.rateLimited) {
+        const ms = upaymentsStatusThrottle.noteRateLimited();
+        console.warn(`[UPAYMENTS_THROTTLE] rate-limited (${attempt.status}) on status lookup; pausing lookups ${Math.round(ms / 1000)}s`);
+        break;
+      }
       if (!attempt.ok || !attempt.data || typeof attempt.data === "string") continue;
 
       const meta = extractUPaymentsStatusMeta(attempt.data, String(invoiceId || ""));
@@ -10186,6 +10197,16 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       } else {
         const text = await response.text();
         console.error("Non-JSON UPayments API error:", text);
+        if (isUPaymentsRateLimited(response.status, text)) {
+          // Back status polling off so the next attempt to create a link has room to succeed.
+          const ms = upaymentsStatusThrottle.noteRateLimited();
+          console.warn(`[UPAYMENTS_THROTTLE] rate-limited on charge; pausing status lookups ${Math.round(ms / 1000)}s`);
+          return res.status(503).json({
+            error: "Payment gateway busy",
+            message: "بوابة الدفع مشغولة مؤقتاً بسبب كثرة الطلبات. انتظر دقيقة ثم أعد المحاولة.",
+            retryAfterSeconds: Math.round(ms / 1000),
+          });
+        }
         return res.status(response.status).json({ 
           error: "Payment gateway request failed", 
           message: `استجابة غير صالحة من بوابة الدفع (ليست بتنسيق JSON). النص المستلم: ${text.substring(0, 150)}`,
@@ -10195,6 +10216,7 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       
       if (!response.ok) {
         console.error("UPayments API error response:", JSON.stringify(data));
+        if (isUPaymentsRateLimited(response.status, data)) upaymentsStatusThrottle.noteRateLimited();
         
         let errorMsg = "فشل بوابة الدفع";
         if (data) {
@@ -10299,6 +10321,8 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
       const pendingGrace = pendingPaymentGraceInfo({ id: orderId, totalAmount: amount, total: amount }, orderId);
       console.log(`[PUSH] Pending-payment alert queued for worker: ${orderId}; grace remaining ${pendingGrace.remainingSeconds}s`);
 
+      upaymentsStatusThrottle.reset(orderId); // fresh link: check its status promptly again
+
       res.json({
         ...data,
         paymentLink: extractedPaymentLink || data?.paymentLink || data?.link || data?.url || "",
@@ -10347,8 +10371,18 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
           paymentLink,
         };
 
+        const cooldownMs = upaymentsStatusThrottle.cooldownRemainingMs();
+        if (cooldownMs > 0) {
+          return res.json({ success: true, verified: false, state: "unknown", throttled: "rate-limit-cooldown", retryInMs: cooldownMs, attempts: [] });
+        }
+        const cachedCheck = upaymentsStatusThrottle.cached(invoiceId);
+        if (cachedCheck) {
+          return res.json({ ...cachedCheck.result, throttled: "invoice-backoff", retryInMs: cachedCheck.retryInMs });
+        }
+
         const result = await verifyAndSyncUPaymentsInvoice(invoiceId, provided, apiKey);
         const state = result.state;
+        if (state === "paid" || state === "failed") upaymentsStatusThrottle.reset(invoiceId);
 
         if (state === "paid") {
             const returnedInvoiceId = result.identifiers?.targetIds?.[0] || invoiceId;
@@ -10378,8 +10412,10 @@ async function sendNewOrderPushNotification({ orderId, total, restaurantId = 'de
             });
         }
 
-        console.log("UPayments verification did not produce a final status.", JSON.stringify({ invoiceId, attempts: result.attempts }));
-        return res.json({ success: true, verified: false, state: "unknown", attempts: result.attempts, debugData: result.gatewayData });
+        const unknownResult = { success: true, verified: false, state: "unknown", attempts: result.attempts, debugData: result.gatewayData };
+        const nextCheckMs = upaymentsStatusThrottle.noteInconclusive(invoiceId, unknownResult);
+        console.log("UPayments verification did not produce a final status.", JSON.stringify({ invoiceId, nextCheckInSec: Math.round(nextCheckMs / 1000), attempts: result.attempts }));
+        return res.json(unknownResult);
     } catch (e: any) {
         console.error("Error verifying payment:", e);
         return res.status(500).json({ error: "Verification failed", message: e?.message || String(e) });
