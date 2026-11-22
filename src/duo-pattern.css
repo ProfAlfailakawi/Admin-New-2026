@@ -412,3 +412,18 @@ html[data-device="duo"] body:has(.safe-area-drawer-overlay) aside.bp-sidebar.fix
     box-sizing:border-box;
   }
 }
+
+/* ---- App: page backdrops run full-bleed under the system column ----
+   The page content is padded by the insets (12px + env, plus the page frame), and the dashboard's mood backdrop (tinted gradient and
+   triangle pattern) is positioned inside that padding, so it stopped at the column's edge and left a flat strip
+   beside it. It is decoration only, so it is pulled out to both edges of the scroll area. */
+html[data-device="duo"][data-shell="app"] body .admin-app-main .dashboard-mood-backdrop{
+  right:calc(-1 * (24px + var(--duo-sa-r)))!important;
+  left:calc(-1 * (24px + var(--duo-sa-l)))!important;
+}
+/* The two wrappers above the dashboard clip horizontally (overflow-x: clip) at the content edge, which would cut the backdrop
+   at the column. In the app the scroll area (.admin-app-main) already clips at the screen edge, so they let it through. */
+html[data-device="duo"][data-shell="app"] body .admin-heritage-shell .admin-experience-stack,
+html[data-device="duo"][data-shell="app"] body .admin-heritage-shell .admin-content-polish{
+  overflow-x:visible!important;
+}
