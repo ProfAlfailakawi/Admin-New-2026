@@ -23,6 +23,7 @@ import './duo-pattern.css'; // iPhone Duo pattern (html[data-device="duo"] only)
 import './duo-stacked.css'; // iPhone Duo inner portrait: preview above the hinge, controls below; keep last
 import './dock-motion.css'; // nav capsule motion (Duo) and the phone command button press
 import { installAppUpdate } from './lib/app-update';
+import { installNativeStatusBar } from './lib/nativeStatusBar';
 import { installMobileTableCards } from './lib/mobileTableCards';
 import { installDockMotion } from './utils/dockMotion';
 
@@ -35,6 +36,7 @@ installDockMotion({ dock: '.duo-dock-nav', link: 'button', active: '.is-active' 
 
 // التحديث الذاتي الصامت: بصمة الإصدار، منارتها، ثم التحديث والتصعيد عند اللزوم.
 installAppUpdate();
+installNativeStatusBar(); // iPhone app only: status-bar text matches the shell colour
 
 // No app-shell service worker, as before Sep 5. firebase-messaging-sw.js is the only
 // worker on scope "/" and it owns the push subscription. A second worker on the same
