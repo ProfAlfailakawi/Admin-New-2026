@@ -1,0 +1,34 @@
+{
+  "appId": "kw.edu.alturath.admin",
+  "appName": "إدارة التراث",
+  "webDir": "www",
+  "server": {
+    "url": "https://admin.alturathkw.shop",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "admin.alturathkw.shop",
+      "alturath-admin-0200723670.web.app",
+      "*.firebaseapp.com",
+      "*.googleapis.com"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "launchAutoHide": true,
+      "backgroundColor": "#0F172A",
+      "showSpinner": false
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  },
+  "android": {
+    "backgroundColor": "#0F172A",
+    "allowMixedContent": false
+  }
+}

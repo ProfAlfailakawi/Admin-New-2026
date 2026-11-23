@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">إدارة التراث</string>
+    <string name="title_activity_main">إدارة التراث</string>
+    <string name="package_name">kw.edu.alturath.admin</string>
+    <string name="custom_url_scheme">kw.edu.alturath.admin</string>
+</resources>
