@@ -18,9 +18,6 @@ interface CapacitorGlobal {
 
 const capacitor = (): CapacitorGlobal | undefined => (globalThis as { Capacitor?: CapacitorGlobal }).Capacitor;
 
-/** داخل غلاف التطبيق الأصلي؟ */
-export const isNativeShell = (): boolean => capacitor()?.isNativePlatform?.() === true;
-
 let initialized: Promise<void> | null = null;
 
 export async function nativeGoogleSignIn(auth: Auth): Promise<UserCredential> {
