@@ -1,5 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { isNativeShell, nativeGoogleSignIn } from './native-signin';
+import { nativeGoogleSignIn } from './native-signin';
+import { isNativeShell } from './lib/installBanner';
+import { signInWithGoogle } from './lib/googleSignIn';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { 
   getFirestore,
@@ -69,18 +71,13 @@ export const authRedirectReady: Promise<void> = (typeof window === 'undefined' |
   console.error('Redirect sign-in failed:', err);
 });
 
-export const loginWithGoogle = async () => {
-  if (isNativeShell()) return nativeGoogleSignIn(auth);
-  try {
-    return await signInWithPopup(auth, googleProvider);
-  } catch (err) {
-    if (shouldFallbackToRedirect(err)) {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
-    }
-    throw err;
-  }
-};
+export const loginWithGoogle = () => signInWithGoogle({
+  native: isNativeShell(),
+  nativeSignIn: () => nativeGoogleSignIn(auth),
+  popup: () => signInWithPopup(auth, googleProvider),
+  redirect: () => signInWithRedirect(auth, googleProvider),
+  shouldFallbackToRedirect,
+});
 export const logout = () => signOut(auth);
 
 export interface FirestoreErrorInfo {
