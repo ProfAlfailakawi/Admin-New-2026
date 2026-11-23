@@ -3,6 +3,7 @@ import { isNativePushAvailable, readNativePushPermission, registerNativePushToke
 import { deleteToken, getMessaging, getToken, isSupported, onMessage, type Messaging } from "firebase/messaging";
 import rawConfig from "../../firebase-applet-config.json";
 import { auth } from "../firebase";
+import { isNativeShell } from "./installBanner";
 
 const firebaseConfig = {
   ...rawConfig,
@@ -208,6 +209,8 @@ async function displayForegroundPush(payload: any) {
 
 export async function startForegroundPushListenerIfAllowed() {
   try {
+    // داخل تطبيق آيفون الإشعارات عبر APNs؛ لا مستمع ويب ولا Service Worker.
+    if (isNativeShell()) return;
     if (
       typeof Notification === "undefined" ||
       Notification.permission !== "granted" ||
@@ -239,6 +242,16 @@ export async function getPushSupportStatus() {
       hasNotification: true,
       hasServiceWorker: false,
       permission: (native === "unsupported" ? "default" : native) as NotificationPermission | "unsupported",
+      isStandalone: true,
+    };
+  }
+  // داخل التطبيق دون إضافة الإشعارات الأصلية: لا مسار ويب بديل.
+  if (isNativeShell()) {
+    return {
+      supported: false,
+      hasNotification: false,
+      hasServiceWorker: false,
+      permission: "unsupported" as NotificationPermission | "unsupported",
       isStandalone: true,
     };
   }
@@ -493,6 +506,7 @@ export async function registerPushNotifications(options?: PushRegistrationOption
       if (nativePermission !== "granted") return { success: false, error: "لم يتم السماح بالإشعارات" };
       return { success: true, token: await registerNativeToken(options) };
     }
+    if (isNativeShell()) return { success: false, error: "حدّث التطبيق من App Store" };
 
     const support = await getPushSupportStatus();
 
@@ -543,6 +557,7 @@ async function refreshAllowedPushRegistration(
       if ((await readNativePushPermission()) !== "granted") return { success: false, skipped: true, error: "الإشعارات غير مفعّلة من النظام" };
       return { success: true, token: await registerNativeToken(options) };
     }
+    if (isNativeShell()) return { success: false, skipped: true, error: "حدّث التطبيق من App Store" };
 
     const support = await getPushSupportStatus();
 

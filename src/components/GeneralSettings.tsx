@@ -89,6 +89,8 @@ import {
   refreshPushRegistrationIfAlreadyAllowed,
   renewPushRegistrationIfAlreadyAllowed,
 } from "../lib/pushNotifications";
+import { isNativeShell } from "../lib/installBanner";
+import { pushHealthView } from "../lib/pushHealthView";
 import {
   AUTHORIZED_EMAILS,
   AUTHORIZED_PARTNERS,
@@ -2357,7 +2359,7 @@ const GeneralSettings: React.FC<Props> = ({
           : "";
       let serviceWorkerState = status.hasServiceWorker ? "مدعوم" : "غير مدعوم";
       try {
-        if (typeof navigator !== "undefined" && navigator.serviceWorker) {
+        if (!isNativeShell() && typeof navigator !== "undefined" && navigator.serviceWorker) {
           const registration = await navigator.serviceWorker.getRegistration(
             "/firebase-messaging-sw.js",
           );
@@ -2404,7 +2406,7 @@ const GeneralSettings: React.FC<Props> = ({
         verdict: ready
           ? "جاهز لاستقبال Push"
           : blocked
-            ? "يحتاج تفعيل من المتصفح"
+            ? pushHealthView(isNativeShell()).needsActivation
             : "يحتاج تفعيل/تجديد",
         tone: ready ? "success" : blocked ? "danger" : "warning",
       });
@@ -4736,14 +4738,18 @@ const GeneralSettings: React.FC<Props> = ({
                           : 'لا توجد قراءة محفوظة';
                         const hasRecentDeviceReading = latestDeviceReadAt > 0 && (Date.now() - latestDeviceReadAt) < 1000 * 60 * 60 * 24 * 14;
                         const runCustomerLikePushCheck = () => {
-                          const permission = typeof Notification !== "undefined" ? Notification.permission : "unsupported";
-                          const supportOk = pushHealth?.support === "مدعوم" || pushHealth?.support === "Supported" || (typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator);
+                          const nativeApp = isNativeShell();
+                          const healthView = pushHealthView(nativeApp);
+                          const permission = nativeApp
+                            ? (pushHealth?.permission === "مسموح" ? "granted" : pushHealth?.permission === "محظور" ? "denied" : "default")
+                            : typeof Notification !== "undefined" ? Notification.permission : "unsupported";
+                          const supportOk = pushHealth?.support === "مدعوم" || pushHealth?.support === "Supported" || (!nativeApp && typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator);
                           const duplicates = pushDevices.length - new Set(pushDevices.map((d) => d.token).filter(Boolean)).size;
                           const healthySignal = goldenDevices.length > 0 || deliveredCount > 0 || Object.values(pushTestResults).some((v) => String(v).includes('تم إرسال'));
                           const verdict = !supportOk
-                            ? "هذا المتصفح لا يدعم إشعارات الويب بالكامل؛ جرّب من جهاز عميل فعلي."
+                            ? healthView.unsupported
                             : permission !== "granted"
-                              ? "المتصفح الحالي لا يسمح بالإشعارات. فعّل الإذن ثم اضغط فحص الآن."
+                              ? healthView.permissionDenied
                               : healthySignal
                                 ? `النظام سليم. توجد ${oldTokenCount || duplicates || 0} أجهزة/توكنات قديمة تحتاج متابعة فقط، وآخر قراءة جهاز: ${latestDeviceReadLabel}.`
                                 : hasRecentDeviceReading
@@ -4960,11 +4966,11 @@ const GeneralSettings: React.FC<Props> = ({
 
                             <div className="push-browser-health-card rounded-2xl border border-rose-900/10 bg-rose-50 px-3 py-3 text-slate-900 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-[0_16px_34px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.88)]">
                               <div>
-                                <div className="text-xs font-black text-slate-950">نبض هذا المتصفح: {pushHealth.verdict}</div>
+                                <div className="text-xs font-black text-slate-950">نبض {pushHealthView(isNativeShell()).subject}: {pushHealth.verdict}</div>
                                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-slate-700">
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.support}</span>
                                   <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{pushHealth.permission}</span>
-                                  <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{arLabel(pushHealth.serviceWorker)}</span>
+                                  {pushHealthView(isNativeShell()).showServiceWorker && <span className="rounded-full bg-white/75 border border-rose-900/10 px-2 py-0.5 text-slate-700">{arLabel(pushHealth.serviceWorker)}</span>}
                                 </div>
                               </div>
                               <button
@@ -4984,7 +4990,7 @@ const GeneralSettings: React.FC<Props> = ({
                                     ["Support", pushHealth.support],
                                     ["Permission", pushHealth.permission],
                                     [arLabel("Last Registration"), arLabel(pushHealth.lastRegistration)],
-                                    [arLabel("Service Worker"), arLabel(pushHealth.serviceWorker)],
+                                    ...(pushHealthView(isNativeShell()).showServiceWorker ? [[arLabel("Service Worker"), arLabel(pushHealth.serviceWorker)]] : []),
                                   ].map(([label, value]) => (
                                     <div key={label} className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 min-w-0">
                                       <span className="block text-[11px] font-black text-white/45">{label}</span>
