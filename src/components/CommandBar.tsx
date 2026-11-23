@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
+import { isNativeShell } from '../lib/installBanner';
 import { Search, PlusCircle, Users, Package, PieChart, Sparkles, Zap, TrendingUp, X, ArrowRight, Target, Truck, Activity, DollarSign, ShoppingBag, FileText, ShieldCheck, BrainCircuit, Award, Clock3, AlertTriangle, CheckCircle2, Wallet, MapPin, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { heritageMotion } from '../lib/heritageMotion';
@@ -481,7 +482,11 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
+  // داخل تطبيق آيفون لا يتوفر التعرّف على الكلام في الصفحة: لا زرّ ميكروفون.
+  const voiceSearchAvailable = !isNativeShell();
+
   const startListening = () => {
+    if (!voiceSearchAvailable) return;
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechRecognition) {
@@ -2084,7 +2089,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                 </div>
 
                 {/* Speech to Search Trigger Button */}
-                <button
+                {voiceSearchAvailable && <button
                   type="button"
                   onClick={isListening ? stopListening : startListening}
                   className={cn(
@@ -2097,7 +2102,7 @@ const CommandBar: React.FC<CommandBarProps> = ({ isOpen, onClose, onNavigate, da
                     <span className="absolute inset-0 rounded-full border border-rose-400/30 animate-ping" />
                   )}
                   {isListening ? <MicOff size={15} /> : <Mic size={15} />}
-                </button>
+                </button>}
               </div>
 
               <button type="button" onClick={onClose} className="command-premium-close"><X size={18} /></button>
