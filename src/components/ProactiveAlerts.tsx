@@ -152,7 +152,7 @@ const ProactiveAlerts: React.FC<ProactiveAlertsProps> = ({ notifications, onMark
  <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full text-white uppercase tracking-tighter", colors.bg)}>
  {alert.insightType}
  </span>
- <span className="text-[10px] text-slate-500 font-bold">بناءً على {alert.dataReference.split(' ').slice(0, 2).join(' ')}</span>
+ <span className="text-[10px] text-slate-500 font-bold">بناءً على {(alert.dataReference || '').split(' ').slice(0, 2).join(' ')}</span>
  </div>
  <h4 className="text-sm font-bold text-slate-800 leading-snug mb-1">{alert.title}</h4>
  <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{alert.message}</p>
