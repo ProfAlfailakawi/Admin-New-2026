@@ -1,0 +1,59 @@
+/* ==========================================================================
+   حركة كبسولة التنقّل (src/utils/dockMotion.ts) — بصرية فقط.
+   الدوو: مؤشّرٌ واحد (.dm-ind) ينزلق تحت الوجهة النشطة بدل خلفيةٍ تقفز، والزرّ ينضغط
+   تحت الإصبع فورًا ويعود بنعومة. الهاتف: ليس فيه شريط وجهات، فزرّ «مركز الأوامر» العائم
+   يأخذ الضغطة وحدها. الموضع والحجم والترتيب كما هي؛ iPad وسطح المكتب لا يتغيّران.
+   ========================================================================== */
+html[data-device="duo"] .duo-dock-nav[data-dm-ready]{
+  /* لون المؤشّر = خلفية الزرّ النشط السابقة في duo-pattern.css */
+  --dm-ind-bg:rgb(255 255 255 / .16);
+  --dm-ind-ring:rgb(255 255 255 / .08);
+  --dm-ind-radius:999px;
+  transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .22s ease;
+}
+/* مرجعٌ للمؤشّر حين لا تكون الكبسولة مُموضَعة (داخل .duo-dock الثابت)؛ أدنى أولوية فلا يغلب «fixed». */
+:where(html[data-device="duo"] .duo-dock-nav){position:relative}
+html[data-device="duo"] .duo-dock-nav .dm-ind{
+  position:absolute;z-index:0;pointer-events:none;opacity:0;
+  border-radius:var(--dm-ind-radius);background:var(--dm-ind-bg);
+  box-shadow:inset 0 0 0 1px var(--dm-ind-ring);
+  transition:transform .26s cubic-bezier(.34,1.56,.64,1),opacity .2s ease;
+}
+html[data-device="duo"] .duo-dock-nav .dm-ind.dm-press{transform:scale(.94);transition-duration:.09s;transition-timing-function:ease-out}
+html[data-device="duo"] .duo-dock-nav[data-dm-ready] button{
+  position:relative;z-index:1;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .26s cubic-bezier(.34,1.56,.64,1),color .2s ease;
+}
+html[data-device="duo"] .duo-dock-nav[data-dm-ready] button.is-active,
+html[data-device="duo"] .duo-dock-nav[data-dm-ready] button:active{background:transparent}
+html[data-device="duo"] .duo-dock-nav[data-dm-ready] button.dm-press{transform:scale(.9);transition-duration:.09s;transition-timing-function:ease-out}
+html[data-device="duo"] .duo-dock-nav[data-dm-ready] button.is-active svg{animation:dm-pop .38s cubic-bezier(.32,.72,0,1)}
+@keyframes dm-pop{0%{transform:scale(.84)}55%{transform:scale(1.07)}100%{transform:none}}
+html[data-device="duo"] .duo-dock-nav[data-dm-ready] button:focus-visible{outline:2px solid #d4af37;outline-offset:2px}
+/* «+» بجانب الكبسولة: الضغطة نفسها. */
+html[data-device="duo"] .duo-dock-add{-webkit-tap-highlight-color:transparent;transition:transform .26s cubic-bezier(.34,1.56,.64,1)}
+html[data-device="duo"] .duo-dock-add:active{transform:scale(.9);transition-duration:.09s;transition-timing-function:ease-out}
+
+/* لوحة المفاتيح: تتنحّى الكبسولة وتعود حين تُغلق. */
+html[data-device="duo"] .duo-dock-nav.dm-kb{transform:translateY(calc(100% + 28px));opacity:0;pointer-events:none}
+
+/* الهاتف: زرّ «مركز الأوامر» العائم — ضغطة فورية وعودة بنابض (كان active:scale-95 بخاصية scale). */
+@media (hover:none) and (max-width:500px){
+  html:not([data-device="duo"]) button[aria-label="مركز الأوامر الذكي"]{-webkit-tap-highlight-color:transparent;transition:transform .26s cubic-bezier(.34,1.56,.64,1),box-shadow .2s ease}
+  html:not([data-device="duo"]) button[aria-label="مركز الأوامر الذكي"]:active{scale:none;transform:scale(.9);transition-duration:.09s;transition-timing-function:ease-out}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html[data-device="duo"] .duo-dock-nav[data-dm-ready],
+  html[data-device="duo"] .duo-dock-nav .dm-ind,
+  html[data-device="duo"] .duo-dock-nav[data-dm-ready] button,
+  html[data-device="duo"] .duo-dock-add,
+  html button[aria-label="مركز الأوامر الذكي"]{transition:none}
+  html[data-device="duo"] .duo-dock-nav[data-dm-ready] button.dm-press,
+  html[data-device="duo"] .duo-dock-add:active{transform:scale(.96)}
+  html[data-device="duo"] .duo-dock-nav[data-dm-ready] button.is-active svg{animation:none}
+}
+@media (prefers-contrast:more){
+  html[data-device="duo"] .duo-dock-nav[data-dm-ready]{--dm-ind-ring:#d4af37}
+}

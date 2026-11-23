@@ -21,12 +21,17 @@ import './polish-r4.css';
 import './duo-adaptive.css'; // iPhone Duo adaptive pass
 import './duo-pattern.css'; // iPhone Duo pattern (html[data-device="duo"] only)
 import './duo-stacked.css'; // iPhone Duo inner portrait: preview above the hinge, controls below; keep last
+import './dock-motion.css'; // nav capsule motion (Duo) and the phone command button press
 import { installAppUpdate } from './lib/app-update';
 import { installMobileTableCards } from './lib/mobileTableCards';
+import { installDockMotion } from './utils/dockMotion';
 
 installLocalStorageDataGuard();
 // Phone layout: label wide-table cells so they can render as stacked cards (CSS-only on mobile).
 installMobileTableCards();
+
+// حركة كبسولة التنقّل على الدوو (بصرية فقط): مؤشّر منزلق للوجهة النشطة وضغطة فورية.
+installDockMotion({ dock: '.duo-dock-nav', link: 'button', active: '.is-active' });
 
 // التحديث الذاتي الصامت: بصمة الإصدار، منارتها، ثم التحديث والتصعيد عند اللزوم.
 installAppUpdate();
