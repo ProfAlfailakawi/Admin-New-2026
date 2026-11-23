@@ -308,6 +308,30 @@ html[data-device="duo"] .duo-dock-add{
     padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
   }
   html[data-device="duo"] body:not(#x):not(#duo) .admin-content-polish :is(.ai-mission-strip,.ai-decision-deck,.ai-command-metrics){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  /* dashboard: the greeting alone left the right pane half empty under it. The page's own header (the title and the
+     section tabs) joins it there, as the index of the page, and the content under the tabs is the left pane, scrolling
+     alone. Placement only: the markup, the reading order (greeting, tabs, content) and every control stay as they are. */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"],
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"]>.dashboard{display:contents!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"]::after{display:none!important}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main:has(.admin-content-polish[data-page="dashboard"]){grid-template-rows:none;grid-auto-rows:max-content}
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"] .dashboard>:has(>.dashboard-executive-shell){
+    grid-column:1;min-width:0;margin:0 16px 12px!important;max-width:none!important;width:auto!important;padding:0!important;border:0!important;
+  }
+  /* one card (the tab strip) instead of a card around a card */
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"] .dashboard-executive-shell{
+    padding:0!important;background:none!important;border:0!important;box-shadow:none!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"] .dashboard>.dashboard-content-shell{
+    grid-column:2;grid-row:1 / span 40;position:sticky;top:0;min-width:0;max-width:none!important;width:auto!important;
+    height:100dvh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0!important;
+    padding:calc(12px + var(--duo-sa-t)) 14px calc(110px + var(--duo-sa-b))!important;
+  }
+  html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="dashboard"] .dashboard>.dashboard-content-shell::after{
+    content:"";display:block;position:sticky;bottom:calc(-110px - var(--duo-sa-b));z-index:5;
+    height:calc(120px + var(--duo-sa-b));margin:-120px -14px calc(-110px - var(--duo-sa-b));
+    background:linear-gradient(to bottom,rgb(248 244 234 / 0),var(--duo-page) 70%);pointer-events:none;
+  }
   /* settings is a stack of equal sections: they fill both panes row by row, the about card last */
   html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]{display:contents!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-content-polish[data-page="settings"] [class~="lg:col-span-2"]>*{grid-column:auto!important;min-width:0;margin:0 14px 12px!important}
@@ -411,6 +435,22 @@ html[data-device="duo"] body:has(.safe-area-drawer-overlay) aside.bp-sidebar.fix
     padding:max(12px,var(--duo-sa-t)) max(12px,var(--duo-sa-r)) max(12px,var(--duo-sa-b)) max(12px,var(--duo-sa-l))!important;
     box-sizing:border-box;
   }
+}
+
+/* sign-in: the card sat in a framed box (its own tinted panel and border) that read as a different background from the page,
+   with a seam against the dark green beside the clock column. The brand panel now sits straight on the page's own background and only
+   the form is a card, so the screen is one continuous surface; the content still stops before the column. Visual only. */
+html[data-device="duo"] body:not(#duo) .admin-login-showcase .login-showcase-shell{
+  background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+}
+html[data-device="duo"] body:not(#duo) .admin-login-showcase .login-brand-stage{
+  background:none!important;box-shadow:none!important;overflow:visible!important;border-radius:0!important;
+}
+html[data-device="duo"] body:not(#duo) .admin-login-showcase .login-brand-stage::after,
+html[data-device="duo"] body:not(#duo) .admin-login-showcase .login-stage-grid{display:none!important}
+html[data-device="duo"] body:not(#duo) .admin-login-showcase .login-form-stage{
+  border-radius:28px!important;box-shadow:0 24px 60px -24px rgba(0,0,0,.6),0 0 0 1px rgba(212,175,55,.16)!important;
 }
 
 /* ---- App: page backdrops run full-bleed under the system column ----
