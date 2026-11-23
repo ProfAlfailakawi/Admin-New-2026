@@ -40,7 +40,7 @@ describe('push inside the native iOS app', () => {
     expect(c.plugin.register).toHaveBeenCalled();
     expect(c.register).not.toHaveBeenCalled();
     expect((globalThis as any).Notification.requestPermission).not.toHaveBeenCalled();
-    expect(c.fetch.mock.calls[0][0]).toBe('/api/push/save-apns-token');
+    expect((c.fetch.mock.calls as any[][])[0][0]).toBe('/api/push/save-apns-token');
     const s = await m.getPushSupportStatus();
     expect(s.hasServiceWorker).toBe(false);
   });
