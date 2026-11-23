@@ -50,6 +50,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
   };
 
   useEffect(() => {
+    // داخل تطبيق آيفون لا تُسجَّل مستمعات التثبيت ولا يُفتح أي عرض تثبيت.
+    if (!canOfferInstall()) return;
     const checkIsStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
     setIsStandalone(checkIsStandalone);
     
@@ -113,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
         return;
       }
       if (err?.code === 'admin/update-app') {
-        setError('حدّث تطبيق إدارة التراث من TestFlight لإكمال تسجيل الدخول، أو افتح الموقع في Safari.');
+        setError('حدّث التطبيق من App Store');
         return;
       }
       console.error('Login error:', err);
@@ -181,7 +183,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, logo }) => {
       </motion.div>
 
       <AnimatePresence>
-        {showIOSPrompt && (
+        {showIOSPrompt && canOfferInstall() && (
           // Scrolls when the window is shorter than the card (folded landscape, Split View
           // with a pinned panel); my-auto keeps it centred otherwise without clipping its top.
           <div className="login-ios-prompt fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto overscroll-contain bg-slate-900/40 backdrop-blur-sm">
