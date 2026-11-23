@@ -205,6 +205,7 @@ import {
   isPaidStatus,
 } from "../lib/status-utils";
 import { GET_DEMO_DATA } from "../data";
+import { openWhatsApp } from "../lib/nativeExternal";
 
 interface DashboardProps {
   data: AppState;
@@ -5468,9 +5469,8 @@ const [isPending, startTransition] = useTransition();
                                           encodeURIComponent(randomMsg);
                                         const sanitizeWhatsAppText = (t: string) =>
                                           String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
-                                        window.open(
+                                        openWhatsApp(
                                           `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${decodeURIComponent(msg)}\n\nhttps://alturathkw.shop`))}`,
-                                          "_blank",
                                         );
                                       }}
                                       className="flex-1 bg-amber-500 text-white py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-amber-600 transition-colors"
@@ -5496,9 +5496,8 @@ const [isPending, startTransition] = useTransition();
                                           encodeURIComponent(randomMsg);
                                         const sanitizeWhatsAppText = (t: string) =>
                                           String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
-                                        window.open(
+                                        openWhatsApp(
                                           `https://api.whatsapp.com/send?phone=965${v.phone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${decodeURIComponent(msg)}\n\nhttps://alturathkw.shop`))}`,
-                                          "_blank",
                                         );
                                       }}
                                       className="flex-1 bg-emerald-500 text-white py-2 rounded-xl text-[10px] font-bold flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors"

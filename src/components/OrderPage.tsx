@@ -125,6 +125,7 @@ import {
   isFailedStatus,
   isCancelledStatus,
 } from "../lib/status-utils";
+import { openWhatsApp } from "../lib/nativeExternal";
 
 /** Badge wrapper: ONE soft accent ring (~1.2s) when the order's status really changes after first paint. */
 // Presentational: the "+N items" hover list opens upward by default; when the card sits too near the top of the
@@ -2726,11 +2727,7 @@ Alturath.kw`;
                                 return;
                               }
 
-                              window.open(
-                                getWhatsAppLink(selectedOrder),
-                                "_blank",
-                                "noopener,noreferrer",
-                              );
+                              openWhatsApp(getWhatsAppLink(selectedOrder), "noopener,noreferrer");
                             }}
                             className="w-full py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 bg-indigo-600 text-white shadow-lg hover:bg-indigo-700"
                           >

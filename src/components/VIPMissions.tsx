@@ -4,6 +4,7 @@ import { MessageCircle, Award, Target, Sparkles, ChevronRight } from 'lucide-rea
 import { AppState } from '../types';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+import { openWhatsApp } from '../lib/nativeExternal';
 
 interface VIPMissionsProps {
  data: AppState;
@@ -31,7 +32,7 @@ export const VIPMissions: React.FC<VIPMissionsProps> = ({ data }) => {
  const sanitizeWhatsAppText = (t: string) =>
    String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
  const waUrl = `https://api.whatsapp.com/send?phone=${m.phone.replace(/\D/g, '')}&text=${encodeURIComponent(sanitizeWhatsAppText(decodeURIComponent(text)))}`;
- window.open(waUrl, '_blank');
+ openWhatsApp(waUrl);
  toast.success(`تم إرسال المهمة للعميل ${m.name}`);
  };
 

@@ -90,6 +90,7 @@ import { toast } from "sonner";
 import { deleteField, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { DnaEmpty } from "./dna/DnaKit";
+import { claimWhatsAppTab } from "../lib/nativeExternal";
 
 // Default product categories shown in the invoice form.  The categories
 // "المشويات" and "المشروبات" were removed based on new requirements.  If
@@ -943,14 +944,10 @@ Alturath.kw`;
       // instead — intermittently, depending on how fast the save finished. Claiming the
       // tab here, inside the gesture, and pointing it at WhatsApp once the link exists
       // makes it deterministic. Nothing about saving, payment or notifications changes.
-      let waWindow: Window | null = null;
-      try {
-        waWindow = window.open("", "_blank");
-      } catch {
-        waWindow = null;
-      }
+      // Inside the iOS app nothing is claimed (no extra tab); see lib/nativeExternal.ts.
+      const waTab = claimWhatsAppTab();
       // Any early return past this point must not leave a blank tab behind.
-      const closeWaWindowIfUnused = () => { try { waWindow?.close(); } catch { /* already gone */ } };
+      const closeWaWindowIfUnused = () => waTab.discard();
 
       setLoading(true);
       const invoiceId =
@@ -1229,8 +1226,7 @@ Alturath.kw`;
       if (waLink && waLink !== "#") {
         // Point the tab we already claimed during the click; fall back to a fresh
         // open if the browser never gave us one.
-        if (waWindow && !waWindow.closed) waWindow.location.href = waLink;
-        else window.open(waLink, "_blank");
+        waTab.navigate(waLink);
       } else {
         closeWaWindowIfUnused();
       }

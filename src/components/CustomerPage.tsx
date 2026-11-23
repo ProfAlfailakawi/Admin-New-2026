@@ -17,6 +17,7 @@ import SmartEmptyState from './SmartEmptyState';
 import { toast } from 'sonner';
 import { NumericInput } from './ui/NumericInput';
 import { StatCardComponent as StatCard } from './StatCard';
+import { openWhatsApp } from '../lib/nativeExternal';
 
 const enforceEnglishNumbers = (val: string) =>
   String(val || '')
@@ -362,7 +363,7 @@ const CustomerPage: React.FC<CustomerPageProps> = React.memo(({ data, setData, d
   const handleSendMessage = (customer: Customer) => {
     const message = `\u2728 ${generateCustomerSmartMessage(customer, data.invoices || [], data.products || [])}\n\nhttps://alturathkw.shop`;
     const encodedMessage = encodeURIComponent(sanitizeWhatsAppText(message));
-    window.open(`https://api.whatsapp.com/send?phone=965${normalizePhoneDigits(customer.phone)}&text=${encodedMessage}`, '_blank');
+    openWhatsApp(`https://api.whatsapp.com/send?phone=965${normalizePhoneDigits(customer.phone)}&text=${encodedMessage}`);
     toast.success("تم تجهيز الرسالة الذكية", { 
       description: "تم دمج بيانات العميل مع مقترحات الأطباق المفضلة وعروض التوصيل.",
       icon: <Sparkles className="text-indigo-500" />
