@@ -5,6 +5,7 @@ import { cn, normalizeArabicNumerals, normalizeArabic, formatKuwaitiDateOnly } f
 import { AppState } from '../types';
 import { toast } from 'sonner';
 import { PromoCodePage } from './PromoCodePage';
+import { openWhatsApp } from '../lib/nativeExternal';
 
 interface LoyaltyProgramPageProps {
   data: AppState;
@@ -274,7 +275,7 @@ export const LoyaltyProgramPage: React.FC<LoyaltyProgramPageProps> = ({ data, on
 
  const handleWhatsApp = (phone: string, msg: string) => {
  const formattedPhone = phone?.startsWith('965') ? phone : `965${phone}`;
- window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${msg}\n\nhttps://alturathkw.shop`))}`, '_blank');
+ openWhatsApp(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(sanitizeWhatsAppText(`${msg}\n\nhttps://alturathkw.shop`))}`);
  };
 
  const updateLoyaltySettings = (exp: number, dyn: boolean) => {

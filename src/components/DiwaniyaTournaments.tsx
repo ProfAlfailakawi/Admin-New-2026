@@ -7,6 +7,7 @@ import { normalizeArabicNumerals } from '../lib/utils';
 import { auth, db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import LeafletKuwaitMap from './LeafletKuwaitMap';
+import { openWhatsApp as openWhatsAppLink } from '../lib/nativeExternal';
 
 export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate?: (page: string) => void }> = ({ data, setData, onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'squads' | 'settings' | 'radar'>('leaderboard');
@@ -648,7 +649,7 @@ export const DiwaniyaTournaments: React.FC<{ data: any; setData: any, onNavigate
 
   const openWhatsApp = (phone: string, squadName: string) => {
     const message = encodeURIComponent(sanitizeWhatsAppText(`\u2728 مرحباً يا ديوانية ${squadName}!\nنشكركم على ولائكم الدائم لمطبخ التراث الكويتي.`));
-    window.open(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`, '_blank');
+    openWhatsAppLink(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`);
   };
 
   const startEditTier = (tier: any) => {

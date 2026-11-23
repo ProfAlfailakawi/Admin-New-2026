@@ -5,6 +5,7 @@ import { AppState, Customer } from '../types';
 import { cn } from '../lib/utils';
 import { isPaidStatus } from '../lib/status-utils';
 import { toast } from 'sonner';
+import { openWhatsApp } from '../lib/nativeExternal';
 
 interface ClientSniperRadarProps {
  data: AppState;
@@ -135,7 +136,7 @@ const ClientSniperRadar: React.FC<ClientSniperRadarProps> = ({ data }) => {
  const sanitizeWhatsAppText = (t: string) =>
    String(t || "").replace(/[\u{1F000}-\u{1FAFF}]/gu, "").replace(/\uFFFD/g, "");
  const waUrl = `https://api.whatsapp.com/send?phone=${String(target.phone || '').replace(/\D/g, '')}&text=${encodeURIComponent(sanitizeWhatsAppText(rawMessage))}`;
- window.open(waUrl, '_blank');
+ openWhatsApp(waUrl);
  toast.success(`تم تجهيز رسالة مخصصة لـ ${target.name}`);
  setSelectedTarget(null);
  };

@@ -1,5 +1,6 @@
 import { formatKuwaitiDate } from '../lib/utils';
 import { COMMERCIAL_REGISTRATION_NUMBER, LEGAL_TRADE_NAME_AR } from '../lib/legalIdentity';
+import { openWhatsApp, printHtmlDocument } from '../lib/nativeExternal';
 // Keep icons as tokens until after encodeURIComponent. This prevents broken
 // environments from converting emojis into replacement characters (�) before
 // WhatsApp receives them.
@@ -182,7 +183,7 @@ export const openWhatsAppInvoiceText = (order: any, products: any[] = []) => {
   const text = encodeWhatsAppTextWithIcons(buildWhatsAppInvoiceText(order, products));
   let digits = String(phone || '').replace(/\D/g, '');
   if (digits.length === 8) digits = `965${digits}`;
-  window.open(`https://api.whatsapp.com/send?phone=${digits}&text=${text}`, '_blank');
+  openWhatsApp(`https://api.whatsapp.com/send?phone=${digits}&text=${text}`);
 };
 
 const buildInvoiceHTML = (order: any, products: any[] = []) => {
@@ -325,9 +326,7 @@ const buildInvoiceHTML = (order: any, products: any[] = []) => {
 
 export const openPrintableInvoice = (order: any, products: any[] = []) => {
   const html = buildInvoiceHTML(order, products);
-  const w = window.open('', '_blank');
-  w?.document.write(html);
-  w?.document.close();
+  printHtmlDocument(html);
 };
 
 export const shareOrPrintInvoice = async (order: any, products: any[] = []) => {

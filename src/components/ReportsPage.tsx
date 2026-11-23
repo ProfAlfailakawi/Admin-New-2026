@@ -89,6 +89,7 @@ import OrderPage from "./OrderPage";
 import { arLabel } from '../lib/arabicLabels';
 import { DnaEmpty, DnaCountUp } from "./dna/DnaKit";
 import { ReportsInsights } from "./ReportsInsights";
+import { openWhatsApp, printHtmlDocument } from "../lib/nativeExternal";
 
 const getInvoiceAddress = (inv: any, customerObj?: any): string => {
   if (inv.fullAddress) return inv.fullAddress;
@@ -751,11 +752,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
 
     const handlePrint = (invoice: Invoice) => {
       import("../lib/printUtils").then(({ generateInvoiceHTML }) => {
-        const printWindow = window.open("", "_blank");
-        if (!printWindow) return;
-        const htmlContent = generateInvoiceHTML(invoice, data);
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
+        printHtmlDocument(generateInvoiceHTML(invoice, data));
       });
     };
 
@@ -957,7 +954,7 @@ const ReportsPage: React.FC<ReportsPageProps> = React.memo(
                 gateway_order_id: createdGatewayOrderId,
               });
               if (waLink && waLink !== "#")
-                window.open(waLink, "_blank", "noopener,noreferrer");
+                openWhatsApp(waLink, "noopener,noreferrer");
             }, 500);
           } else {
             toast.dismiss(loadingToast);
@@ -1649,11 +1646,7 @@ Alturath.kw`;
                                         } else {
                                           const waLink = getWhatsAppLink(inv);
                                           if (waLink && waLink !== "#") {
-                                            window.open(
-                                              waLink,
-                                              "_blank",
-                                              "noopener,noreferrer",
-                                            );
+                                            openWhatsApp(waLink, "noopener,noreferrer");
                                           } else {
                                             import("sonner").then((m) =>
                                               m.toast.error(
