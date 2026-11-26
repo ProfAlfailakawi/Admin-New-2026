@@ -27,3 +27,16 @@ describe('smart install button', () => {
     expect(canOfferInstall({ nativeShell: false })).toBe(true);
   });
 });
+
+describe('published store links', () => {
+  it('ships both store links', async () => {
+    const m = await import('../lib/installBanner');
+    expect(m.APP_STORE_URL).toBe('https://apps.apple.com/kw/app/id6834583493');
+    expect(m.PLAY_STORE_URL).toBe('https://play.google.com/store/apps/details?id=kw.edu.alturath.admin');
+  });
+  it('opens Google Play on Android browsers with the shipped links', async () => {
+    const m = await import('../lib/installBanner');
+    const ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36';
+    expect(m.installStoreUrl({ userAgent: ANDROID, nativeShell: false })).toBe(m.PLAY_STORE_URL);
+  });
+});
