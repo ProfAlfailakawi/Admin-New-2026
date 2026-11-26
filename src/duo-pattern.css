@@ -577,7 +577,8 @@ html[data-device="duo"] body:has(.fixed.top-0.bottom-0.right-0.w-full.max-w-sm) 
 /* ==========================================================================
    2026-11-26 (owner, outer screen in the app): the clock widget is ~235pt tall on the device.
    - The «+» and the navigation capsule start under it (--duo-clock-end above); when the screen is
-     too short for the whole capsule (outer landscape) the capsule scrolls inside itself.
+     too short for the whole capsule (outer landscape) the capsule reaches down to the home indicator
+     (the bottom row stops before the column) and scrolls inside itself.
    - One calm bottom row: command, assistant, alerts, back-to-top and the period selector sit side by
      side in the bottom strip, between the screen edge and the clock column, above the home indicator;
      the page keeps a bottom padding of the row's height so no card sits under them.
@@ -586,7 +587,7 @@ html[data-device="duo"] body:has(.fixed.top-0.bottom-0.right-0.w-full.max-w-sm) 
    ========================================================================== */
 @media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
   html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock .duo-dock-nav{
-    max-height:calc(100dvh - var(--duo-clock-end) - 56px - 12px - var(--strip,64px) - 8px);
+    max-height:calc(100dvh - var(--duo-clock-end) - 56px - 12px - var(--duo-sa-b) - 8px);
     overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;justify-content:flex-start;
   }
   html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock .duo-dock-nav::-webkit-scrollbar{display:none}
