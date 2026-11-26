@@ -47,7 +47,8 @@ export default function InstallPrompt() {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     let fallbackTimer: NodeJS.Timeout;
     
-    if (isIOS) {
+    // ومثلها أي جهاز له تطبيق في المتجر (أندرويد مع Google Play): الدعوة للتطبيق لا تنتظر حدث المتصفح.
+    if (isIOS || installStoreUrl()) {
       fallbackTimer = setTimeout(() => {
         const checkStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
         if (!checkStandalone && !sessionStorage.getItem('pwa_prompt_dismissed')) {
@@ -142,7 +143,7 @@ export default function InstallPrompt() {
               <div className="flex-1 mt-1.5">
                 <h3 className="text-[22px] font-bold text-[#0f3d1f] mb-1.5 tracking-tight">{installStoreUrl() ? 'حمّل تطبيق التراث' : 'ثبّت تطبيق التراث'}</h3>
                 <p className="text-[#55625a] text-[15px] font-bold leading-relaxed w-[90%]">
-                  للوصول السريع وتجربة أسهل من الشاشة الرئيسية
+                  {installStoreUrl() ? 'التطبيق الرسمي من المتجر، بإشعارات فورية' : 'للوصول السريع وتجربة أسهل من الشاشة الرئيسية'}
                 </p>
               </div>
             </div>

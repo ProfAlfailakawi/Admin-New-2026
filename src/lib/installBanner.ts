@@ -3,12 +3,12 @@
  *
  *  - داخل تطبيق آيفون (Capacitor): لا يظهر أي عرض تثبيت.
  *  - آيفون/آيباد في المتصفح: يفتح صفحة التطبيق في App Store.
- *  - أندرويد: يفتح Google Play متى عُبّئ PLAY_STORE_URL؛ وإلا يبقى التثبيت على الشاشة الرئيسية كما هو.
+ *  - أندرويد: يفتح Google Play (PLAY_STORE_URL)؛ ولو أُفرغ يعود التثبيت على الشاشة الرئيسية كما كان.
  *  - الحاسوب: بلا تغيير (نافذة التثبيت من المتصفح).
  */
 export const APP_STORE_URL = 'https://apps.apple.com/kw/app/id6834583493';
-/** يُعبّأ حين تصير للتطبيق صفحة عامة في Google Play. الفارغ = يبقى الوضع الحالي. */
-export const PLAY_STORE_URL = '';
+/** صفحة التطبيق في Google Play. الفارغ = يبقى التثبيت على الشاشة الرئيسية في أندرويد. */
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=kw.edu.alturath.admin';
 
 export type InstallPlatform = 'ios' | 'android' | 'desktop';
 

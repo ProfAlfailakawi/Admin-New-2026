@@ -55,5 +55,17 @@
       "form_factor": "wide",
       "label": "شركة مطبخ التراث الكويتي"
     }
-  ]
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=kw.edu.alturath.admin",
+      "id": "kw.edu.alturath.admin"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/id6834583493"
+    }
+  ],
+  "prefer_related_applications": false
 }
