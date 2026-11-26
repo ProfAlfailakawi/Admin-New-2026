@@ -83,6 +83,7 @@ import {
 } from "lucide-react";
 import { DnaHubMap, DnaCountUp } from "./dna/DnaKit";
 import { DailySalesArea, ExpensePie } from "./DashboardCharts";
+import { ExecutivePulseOrbit, type PulseOrbitOrder } from "./ExecutivePulseOrbit";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -1527,6 +1528,23 @@ const [isPending, startTransition] = useTransition();
       data?.supplierTransfers,
       dateFilter,
     ]);
+
+    // «مدار النبض» (display only): today's paid orders, same paid rule as the daily sales chart.
+    const pulseOrbitTodayPaid = useMemo<PulseOrbitOrder[]>(() => {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const out: PulseOrbitOrder[] = [];
+      (unifiedInvoices || []).forEach((inv: any) => {
+        if (inv.isDeleted) return;
+        const isPaid = (isPaidStatus(inv.paymentStatus) || (inv.paymentStatus === undefined && !isCancelledStatus(inv.status) && !isFailedStatus(inv.status))) && !String(inv.status).includes("تجميع القطية") && inv.paymentStatus !== "split_pending" && inv.status !== "split_pending";
+        if (!isPaid) return;
+        const t = new Date(inv.date).getTime();
+        if (isNaN(t) || t < start.getTime()) return;
+        out.push({ id: String(inv.id), total: computeInvoiceTotal(inv, data?.products || []), time: t });
+      });
+      return out;
+    }, [unifiedInvoices, data?.products]);
+    const pulseOrbitPeriodLabel = ({ day: "اليوم", week: "آخر 7 أيام", month: "آخر 30 يوماً", year: "آخر سنة", all: "كل الفترات" } as const)[dateFilter];
 
     // All Active Invoices
     const allInvoices = useMemo(() => {
@@ -3848,6 +3866,14 @@ const [isPending, startTransition] = useTransition();
 
             {activeTab === "pulse" && (
               <React.Fragment>
+                <ExecutivePulseOrbit
+                  margin={profitMargin}
+                  sales={totalSalesVal}
+                  cost={totalCostVal + totalExpensesVal}
+                  profit={Math.max(0, netProfit)}
+                  periodLabel={pulseOrbitPeriodLabel}
+                  todayPaid={pulseOrbitTodayPaid}
+                />
                 {/* Real Profit Alert Hero - High Visibility */}
                 {profitInsights.some(insight => insight.riskLevel === 'high') && (
                   <motion.div 
