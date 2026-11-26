@@ -55,7 +55,12 @@ export function installDuoMarkers(): void {
     const cs = getComputedStyle(probe);
     const l = parseFloat(cs.paddingLeft) || 0;
     const r = parseFloat(cs.paddingRight) || 0;
-    root.dataset.widgetSide = l > 20 && l > r ? 'left' : r > 20 ? 'right' : 'none';
+    let side = l > 20 && l > r ? 'left' : r > 20 ? 'right' : 'none';
+    // Inner landscape in the app: iOS can report zero insets while the clock sits in the top-right
+    // corner, so pages ran under it. The corner is kept as the clock column there.
+    if (side === 'none' && root.dataset.shell === 'app' && root.dataset.device === 'duo'
+      && window.matchMedia?.('screen and (orientation: landscape) and (min-width: 860px) and (max-width: 1000px) and (min-height: 500px) and (max-height: 760px)')?.matches) side = 'right';
+    root.dataset.widgetSide = side;
   };
   markWidgetSide();
   // The probe is 0x0 and the insets are its padding, so its border box is what changes.
