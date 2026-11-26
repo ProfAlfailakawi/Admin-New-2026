@@ -36,7 +36,7 @@
   --duo-tint:#efe6d2;
   --duo-glass:rgb(15 23 42 / .86);
   --duo-accent:#0f3d2b;
-  --duo-clock-end:160px;
+  --duo-clock-end:176px;
 }
 
 /* ---- 1. Top bar: under the clock strip, beside the clock column ---- */
@@ -216,8 +216,10 @@ html[data-device="duo"] .duo-dock-add{
 @media screen and (orientation:landscape) and (min-width:800px) and (min-height:521px){
   html[data-device="duo"] body:not(#x):not(#duo){
     --strip:calc(64px + var(--duo-sa-b));
-    --duo-pane-r:calc(50vw - var(--duo-gap) / 2 - var(--duo-sa-r));
-    --duo-pane-l:calc(50vw - var(--duo-gap) / 2 - var(--duo-sa-l));
+    /* equal panes: the same margin on both sides (the clock column's width), so the gap sits on the hinge */
+    --duo-side:max(var(--duo-sa-r),var(--duo-sa-l));
+    --duo-pane-r:calc(50vw - var(--duo-gap) / 2 - var(--duo-side));
+    --duo-pane-l:calc(50vw - var(--duo-gap) / 2 - var(--duo-side));
     --duo-right-x:calc(50vw + var(--duo-gap) / 2);
     --dock:0px;
     background:var(--duo-page);
@@ -249,7 +251,7 @@ html[data-device="duo"] .duo-dock-add{
   html[data-device="duo"] body:not(#x):not(#duo) .admin-heritage-shell .admin-app-main{
     display:grid!important;grid-template-columns:var(--duo-pane-r) var(--duo-pane-l);column-gap:var(--duo-gap);
     align-content:start;align-items:start;grid-auto-flow:row dense;
-    padding:0 var(--duo-sa-r) 0 var(--duo-sa-l)!important;
+    padding:0 var(--duo-side)!important;
     background:none!important;overflow-y:auto;
   }
   html[data-device="duo"] body:not(#x):not(#duo) .admin-app-main .admin-page-frame,
@@ -348,7 +350,7 @@ html[data-device="duo"] .duo-dock-add{
   html[data-device="duo"] .duo-dock{
     display:flex;align-items:center;gap:10px;position:fixed;z-index:120;
     bottom:max(10px,calc(var(--duo-sa-b) - 8px));
-    left:calc(var(--duo-sa-l) + var(--duo-pane-l) / 2);transform:translateX(-50%);
+    left:calc(var(--duo-side) + var(--duo-pane-l) / 2);transform:translateX(-50%);
   }
   html[data-device="duo"] .duo-dock .duo-dock-nav{flex-direction:row}
   html[data-device="duo"] .duo-dock .duo-strip-title{display:none}
@@ -388,12 +390,12 @@ html[data-device="duo"] .duo-dock-add{
 
   /* dialogs, the command bar and the order inspector open on the left pane, never on the hinge */
   html[data-device="duo"] body .fixed.inset-0.flex.items-center.justify-center:not(.admin-order-details-modal){
-    padding-right:calc(var(--duo-right-x,calc(50vw + var(--duo-gap) / 2)) + 12px)!important;padding-left:max(12px,var(--duo-sa-l))!important;
+    padding-right:calc(var(--duo-right-x,calc(50vw + var(--duo-gap) / 2)) + 12px)!important;padding-left:max(12px,var(--duo-side,var(--duo-sa-l)))!important;
   }
   html[data-device="duo"] body .command-bar-layer{padding-right:calc(var(--duo-right-x,calc(50vw + var(--duo-gap) / 2)) + 12px)!important}
   html[data-device="duo"] body:not(#x):not(#duo) .admin-order-details-modal>div:nth-child(2){
     position:fixed!important;margin:0!important;transform:none!important;
-    right:auto!important;left:max(12px,var(--duo-sa-l))!important;
+    right:auto!important;left:max(12px,var(--duo-side,var(--duo-sa-l)))!important;
     top:max(12px,var(--duo-sa-t))!important;bottom:12px!important;
     width:calc(var(--duo-pane-l) - 24px)!important;max-width:none!important;height:auto!important;max-height:none!important;
     border-radius:26px!important;
@@ -542,4 +544,29 @@ html[data-device="duo"] body .fixed.top-0.bottom-0.right-0.w-full.max-w-sm{right
 html[data-device="duo"] body:has(:is(.instagram-magic-panel,.command-bar-layer)) :is(.duo-dock,.demo-banner,.ktk-install-sheet.is-chip,[data-floating='secondary']),
 html[data-device="duo"] body:has(.fixed.top-0.bottom-0.right-0.w-full.max-w-sm) :is(.duo-dock,.demo-banner,.ktk-install-sheet.is-chip){
   visibility:hidden!important;
+}
+
+/* ==========================================================================
+   2026-11-26 (owner): nothing under the clock, the hinge in the middle, one navigation capsule.
+   - Inner landscape in the app: iOS can report a zero right inset while the clock sits in the
+     top-right corner (duoMarkers.ts then calls the side "right"). The clock column is kept there.
+   - The «+» and the dark navigation capsule sit in the clock column under the clock in every posture
+     that has one (outer screen, and inner landscape in the app), in the same place and look.
+     Safari (no clock column) keeps the floating glass toolbar under the left pane.
+   ========================================================================== */
+@media screen and (orientation:landscape) and (min-width:800px) and (max-width:1000px) and (min-height:521px) and (max-height:760px){
+  html[data-device="duo"][data-shell="app"][data-widget-side="right"]{--duo-sa-r:max(env(safe-area-inset-right,0px),84px)}
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock{
+    flex-direction:column;gap:12px;top:var(--duo-clock-end);bottom:auto;transform:none;
+  }
+  html[data-device="duo"][data-shell="app"][data-widget-side="right"] .duo-dock{left:auto;right:calc((var(--duo-sa-r) - 56px) / 2)}
+  html[data-device="duo"][data-shell="app"][data-widget-side="left"] .duo-dock{right:auto;left:calc((var(--duo-sa-l) - 56px) / 2)}
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock .duo-dock-nav{flex-direction:column}
+}
+/* the pulse orbit card in a pane (~360px now that both panes are equal): the picture over its legend,
+   as on the outer screen, instead of a legend squeezed beside it into one letter per line */
+@media screen and (orientation:landscape) and (min-width:800px) and (max-width:1000px) and (min-height:521px){
+  html[data-device="duo"] body .pulse-orbit-body{flex-direction:column;align-items:center;gap:12px}
+  html[data-device="duo"] body .pulse-orbit-stage{width:min(200px,30dvh);max-width:200px}
+  html[data-device="duo"] body .pulse-orbit-legend{flex:none;width:100%}
 }
