@@ -36,7 +36,10 @@
   --duo-tint:#efe6d2;
   --duo-glass:rgb(15 23 42 / .86);
   --duo-accent:#0f3d2b;
-  --duo-clock-end:176px;
+  /* the clock widget on the real outer screen runs from the top pill down to the battery ring (~235pt,
+     owner's device shots 2026-11-26), taller than in emulation: the column's first control starts below it,
+     or below the height the native shell publishes when that is larger */
+  --duo-clock-end:max(244px,calc(var(--duo-widget-h,0px) + 8px));
 }
 
 /* ---- 1. Top bar: under the clock strip, beside the clock column ---- */
@@ -160,7 +163,7 @@ html[data-device="duo"] body [data-sonner-toaster]{
   html[data-device="duo"][data-shell="app"][data-widget-side="left"] .duo-dock{left:calc((var(--duo-sa-l) - 56px) / 2)}
   html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock-nav{flex-direction:column}
 }
-@media screen and (orientation:landscape){
+@media screen and (orientation:landscape) and (min-height:521px){
   html[data-device="duo"][data-shell="app"]{--duo-clock-end:124px}
 }
 
@@ -569,4 +572,58 @@ html[data-device="duo"] body:has(.fixed.top-0.bottom-0.right-0.w-full.max-w-sm) 
   html[data-device="duo"] body .pulse-orbit-body{flex-direction:column;align-items:center;gap:12px}
   html[data-device="duo"] body .pulse-orbit-stage{width:min(200px,30dvh);max-width:200px}
   html[data-device="duo"] body .pulse-orbit-legend{flex:none;width:100%}
+}
+
+/* ==========================================================================
+   2026-11-26 (owner, outer screen in the app): the clock widget is ~235pt tall on the device.
+   - The «+» and the navigation capsule start under it (--duo-clock-end above); when the screen is
+     too short for the whole capsule (outer landscape) the capsule scrolls inside itself.
+   - One calm bottom row: command, assistant, alerts, back-to-top and the period selector sit side by
+     side in the bottom strip, between the screen edge and the clock column, above the home indicator;
+     the page keeps a bottom padding of the row's height so no card sits under them.
+     The selectors name each control by its own class or label as well, so the row holds whatever
+     attribute the control carries. Same buttons, same behaviour.
+   ========================================================================== */
+@media screen and (orientation:portrait),screen and (orientation:landscape) and (max-height:520px){
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock .duo-dock-nav{
+    max-height:calc(100dvh - var(--duo-clock-end) - 56px - 12px - var(--strip,64px) - 8px);
+    overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;justify-content:flex-start;
+  }
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock .duo-dock-nav::-webkit-scrollbar{display:none}
+  html[data-device="duo"][data-shell="app"]:not([data-widget-side="none"]) .duo-dock .duo-dock-nav button{flex:none}
+}
+@media screen and (orientation:portrait) and (max-width:559px){
+  html[data-device="duo"][data-shell="app"]{--duo-row-h:44px;--duo-row-b:calc(10px + var(--duo-sa-b))}
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) :is(
+    .fixed[data-floating='secondary'].left-1\/2,
+    div.fixed:has(> button[aria-label="مركز الأوامر الذكي"]),
+    .fixed.bottom-40.left-6,
+    .fixed.bottom-44.right-6,
+    button.fixed[aria-label^='الرجوع للأعلى'],
+    .fixed.bottom-6.left-0.right-0:has(.admin-date-filter-elegant)){
+    top:auto!important;bottom:var(--duo-row-b)!important;margin:0!important;
+    transform:none!important;translate:none!important;
+  }
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) :is(.fixed[data-floating='secondary'].left-1\/2,div.fixed:has(> button[aria-label="مركز الأوامر الذكي"])){
+    left:calc(12px + var(--duo-sa-l))!important;right:auto!important;
+  }
+  /* left to right: command, assistant, back-to-top (while shown), then the wand when it is shown — no empty slot */
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) .fixed.bottom-44.right-6{left:calc(60px + var(--duo-sa-l))!important;right:auto!important}
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) button.fixed[aria-label^='الرجوع للأعلى']{
+    left:calc(108px + var(--duo-sa-l))!important;right:auto!important;width:44px!important;height:44px!important;
+  }
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) .fixed.bottom-40.left-6{left:calc(156px + var(--duo-sa-l))!important;right:auto!important}
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row):not(:has(button.fixed[aria-label^='الرجوع للأعلى'])) .fixed.bottom-40.left-6{left:calc(108px + var(--duo-sa-l))!important}
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) .fixed.bottom-6.left-0.right-0:has(.admin-date-filter-elegant){
+    left:auto!important;right:calc(8px + var(--duo-sa-r))!important;width:auto!important;padding:0!important;justify-content:flex-end!important;
+  }
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) .admin-date-filter-elegant{height:44px!important;width:168px!important;max-width:168px!important}
+  /* the page ends above the row: the strip's height (row + its air + the home indicator) */
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row) .admin-heritage-shell .admin-app-main{
+    padding-bottom:calc(var(--duo-row-b) + var(--duo-row-h) + 16px)!important;
+    scroll-padding-bottom:calc(var(--duo-row-b) + var(--duo-row-h) + 16px);
+  }
+  html[data-device="duo"][data-shell="app"] body:not(#x):not(#duo):not(#row):has(.demo-banner) .admin-heritage-shell .admin-app-main{
+    padding-bottom:calc(var(--duo-row-b) + var(--duo-row-h) + 64px)!important;
+  }
 }
